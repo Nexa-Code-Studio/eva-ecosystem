@@ -127,7 +127,12 @@ class CallPersistenceService:
             session.is_history_loaded = True
 
     @staticmethod
-    async def save_message(session: Any, role: str, content: str) -> None:
+    async def save_message(
+        session: Any,
+        role: str,
+        content: str,
+        analysis_result: dict[str, Any] | None = None,
+    ) -> None:
         """Persist a single voice turn message and trigger ML emotion detection."""
         if not session.db_conversation_id or not content.strip():
             return
@@ -157,12 +162,13 @@ class CallPersistenceService:
 
                     if role == "user" and content and content.strip():
                         try:
-                            buf = audio_buffer_service.get_or_create_buffer(session.session_id)
-                            turn_audio_bytes = buf.get_full_audio() if buf.total_bytes > 0 else None
-                            buf.clear()
-                            analysis_result = await MLEmotionDetectorService.predict_message_emotion(
-                                content, audio_bytes=turn_audio_bytes
-                            )
+                            if analysis_result is None:
+                                buf = audio_buffer_service.get_or_create_buffer(session.session_id)
+                                turn_audio_bytes = buf.get_full_audio() if buf.total_bytes > 0 else None
+                                buf.clear()
+                                analysis_result = await MLEmotionDetectorService.predict_message_emotion(
+                                    content, audio_bytes=turn_audio_bytes
+                                )
                             await MLEmotionDetectorService.save_emotion_to_db(msg.id, analysis_result, db)
                             logger.info(f"🧠 [VOICE EMOTION PERSISTED]: Saved emotion for voice turn message {msg.id}")
                         except Exception as emo_err:

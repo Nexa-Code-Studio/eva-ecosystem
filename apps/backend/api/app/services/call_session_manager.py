@@ -46,6 +46,8 @@ from packages.ai.utils.voice_character_modes import (
     DEFAULT_VOICE_MODE,
     get_voice_character_mode,
 )
+from shared.domain_types import EmotionDetectionResult
+
 
 logger = logging.getLogger(__name__)
 
@@ -149,8 +151,14 @@ class CallSessionManager:
     async def load_conversation_history(self, session: CallSession) -> None:
         await CallPersistenceService.load_conversation_history(session)
 
-    async def _save_message_to_db(self, session: CallSession, role: str, content: str) -> None:
-        await CallPersistenceService.save_message(session, role, content)
+    async def _save_message_to_db(
+        self,
+        session: CallSession,
+        role: str,
+        content: str,
+        analysis_result: dict[str, Any] | None = None,
+    ) -> None:
+        await CallPersistenceService.save_message(session, role, content, analysis_result=analysis_result)
 
     async def update_session_end(self, session_id: str, duration_seconds: int | None = None) -> None:
         session = self.get_session(session_id)
@@ -459,13 +467,41 @@ class CallSessionManager:
         else:
             session.conversation_history.append(LLMMessage(role="user", content=final_transcript))
 
+        # 1. Single-pass unified emotion detection from audio buffer or text
+        analysis_result: dict[str, Any] | None = None
+        precomputed_emotion: EmotionDetectionResult | None = None
+        try:
+            buf = audio_buffer_service.get_or_create_buffer(session.session_id)
+            turn_audio_bytes = buf.get_full_audio() if buf.total_bytes > 0 else None
+            buf.clear()
+            analysis_result = await MLEmotionDetectorService.predict_message_emotion(
+                final_transcript, audio_bytes=turn_audio_bytes
+            )
+            scores = {item["name"]: float(item["percent"]) for item in analysis_result.get("emotions_breakdown", [])}
+            precomputed_emotion = EmotionDetectionResult(
+                primary_emotion=analysis_result.get("primary_emotion", "neutral"),
+                confidence=float(analysis_result.get("confidence", 0.5)),
+                intensity=float(analysis_result.get("intensity", 0.5)),
+                secondary_emotion=analysis_result.get("secondary_emotion"),
+                scores=scores,
+                model_used=analysis_result.get("model_name", "emotion2vec_plus_large"),
+                latency_ms=float(analysis_result.get("latency_ms", 0.0)),
+            )
+        except Exception as emo_err:
+            logger.warning(f"⚠️ [EMOTION DETECTION EXCEPTION] Session {session.session_id}: {emo_err}")
+
         session.current_task_id = assistant_turn_id
         session._current_ai_task = asyncio.create_task(
-            self._process_ai_response_pipeline(session, assistant_turn_id)
+            self._process_ai_response_pipeline(
+                session, assistant_turn_id, precomputed_emotion=precomputed_emotion
+            )
         )
 
         # Save user message and emotion to DB concurrently in background without blocking audio pipeline
-        asyncio.create_task(self._save_message_to_db(session, "user", final_transcript))
+        asyncio.create_task(
+            self._save_message_to_db(session, "user", final_transcript, analysis_result=analysis_result)
+        )
+
 
     # Legacy method wrapper
     async def handle_user_transcript(self, session: CallSession, user_text: str) -> None:
@@ -525,7 +561,12 @@ class CallSessionManager:
         except Exception as e:
             logger.error(f"⚠️ [SUMMARY EVENT EXCEPTION] Session {session.session_id}: {e}")
 
-    async def _process_ai_response_pipeline(self, session: CallSession, task_id: int) -> None:
+    async def _process_ai_response_pipeline(
+        self,
+        session: CallSession,
+        task_id: int,
+        precomputed_emotion: EmotionDetectionResult | None = None,
+    ) -> None:
         t_start = time.perf_counter()
         t_llm_first_token: float | None = None
         t_tts_first_audio: float | None = None
@@ -553,6 +594,7 @@ class CallSessionManager:
                 conversation_history=session.conversation_history,
                 dass_scores=session.dass_scores,
                 user_name=session.user_name,
+                precomputed_emotion=precomputed_emotion,
             )
             session.latest_orchestration_turn = turn
 
@@ -575,12 +617,14 @@ class CallSessionManager:
             # Dynamic Voice Resolution: Voice Character Mode + Empathetic Adaptive Emotion Modulation
             detected_emo = turn.emotion.primary_emotion if turn.emotion else "neutral"
             confidence = turn.emotion.confidence if turn.emotion else 0.5
+            intensity = getattr(turn.emotion, "intensity", 0.5) if turn.emotion else 0.5
             risk = turn.safety_decision.risk_level if turn.safety_decision else "low"
 
             dyn_res = resolve_dynamic_voice_style(
                 mode_id=session.voice_mode,
                 detected_emotion=detected_emo,
                 confidence=confidence,
+                intensity=intensity,
                 risk_level=risk,
             )
             delivery_style = dyn_res.delivery_style
