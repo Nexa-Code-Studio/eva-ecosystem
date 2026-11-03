@@ -55,7 +55,7 @@ export function CTA() {
           data-cursor-theme="dark"
           className="reveal relative isolate overflow-hidden rounded-[32px] border border-white/10 bg-obsidian px-6 py-14 sm:px-12 sm:py-20 lg:px-24 lg:py-24 shadow-2xl"
         >
-          {/* Ambient atmosphere behind the orb */}
+          {/* Ambient atmosphere behind the orb: Purpose-Gate (R-01/R-13) - focal atmosphere anchor for brand identity LunaOrb on obsidian card */}
           <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
             <div className="absolute -top-1/2 left-1/2 size-[680px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(83,88,203,0.35)_0%,transparent_70%)]" />
           </div>
@@ -77,7 +77,7 @@ export function CTA() {
               <div className="mt-6 inline-flex items-center gap-2 rounded-pill border border-primary-light/30 bg-primary/25 py-2 pr-3 pl-4 text-caption !tracking-normal text-white backdrop-blur-sm animate-enter">
                 <Sparkles className="size-3.5 text-primary-light" />
                 <span>
-                  Topik Kemitraan: <strong>{partnerTopic}</strong> — hubungi tim kami di{' '}
+                  Topik Kemitraan: <strong>{partnerTopic}</strong>: hubungi tim kami di{' '}
                   <a
                     href={`mailto:kemitraan@eva.id?subject=${encodeURIComponent(`Kemitraan EVA: ${partnerTopic}`)}`}
                     className="underline decoration-primary-light font-bold hover:text-primary-light"

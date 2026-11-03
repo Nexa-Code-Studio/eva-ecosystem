@@ -85,7 +85,7 @@ export function ScreeningScreen() {
       <div className="mx-4 mt-2.5 rounded-[18px] bg-luna-insight p-3.5">
         <p className="text-[11.5px] font-bold text-ink">Jembatan ke Psikolog</p>
         <p className="mt-1 text-[10.5px] leading-snug text-secondary-dark">
-          Intake Summary siap dibagikan — tanpa isi obrolan pribadimu.
+          Intake Summary siap dibagikan, tanpa isi obrolan pribadimu.
         </p>
         <span className="mt-2.5 inline-flex h-8 items-center rounded-pill bg-primary px-3.5 text-[10.5px] font-semibold text-white shadow-btn">
           Hubungkan dengan psikolog HIMPSI

@@ -60,8 +60,8 @@ export function ApplyStep3AccountConfirm({
           </button>
         </div>
         <p className="mt-1 text-ink-soft">
-          Izin: {licenseNumber.trim() || '—'} · {city.trim() || '—'} · PIC: {picName.trim() || '—'}{' '}
-          ({phone.trim() || '—'})
+          Izin: {licenseNumber.trim() || '-'} · {city.trim() || '-'} · PIC: {picName.trim() || '-'}{' '}
+          ({phone.trim() || '-'})
         </p>
       </div>
 

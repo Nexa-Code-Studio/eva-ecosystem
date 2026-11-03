@@ -32,7 +32,7 @@ const variants: Record<Variant, string> = {
 const sizes: Record<Size, string> = {
   sm: 'h-10 px-4 text-xs font-semibold',
   md: 'h-[50px] px-6 text-sm font-semibold',
-  lg: 'h-[54px] px-8 text-base font-bold tracking-wide', // 54px — mobile CustomPillButton height
+  lg: 'h-[54px] px-8 text-base font-bold tracking-wide', // 54px: mobile CustomPillButton height
 }
 
 interface CommonProps {

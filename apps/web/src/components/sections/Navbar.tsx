@@ -62,8 +62,8 @@ export function Navbar() {
             href="#top"
             onClick={(e) => handleNavClick(e, 'top')}
             data-cursor="BERANDA"
-            aria-label="EVA — kembali ke atas"
-            className="shrink-0"
+            aria-label="EVA: kembali ke atas"
+            className="shrink-0 rounded-pill focus-visible:outline-2 focus-visible:outline-primary"
           >
             <Logo />
           </a>
@@ -87,7 +87,7 @@ export function Navbar() {
                 data-cursor="LIHAT"
                 aria-current={active === l.id ? 'true' : undefined}
                 className={cn(
-                  'relative z-10 rounded-[16px] px-4 py-2 text-body-md font-semibold transition-colors duration-[250ms]',
+                  'relative z-10 rounded-[16px] px-4 py-2 text-body-md font-semibold transition-colors duration-[250ms] focus-visible:outline-2 focus-visible:outline-primary',
                   active === l.id ? 'text-primary' : 'text-ink-soft hover:text-ink',
                 )}
               >
@@ -171,7 +171,7 @@ export function Navbar() {
             size="lg"
             className="mt-2"
           >
-            Coba EVA Sekarang — Gratis
+            Coba EVA Sekarang (Gratis)
           </Button>
         </div>
       </Container>

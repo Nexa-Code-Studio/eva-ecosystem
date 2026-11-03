@@ -146,7 +146,7 @@ export function LoginPage() {
 
       <main id="main-content" className="mx-auto my-8 w-full max-w-[400px]">
         <div className="mb-6 flex flex-col items-center text-center">
-          <Link to="/" aria-label="EVA — Beranda" className="inline-flex flex-col items-center gap-3">
+          <Link to="/" aria-label="EVA: Beranda" className="inline-flex flex-col items-center gap-3">
             <LunaOrb className="size-12" />
             <span className="text-xl font-bold tracking-[-0.02em] text-ink">EVA</span>
           </Link>
@@ -202,7 +202,7 @@ export function LoginPage() {
       )}
 
       <footer className="mx-auto w-full max-w-5xl text-center text-xs text-ink-muted">
-        © {year} EVA — Empathetic Vitality Assistant
+        © {year} EVA. Empathetic Vitality Assistant
       </footer>
     </div>
   )

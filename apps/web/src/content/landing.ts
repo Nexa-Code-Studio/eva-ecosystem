@@ -39,7 +39,7 @@ export const hero = {
   titleAccent: 'Cukup Bicara Bebas.',
   subtitle:
     'Tak perlu mengetik panjang saat lelah. Curhatkan suaramu, pulihkan tenangmu dalam hitungan menit.',
-  primaryCta: 'Mulai Curhat Suara — Gratis',
+  primaryCta: 'Mulai Curhat Suara (Gratis)',
   secondaryCta: 'Unduh Versi Beta (APK)',
   microcopy: ['100% Privat di Ponsel', 'Tanpa Biaya Langganan', 'Bebas Stigma'],
   stats: [
@@ -69,7 +69,7 @@ export const features: Feature[] = [
     id: 'voice',
     icon: Mic,
     tone: 'primary',
-    tag: 'Real-Time Voice Companion',
+    tag: 'Respon Suara Real-Time',
     title: 'Curhat Suara Satu Sentuhan',
     body: 'Bicara bebas kapan pun. EVA menangkap intonasi suaramu secara langsung dan membalas dengan kehangatan manusiawi.',
     problem: 'Capek mengetik panjang saat sedang kalut atau menangis.',
@@ -78,7 +78,7 @@ export const features: Feature[] = [
     id: 'quest',
     icon: Flame,
     tone: 'blush',
-    tag: 'Emotional Resilience Quests',
+    tag: 'Misi Koping Terpandu',
     title: 'Misi Koping 3 Menit',
     body: 'Latihan pemulihan singkat berbasis sains (WHO) untuk redakan panik dan cemas seketika.',
     problem: 'Modul teori psikologi tebal jarang dipraktikkan saat stres memuncak.',
@@ -87,7 +87,7 @@ export const features: Feature[] = [
     id: 'avatar',
     icon: Smile,
     tone: 'secondary',
-    tag: 'Dynamic Mood Avatar',
+    tag: 'Avatar Suasana Hati',
     title: 'Avatar Emosi Interaktif',
     body: 'Pantau suasana hatimu lewat avatar ekspresif yang tumbuh dan merayakan setiap langkah kecilmu.',
     problem: 'Mood tracker angka biasa terasa dingin dan membosankan.',
@@ -96,7 +96,7 @@ export const features: Feature[] = [
     id: 'diary',
     icon: BookOpen,
     tone: 'tertiary',
-    tag: 'Smart Reflection Diary',
+    tag: 'Diari Refleksi Pintar',
     title: 'Diari Otomatis Tanpa Ngetik',
     body: 'Setiap curhat otomatis dirangkum jadi refleksi bermakna dan aksi nyata tanpa perlu kamu ketik.',
     problem: 'Sering bingung harus menulis apa saat ingin rutin journaling.',
@@ -105,7 +105,7 @@ export const features: Feature[] = [
     id: 'screening',
     icon: Gauge,
     tone: 'success',
-    tag: 'Evidence-Based Check & Bridge',
+    tag: 'Skrining DASS-21 & Rujukan',
     title: 'Skrining Klinis & Rujukan',
     body: 'Ukur tingkat stres berkala (DASS-21) dan hubungkan ke psikolog profesional saat kamu butuh bantuan lanjutan.',
     problem: 'Sulit menilai kapan stres sudah butuh bantuan klinis profesional.',
@@ -114,7 +114,7 @@ export const features: Feature[] = [
     id: 'safety',
     icon: ShieldCheck,
     tone: 'crisis',
-    tag: '24/7 SafetyNet',
+    tag: 'Protokol Darurat 24/7',
     title: 'Proteksi Darurat 24/7',
     body: 'Protokol keselamatan standar WHO yang otomatis siaga menghubungkan ke Hotline 119 jika situasi krisis terdeteksi.',
     problem: 'Kekhawatiran AI tidak memiliki akuntabilitas etika saat situasi krisis nyata.',
@@ -199,14 +199,14 @@ export const faqs: FaqItem[] = [
     category: 'Privasi & Keamanan',
     question: 'Apakah rekaman suara dan isi curhat saya benar-benar aman?',
     answer:
-      'Ya, 100% privat. EVA menerapkan arsitektur On-Device Data Sovereignty — catatan refleksi dan riwayat percakapanmu dienkripsi langsung di perangkatmu, tidak dijual ke pihak ketiga, dan tidak digunakan untuk melatih model iklan publik.',
+      'Ya, 100% privat. EVA menerapkan arsitektur On-Device Data Sovereignty: catatan refleksi dan riwayat percakapanmu dienkripsi langsung di perangkatmu, tidak dijual ke pihak ketiga, dan tidak digunakan untuk melatih model iklan publik.',
   },
   {
     id: 'pricing',
     category: 'Biaya & Akses',
     question: 'Apakah aplikasi EVA gratis digunakan?',
     answer:
-      'Selama periode Early Access, seluruh fitur inti EVA — termasuk Curhat Suara 24/7, Misi Koping 3 Menit, dan Diari Otomatis — dapat kamu gunakan sepenuhnya gratis tanpa biaya langganan.',
+      'Selama periode Early Access, seluruh fitur inti EVA (termasuk Curhat Suara 24/7, Misi Koping 3 Menit, dan Diari Otomatis) dapat kamu gunakan sepenuhnya gratis tanpa biaya langganan.',
   },
   {
     id: 'clinical',
@@ -228,6 +228,56 @@ export const faqs: FaqItem[] = [
     question: 'Di perangkat apa saja saya bisa mengunduh EVA?',
     answer:
       'Saat ini versi Beta (APK) dapat langsung kamu unduh dan pasang untuk perangkat Android melalui tombol unduh di halaman ini. Versi iOS sedang dalam tahap pengujian akhir.',
+  },
+]
+
+/* ------------------------------------------------------------------ */
+/* Clinical Evaluation Summary (Evidence-backed Modal Data)           */
+/* ------------------------------------------------------------------ */
+export interface ClinicalEvaluationItem {
+  id: string
+  title: string
+  badge: string
+  summary: string
+  details: string[]
+}
+
+export const clinicalEvaluationData: ClinicalEvaluationItem[] = [
+  {
+    id: 'supervision',
+    title: 'Supervisi Psikologi Klinis (HIMPSI)',
+    badge: 'Etika & Batasan Praktik',
+    summary:
+      'Perancangan alur respon dan intervensi mikro EVA disupervisi oleh psikolog klinis berlisensi HIMPSI untuk memastikan batasan non-diagnostik yang etis dan bertanggung jawab.',
+    details: [
+      'Berfungsi murni sebagai pertolongan pertama emosi digital (first-aid), bukan terapi maupun diagnosa klinis psikiatrik.',
+      'Dialog empatik menggunakan prinsip active listening dan validasi emosi tanpa penghakiman.',
+      'Pengawasan berkala terhadap tone dan panduan respon interaksi model AI.',
+    ],
+  },
+  {
+    id: 'screening',
+    title: 'Validasi Instrumen Skrining DASS-21',
+    badge: 'Psikometri Terstandar',
+    summary:
+      'EVA mengadopsi instrumen DASS-21 (Depression Anxiety Stress Scales) versi adaptasi bahasa Indonesia untuk deteksi dini indikasi stres secara berkala.',
+    details: [
+      '21 butir instrumen tervalidasi dengan sistem scoring berjenjang (Normal hingga Extreme).',
+      'Hasil skrining disajikan secara transparan dan objektif tanpa menimbulkan kecemasan diagnostik baru.',
+      'Opsi ekspor Intake Summary terenkripsi untuk mempermudah rujukan ke psikolog profesional.',
+    ],
+  },
+  {
+    id: 'safetynet',
+    title: 'Protokol Darurat Krisis 24/7 (Standar WHO)',
+    badge: 'Protokol Keselamatan',
+    summary:
+      'Arsitektur deteksi krisis siaga yang otomatis memutus dialog santai jika terdeteksi indikasi risiko bahaya diri atau krisis akut.',
+    details: [
+      'Penyediaan akses langsung satu sentuhan ke Layanan Krisis Bebas Pulsa Kemenkes (Hotline 119 Ext 8).',
+      'Penyediaan kontak darurat personal (wali atau orang terpercaya) yang tersimpan aman di ponsel.',
+      'Sistem non-retensi: log krisis tidak dibagikan atau dipublikasikan demi menjaga integritas privasi pengguna.',
+    ],
   },
 ]
 

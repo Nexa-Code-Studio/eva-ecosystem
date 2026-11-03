@@ -265,7 +265,7 @@ export function PartnerApplyPage() {
       </main>
 
       <footer className="mx-auto w-full max-w-4xl text-center text-xs text-ink-muted">
-        © {year} EVA — Empathetic Vitality Assistant
+        © {year} EVA. Empathetic Vitality Assistant
       </footer>
     </div>
   )

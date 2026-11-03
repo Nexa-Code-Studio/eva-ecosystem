@@ -1,7 +1,7 @@
 import { cn } from '@/lib/cn'
 
 /**
- * Luna/EVA ambient orb — iridescent conic spectrum with atmospheric halo
+ * Luna/EVA ambient orb: iridescent conic spectrum with atmospheric halo
  * and 3.2s breathing cycle (signature visual from the mobile app).
  */
 export function LunaOrb({ className, still }: { className?: string; still?: boolean }) {

@@ -2,7 +2,7 @@
 @import './styles/cursor.css';
 
 /* ==========================================================================
-   EVA / Luna Design System — Web tokens
+   EVA / Luna Design System: Web tokens
    Source of truth: docs/design-token.md
    Tailwind v4 uses CSS-first config: every `--*` inside @theme becomes a
    utility (e.g. --color-primary → bg-primary / text-primary).

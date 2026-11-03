@@ -112,7 +112,7 @@ export function PartnerReferralsTab({
                       }}
                       className="h-8 rounded-[6px] border border-[#CBD5E1] bg-white px-2.5 text-xs font-medium text-ink outline-none focus:border-primary"
                     >
-                      <option value="">— Pilih Psikolog Faskes —</option>
+                      <option value="">(Pilih Psikolog Faskes)</option>
                       {psychologists
                         .filter((p) => p.status === 'active')
                         .map((p) => (

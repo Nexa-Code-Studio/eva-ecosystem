@@ -8,7 +8,7 @@ export function NotFoundPage() {
       <Container className="flex max-w-md flex-col items-center text-center">
         <LunaOrb className="size-20" still />
         <span className="mt-8 rounded-pill bg-primary-container px-3.5 py-1.5 text-overline uppercase text-primary">
-          404 — Halaman Tidak Ditemukan
+          404: Halaman Tidak Ditemukan
         </span>
         <h1 className="mt-4 text-headline text-ink">Sepertinya kamu tersesat</h1>
         <p className="mt-3 text-body-lg text-ink-soft">

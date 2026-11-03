@@ -17,7 +17,7 @@ export function USP() {
               Bukan chatbot biasa. <span className="text-primary">Sahabat yang paham.</span>
             </>
           }
-          description="Perbedaan yang terasa sejak percakapan pertama — dari cara EVA mendengar hingga cara ia menjaga rahasiamu."
+          description="Perbedaan yang terasa sejak percakapan pertama, mulai dari cara EVA mendengar hingga cara ia menjaga rahasiamu."
         />
 
         <div className="reveal mt-14 overflow-hidden rounded-[24px] border border-border-subtle/80 bg-white shadow-subtle">

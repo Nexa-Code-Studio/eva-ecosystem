@@ -92,7 +92,7 @@ export function Features() {
               Dirancang untuk hari-hari yang <span className="text-primary">terasa berat</span>
             </>
           }
-          description="Enam pendamping kecil yang bekerja bersama — dari curhat suara hingga jembatan ke psikolog profesional."
+          description="Enam pendamping kecil yang bekerja bersama, mulai dari curhat suara hingga jembatan ke psikolog profesional."
         />
 
         <div className="mt-14 grid items-start gap-10 lg:mt-20 lg:grid-cols-[1fr_420px] lg:gap-14 xl:grid-cols-[1fr_450px] xl:gap-20 2xl:grid-cols-[1fr_470px]">
@@ -119,7 +119,7 @@ export function Features() {
                   aria-controls="feature-preview"
                   onClick={() => handleSelectFeature(f.id)}
                   className={cn(
-                    'reveal group relative flex flex-col items-start rounded-card p-6 sm:p-8 text-left',
+                    'reveal group relative flex flex-col items-start rounded-card p-6 sm:p-8 text-left focus-visible:outline-2 focus-visible:outline-primary',
                     'border-[1.2px] transition-[transform,box-shadow,background-color,border-color] duration-300 ease-luna',
                     isActive
                       ? 'border-primary/25 bg-white shadow-nav lg:-translate-y-1'
@@ -194,7 +194,7 @@ export function Features() {
                       aria-selected={isActive}
                       onClick={() => handleSelectFeature(f.id)}
                       className={cn(
-                        'inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-caption !tracking-normal font-semibold transition-all duration-200',
+                        'inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-caption !tracking-normal font-semibold transition-all duration-200 focus-visible:outline-2 focus-visible:outline-primary',
                         isActive
                           ? 'border-primary bg-primary text-white shadow-btn'
                           : 'border-border-subtle bg-white text-ink-soft hover:border-primary/30 hover:text-ink',
