@@ -1,6 +1,6 @@
-# Luna AI — Monorepo Architecture
+# Eva AI — Monorepo Architecture
 
-Production-oriented monorepo architecture for the **Luna AI** voice assistant and emotional counseling application.
+Production-oriented monorepo architecture for the **Eva AI** voice assistant and emotional counseling application.
 
 ---
 
@@ -9,7 +9,7 @@ Production-oriented monorepo architecture for the **Luna AI** voice assistant an
 ```text
 .
 ├── apps/
-│   ├── luna_mobile/             # Flutter mobile application (UI, Clean Architecture, Riverpod)
+│   ├── eva_mobile/             # Flutter mobile application (UI, Clean Architecture, Riverpod)
 │   │
 │   └── backend/
 │       ├── api/                # FastAPI application server (REST, WebSocket, Auth, Sessions)
@@ -99,7 +99,7 @@ Production-oriented monorepo architecture for the **Luna AI** voice assistant an
 - **Git**
 - **Docker & Docker Compose** (for Docker setup)
 - **Python 3.11+** (for local development)
-- **Flutter SDK** (for running `luna_mobile`)
+- **Flutter SDK** (for running `eva_mobile`)
 
 ---
 
@@ -180,7 +180,7 @@ Jika ingin menjalankan service secara langsung di lingkungan lokal Python:
 
 ### 📱 Metode C: Running Mobile App (Flutter)
 
-Aplikasi Flutter `luna_mobile` dapat dijalankan di **Perangkat Fisik (HP Android via USB Debugging)**, **Emulator**, maupun **Web/Desktop**.
+Aplikasi Flutter `eva_mobile` dapat dijalankan di **Perangkat Fisik (HP Android via USB Debugging)**, **Emulator**, maupun **Web/Desktop**.
 
 #### **1. Persiapan HP Android (Physical Device) / Emulator:**
 - Pastikan HP Android sudah dalam mode **Developer Options** dan **USB Debugging** telah diaktifkan.
@@ -201,7 +201,7 @@ Secara default, jika dijalankan dengan `flutter run`, aplikasi akan terhubung ke
    ```
 2. Jalankan Flutter dengan flag `USE_LOCAL_API`:
    ```bash
-   cd apps/luna_mobile
+   cd apps/eva_mobile
    flutter run --dart-define=USE_LOCAL_API=true
    ```
    > ℹ️ **Host yang Digunakan:** `http://127.0.0.1:8888/api/v1` (terhubung langsung ke backend laptop via USB ADB reverse loopback).
@@ -209,7 +209,7 @@ Secara default, jika dijalankan dengan `flutter run`, aplikasi akan terhubung ke
 ##### **B. Android Emulator (Virtual Device):**
 Jika menggunakan Android Emulator standar (tanpa menjalankan `adb reverse`), tambahkan flag `IS_EMULATOR=true`:
 ```bash
-cd apps/luna_mobile
+cd apps/eva_mobile
 flutter run --dart-define=USE_LOCAL_API=true --dart-define=IS_EMULATOR=true
 ```
 > ℹ️ **Host yang Digunakan:** `http://10.0.2.2:8888/api/v1` (karena `10.0.2.2` adalah gateway router virtual emulator untuk mengakses localhost host laptop).
@@ -217,14 +217,14 @@ flutter run --dart-define=USE_LOCAL_API=true --dart-define=IS_EMULATOR=true
 ##### **C. Koneksi Wi-Fi LAN / IP Custom (Tanpa Kabel USB):**
 Jika HP fisik dan laptop berada dalam satu jaringan Wi-Fi yang sama:
 ```bash
-cd apps/luna_mobile
+cd apps/eva_mobile
 flutter run --dart-define=LOCAL_HOST=192.168.1.50:8888
 ```
 *(Ganti `192.168.1.50` dengan IP lokal laptop Anda).*
 
 ##### **D. Menjalankan Mode Default (Production Cloud Server):**
 ```bash
-cd apps/luna_mobile
+cd apps/eva_mobile
 flutter run
 ```
 
@@ -240,7 +240,7 @@ Tambahkan konfigurasi berikut ke `.vscode/launch.json` di root workspace agar da
       "name": "Luna Mobile (HP Fisik USB - Local)",
       "request": "launch",
       "type": "dart",
-      "program": "apps/luna_mobile/lib/main.dart",
+      "program": "apps/eva_mobile/lib/main.dart",
       "args": [
         "--dart-define=USE_LOCAL_API=true"
       ]
@@ -249,7 +249,7 @@ Tambahkan konfigurasi berikut ke `.vscode/launch.json` di root workspace agar da
       "name": "Luna Mobile (Android Emulator - Local)",
       "request": "launch",
       "type": "dart",
-      "program": "apps/luna_mobile/lib/main.dart",
+      "program": "apps/eva_mobile/lib/main.dart",
       "args": [
         "--dart-define=USE_LOCAL_API=true",
         "--dart-define=IS_EMULATOR=true"
@@ -259,7 +259,7 @@ Tambahkan konfigurasi berikut ke `.vscode/launch.json` di root workspace agar da
       "name": "Luna Mobile (Production Cloud)",
       "request": "launch",
       "type": "dart",
-      "program": "apps/luna_mobile/lib/main.dart"
+      "program": "apps/eva_mobile/lib/main.dart"
     }
   ]
 }
@@ -290,8 +290,8 @@ Saat menjalankan script `docker-dev` atau `python scripts/seed.py`, akun demo be
   - **Rekomendasi Mental Health:** Rekomendasi pernapasan 4-7-8, jurnal ekspresif, dan jeda digital.
 
 #### **2. Toggle Offline Mock Mode (Flutter Mobile):**
-Jika ingin menguji antarmuka aplikasi `luna_mobile` secara langsung tanpa menghubungkan ke server backend/database:
-* Buka `apps/luna_mobile/lib/core/config/app_config.dart`.
+Jika ingin menguji antarmuka aplikasi `eva_mobile` secara langsung tanpa menghubungkan ke server backend/database:
+* Buka `apps/eva_mobile/lib/core/config/app_config.dart`.
 * Set variabel `static const bool useMockData = true;`.
 
 ---
@@ -355,5 +355,5 @@ graph TD
 ## 5. 🛠️ Code Style & Standards
 
 - **Python**: Linter & formatter dikonfigurasi menggunakan [Ruff](https://github.com/astral-sh/ruff) (`ruff.toml`).
-- **Clean Architecture**: `luna_mobile` memisahkan lapisan `domain`, `data`, dan `presentation`.
+- **Clean Architecture**: `eva_mobile` memisahkan lapisan `domain`, `data`, dan `presentation`.
 - **Decoupled Packages**: Module `packages/shared` dan `packages/ai` di-install sebagai paket editable (`pip install -e`) agar bisa digunakan bersama oleh `api`, `mcp`, dan `workers`.

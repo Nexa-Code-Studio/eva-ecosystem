@@ -55,8 +55,8 @@ class DASSExtractionService:
         system_prompt = LLMMessage(
             role="system",
             content=(
-                "Anda adalah sistem penilai psikometris DASS-21 (Depression Anxiety Stress Scale 21) klinis LUNA AI. "
-                "Tugas Anda adalah membaca transkrip dialog percakapan antara pengguna dan Luna AI, "
+                "Anda adalah sistem penilai psikometris DASS-21 (Depression Anxiety Stress Scale 21) klinis EVA AI. "
+                "Tugas Anda adalah membaca transkrip dialog percakapan antara pengguna dan Eva AI, "
                 "kemudian menilai sejauh mana pengguna menunjukkan keluhan untuk ke-21 butir DASS-21 berikut:\n\n"
                 f"{items_spec_str}\n\n"
                 "ATURAN PENILAIAN:\n"

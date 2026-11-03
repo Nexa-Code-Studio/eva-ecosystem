@@ -1,17 +1,14 @@
 #!/usr/bin/env bash
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+echo "🔄 Resetting Eva AI Database & Re-seeding via Docker..."
 
-echo "🔄 Resetting Luna AI Database & Re-seeding..."
-
-if [ -f "$ROOT_DIR/.venv/bin/python" ]; then
-    "$ROOT_DIR/.venv/bin/python" "$SCRIPT_DIR/reset_db.py"
-elif command -v docker &> /dev/null && docker compose ps --services 2>/dev/null | grep -q "^api$"; then
-    docker compose exec api python -m app.db.reset
+# Execute DB reset inside the running or ephemeral api container
+if docker compose ps --services 2>/dev/null | grep -q "^api$"; then
+    docker compose exec -T api python -m app.db.reset
 else
-    python3 "$SCRIPT_DIR/reset_db.py"
+    echo "==> API container not running. Running ephemeral container..."
+    docker compose run --rm api python -m app.db.reset
 fi
 
 echo "✅ Database reset & re-seeding completed successfully!"

@@ -7,7 +7,7 @@ ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 cd "$ROOT_DIR"
 
-echo "==> 🐳 Starting LUNA AI Fast Docker Environment..."
+echo "==> 🐳 Starting EVA AI Fast Docker Environment..."
 
 # Ensure .env file exists
 if [ ! -f .env ]; then
@@ -24,7 +24,7 @@ export COMPOSE_DOCKER_CLI_BUILD=1
 # Trap Ctrl+C (SIGINT) to automatically shut down containers cleanly
 cleanup() {
   echo ""
-  echo "🛑 [STOPPING DOCKER]: Shutting down all LUNA AI containers..."
+  echo "🛑 [STOPPING DOCKER]: Shutting down all EVA AI containers..."
   docker compose down
   echo "✅ All containers stopped cleanly."
   exit 0
@@ -33,7 +33,7 @@ trap cleanup SIGINT SIGTERM
 
 echo ""
 echo "============================================================"
-echo "🚀 Starting LUNA AI Interactive Docker Environment"
+echo "🚀 Starting EVA AI Interactive Docker Environment"
 echo "------------------------------------------------------------"
 echo "  • FastAPI Application  : http://localhost:8888"
 echo "  • FastMCP Tool Server : http://localhost:8889"

@@ -41,7 +41,7 @@ def test_call_websocket_lifecycle():
         assert pong_data["type"] == "pong"
 
         # 5. Client sends user_transcript (uses Mock LLM / Ollama fallback in test)
-        websocket.send_json({"type": "user_transcript", "text": "Halo Luna, selamat pagi!"})
+        websocket.send_json({"type": "user_transcript", "text": "Halo Eva, selamat pagi!"})
         first_evt = websocket.receive_json()
         if first_evt["type"] == "turn.committed":
             thinking_data = websocket.receive_json()
@@ -59,6 +59,8 @@ def test_call_websocket_lifecycle():
                 elif "text" in msg and msg["text"]:
                     data = json.loads(msg["text"])
                     received_types.append(data.get("type"))
+                    if data.get("type") in ("ai.speech_finished", "ai_speech_finished"):
+                        break
             except Exception:
                 break
 

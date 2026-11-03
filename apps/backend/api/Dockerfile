@@ -17,7 +17,7 @@ COPY apps/backend/api apps/backend/api
 
 RUN pip install --no-cache-dir -e ./packages/shared
 RUN pip install --no-cache-dir -e ./packages/ai
-RUN pip install --no-cache-dir -e ./apps/backend/api
+RUN pip install --no-cache-dir -e "./apps/backend/api[test]"
 
 WORKDIR /workspace/apps/backend/api
 

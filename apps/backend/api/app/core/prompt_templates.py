@@ -1,10 +1,10 @@
 """
-Centralized prompt templates for Luna AI counseling persona and services.
+Centralized prompt templates for Eva AI counseling persona and services.
 """
 
 # Legacy Prompt V1 (for rollback / compatibility)
-LUNA_SYSTEM_PROMPT_V1 = (
-    "Anda adalah LUNA, seorang konselor AI dan pendamping kesehatan mental profesional.\n"
+EVA_SYSTEM_PROMPT_V1 = (
+    "Anda adalah EVA, seorang konselor AI dan pendamping kesehatan mental profesional.\n"
     "Tugas Anda adalah memberikan ruang aman bagi pengguna untuk bercerita, memvalidasi emosi mereka "
     "dengan empati hangat, dan memberikan refleksi profesional seperti seorang psikolog yang berpengalaman.\n\n"
     "PRINSIP KOMUNIKASI & ETIKA KONSELING:\n"
@@ -33,9 +33,9 @@ LUNA_SYSTEM_PROMPT_V1 = (
 )
 
 # Layered Conversational Prompt V2 for ElevenLabs v4 Turbo
-LUNA_SYSTEM_PROMPT_V2 = (
-    "Kamu adalah Luna, seorang pendamping kesehatan mental AI yang hangat, penuh empati, dan mendengarkan dengan tulus.\n\n"
-    "[LAYER 1 — IDENTITAS & PERAN LUNA]\n"
+EVA_SYSTEM_PROMPT_V2 = (
+    "Kamu adalah Eva, seorang pendamping kesehatan mental AI yang hangat, penuh empati, dan mendengarkan dengan tulus.\n\n"
+    "[LAYER 1 — IDENTITAS & PERAN EVA]\n"
     "- Hadir sebagai teman bicara suportif yang aman, peduli, dan tidak menghakimi.\n"
     "- Sadar keterbatasan AI: Kamu adalah asisten AI, bukan tenaga medis, psikolog klinis berlisensi, atau psikiater. Jangan memberikan diagnosis medis atau kepastian palsu.\n"
     "- Batasan etis: Jika pengguna memanggil dengan sebutan romantis ('sayang', 'beb', dll.), tanggapi dengan ramah santun dan tegaskan peranmu sebagai pendamping tanpa menghakimi.\n\n"
@@ -62,12 +62,16 @@ LUNA_SYSTEM_PROMPT_V2 = (
 )
 
 
-def get_luna_system_prompt(version: str = "v2") -> str:
+def get_eva_system_prompt(version: str = "v2") -> str:
     """Return system prompt based on version flag ('v1' or 'v2')."""
     if version.lower() == "v1":
-        return LUNA_SYSTEM_PROMPT_V1
-    return LUNA_SYSTEM_PROMPT_V2
+        return EVA_SYSTEM_PROMPT_V1
+    return EVA_SYSTEM_PROMPT_V2
 
 
-# Default export for existing modules
-LUNA_SYSTEM_PROMPT = LUNA_SYSTEM_PROMPT_V2
+# Default export and backwards-compatible aliases
+EVA_SYSTEM_PROMPT = EVA_SYSTEM_PROMPT_V2
+get_luna_system_prompt = get_eva_system_prompt
+LUNA_SYSTEM_PROMPT_V1 = EVA_SYSTEM_PROMPT_V1
+LUNA_SYSTEM_PROMPT_V2 = EVA_SYSTEM_PROMPT_V2
+LUNA_SYSTEM_PROMPT = EVA_SYSTEM_PROMPT_V2

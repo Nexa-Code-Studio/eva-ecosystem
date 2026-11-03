@@ -1,1 +1,1 @@
-"""FastMCP Server Package for Luna AI."""
+"""FastMCP Server Package for Eva AI."""

@@ -1,4 +1,4 @@
-# Project Rules & Token Optimization Guidelines for Luna AI
+# Project Rules & Token Optimization Guidelines for Eva AI
 
 > **Purpose:** Guidelines for AI agents (Antigravity) to maintain high code quality while minimizing token consumption.
 
@@ -26,13 +26,20 @@
 
 ## 3. Codebase Standards & Architecture Constraints
 
-- **Clean Architecture (`luna_mobile`)**:
-  - Follow the established layer structure: `domain/` (entities & repository contracts), `data/` (models, datasources, repo impls), and `presentation/` (Riverpod providers & widgets).
-  - Use `AppConfig.useMockData` flag to toggle between `MockDataSource` and `RemoteDataSource`.
-  - Prefer pure Dart models with manual `fromJson`, `toJson`, and `copyWith`.
-- **Backend Standard (`apps/backend`)**:
-  - Keep models in `app/models`, schemas in `app/schemas`, routes in `app/api/routes`, services in `app/services`.
-  - Decouple FastMCP tools from core API handlers.
+- **Strict Abstraction & Mock vs Prod Switching**:
+  - High-level modules (Flutter UI and FastAPI route handlers) must **never** couple directly with mock or concrete cloud services.
+  - See [.agents/rules/abstraction-and-mock-prod.md](file:///home/mashupsoat/Project/eva-ecosystem/.agents/rules/abstraction-and-mock-prod.md) for detailed rules.
+- **Sweet-Spot Cohesion & Modularity**:
+  - Keep files cohesive; extract independent timers, custom painters, and multi-step modals into dedicated widget files while keeping local layout together.
+  - See [.agents/rules/cohesion-and-modularity.md](file:///home/mashupsoat/Project/eva-ecosystem/.agents/rules/cohesion-and-modularity.md) for natural separation criteria.
+- **Hierarchical Workspace Scopes**:
+  - Flutter Mobile: Follow [apps/eva_mobile/AGENTS.md](file:///home/mashupsoat/Project/eva-ecosystem/apps/eva_mobile/AGENTS.md) (Clean Architecture, Riverpod DI, Pure Dart models).
+  - Backend API: Follow [apps/backend/AGENTS.md](file:///home/mashupsoat/Project/eva-ecosystem/apps/backend/AGENTS.md) (FastAPI routes, Pydantic schemas, Alembic migrations, FastMCP).
+  - AI & Orchestration: Follow [packages/ai/AGENTS.md](file:///home/mashupsoat/Project/eva-ecosystem/packages/ai/AGENTS.md) (Abstract Base Classes, LLM/TTS factories, graceful fallbacks).
+- **Available Skills**:
+  - `monorepo-ops`: Docker dev/prod, Alembic migrations, database resets, and backend service runner.
+  - `flutter-workflow`: Flutter profile runs (Mock, Local API, Production), analysis, and tests.
+  - `text-to-speech`: ElevenLabs voice AI integration.
 - **State & Code Style**:
   - Write concise, clean, typed code without verbose redundant comments.
   - Do not introduce heavy dependencies without user confirmation.

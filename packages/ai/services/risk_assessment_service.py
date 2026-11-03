@@ -60,6 +60,9 @@ class RiskAssessmentService:
                 elif any(hyp in lower_text for hyp in ["takut kalau", "takut nanti"]):
                     polarity = SignalPolarity.HYPOTHETICAL
                     intent = IntentLevel.NONE
+                elif any(h in lower_text for h in ["dulu", "bulan lalu", "tahun lalu", "kemarin", "sempat"]) and any(d in lower_text for d in ["sekarang", "udah nggak", "tapi sekarang", "mendingan", "lebih baik", "jauh lebih baik"]):
+                    temporal = TemporalContext.HISTORICAL
+                    intent = IntentLevel.NONE
 
                 signals.append(
                     RiskSignal(

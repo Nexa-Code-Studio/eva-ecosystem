@@ -1,4 +1,4 @@
-"""AI domain abstractions and provider interfaces for Luna AI."""
+"""AI domain abstractions and provider interfaces for Eva AI."""
 
 from packages.ai.factories.llm_factory import LLMFactory
 from packages.ai.factories.tts_factory import TTSFactory

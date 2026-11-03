@@ -110,7 +110,7 @@ def test_empty_transcript_does_not_commit():
 
 def test_turn_reset_increments_turn_id():
     agg = TurnAggregator("call_test_6", initial_turn_id=1)
-    agg.add_final_segment("halo luna", stt_session_id=1)
+    agg.add_final_segment("halo eva", stt_session_id=1)
     agg.commit()
 
     agg.reset_for_new_turn()

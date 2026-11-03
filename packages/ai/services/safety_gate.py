@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class SafetyGate:
     """
-    Pure Policy Decision Engine for Luna AI.
+    Pure Policy Decision Engine for Eva AI.
 
     Note:
     - Evaluates RiskAssessmentOutput and maps strictly to safety policy permissions & execution modes.

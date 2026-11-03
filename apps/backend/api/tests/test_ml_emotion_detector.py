@@ -61,6 +61,8 @@ async def test_dynamic_text_emotion_neutral():
 
 @pytest.mark.asyncio
 async def test_audio_emotion_with_real_wav_bytes():
+    pytest.importorskip("torch", reason="torch is not installed in lightweight backend container")
+    pytest.importorskip("funasr", reason="funasr is not installed in lightweight backend container")
     assert os.path.exists(SAMPLE_AUDIO_1), f"Sample audio 1 not found: {SAMPLE_AUDIO_1}"
 
     with open(SAMPLE_AUDIO_1, "rb") as f:

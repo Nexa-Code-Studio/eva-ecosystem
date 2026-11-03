@@ -3,7 +3,7 @@ from fastmcp import FastMCP
 
 from app.tools.status import get_system_status
 
-mcp = FastMCP("Luna-AI-MCP")
+mcp = FastMCP("Eva-AI-MCP")
 
 # Register MCP tool
 mcp.tool()(get_system_status)

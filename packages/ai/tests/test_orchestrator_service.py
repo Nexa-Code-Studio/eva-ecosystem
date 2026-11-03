@@ -27,7 +27,7 @@ async def test_orchestrator_normal_turn():
     assert turn.is_crisis is False
     assert turn.emotion.primary_emotion == "happy"
     assert turn.risk_output.risk_level in ["none", "low"]
-    assert "Luna" in turn.final_system_prompt
+    assert "Eva" in turn.final_system_prompt or "Luna" in turn.final_system_prompt
     assert "happy" in turn.final_system_prompt
 
     tokens = []

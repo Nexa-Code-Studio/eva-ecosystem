@@ -31,7 +31,7 @@ shift || true
 case "$ACTION" in
   up)
     echo "============================================================"
-    echo "🚀 Starting LUNA AI Production Environment (Lean & Fast)"
+    echo "🚀 Starting EVA AI Production Environment (Lean & Fast)"
     echo "------------------------------------------------------------"
     echo "  • Compose File : ${COMPOSE_FILE}"
     echo "  • Mode         : Production (no reload / refresh)"
@@ -49,11 +49,11 @@ case "$ACTION" in
     sleep 5
     docker compose -f "${COMPOSE_FILE}" ps
     echo ""
-    echo "✅ LUNA AI Production stack is up and running."
+    echo "✅ EVA AI Production stack is up and running."
     ;;
 
   down)
-    echo "🛑 Stopping LUNA AI Production stack..."
+    echo "🛑 Stopping EVA AI Production stack..."
     docker compose -f "${COMPOSE_FILE}" down "$@"
     echo "✅ Containers stopped."
     ;;

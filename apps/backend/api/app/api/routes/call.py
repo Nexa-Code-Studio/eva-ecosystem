@@ -36,7 +36,7 @@ async def websocket_call_endpoint(
         await websocket.send_json({
             "type": "call_connected",
             "session_id": session_id,
-            "message": "Connected to Luna AI Phone Service",
+            "message": "Connected to Eva AI Phone Service",
         })
 
         while True:

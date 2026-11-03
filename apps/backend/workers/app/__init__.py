@@ -1,1 +1,1 @@
-"""Async ARQ Workers Package for Luna AI."""
+"""Async ARQ Workers Package for Eva AI."""

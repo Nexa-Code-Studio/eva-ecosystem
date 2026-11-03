@@ -83,7 +83,7 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db_session
             detail="Email atau kata sandi tidak valid",
         )
 
-    display_name = user.display_name or user.username or "User Luna"
+    display_name = user.display_name or user.username or "User Eva"
     access_token = create_access_token(user_id=str(user.id), email=user.email, name=display_name)
     refresh_token = create_refresh_token(user_id=str(user.id), email=user.email)
 
@@ -168,7 +168,7 @@ async def refresh_token(payload: RefreshRequest, db: AsyncSession = Depends(get_
             detail="User tidak ditemukan atau tidak aktif",
         )
 
-    display_name = user.display_name or user.username or "User Luna"
+    display_name = user.display_name or user.username or "User Eva"
     new_access_token = create_access_token(user_id=str(user.id), email=user.email, name=display_name)
     new_refresh_token = create_refresh_token(user_id=str(user.id), email=user.email)
 
@@ -223,7 +223,7 @@ async def get_me(
 
     return {
         "id": str(user.id),
-        "name": user.display_name or user.username or "User Luna",
+        "name": user.display_name or user.username or "User Eva",
         "email": user.email,
     }
 

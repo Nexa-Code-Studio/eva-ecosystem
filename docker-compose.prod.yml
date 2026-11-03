@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: apps/backend/api/Dockerfile
-    container_name: luna_api
+    container_name: eva_api
     restart: unless-stopped
     command: uvicorn app.main:app --host 0.0.0.0 --port 8888 --workers 2
     ports:
@@ -14,7 +14,7 @@ services:
     environment:
       - PYTHONPATH=/workspace
       - APP_ENV=production
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@luna_postgres:5432/luna_ai?ssl=disable
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@eva_postgres:5432/eva_ai?ssl=disable
       - REDIS_URL=redis://redis:6379/0
       - QDRANT_URL=http://qdrant:6333
     depends_on:
@@ -31,13 +31,13 @@ services:
       retries: 3
       start_period: 15s
     networks:
-      - luna_network
+      - eva_network
 
   mcp:
     build:
       context: .
       dockerfile: apps/backend/mcp/Dockerfile
-    container_name: luna_mcp
+    container_name: eva_mcp
     restart: unless-stopped
     command: python -m app.main
     ports:
@@ -53,13 +53,13 @@ services:
       - redis
       - qdrant
     networks:
-      - luna_network
+      - eva_network
 
   worker:
     build:
       context: .
       dockerfile: apps/backend/workers/Dockerfile
-    container_name: luna_worker
+    container_name: eva_worker
     restart: unless-stopped
     command: arq app.workers.settings.WorkerSettings
     env_file:
@@ -67,41 +67,41 @@ services:
     environment:
       - PYTHONPATH=/workspace
       - APP_ENV=production
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@luna_postgres:5432/luna_ai?ssl=disable
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@eva_postgres:5432/eva_ai?ssl=disable
       - REDIS_URL=redis://redis:6379/0
       - QDRANT_URL=http://qdrant:6333
     depends_on:
       redis:
         condition: service_healthy
     networks:
-      - luna_network
+      - eva_network
 
   postgres:
     image: postgres:16-alpine
-    container_name: luna_postgres
+    container_name: eva_postgres
     restart: unless-stopped
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=luna_ai
+      - POSTGRES_DB=eva_ai
     ports:
       - "127.0.0.1:5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d luna_ai"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d eva_ai"]
       interval: 5s
       timeout: 3s
       retries: 5
     networks:
-      - luna_network
+      - eva_network
 
   redis:
     image: redis:7-alpine
-    container_name: luna_redis
+    container_name: eva_redis
     restart: unless-stopped
     ports:
-      - "127.0.0.1:6380:6379"
+      - "127.0.0.1:6381:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -110,11 +110,11 @@ services:
       timeout: 3s
       retries: 5
     networks:
-      - luna_network
+      - eva_network
 
   qdrant:
     image: qdrant/qdrant:v1.9.0
-    container_name: luna_qdrant
+    container_name: eva_qdrant
     restart: unless-stopped
     ports:
       - "127.0.0.1:6333:6333"
@@ -122,10 +122,10 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     networks:
-      - luna_network
+      - eva_network
 
 networks:
-  luna_network:
+  eva_network:
     driver: bridge
 
 volumes:

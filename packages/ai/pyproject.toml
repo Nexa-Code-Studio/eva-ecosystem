@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ai"
 version = "0.1.0"
-description = "AI domain abstractions, provider interfaces, RAG, and AI orchestration for Luna AI"
+description = "AI domain abstractions, provider interfaces, RAG, and AI orchestration for Eva AI"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

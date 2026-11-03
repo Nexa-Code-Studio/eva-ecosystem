@@ -27,7 +27,7 @@ class VoiceCharacterMode:
 VOICE_CHARACTER_MODES: dict[str, VoiceCharacterMode] = {
     "mode_2": VoiceCharacterMode(
         id="mode_2",
-        name="Luna - Jessica Ceria (Default)",
+        name="Eva - Jessica Ceria (Default)",
         voice_id="cgSgspJ2msm6clMCkdW9",
         baseline_style="happy",
         baseline_tag="[happily]",
@@ -41,7 +41,7 @@ VOICE_CHARACTER_MODES: dict[str, VoiceCharacterMode] = {
     ),
     "mode_4": VoiceCharacterMode(
         id="mode_4",
-        name="Luna - Jessica Playful",
+        name="Eva - Jessica Playful",
         voice_id="cgSgspJ2msm6clMCkdW9",
         baseline_style="playful",
         baseline_tag="[playful]",
@@ -55,7 +55,7 @@ VOICE_CHARACTER_MODES: dict[str, VoiceCharacterMode] = {
     ),
     "mode_7": VoiceCharacterMode(
         id="mode_7",
-        name="Luna - Laura Muda & Enerjik",
+        name="Eva - Laura Muda & Enerjik",
         voice_id="FGY2WhTYpPnrIDTdsKH5",
         baseline_style="happy",
         baseline_tag="[happily]",

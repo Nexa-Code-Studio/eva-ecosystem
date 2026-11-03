@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Luna AI Backend API",
+    title="Eva AI Backend API",
     version="0.1.0",
     lifespan=lifespan,
 )
@@ -59,4 +59,4 @@ app.include_router(call_router, prefix="/api/v1")
 
 @app.get("/")
 async def root():
-    return {"message": "Luna AI API Server", "environment": settings.APP_ENV}
+    return {"message": "Eva AI API Server", "environment": settings.APP_ENV}

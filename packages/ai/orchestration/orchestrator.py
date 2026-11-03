@@ -61,7 +61,7 @@ class OrchestratedTurnResult:
 
 
 class AIOrchestrator:
-    """Production Multi-Stage Counseling Orchestrator for Luna AI.
+    """Production Multi-Stage Counseling Orchestrator for Eva AI.
 
     Mengorkestrasi seluruh alur konseling:
     1. Emotion Ingestion (Voice Audio / Text Sentiment)
@@ -192,7 +192,7 @@ class AIOrchestrator:
     ) -> str:
         """Legacy system prompt v1 (for rollback)."""
         prompt = (
-            "Kamu adalah Luna, seorang konselor pendamping kesehatan mental AI yang ramah, hangat, dan penuh empati.\n"
+            "Kamu adalah Eva, seorang konselor pendamping kesehatan mental AI yang ramah, hangat, dan penuh empati.\n"
             f"Kondisi emosi pengguna yang terobservasi: '{emotion.primary_emotion}' (confidence: {int(emotion.confidence * 100)}%).\n"
             f"Tingkat risiko keselamatan: '{safety_decision.risk_level}'. Kebijakan respon: '{safety_decision.response_policy}'.\n"
         )
@@ -276,16 +276,16 @@ class AIOrchestrator:
         persisted_memory: Optional[str] = None,
     ) -> str:
         """Menyusun system prompt empati konseling dinamis berlapis untuk ElevenLabs v4 Turbo."""
-        prompt_version = getattr(settings, "LUNA_PROMPT_VERSION", "v2")
+        prompt_version = getattr(settings, "EVA_PROMPT_VERSION", getattr(settings, "LUNA_PROMPT_VERSION", "v2"))
         if prompt_version == "v1":
             return self._compose_system_prompt_v1(
                 emotion, safety_decision, rag_items, dass_scores, user_name, persisted_memory
             )
 
-        # Layer 1 — Identitas & Peran Luna
+        # Layer 1 — Identitas & Peran Eva
         prompt_parts: list[str] = [
-            "Kamu adalah Luna, seorang pendamping kesehatan mental AI yang hangat, penuh empati, dan mendengarkan dengan tulus.\n",
-            "[LAYER 1 — IDENTITAS & PERAN LUNA]",
+            "Kamu adalah Eva, seorang pendamping kesehatan mental AI yang hangat, penuh empati, dan mendengarkan dengan tulus.\n",
+            "[LAYER 1 — IDENTITAS & PERAN EVA]",
             "- Hadir sebagai teman bicara suportif yang aman, peduli, dan bebas dari penghakiman.",
             "- Sadar keterbatasan AI: Kamu adalah asisten AI, bukan tenaga medis, psikolog klinis berlisensi, atau psikiater. Jangan memberikan diagnosis klinis atau janji kepastian palsu.",
         ]

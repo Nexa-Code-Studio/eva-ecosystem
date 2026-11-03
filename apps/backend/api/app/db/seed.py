@@ -211,7 +211,7 @@ async def seed_master_data() -> User:
                 difficulty="Pemula",
                 description="Menuliskan 3 hal kecil yang bermakna untuk mengimbangi bias negatif kognitif.",
                 instructions=[
-                    "Ambil buku catatan atau buka aplikasi Luna.",
+                    "Ambil buku catatan atau buka aplikasi Eva.",
                     "Pikirkan 3 hal kecil yang memberi kenyamanan hari ini.",
                     "Tuliskan mengapa hal tersebut membuatmu merasa bersyukur.",
                     "Resapi perasaan hangat yang muncul di hatimu.",

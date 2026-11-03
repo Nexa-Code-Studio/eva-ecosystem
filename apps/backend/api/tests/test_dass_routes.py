@@ -13,6 +13,14 @@ async def dispose_engine():
     await engine.dispose()
 
 
+@pytest.fixture
+async def auth_headers():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        login_res = await client.post("/api/v1/auth/login", json={"email": "samsul@gmail.com", "password": "password123"})
+        token = login_res.json()["access_token"]
+        return {"Authorization": f"Bearer {token}"}
+
+
 def test_dass_scoring_calculation():
     """Unit test kalkulasi skor DASS-21 deterministik."""
     items = DASSService.generate_default_items()
@@ -37,10 +45,10 @@ def test_dass_scoring_calculation():
 
 
 @pytest.mark.asyncio
-async def test_get_today_dass_endpoint():
+async def test_get_today_dass_endpoint(auth_headers):
     """Memastikan endpoint GET /api/v1/dass/today mengembalikan 21 butir resmi."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        res = await client.get("/api/v1/dass/today")
+        res = await client.get("/api/v1/dass/today", headers=auth_headers)
         assert res.status_code == 200
         data = res.json()
         assert "items" in data
@@ -52,7 +60,7 @@ async def test_get_today_dass_endpoint():
 
 
 @pytest.mark.asyncio
-async def test_update_today_dass_endpoint():
+async def test_update_today_dass_endpoint(auth_headers):
     """Memastikan user dapat mengedit butir DASS-21 dan sistem mere-kalkulasi skor subskala."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # Update butir 1 (stress) ke skor 3, dan butir 3 (depression) ke skor 2
@@ -62,7 +70,7 @@ async def test_update_today_dass_endpoint():
                 {"item_id": 3, "score": 2},
             ]
         }
-        put_res = await client.put("/api/v1/dass/today", json=update_payload)
+        put_res = await client.put("/api/v1/dass/today", json=update_payload, headers=auth_headers)
         assert put_res.status_code == 200
         updated_data = put_res.json()
 

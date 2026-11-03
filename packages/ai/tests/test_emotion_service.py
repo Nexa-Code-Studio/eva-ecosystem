@@ -2,6 +2,9 @@ import os
 from pathlib import Path
 import pytest
 
+pytest.importorskip("torch", reason="torch is not installed in lightweight backend container")
+pytest.importorskip("funasr", reason="funasr is not installed in lightweight backend container")
+
 # Disable tqdm monitoring thread on Windows pytest to prevent thread access violations
 os.environ["TQDM_DISABLE"] = "1"
 

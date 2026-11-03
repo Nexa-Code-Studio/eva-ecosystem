@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "luna-mcp"
+name = "eva-mcp"
 version = "0.1.0"
-description = "FastMCP AI Tool Interface for Luna AI"
+description = "FastMCP AI Tool Interface for Eva AI"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

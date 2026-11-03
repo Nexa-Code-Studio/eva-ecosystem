@@ -11,7 +11,7 @@ from shared.config import settings
 
 logger = logging.getLogger(__name__)
 
-JWT_SECRET_KEY = getattr(settings, "JWT_SECRET_KEY", "luna-ai-secret-jwt-key-2026")
+JWT_SECRET_KEY = getattr(settings, "JWT_SECRET_KEY", "eva-ai-secret-jwt-key-2026")
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 1
 REFRESH_TOKEN_EXPIRE_DAYS = 30
