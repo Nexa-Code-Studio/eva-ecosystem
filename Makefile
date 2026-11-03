@@ -1,4 +1,4 @@
-.PHONY: help dev dev-d dev-build dev-api dev-mcp dev-worker prod prod-down logs logs-api logs-worker logs-prod ps down db-shell migrate migration-gen db-reset seed mobile-usb mobile-emu mobile-mock mobile-web test test-backend test-mobile lint format
+.PHONY: help dev dev-d dev-build dev-api dev-mcp dev-worker prod prod-down logs logs-api logs-worker logs-prod ps down db-shell migrate migration-gen db-reset seed mobile-usb mobile-emu mobile-mock mobile-web web-dev web-build web-lint test test-backend test-mobile lint format
 
 help:
 	@echo "EVA Ecosystem Management Commands (Full Docker Environment):"
@@ -33,6 +33,11 @@ help:
 	@echo "    make mobile-emu    - Jalankan Eva Mobile di Android Emulator (route 10.0.2.2:8888)"
 	@echo "    make mobile-mock   - Jalankan Eva Mobile dengan Mock Data lokal"
 	@echo "    make mobile-web    - Jalankan Eva Mobile di Chrome Web Simulator"
+	@echo ""
+	@echo "  Web Application (Eva Web Portal):"
+	@echo "    make web-dev       - Jalankan server development Vite apps/web (port 5174)"
+	@echo "    make web-build     - Jalankan build produksi apps/web (tsc -b && vite build)"
+	@echo "    make web-lint      - Jalankan code linter ESLint untuk apps/web"
 	@echo ""
 	@echo "  Testing & Code Quality:"
 	@echo "    make test          - Jalankan seluruh test suite (Backend via Docker & Mobile)"
@@ -127,6 +132,18 @@ mobile-web:
 	@./scripts/run_mobile.sh web $(ARGS)
 
 # ------------------------------------------------------------------------------
+# Web Application Runner & Build (React & Vite)
+# ------------------------------------------------------------------------------
+web-dev:
+	cd apps/web && npm run dev
+
+web-build:
+	cd apps/web && npm run build
+
+web-lint:
+	cd apps/web && npm run lint
+
+# ------------------------------------------------------------------------------
 # Testing & Code Quality
 # ------------------------------------------------------------------------------
 test: test-backend test-mobile
@@ -140,6 +157,7 @@ test-mobile:
 lint:
 	docker compose exec -T api ruff check . 2>/dev/null || ruff check .
 	cd apps/eva_mobile && flutter analyze
+	cd apps/web && npm run lint
 
 format:
 	docker compose exec -T api ruff format . 2>/dev/null || ruff format .

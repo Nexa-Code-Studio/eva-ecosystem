@@ -3,41 +3,40 @@ set -e
 
 # ==============================================================================
 # Script: build-and-deploy-web.sh
-# Purpose: Build and deploy Luna Mobile Flutter Web to /var/www/luna-web
+# Purpose: Build and deploy Eva Web (React 19 & Vite) to /var/www/eva-web
 # Usage:
 #   ./build-and-deploy-web.sh               # Full build & deploy
 #   ./build-and-deploy-web.sh --build-only  # Only compile web release
-#   ./build-and-deploy-web.sh --deploy-only # Only copy build/web to /var/www
+#   ./build-and-deploy-web.sh --deploy-only # Only copy dist to /var/www
 # ==============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APP_DIR="$(cd "$SCRIPT_DIR/../apps/luna_mobile" && pwd)"
-BUILD_DIR="$APP_DIR/build/web"
-WEB_ROOT="/var/www/luna-web"
-DOMAIN="luna.nexacode.dev"
+APP_DIR="$(cd "$SCRIPT_DIR/../apps/web" && pwd)"
+BUILD_DIR="$APP_DIR/dist"
+WEB_ROOT="/var/www/eva-web"
+DOMAIN="eva.nexacode.dev"
 
-export PATH="$PATH:/opt/flutter/bin"
 export CI=true
 
 MODE="all"
-if [ "$1" = "--build-only" ]; then
+if [ "${1:-}" = "--build-only" ]; then
     MODE="build"
-elif [ "$1" = "--deploy-only" ]; then
+elif [ "${1:-}" = "--deploy-only" ]; then
     MODE="deploy"
 fi
 
 # 1. Build Phase
 if [ "$MODE" = "all" ] || [ "$MODE" = "build" ]; then
-    if ! command -v flutter >/dev/null 2>&1; then
-        echo "Error: Flutter SDK not found in PATH or /opt/flutter/bin!"
+    if ! command -v npm >/dev/null 2>&1; then
+        echo "Error: npm binary not found in PATH!"
         exit 1
     fi
 
-    echo "==> [1/3] Fetching dependencies for Luna Mobile..."
-    (cd "$APP_DIR" && flutter pub get)
+    echo "==> [1/3] Fetching dependencies for Eva Web..."
+    (cd "$APP_DIR" && npm install)
 
-    echo "==> [2/3] Building Flutter Web (release, host: $DOMAIN)..."
-    (cd "$APP_DIR" && flutter build web --release --dart-define="HOST=$DOMAIN")
+    echo "==> [2/3] Building Eva Web (production mode)..."
+    (cd "$APP_DIR" && VITE_ENABLE_DEMO=false npm run build)
 
     echo "==> Build successful: $BUILD_DIR"
 fi
@@ -54,15 +53,19 @@ if [ "$MODE" = "all" ] || [ "$MODE" = "deploy" ]; then
     rm -rf "${WEB_ROOT:?}"/*
     cp -r "$BUILD_DIR"/* "$WEB_ROOT/"
 
-    chown -R www-data:www-data "$WEB_ROOT"
-    chmod -R 755 "$WEB_ROOT"
+    if command -v chown >/dev/null 2>&1 && [ "$(id -u)" -eq 0 ]; then
+        chown -R www-data:www-data "$WEB_ROOT"
+        chmod -R 755 "$WEB_ROOT"
+    fi
 
-    echo "==> Reloading Nginx..."
-    systemctl reload nginx
+    if command -v systemctl >/dev/null 2>&1; then
+        echo "==> Reloading Nginx..."
+        systemctl reload nginx || true
+    fi
 
     echo "==> Validating deployment..."
-    STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://$DOMAIN/")
-    HEALTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://$DOMAIN/health")
+    STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://$DOMAIN/" 2>/dev/null || echo "000")
+    HEALTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://$DOMAIN/health" 2>/dev/null || echo "000")
 
     echo "    - Web Root (https://$DOMAIN/): HTTP $STATUS_CODE"
     echo "    - Backend (https://$DOMAIN/health): HTTP $HEALTH_CODE"
@@ -70,6 +73,6 @@ if [ "$MODE" = "all" ] || [ "$MODE" = "deploy" ]; then
     if [ "$STATUS_CODE" = "200" ] && [ "$HEALTH_CODE" = "200" ]; then
         echo "==> Deployment completed successfully!"
     else
-        echo "==> Warning: One or more endpoints returned non-200 status code."
+        echo "==> Note: Check nginx configuration if endpoints returned non-200 status code."
     fi
 fi
