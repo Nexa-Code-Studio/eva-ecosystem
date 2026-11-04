@@ -1,4 +1,4 @@
-.PHONY: help dev dev-d dev-build dev-api dev-mcp dev-worker prod prod-down logs logs-api logs-worker logs-prod ps down db-shell migrate migration-gen db-reset seed mobile-usb mobile-emu mobile-mock mobile-web test test-backend test-mobile lint format
+.PHONY: help dev dev-d dev-build dev-api dev-mcp dev-worker prod prod-down logs logs-api logs-worker logs-prod ps down db-shell migrate migration-gen db-reset seed mobile-usb mobile-emu mobile-mock mobile-web test test-backend test-mobile lint format doctor tasks bootstrap test-agentic link-project view-project
 
 help:
 	@echo "EVA Ecosystem Management Commands (Full Docker Environment):"
@@ -40,6 +40,14 @@ help:
 	@echo "    make test-mobile   - Jalankan flutter test untuk Eva Mobile"
 	@echo "    make lint          - Jalankan code linter (ruff via Docker & flutter analyze)"
 	@echo "    make format        - Format otomatis seluruh kode (ruff via Docker & dart format)"
+	@echo ""
+	@echo "  Agentic Workflow & GitHub Project Automation:"
+	@echo "    make doctor        - Jalankan preflight health check & diagnostic lokal/remote"
+	@echo "    make tasks         - Cek daftar issue, active branch, blocker, dan review request"
+	@echo "    make bootstrap     - Inisialisasi identitas developer (.agent/developer.local.json)"
+	@echo "    make test-agentic  - Jalankan test suite unit untuk agentic workflow scripts"
+	@echo "    make link-project  - Hubungkan repositori eva-ecosystem ke Project #2 Nexa-Code-Studio"
+	@echo "    make view-project  - Lihat item dan status board di Project #2 Nexa-Code-Studio"
 
 # ------------------------------------------------------------------------------
 # Docker Development Mode
@@ -144,3 +152,24 @@ lint:
 format:
 	docker compose exec -T api ruff format . 2>/dev/null || ruff format .
 	cd apps/eva_mobile && dart format .
+
+# ------------------------------------------------------------------------------
+# Agentic Workflow & GitHub Project Automation
+# ------------------------------------------------------------------------------
+doctor:
+	@python3 scripts/agentic/doctor.py
+
+tasks:
+	@python3 scripts/agentic/tasks.py
+
+bootstrap:
+	@python3 scripts/agentic/bootstrap.py
+
+test-agentic:
+	@python3 -m unittest discover -s tests/agentic
+
+link-project:
+	@python3 scripts/agentic/gh_project.py link-repo
+
+view-project:
+	@python3 scripts/agentic/gh_project.py view-project

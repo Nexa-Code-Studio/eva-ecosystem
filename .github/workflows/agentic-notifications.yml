@@ -1,0 +1,106 @@
+# ==============================================================================
+# LEGACY FALLBACK NOTICE:
+# The primary production notification sender is the existing Discord Bot
+# (ekyaaa/dc-bot-project-management) which receives GitHub App webhook events
+# directly. To prevent duplicate messages in the team channel, this workflow is
+# DISABLED by default.
+#
+# To enable this legacy direct webhook sender as fallback, configure:
+#   Repository Variable: DISCORD_LEGACY_WEBHOOK_ENABLED = "true"
+#   Repository Variable: DISCORD_NOTIFICATIONS_ENABLED = "true"
+#   Repository Secret:   DISCORD_WEBHOOK_URL = "<webhook url>"
+# ==============================================================================
+
+name: Agentic Discord Notifications (Legacy Fallback)
+
+on:
+  issues:
+    types: [opened, assigned]
+  pull_request:
+    types: [opened, ready_for_review, review_requested]
+  workflow_run:
+    workflows: ["Agentic Workflow CI & Verification"]
+    types: [completed]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  dispatch-discord-notification:
+    name: Notify Discord Channel (Legacy Fallback)
+    runs-on: ubuntu-latest
+    if: github.repository == 'Nexa-Code-Studio/eva-ecosystem' && vars.DISCORD_LEGACY_WEBHOOK_ENABLED == 'true' && vars.DISCORD_NOTIFICATIONS_ENABLED == 'true'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Dispatch Issue Notification
+        if: github.event_name == 'issues'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_MENTION_MAP: ${{ secrets.DISCORD_MENTION_MAP }}
+          DISCORD_NOTIFICATIONS_ENABLED: ${{ vars.DISCORD_NOTIFICATIONS_ENABLED }}
+          DISCORD_NOTIFY_ISSUES: ${{ vars.DISCORD_NOTIFY_ISSUES }}
+          DISCORD_NOTIFY_ASSIGNMENT: ${{ vars.DISCORD_NOTIFY_ASSIGNMENT }}
+        run: |
+          EVENT_TYPE="issue_opened"
+          ACTOR="${{ github.event.issue.user.login }}"
+          if [ "${{ github.event.action }}" = "assigned" ]; then
+            EVENT_TYPE="issue_assigned"
+            ACTOR="${{ github.event.assignee.login }}"
+          fi
+
+          python3 scripts/agentic/notify-discord.py \
+            --event "$EVENT_TYPE" \
+            --title "${{ github.event.issue.title }}" \
+            --url "${{ github.event.issue.html_url }}" \
+            --actor "$ACTOR" \
+            --repo "${{ github.repository }}" \
+            --details "Issue #${{ github.event.issue.number }} (${{ github.event.action }})"
+
+      - name: Dispatch Pull Request Notification
+        if: github.event_name == 'pull_request'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_MENTION_MAP: ${{ secrets.DISCORD_MENTION_MAP }}
+          DISCORD_NOTIFICATIONS_ENABLED: ${{ vars.DISCORD_NOTIFICATIONS_ENABLED }}
+          DISCORD_NOTIFY_PR: ${{ vars.DISCORD_NOTIFY_PR }}
+        run: |
+          EVENT_TYPE="pr_ready"
+          ACTOR="${{ github.event.pull_request.user.login }}"
+          if [ "${{ github.event.action }}" = "review_requested" ]; then
+            EVENT_TYPE="review_requested"
+            ACTOR="${{ github.event.requested_reviewer.login }}"
+          fi
+
+          python3 scripts/agentic/notify-discord.py \
+            --event "$EVENT_TYPE" \
+            --title "${{ github.event.pull_request.title }}" \
+            --url "${{ github.event.pull_request.html_url }}" \
+            --actor "$ACTOR" \
+            --repo "${{ github.repository }}" \
+            --details "PR #${{ github.event.pull_request.number }} (${{ github.event.action }})"
+
+      - name: Dispatch CI Failure Notification
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_MENTION_MAP: ${{ secrets.DISCORD_MENTION_MAP }}
+          DISCORD_NOTIFICATIONS_ENABLED: ${{ vars.DISCORD_NOTIFICATIONS_ENABLED }}
+          DISCORD_NOTIFY_CI_FAILURE: ${{ vars.DISCORD_NOTIFY_CI_FAILURE }}
+        run: |
+          python3 scripts/agentic/notify-discord.py \
+            --event "ci_failure" \
+            --title "${{ github.event.workflow_run.name }}" \
+            --url "${{ github.event.workflow_run.html_url }}" \
+            --actor "${{ github.event.workflow_run.actor.login }}" \
+            --repo "${{ github.repository }}" \
+            --details "Workflow run failed on branch ${{ github.event.workflow_run.head_branch }}"

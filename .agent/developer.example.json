@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "developer": {
+    "display_name": "Example Developer",
+    "github_username": "example-developer",
+    "email": "developer@example.com"
+  },
+  "workspace": {
+    "machine_label": "dev-workstation-01",
+    "preferred_editor": "cursor"
+  },
+  "project": {
+    "project_number": 1,
+    "project_owner": "Nexa-Code-Studio",
+    "project_title": "Eva AI Development Board",
+    "status_field": "Status",
+    "priority_field": "Priority"
+  }
+}

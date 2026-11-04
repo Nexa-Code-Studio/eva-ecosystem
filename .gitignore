@@ -57,6 +57,11 @@ apps/luna_mobile/build/
 # Agents logs
 .agents/logs/
 
+# Agentic developer local configuration (machine-specific, DO NOT COMMIT)
+.agent/developer.local.json
+.agent/*.local.json
+.agent/worktrees/
+
 # Test audio outputs & pitch exploration
 tests/output_*.mp3
 tests/samples_pitch/

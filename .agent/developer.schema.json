@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AgenticDeveloperIdentity",
+  "description": "Developer identity configuration for Supervised Autonomous Development Coordination.",
+  "type": "object",
+  "required": ["schema_version", "developer", "workspace"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1,
+      "description": "Schema version number for backwards compatibility."
+    },
+    "developer": {
+      "type": "object",
+      "required": ["display_name", "github_username"],
+      "additionalProperties": false,
+      "properties": {
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Human developer display name (e.g. Alice Smith)."
+        },
+        "github_username": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$",
+          "description": "GitHub username matching the active gh CLI session."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Optional developer contact email (public/operational)."
+        }
+      }
+    },
+    "workspace": {
+      "type": "object",
+      "required": ["machine_label"],
+      "additionalProperties": false,
+      "properties": {
+        "machine_label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Identifier for the local workstation/laptop (e.g. dev-laptop-arch)."
+        },
+        "preferred_editor": {
+          "type": "string",
+          "description": "Optional preferred editor or IDE (e.g. code, cursor, nvim)."
+        }
+      }
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "project_number": {
+          "type": "integer",
+          "description": "GitHub Project v2 number if bound."
+        },
+        "project_owner": {
+          "type": "string",
+          "description": "GitHub Project v2 owner organization or user login."
+        },
+        "project_title": {
+          "type": "string",
+          "description": "GitHub Project v2 title."
+        },
+        "status_field": {
+          "type": "string",
+          "description": "Name of the status field in GitHub Projects (default: Status)."
+        },
+        "priority_field": {
+          "type": "string",
+          "description": "Name of the priority field in GitHub Projects (default: Priority)."
+        }
+      }
+    }
+  }
+}
