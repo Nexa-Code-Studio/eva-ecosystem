@@ -152,12 +152,17 @@ class _TransactionHistoryScreenState
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              'Saldo Tersedia (Siap Tarik)',
-                              style: AppTypography.bodySmall.copyWith(
-                                fontWeight: FontWeight.w600,
+                            Expanded(
+                              child: Text(
+                                'Saldo Tersedia (Siap Tarik)',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTypography.bodySmall.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
+                            const SizedBox(width: 8),
                             StatusBadge.verified('Dompet Mitra'),
                           ],
                         ),
@@ -176,23 +181,34 @@ class _TransactionHistoryScreenState
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Menunggu Kliring', style: AppTypography.bodySmall),
+                                  Text('Menunggu Kliring',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTypography.bodySmall),
                                   const SizedBox(height: 2),
                                   Text(
                                     'Rp ${_formatRp(summary.pendingClearingBalance)}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: AppTypography.headingSmall.copyWith(fontSize: 14),
                                   ),
                                 ],
                               ),
                             ),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Pendapatan Bulan Ini', style: AppTypography.bodySmall),
+                                  Text('Pendapatan Bulan Ini',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTypography.bodySmall),
                                   const SizedBox(height: 2),
                                   Text(
                                     'Rp ${_formatRp(summary.totalEarningsThisMonth)}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: AppTypography.headingSmall.copyWith(
                                       fontSize: 14,
                                       color: AppColors.verifiedGreen,
@@ -219,28 +235,32 @@ class _TransactionHistoryScreenState
               const SizedBox(height: 24),
 
               // Filter Chips
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Riwayat Honorarium', style: AppTypography.headingSmall),
-                  Row(
-                    children: ['Semua', 'Selesai', 'Penarikan'].map((f) {
-                      final isSelected = _selectedFilter == f;
-                      return Padding(
-                        padding: const EdgeInsets.only(left: 6),
-                        child: ChoiceChip(
-                          selected: isSelected,
-                          label: Text(f),
-                          selectedColor: AppColors.primaryContainer,
-                          labelStyle: AppTypography.bodySmall.copyWith(
-                            color: isSelected ? AppColors.primary : AppColors.textSecondary,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                            fontSize: 11,
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: ['Semua', 'Selesai', 'Penarikan'].map((f) {
+                        final isSelected = _selectedFilter == f;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            selected: isSelected,
+                            label: Text(f),
+                            selectedColor: AppColors.primaryContainer,
+                            labelStyle: AppTypography.bodySmall.copyWith(
+                              color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                              fontSize: 12,
+                            ),
+                            onSelected: (_) => setState(() => _selectedFilter = f),
                           ),
-                          onSelected: (_) => setState(() => _selectedFilter = f),
-                        ),
-                      );
-                    }).toList(),
+                        );
+                      }).toList(),
+                    ),
                   ),
                 ],
               ),

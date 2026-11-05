@@ -26,58 +26,66 @@ class CounselorHomeScreen extends ConsumerWidget {
             children: [
               // Top Profile & Availability Bar
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 24,
-                        backgroundColor: AppColors.primaryContainer,
-                        backgroundImage: user?.profilePhotoUrl != null
-                            ? NetworkImage(user!.profilePhotoUrl!)
-                            : null,
-                        child: user?.profilePhotoUrl == null
-                            ? const Icon(Icons.person, color: AppColors.primary)
-                            : null,
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user?.displayName ?? 'Psikolog Mitra',
-                            style: AppTypography.headingSmall,
-                          ),
-                          const SizedBox(height: 2),
-                          Row(
-                            children: [
-                              StatusBadge.verified('STR Aktif'),
-                              const SizedBox(width: 6),
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: (user?.isOnline ?? true)
-                                      ? AppColors.verifiedGreen
-                                      : Colors.grey,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                (user?.isOnline ?? true)
-                                    ? 'Online'
-                                    : 'Istirahat (Offline)',
-                                style: AppTypography.bodySmall.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: AppColors.primaryContainer,
+                    backgroundImage: user?.profilePhotoUrl != null
+                        ? NetworkImage(user!.profilePhotoUrl!)
+                        : null,
+                    child: user?.profilePhotoUrl == null
+                        ? const Icon(Icons.person, color: AppColors.primary)
+                        : null,
                   ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user?.displayName ?? 'Psikolog Mitra',
+                          style: AppTypography.headingSmall,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            StatusBadge.verified('STR Aktif'),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: (user?.isOnline ?? true)
+                                        ? AppColors.verifiedGreen
+                                        : Colors.grey,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  (user?.isOnline ?? true)
+                                      ? 'Online'
+                                      : 'Offline',
+                                  style: AppTypography.bodySmall.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 6),
                   Switch.adaptive(
                     value: user?.isOnline ?? true,
                     activeColor: AppColors.primary,
@@ -102,30 +110,38 @@ class CounselorHomeScreen extends ConsumerWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: const [
-                              Icon(Icons.video_camera_front_rounded,
-                                  color: Colors.white, size: 14),
-                              SizedBox(width: 4),
-                              Text(
-                                'SESI TELEKONSULTASI BERIKUTNYA',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.5,
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(Icons.video_camera_front_rounded,
+                                    color: Colors.white, size: 14),
+                                SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    'TELEKONSULTASI',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
+                        const SizedBox(width: 8),
                         const Text(
                           'Dalam 15 Menit',
                           style: TextStyle(
@@ -229,9 +245,15 @@ class CounselorHomeScreen extends ConsumerWidget {
                           const Icon(Icons.people_outline_rounded,
                               color: AppColors.primary, size: 24),
                           const SizedBox(height: 8),
-                          Text('8 Pasien', style: AppTypography.headingSmall),
+                          Text('8 Pasien',
+                              style: AppTypography.headingSmall,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
                           const SizedBox(height: 2),
-                          Text('Sedang Dampingi', style: AppTypography.bodySmall),
+                          Text('Sedang Dampingi',
+                              style: AppTypography.bodySmall,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
                         ],
                       ),
                     ),
@@ -245,9 +267,15 @@ class CounselorHomeScreen extends ConsumerWidget {
                           const Icon(Icons.account_balance_wallet_outlined,
                               color: AppColors.verifiedGreen, size: 24),
                           const SizedBox(height: 8),
-                          Text('Rp 2.450.000', style: AppTypography.headingSmall),
+                          Text('Rp 2.450.000',
+                              style: AppTypography.headingSmall,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
                           const SizedBox(height: 2),
-                          Text('Saldo Tersedia', style: AppTypography.bodySmall),
+                          Text('Saldo Tersedia',
+                              style: AppTypography.bodySmall,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
                         ],
                       ),
                     ),

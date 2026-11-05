@@ -59,12 +59,11 @@ class _CounselorMainShellScreenState
                 border: Border.all(color: AppColors.glassBorder, width: 1.2),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Beranda'),
-                  _buildNavItem(1, Icons.people_alt_rounded, Icons.people_alt_outlined, 'Pasien'),
-                  _buildNavItem(2, Icons.account_balance_wallet_rounded, Icons.account_balance_wallet_outlined, 'Keuangan'),
-                  _buildNavItem(3, Icons.person_rounded, Icons.person_outline, 'Profil'),
+                  Expanded(child: _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Beranda')),
+                  Expanded(child: _buildNavItem(1, Icons.people_alt_rounded, Icons.people_alt_outlined, 'Pasien')),
+                  Expanded(child: _buildNavItem(2, Icons.account_balance_wallet_rounded, Icons.account_balance_wallet_outlined, 'Keuangan')),
+                  Expanded(child: _buildNavItem(3, Icons.person_rounded, Icons.person_outline, 'Profil')),
                 ],
               ),
             ),
