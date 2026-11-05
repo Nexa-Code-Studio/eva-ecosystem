@@ -70,7 +70,7 @@ def _format_diary_entry(d: DiaryEntry | None) -> dict[str, Any]:
     if not d:
         return {}
     raw_events = d.important_events if isinstance(d.important_events, list) else []
-    events = raw_events if raw_events else ["Sesi refleksi harian tercatat dalam sistem LUNA."]
+    events = raw_events if raw_events else ["Sesi refleksi harian tercatat dalam sistem EVA."]
 
     scores = d.mental_health_scores or {}
     dep = float(scores.get("depression", 0.25))
@@ -97,19 +97,19 @@ def _format_diary_entry(d: DiaryEntry | None) -> dict[str, Any]:
 
     return {
         "id": str(d.id),
-        "title": d.title or "Refleksi Harian LUNA",
+        "title": d.title or "Refleksi Harian EVA",
         "date": d.entry_date.strftime("%d %B %Y") if isinstance(d.entry_date, date) else str(d.entry_date),
         "sessionCount": 0,
         "lastSessionTime": "-",
         "moodTag": d.mood_tag or "Netral",
         "moodEmoji": d.mood_emoji or "😌",
-        "summary": d.summary or "Catatan harian perkembangan emosional bersama LUNA.",
+        "summary": d.summary or "Catatan harian perkembangan emosional bersama EVA.",
         "riskWarning": {
             "detected": True,
             "type": "High Risk / Krisis",
             "title": "PERINGATAN KRISIS EMOSIONAL",
             "level": "RISIKO TINGGI",
-            "message": "Sistem LUNA mendeteksi akumulasi indikasi krisis emosional tinggi dan stres berat pada percakapan hari ini. Protokol keselamatan aktif untuk rujukan darurat 119 ext 8.",
+            "message": "Sistem EVA mendeteksi akumulasi indikasi krisis emosional tinggi dan stres berat pada percakapan hari ini. Protokol keselamatan aktif untuk rujukan darurat 119 ext 8.",
         } if ("Darurat" in (d.mood_tag or "") or "Stres" in (d.mood_tag or "") or "Cemas" in (d.mood_tag or "") or "Sedih" in (d.mood_tag or "")) else None,
         "aiInsight": d.ai_insight or "Analisis AI menunjukkan kondisi stabil.",
         "importantEvents": events,

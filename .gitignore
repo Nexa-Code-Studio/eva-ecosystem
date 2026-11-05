@@ -12,7 +12,7 @@ downloads/
 eggs/
 .eggs/
 lib/
-!apps/luna_mobile/lib/
+!apps/eva_mobile/lib/
 lib64/
 parts/
 sdist/
@@ -47,12 +47,12 @@ htmlcov/
 .dockerdata/
 
 # Flutter / Mobile
-apps/luna_mobile/.dart_tool/
-apps/luna_mobile/.fvm/
-apps/luna_mobile/.idea/
-apps/luna_mobile/.pub-cache/
-apps/luna_mobile/.pub/
-apps/luna_mobile/build/
+apps/eva_mobile/.dart_tool/
+apps/eva_mobile/.fvm/
+apps/eva_mobile/.idea/
+apps/eva_mobile/.pub-cache/
+apps/eva_mobile/.pub/
+apps/eva_mobile/build/
 
 # Agents logs
 .agents/logs/
