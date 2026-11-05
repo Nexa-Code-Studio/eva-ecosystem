@@ -33,6 +33,8 @@ help:
 	@echo "    make mobile-emu    - Jalankan Eva Mobile di Android Emulator (route 10.0.2.2:8888)"
 	@echo "    make mobile-mock   - Jalankan Eva Mobile dengan Mock Data lokal"
 	@echo "    make mobile-web    - Jalankan Eva Mobile di Chrome Web Simulator"
+	@echo "    make counselor-mock- Jalankan Eva Counselor (Psikolog) dengan Mock Data"
+	@echo "    make counselor-web - Jalankan Eva Counselor di Chrome Web Simulator"
 	@echo ""
 	@echo "  Testing & Code Quality:"
 	@echo "    make test          - Jalankan seluruh test suite (Backend via Docker & Mobile)"
@@ -133,6 +135,15 @@ mobile-mock:
 
 mobile-web:
 	@./scripts/run_mobile.sh web $(ARGS)
+
+counselor-mock:
+	@APP=eva_counselor_mobile ./scripts/run_mobile.sh mock $(ARGS)
+
+counselor-web:
+	@APP=eva_counselor_mobile ./scripts/run_mobile.sh web $(ARGS)
+
+test-counselor:
+	cd apps/eva_counselor_mobile && flutter test
 
 # ------------------------------------------------------------------------------
 # Testing & Code Quality
