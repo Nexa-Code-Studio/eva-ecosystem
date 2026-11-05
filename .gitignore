@@ -13,6 +13,7 @@ eggs/
 .eggs/
 lib/
 !apps/eva_mobile/lib/
+!apps/eva_counselor_mobile/lib/
 lib64/
 parts/
 sdist/
@@ -53,6 +54,12 @@ apps/eva_mobile/.idea/
 apps/eva_mobile/.pub-cache/
 apps/eva_mobile/.pub/
 apps/eva_mobile/build/
+apps/eva_counselor_mobile/.dart_tool/
+apps/eva_counselor_mobile/.fvm/
+apps/eva_counselor_mobile/.idea/
+apps/eva_counselor_mobile/.pub-cache/
+apps/eva_counselor_mobile/.pub/
+apps/eva_counselor_mobile/build/
 
 # Agents logs
 .agents/logs/
