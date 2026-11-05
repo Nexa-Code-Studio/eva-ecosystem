@@ -5,7 +5,6 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../../../../core/widgets/status_badge.dart';
-import '../../../auth/domain/entities/psychologist_user_entity.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../patients/presentation/providers/patient_provider.dart';
 

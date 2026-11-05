@@ -100,7 +100,9 @@ class _TransactionHistoryScreenState
                     );
                     ref.invalidate(financialSummaryProvider);
                     ref.invalidate(transactionsListProvider);
+                    if (!ctx.mounted) return;
                     Navigator.of(ctx).pop();
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Permintaan pencairan dana berhasil diajukan.'),
