@@ -25,8 +25,8 @@ class EmotionAnalyzerService:
         system_prompt = LLMMessage(
             role="system",
             content=(
-                "Anda adalah sistem analisis emosi psikologi LUNA AI. "
-                "Tugas Anda adalah menganalisis transkrip percakapan konseling suara antara Pengguna dan LUNA AI, "
+                "Anda adalah sistem analisis emosi psikologi EVA AI. "
+                "Tugas Anda adalah menganalisis transkrip percakapan konseling suara antara Pengguna dan EVA AI, "
                 "lalu menghasilkan output berupa JSON VALID HANYA TANPA MARKDOWN (tanpa ```json atau teks lain).\n\n"
                 "Format JSON yang HARUS dihasilkan:\n"
                 "{\n"
@@ -43,7 +43,7 @@ class EmotionAnalyzerService:
                 '    {"label": "<Nama Emosi 3, misal Tingkat Stres>", "emoji": "😟", "percent": <float 0.00-1.00 dihitung dinamis dari transkrip>, "color": "#FF8B94"}\n'
                 "  ],\n"
                 '  "important_events": ["<peristiwa atau masalah penting 1>", "<peristiwa 2>"],\n'
-                '  "diary_summary": "<ringkasan konseling 2-3 kalimat hangat dan empatik mengenai esensi topik yang dibahas serta dukungan LUNA, tanpa tanda kutip mentah>"\n'
+                '  "diary_summary": "<ringkasan konseling 2-3 kalimat hangat dan empatik mengenai esensi topik yang dibahas serta dukungan EVA, tanpa tanda kutip mentah>"\n'
                 "}\n\n"
                 "ATURAN WAJIB:\n"
                 "- Nilai 'percent' pada 'emotions_breakdown' HARUS dihitung secara dinamis dan realistis sesuai sentimen transkrip nyata, TIDAK BOLEH bernilai statis.\n"
@@ -83,7 +83,7 @@ class EmotionAnalyzerService:
     @staticmethod
     def _default_fallback_analysis() -> dict[str, Any]:
         return {
-            "session_title": "Sesi Curhat Bersama LUNA",
+            "session_title": "Sesi Curhat Bersama EVA",
             "dominant_emotion": "Tenang & Nyaman 🌿",
             "calm_score": "85%",
             "stress_level": "Rendah",
@@ -95,6 +95,6 @@ class EmotionAnalyzerService:
                 {"label": "Bahagia & Lega", "emoji": "😃", "percent": 0.25, "color": "#FFE6A7"},
                 {"label": "Tingkat Stres", "emoji": "😟", "percent": 0.10, "color": "#FF8B94"},
             ],
-            "important_events": ["Panggilan suara konseling LUNA AI"],
-            "diary_summary": "Sesi percakapan curhat bersama LUNA memberikan ruang aman untuk mengekspresikan emosi serta menemukan ketenangan batin.",
+            "important_events": ["Panggilan suara konseling EVA AI"],
+            "diary_summary": "Sesi percakapan curhat bersama EVA memberikan ruang aman untuk mengekspresikan emosi serta menemukan ketenangan batin.",
         }

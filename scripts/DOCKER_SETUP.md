@@ -1,6 +1,6 @@
-# 🐳 Panduan Setup Docker (Ringan, Cepat & Hot-Reload) - LUNA AI
+# 🐳 Panduan Setup Docker (Ringan, Cepat & Hot-Reload) - EVA AI
 
-Dokumen ini berisi panduan lengkap setup Docker yang **ringan, cepat, dan terintegrasi dalam 1 berkas** untuk monorepo **LUNA AI**. Panduan ini sudah mencakup konfigurasi `Dockerfile` (`api`, `mcp`, `workers`), `docker-compose.yml`, `.dockerignore`, serta script runner otomatisasi `scripts/docker-dev.sh` & `scripts/docker-dev.ps1`.
+Dokumen ini berisi panduan lengkap setup Docker yang **ringan, cepat, dan terintegrasi dalam 1 berkas** untuk monorepo **EVA AI**. Panduan ini sudah mencakup konfigurasi `Dockerfile` (`api`, `mcp`, `workers`), `docker-compose.yml`, `.dockerignore`, serta script runner otomatisasi `scripts/docker-dev.sh` & `scripts/docker-dev.ps1`.
 
 ---
 
@@ -38,7 +38,7 @@ Pastikan perangkat Anda sudah terinstall:
 ## 📁 Struktur File
 
 ```text
-luna_ai/
+eva-ecosystem/
 ├── apps/
 │   └── backend/
 │       ├── api/Dockerfile
@@ -102,4 +102,4 @@ luna_ai/
 | **Qdrant Vector DB (`luna_qdrant`)** | `6333` | `6333` | Vector Search Engine |
 
 ---
-*Dokumen ini dibuat otomatis untuk penyiapan lingkungan Docker LUNA AI yang ringan, cepat, dan siap pakai.*
+*Dokumen ini dibuat otomatis untuk penyiapan lingkungan Docker EVA AI yang ringan, cepat, dan siap pakai.*

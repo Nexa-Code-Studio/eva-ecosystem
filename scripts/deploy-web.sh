@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-ARCHIVE_PATH="${1:-/opt/luna_ai/apps/luna_mobile/web.tar.gz}"
-WEB_ROOT="/var/www/luna-web"
+ARCHIVE_PATH="${1:-/opt/eva-ecosystem/apps/eva_mobile/web.tar.gz}"
+WEB_ROOT="/var/www/eva-web"
 
 if [ ! -f "$ARCHIVE_PATH" ]; then
     echo "Error: Archive file not found at $ARCHIVE_PATH"
@@ -24,4 +24,4 @@ chown -R www-data:www-data "$WEB_ROOT"
 chmod -R 755 "$WEB_ROOT"
 systemctl reload nginx
 
-echo "Deployment successful! Check https://luna.nexacode.dev"
+echo "Deployment successful! Check https://eva.nexacode.dev"

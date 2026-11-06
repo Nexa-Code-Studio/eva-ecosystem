@@ -18,4 +18,5 @@ build/
 # Exclude heavy non-backend folders for super lean docker builds
 docs/
 tests/
-apps/luna_mobile/
+apps/eva_mobile/
+apps/eva_counselor_mobile/

@@ -3,7 +3,7 @@ set -e
 
 # ==============================================================================
 # Script: build-and-deploy-web.sh
-# Purpose: Build and deploy Luna Mobile Flutter Web to /var/www/luna-web
+# Purpose: Build and deploy Eva Mobile Flutter Web to /var/www/eva-web
 # Usage:
 #   ./build-and-deploy-web.sh               # Full build & deploy
 #   ./build-and-deploy-web.sh --build-only  # Only compile web release
@@ -11,10 +11,10 @@ set -e
 # ==============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APP_DIR="$(cd "$SCRIPT_DIR/../apps/luna_mobile" && pwd)"
+APP_DIR="$(cd "$SCRIPT_DIR/../apps/eva_mobile" && pwd)"
 BUILD_DIR="$APP_DIR/build/web"
-WEB_ROOT="/var/www/luna-web"
-DOMAIN="luna.nexacode.dev"
+WEB_ROOT="/var/www/eva-web"
+DOMAIN="eva.nexacode.dev"
 
 export PATH="$PATH:/opt/flutter/bin"
 export CI=true
@@ -33,7 +33,7 @@ if [ "$MODE" = "all" ] || [ "$MODE" = "build" ]; then
         exit 1
     fi
 
-    echo "==> [1/3] Fetching dependencies for Luna Mobile..."
+    echo "==> [1/3] Fetching dependencies for Eva Mobile..."
     (cd "$APP_DIR" && flutter pub get)
 
     echo "==> [2/3] Building Flutter Web (release, host: $DOMAIN)..."

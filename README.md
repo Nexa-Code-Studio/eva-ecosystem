@@ -136,7 +136,7 @@ docker compose up --build
 | **Redis** | `6380` | `6379` | `localhost:6380` |
 | **Qdrant Vector DB** | `6333` | `6333` | `http://localhost:6333` |
 
-> ℹ️ *Detail panduan Docker dapat dibaca di [scripts/DOCKER_SETUP.md](file:///home/mashupsoat/Project/luna_ai/scripts/DOCKER_SETUP.md).*
+> ℹ️ *Detail panduan Docker dapat dibaca di [scripts/DOCKER_SETUP.md](file:///home/mashupsoat/Project/eva-ecosystem/scripts/DOCKER_SETUP.md).*
 
 ---
 
@@ -192,7 +192,7 @@ Aplikasi Flutter `eva_mobile` dapat dijalankan di **Perangkat Fisik (HP Android 
 
 #### **2. Menjalankan Aplikasi Flutter (Mode Lokal vs Production):**
 
-Secara default, jika dijalankan dengan `flutter run`, aplikasi akan terhubung ke server production (`https://luna.nexacode.dev`). Untuk menghubungkannya ke **server backend lokal laptop**:
+Secara default, jika dijalankan dengan `flutter run`, aplikasi akan terhubung ke server production (`https://eva.nexacode.dev`). Untuk menghubungkannya ke **server backend lokal laptop**:
 
 ##### **A. Perangkat Fisik Android (Physical Device via USB) & Desktop / Web:**
 1. Lakukan reverse port ADB agar port di dalam HP meneruskan request ke laptop via kabel USB:
@@ -237,7 +237,7 @@ Tambahkan konfigurasi berikut ke `.vscode/launch.json` di root workspace agar da
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Luna Mobile (HP Fisik USB - Local)",
+      "name": "Eva Mobile (HP Fisik USB - Local)",
       "request": "launch",
       "type": "dart",
       "program": "apps/eva_mobile/lib/main.dart",
@@ -246,7 +246,7 @@ Tambahkan konfigurasi berikut ke `.vscode/launch.json` di root workspace agar da
       ]
     },
     {
-      "name": "Luna Mobile (Android Emulator - Local)",
+      "name": "Eva Mobile (Android Emulator - Local)",
       "request": "launch",
       "type": "dart",
       "program": "apps/eva_mobile/lib/main.dart",
@@ -256,7 +256,7 @@ Tambahkan konfigurasi berikut ke `.vscode/launch.json` di root workspace agar da
       ]
     },
     {
-      "name": "Luna Mobile (Production Cloud)",
+      "name": "Eva Mobile (Production Cloud)",
       "request": "launch",
       "type": "dart",
       "program": "apps/eva_mobile/lib/main.dart"
@@ -326,7 +326,7 @@ pytest packages/ai/tests
 ```bash
 python3 tests/test_emotion/test_emotion.py
 ```
-*Hasil pengujian emotion recognition akan otomatis ditulis ke [tests/test_emotion/poc_result.md](file:///e:/nexaCode/luna_ai/tests/test_emotion/poc_result.md).*
+*Hasil pengujian emotion recognition akan otomatis ditulis ke [tests/test_emotion/poc_result.md](file:///e:/nexaCode/eva-ecosystem/tests/test_emotion/poc_result.md).*
 
 ---
 
@@ -334,7 +334,7 @@ python3 tests/test_emotion/test_emotion.py
 
 ```mermaid
 graph TD
-    Client["📱 Luna Mobile (Flutter)"] -->|REST / WebSocket :8888| API["⚡ FastAPI Backend"]
+    Client["📱 Eva Mobile (Flutter)"] -->|REST / WebSocket :8888| API["⚡ FastAPI Backend"]
     LLM["🤖 LLM Agent / Client"] -->|MCP Protocol :8889| MCP["🛠️ FastMCP Server"]
     
     API -->|Read/Write| DB[(🐘 PostgreSQL :5433)]

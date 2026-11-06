@@ -36,7 +36,7 @@ jobs:
     if: ${{ github.event_name == 'push' || github.event.inputs.target == 'all' || github.event.inputs.target == 'android' || github.event.inputs.target == null }}
     defaults:
       run:
-        working-directory: apps/luna_mobile
+        working-directory: apps/eva_mobile
 
     steps:
       - name: Checkout repository
@@ -75,8 +75,8 @@ jobs:
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: luna-mobile-android-${{ github.event.inputs.build_type || 'release' }}-apk
-          path: apps/luna_mobile/${{ env.APK_PATH }}
+          name: eva-mobile-android-${{ github.event.inputs.build_type || 'release' }}-apk
+          path: apps/eva_mobile/${{ env.APK_PATH }}
           if-no-files-found: error
           retention-days: 14
 
@@ -86,7 +86,7 @@ jobs:
     if: ${{ github.event_name == 'push' || github.event.inputs.target == 'all' || github.event.inputs.target == 'ios' || github.event.inputs.target == null }}
     defaults:
       run:
-        working-directory: apps/luna_mobile
+        working-directory: apps/eva_mobile
 
     steps:
       - name: Checkout repository
@@ -115,7 +115,7 @@ jobs:
           fi
 
           BUILD_DIR="build/ios/iphoneos"
-          IPA_NAME="LunaMobile-iPhone-${BUILD_TYPE}-unsigned.ipa"
+          IPA_NAME="EvaMobile-iPhone-${BUILD_TYPE}-unsigned.ipa"
 
           echo "Packaging Runner.app into standard iPhone installer (.ipa)..."
           cd "$BUILD_DIR"
@@ -131,7 +131,7 @@ jobs:
       - name: Upload iPhone IPA
         uses: actions/upload-artifact@v4
         with:
-          name: luna-mobile-iphone-${{ github.event.inputs.build_type || 'release' }}-ipa
-          path: apps/luna_mobile/${{ env.IPA_PATH }}
+          name: eva-mobile-iphone-${{ github.event.inputs.build_type || 'release' }}-ipa
+          path: apps/eva_mobile/${{ env.IPA_PATH }}
           if-no-files-found: error
           retention-days: 14

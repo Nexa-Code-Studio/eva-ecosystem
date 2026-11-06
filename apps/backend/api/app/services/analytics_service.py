@@ -319,7 +319,7 @@ class AnalyticsService:
                 depression_pct = float(scores.get("depression", 0.0))
             else:
                 level = 0
-                summary = "LUNA belum mencatat percakapanmu hari ini. Ceritakan harimu untuk mulai memantau ritem emosionalmu."
+                summary = "EVA belum mencatat percakapanmu hari ini. Ceritakan harimu untuk mulai memantau ritem emosionalmu."
                 desc = "Belum ada interaksi percakapan atau catatan jurnal untuk hari ini. Mulai sesi curhat untuk menganalisis pusat emosionalmu."
                 stress_pct = 0.0
                 anxiety_pct = 0.0
@@ -432,7 +432,7 @@ class AnalyticsService:
             stress_avg = 0.0
             anx_avg = 0.0
             dep_avg = 0.0
-            summary = "Belum ada riwayat percakapan atau jurnal emosi yang tercatat untuk minggu ini. Mulai sesi curhat bersama LUNA untuk melihat dinamika emosimu."
+            summary = "Belum ada riwayat percakapan atau jurnal emosi yang tercatat untuk minggu ini. Mulai sesi curhat bersama EVA untuk melihat dinamika emosimu."
             desc = "Belum ada data emosional tercatat untuk minggu ini."
 
         risks = [
@@ -529,7 +529,7 @@ class AnalyticsService:
             stress_avg = 0.0
             anx_avg = 0.0
             dep_avg = 0.0
-            summary = f"Belum ada data emosional yang tercatat di bulan {month_name}. Ceritakan harimu secara rutin agar LUNA dapat memetakan tren kesehatan mentalmu."
+            summary = f"Belum ada data emosional yang tercatat di bulan {month_name}. Ceritakan harimu secara rutin agar EVA dapat memetakan tren kesehatan mentalmu."
             desc = f"Belum ada data emosional tercatat untuk bulan {month_name}."
 
         risks = [
