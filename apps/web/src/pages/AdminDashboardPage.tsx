@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { RotateCcw, ShieldCheck } from 'lucide-react'
-import { DEMO_CONFIG } from '@/config/demoConfig'
+import { ShieldCheck } from 'lucide-react'
+import { ResetPortalDataAction } from '@/components/devtools/PortalDevTools'
 import { cn } from '@/lib/cn'
 import { resetPortalDbToDefault, setPortalSession, usePortalDb } from '@/lib/portalStore'
 import {
@@ -100,19 +100,7 @@ export function AdminDashboardPage() {
         title="Admin EVA"
         subtitle={session?.email ?? 'admin@eva.id'}
         onLogout={handleLogout}
-        extraActions={
-          DEMO_CONFIG.showResetDemoButton ? (
-            <button
-              type="button"
-              onClick={handleResetDemo}
-              title="Kembalikan database demo ke kondisi awal"
-              className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[8px] border border-[#CBD5E1] bg-white px-2.5 text-xs font-semibold text-ink-muted transition-colors hover:border-amber-400 hover:text-ink"
-            >
-              <RotateCcw className="size-3.5" />
-              <span className="hidden md:inline">Reset Demo</span>
-            </button>
-          ) : undefined
-        }
+        extraActions={<ResetPortalDataAction onReset={handleResetDemo} />}
       />
 
       <div className="flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:items-start lg:px-8">

@@ -4,7 +4,7 @@
  * lambang resmi, stempel digital, nomor registrasi, dan QR verifikasi.
  */
 
-interface CertSvgOptions {
+export interface CertSvgOptions {
   docType:
     | 'SIPP'
     | 'STR HIMPSI'

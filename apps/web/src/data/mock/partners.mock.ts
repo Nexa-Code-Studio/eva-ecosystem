@@ -1,4 +1,4 @@
-import type { PartnerAccount } from '@/types/portal'
+import type { PartnerAccount } from '@/types/domain/portal'
 
 export const INITIAL_PARTNERS: PartnerAccount[] = [
   {
@@ -14,7 +14,7 @@ export const INITIAL_PARTNERS: PartnerAccount[] = [
     email: 'mitra@rsup-sardjito.co.id',
     password: 'mitra123',
     website: 'https://sardjito.co.id',
-    operatingHours: 'Senin – Sabtu, 08.00 – 16.00 WIB',
+    operatingHours: 'Senin - Sabtu, 08.00 - 16.00 WIB',
     estimatedPsychologists: 8,
     bpjsSupported: true,
     notes: 'Melayani rujukan klinis mahasiswa & dewasa muda wilayah DIY dan Jawa Tengah.',
@@ -36,7 +36,7 @@ export const INITIAL_PARTNERS: PartnerAccount[] = [
     email: 'klinik@pulihbersama.id',
     password: 'mitra123',
     website: 'https://pulihbersama.id',
-    operatingHours: 'Senin – Minggu, 09.00 – 20.00 WIB',
+    operatingHours: 'Senin - Minggu, 09.00 - 20.00 WIB',
     estimatedPsychologists: 5,
     bpjsSupported: false,
     notes: 'Pengajuan kemitraan untuk rujukan konseling tatap muka dan telekonsultasi klinis.',
@@ -56,7 +56,7 @@ export const INITIAL_PARTNERS: PartnerAccount[] = [
     phone: '081322198834',
     email: 'biro@empatia-bandung.id',
     password: 'mitra123',
-    operatingHours: 'Senin – Jumat, 09.00 – 17.00 WIB',
+    operatingHours: 'Senin - Jumat, 09.00 - 17.00 WIB',
     estimatedPsychologists: 3,
     bpjsSupported: false,
     notes: 'Fokus layanan konseling kecemasan akademik mahasiswa.',

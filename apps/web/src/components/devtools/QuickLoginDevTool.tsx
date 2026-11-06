@@ -1,9 +1,12 @@
 import { Building2, KeyRound, X } from 'lucide-react'
 import { Link } from 'react-router'
-import { ADMIN_ACCOUNT } from '@/constants/portal'
-import type { PartnerAccount } from '@/types/portal'
+import {
+  getAdminAccountConfig,
+  isDevToolsEnabled,
+  type PartnerAccount,
+} from '@/lib/portalStore'
 
-interface DemoAccountsMenuProps {
+interface QuickLoginDevToolProps {
   isOpen: boolean
   partners: PartnerAccount[]
   onToggleOpen: () => void
@@ -11,13 +14,16 @@ interface DemoAccountsMenuProps {
   onSelectCredentials: (email: string, password: string) => void
 }
 
-export function DemoAccountsMenu({
+export function QuickLoginDevTool({
   isOpen,
   partners,
   onToggleOpen,
   onClose,
   onSelectCredentials,
-}: DemoAccountsMenuProps) {
+}: QuickLoginDevToolProps) {
+  if (!isDevToolsEnabled()) return null
+
+  const adminAccount = getAdminAccountConfig()
   const approvedDemo = partners.find((p) => p.status === 'approved') ?? partners[0]
   const pendingDemo = partners.find((p) => p.status === 'pending')
   const rejectedDemo = partners.find((p) => p.status === 'rejected')
@@ -46,16 +52,18 @@ export function DemoAccountsMenu({
           </div>
 
           <div className="mt-2.5 flex flex-col gap-1.5">
-            <button
-              type="button"
-              onClick={() => onSelectCredentials(ADMIN_ACCOUNT.email, ADMIN_ACCOUNT.password)}
-              className="flex w-full cursor-pointer flex-col items-start rounded-[8px] border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-left transition-colors hover:border-primary/50 hover:bg-primary-container/25"
-            >
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink">
-                <span className="size-2 rounded-full bg-primary" /> Admin Website EVA
-              </span>
-              <span className="mt-0.5 text-[11px] text-ink-soft">{ADMIN_ACCOUNT.email}</span>
-            </button>
+            {adminAccount.password && (
+              <button
+                type="button"
+                onClick={() => onSelectCredentials(adminAccount.email, adminAccount.password!)}
+                className="flex w-full cursor-pointer flex-col items-start rounded-[8px] border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-left transition-colors hover:border-primary/50 hover:bg-primary-container/25"
+              >
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink">
+                  <span className="size-2 rounded-full bg-primary" /> Admin Website EVA
+                </span>
+                <span className="mt-0.5 text-[11px] text-ink-soft">{adminAccount.email}</span>
+              </button>
+            )}
 
             {approvedDemo && (
               <button

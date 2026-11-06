@@ -1,15 +1,24 @@
-import { loadPortalDb, savePortalDb, setPortalSession } from './storage'
-import { ADMIN_ACCOUNT } from '@/constants/portal'
+import {
+  getAdminAccountConfig,
+  loadPortalDb,
+  savePortalDb,
+  setPortalSession,
+} from './storage'
 import type { AuthResult, NewPartnerApplicationInput, PartnerAccount } from '@/types/portal'
 
 export function authenticateUser(emailInput: string, passwordInput: string): AuthResult {
   const email = emailInput.trim().toLowerCase()
   const password = passwordInput
+  const adminAccount = getAdminAccountConfig()
 
-  if (email === ADMIN_ACCOUNT.email.toLowerCase() && password === ADMIN_ACCOUNT.password) {
+  if (
+    adminAccount.password &&
+    email === adminAccount.email.toLowerCase() &&
+    password === adminAccount.password
+  ) {
     setPortalSession({
       role: 'admin',
-      email: ADMIN_ACCOUNT.email,
+      email: adminAccount.email,
       loginAt: new Date().toISOString(),
     })
     return { ok: true, role: 'admin' }
@@ -41,8 +50,9 @@ export function submitPartnerApplication(
   input: NewPartnerApplicationInput,
 ): { ok: true; partner: PartnerAccount } | { ok: false; error: string } {
   const db = loadPortalDb()
+  const adminAccount = getAdminAccountConfig()
   const exists = db.partners.some((p) => p.email.toLowerCase() === input.email.trim().toLowerCase())
-  if (exists || input.email.trim().toLowerCase() === ADMIN_ACCOUNT.email) {
+  if (exists || input.email.trim().toLowerCase() === adminAccount.email.toLowerCase()) {
     return {
       ok: false,
       error:
@@ -135,4 +145,3 @@ export function updatePartnerFacilityProfile(
   db.partners[idx] = { ...db.partners[idx], ...updates }
   savePortalDb(db)
 }
-

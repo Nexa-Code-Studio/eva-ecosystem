@@ -1,136 +1,124 @@
-# Eva AI - Web Application & Portal
+# EVA Web Application (`apps/web`)
 
-Web front-end untuk ekosistem Eva AI. Repositori ini memuat landing page publik untuk pengenalan aplikasi seluler dan pengunduhan berkas APK beta, serta portal administrasi untuk fasilitas kesehatan mitra dan verifikasi psikolog.
-
----
-
-## 1. Peran dan Fitur Utama
-
-Aplikasi web ini mencakup dua fungsi utama dalam ekosistem Eva AI:
-
-1. **Landing Page Publik (`/`)**
-   - Menampilkan ringkasan fitur konseling suara, misi pemulihan harian, jurnal emosi, dan skrining mandiri (PHQ-9 dan GAD-7).
-   - Menyediakan tautan unduh langsung berkas APK Android (`/downloads/eva-beta.apk`) dengan ukuran berkas yang terdeteksi otomatis oleh plugin Vite.
-   - Menyertakan widget interaktif, seperti panduan latihan pernapasan (teknik 4-7-8) dan mockup antarmuka aplikasi seluler.
-
-2. **Portal Kemitraan & Administrasi**
-   - **Formulir Pengajuan Mitra (`/pengajuan-mitra`)**: Pendaftaran fasilitas kesehatan (rumah sakit, klinik, atau institusi pendidikan) beserta unggahan izin operasional.
-   - **Autentikasi Portal (`/login`)**: Halaman masuk untuk staf mitra faskes dan super admin. Dilengkapi pemilih akun cepat saat mode demo aktif.
-   - **Admin Dashboard (`/admin`)**: Verifikasi dokumen STR/SIPK tenaga psikolog (mandiri dan faskes), audit berkas, pemantauan rujukan darurat, dan ringkasan metrik tren 60 hari.
-   - **Partner Dashboard (`/mitra`)**: Pengelolaan data tenaga psikolog yang bernaung di bawah faskes mitra bersangkutan.
+Aplikasi web resmi untuk ekosistem **EVA (Empathetic Vitality Assistant)** yang mencakup Landing Page publik, Portal Mitra Fasilitas Kesehatan (Faskes), serta Panel Administrasi Ekosistem EVA.
 
 ---
 
-## 2. Teknologi yang Digunakan
+## 1. Struktur Arsitektur (Clean Architecture Separation)
 
-| Komponen | Pustaka / Alat | Fungsi |
-| :--- | :--- | :--- |
-| **Framework & Runtime** | React 19 / TypeScript 5 | Fondasi antarmuka berbasis komponen dan tipe data ketat. |
-| **Build Tool & Bundler** | Vite 8 | Server pengembangan lokal dan kompilasi build produksi. |
-| **Styling** | Tailwind CSS v4 | Utilitas penataan tampilan dengan `@tailwindcss/vite`. |
-| **Routing** | React Router v8 (`react-router`) | Manajemen navigasi sisi klien dengan lazy loading komponen halaman. |
-| **Ikonografi** | Lucide React | Set ikon antarmuka. |
-| **Animasi & Interaksi** | Lenis | Pengguliran halaman halus (*smooth scroll*) pada landing page. |
-| **Visualisasi Data** | Recharts | Grafik tren metrik pada admin dashboard. |
-
----
-
-## 3. Struktur Direktori
+Kode sumber di dalam `src/` dirancang dengan pemisahan tanggung jawab (separation of concerns) yang tegas antara **UI Layer**, **Schema & API Contracts**, **Service Abstraction Layer**, dan **Mock Data Layer**:
 
 ```text
-apps/web/
-├── public/
-│   └── downloads/              # Berkas publik unduhan (eva-beta.apk)
-├── src/
-│   ├── assets/                 # Aset visual statis
-│   ├── components/
-│   │   ├── mockups/            # Komponen bingkai ponsel dan pratinjau aplikasi seluler
-│   │   ├── portal/             # Komponen antarmuka portal (admin, mitra, login, apply)
-│   │   ├── sections/           # Bagian halaman landing (Hero, Features, FAQ, CTA, dll.)
-│   │   └── ui/                 # Komponen UI dasar (Button, Card, Input, Modal, dll.)
-│   ├── config/
-│   │   ├── apkMetadata.json    # Metadata ukuran berkas APK (dihasilkan otomatis oleh Vite)
-│   │   └── demoConfig.ts       # Konfigurasi saklar mode demo
-│   ├── content/
-│   │   └── landing.ts          # Salinan teks statis untuk landing page
-│   ├── demo/                   # Modul data tiruan dan fitur pengujian non-produksi
-│   │   ├── data/               # Data awal psikolog, mitra, dan riwayat metrik
-│   │   ├── features/           # Widget pemilih akun cepat dan modal simulasi mobile
-│   │   └── README.md           # Panduan pembersihan modul demo untuk produksi
-│   ├── hooks/                  # Custom React hooks (useScroll, usePortalDb, dll.)
-│   ├── layouts/                # Wrapper tata letak halaman (RootLayout)
-│   ├── lib/                    # Utilitas umum (cn.ts, portalStore.ts)
-│   ├── pages/                  # Komponen halaman rute
-│   ├── services/
-│   │   └── portal/             # Lapisan penyimpanan lokal database portal
-│   ├── types/                  # Definisi tipe TypeScript untuk portal dan metrik
-│   ├── App.tsx                 # Konfigurasi router aplikasi
-│   ├── index.css               # Gaya global dan konfigurasi Tailwind CSS
-│   └── main.tsx                # Titik masuk aplikasi React
-├── package.json                # Daftar dependensi dan script npm
-├── tsconfig.json               # Konfigurasi TypeScript
-└── vite.config.ts              # Konfigurasi Vite dan plugin metadata APK
+src/
+├── config/
+│   └── appConfig.ts                 # Single-point configuration (VITE_USE_MOCK_DATA & VITE_API_BASE_URL)
+├── types/
+│   ├── domain/                      # Model entitas domain murni
+│   │   ├── portal.ts                # Entitas Mitra Faskes, Psikolog/Relawan, Rujukan, User, Quest, CrisisConfig
+│   │   └── dashboard.ts             # Model metrik dan analitik dashboard admin
+│   ├── api/
+│   │   └── contracts.ts             # Skema kontrak API & DTO (Request / Response payloads)
+│   ├── portal.ts                    # Barrel ekspor tipe portal & kontrak API
+│   └── adminDashboard.ts            # Barrel ekspor tipe analitik dashboard
+├── data/
+│   └── mock/                        # Mock Data Layer (terisolasi penuh dari komponen UI)
+│       ├── auth.mock.ts             # Kredensial mock admin untuk pengujian lokal
+│       ├── partners.mock.ts         # Data awal (seed) Mitra Faskes
+│       ├── psychologists.mock.ts    # Data awal Psikolog & Relawan beserta generator simulasi
+│       ├── ecosystem.mock.ts        # Data awal Rujukan, Pengguna Umum, Coping Quests, Waitlist, FAQ
+│       ├── dashboardMetrics.mock.ts # Data historis 60 hari & baseline distribusi DASS-21
+│       ├── certificateSvgTemplates.ts # Template dokumen sertifikat SVG untuk mode mock
+│       ├── landing.mock.ts          # Konten statis landing page
+│       └── index.ts                 # Barrel penyedia snapshot database mock
+├── services/
+│   ├── contracts/
+│   │   └── portalDataSource.ts      # Interface kontrak abstraksi IPortalDataSource
+│   ├── mock/
+│   │   └── mockPortalDataSource.ts  # Implementasi data source berbasis localStorage + mock seed
+│   ├── remote/
+│   │   └── remotePortalDataSource.ts # Implementasi data source untuk koneksi API produksi (FastAPI)
+│   └── portal/
+│       ├── storage.ts               # Provider switching (Mock vs Remote) & state snapshot
+│       ├── partnerService.ts        # Use-case & layanan manajemen Mitra Faskes
+│       ├── psychologistService.ts   # Use-case & layanan manajemen Psikolog/Relawan
+│       ├── ecosystemService.ts      # Use-case rujukan, misi koping, konfigurasi krisis, waitlist, FAQ
+│       └── emptyDatabase.ts         # State awal kosong untuk mode produksi
+├── lib/
+│   ├── portalStore.ts               # Facade tunggal yang dikonsumsi oleh layer UI dan Hooks
+│   └── cn.ts                        # Utilitas penggabungan class Tailwind CSS
+├── hooks/                           # Custom React hooks (murni mengonsumsi portalStore facade)
+├── components/
+│   ├── ui/                          # Komponen UI primitif reusable (Button, Card, Modal, dll.)
+│   ├── layout/                      # Komponen navigasi utama & footer
+│   ├── sections/                    # Seksi halaman Landing Page
+│   ├── mockups/                     # Ilustrasi layar interaktif aplikasi mobile EVA
+│   ├── modals/                      # Modal informasi dan evaluasi klinis
+│   ├── portal/                      # Modul UI Portal Admin dan Portal Mitra Faskes
+│   └── devtools/                    # Adapter widget bantu pengujian (otomatis nonaktif di mode produksi)
+└── pages/                           # Komponen halaman tingkat rute (Route Pages)
 ```
+
+### Prinsip Isolasi Layer
+1. **UI Layer Agnostik terhadap Sumber Data**: Komponen di `src/pages/`, `src/components/`, dan `src/hooks/` tidak mengimpor file dari `src/data/mock/` secara langsung. Seluruh akses data melalui abstraksi di `src/lib/portalStore.ts` dan `src/services/`.
+2. **Single-Point Switching**: Peralihan antara mode Mock Data dan mode Production API dikendalikan sepenuhnya melalui `src/config/appConfig.ts`.
 
 ---
 
-## 4. Panduan Memulai
+## 2. Prasyarat & Cara Menjalankan Secara Lokal
 
 ### Prasyarat
-- **Node.js**: Versi 18.0.0 atau lebih baru (direkomendasikan Node.js 20 LTS).
-- **npm**: Versi 9 atau lebih baru.
+- **Node.js**: versi `20.x` atau lebih baru
+- **npm**: versi `10.x` atau lebih baru
 
 ### Instalasi Dependensi
-Jalankan perintah berikut dari dalam direktori `apps/web`:
+Jalankan perintah berikut dari direktori `apps/web`:
+
 ```bash
-cd apps/web
 npm install
 ```
 
-### Menjalankan Server Pengembangan
+### Menjalankan Server Development (Default: Mode Mock Data Aktif)
+Secara default, aplikasi langsung berjalan menggunakan data dari `src/data/mock/` sehingga seluruh alur fitur dapat diuji tanpa memerlukan koneksi ke backend:
+
 ```bash
 npm run dev
 ```
-Aplikasi dapat diakses melalui browser pada:
-- Local URL: `http://localhost:5174`
-- Port terkonfigurasi pada `5174` (ditetapkan dengan `strictPort: true` dan dukungan host lokal).
 
-### Perintah Script Lainnya
-- **Build Produksi**: `npm run build` (menjalankan pengecekan tipe `tsc -b` lalu `vite build`).
-- **Pratinjau Hasil Build**: `npm run preview` (menjalankan server lokal untuk folder `dist/`).
-- **Pengecekan Kode**: `npm run lint` (menjalankan ESLint).
+Aplikasi dapat diakses melalui browser pada alamat yang ditampilkan di terminal (umumnya `http://localhost:5173`).
 
----
+### Pemeriksaan Kode (Linter) & Build Produksi
 
-## 5. Mode Demo vs Mode Produksi
-
-Aplikasi web menyediakan mode evaluasi lokal agar alur portal admin dan mitra dapat diuji tanpa koneksi backend langsung.
-
-### Konfigurasi Variabel Lingkungan
-Mode ini diatur melalui berkas `.env` atau variabel `VITE_ENABLE_DEMO`:
-
-- **Mode Demo Aktif (`VITE_ENABLE_DEMO=true`)**:
-  - Memuat data awal tenaga psikolog, faskes mitra, dan riwayat metrik rujukan.
-  - Menampilkan menu floating pemilih akun cepat pada halaman `/login`.
-  - Mengaktifkan tombol simulasi pendaftaran dari aplikasi seluler pada dashboard admin.
-
-- **Mode Produksi (`VITE_ENABLE_DEMO=false`)**:
-  - Menonaktifkan data tiruan dan beralih ke struktur database kosong (`emptyDatabase.ts`).
-  - Menyembunyikan seluruh tombol pintas dan widget demo.
-
-Untuk menjalankan build dengan mode demo dinonaktifkan:
 ```bash
-VITE_ENABLE_DEMO=false npm run build
+# Menjalankan ESLint
+npm run lint
+
+# Melakukan kompilasi TypeScript dan memaketkan build produksi ke folder dist/
+npm run build
+
+# Menjalankan pratinjau hasil build produksi
+npm run preview
 ```
 
-Panduan pembersihan modul demo sebelum serah terima produksi (*production handover*) tercantum pada [apps/web/src/demo/README.md](file:///home/oktavian/Project/React/eva-ecosystem/apps/web/src/demo/README.md).
-
 ---
 
-## 6. Integrasi Berkas APK Android
+## 3. Konfigurasi Environment (Mock vs Production API)
 
-Aplikasi web mengelola distribusi berkas installer APK untuk calon pengguna aplikasi seluler Eva:
-1. Berkas APK hasil build diletakkan pada lokasi `apps/web/public/downloads/eva-beta.apk`.
-2. Saat server Vite dijalankan (`npm run dev` atau `npm run build`), plugin kustom `apkMetadataPlugin` di `vite.config.ts` otomatis membaca ukuran fisik berkas tersebut dan menyimpannya ke `src/config/apkMetadata.json`.
-3. Komponen tombol unduh pada landing page membaca nilai ukuran berkas tersebut untuk ditampilkan langsung pada tombol unduh.
+Pengaturan sumber data dikontrol menggunakan variabel environment Vite (dapat diatur melalui file `.env.local` di dalam `apps/web`):
 
+| Variabel Environment | Default | Deskripsi |
+| :--- | :--- | :--- |
+| `VITE_USE_MOCK_DATA` | `true` | Jika `true`, aplikasi menggunakan `MockPortalDataSource` (`src/data/mock/`). Jika `false`, aplikasi beralih ke `RemotePortalDataSource` tanpa data dummy. |
+| `VITE_API_BASE_URL` | `http://localhost:8888/api/v1` | URL endpoint FastAPI backend saat berjalan pada mode produksi/live API. |
+| `VITE_ENABLE_DEMO_TOOLS` | `true` (saat mock aktif) | Mengontrol visibilitas widget bantu pengujian (`QuickLoginDevTool`, `MobilePsychologistSimulator`, dan `ResetPortalDataAction`). Otomatis bernilai `false` saat `VITE_USE_MOCK_DATA=false`. |
+
+### Contoh Menjalankan Mode Produksi (Tanpa Mock Data & Tanpa DevTools)
+
+```bash
+VITE_USE_MOCK_DATA=false npm run dev
+```
+
+Atau untuk proses build produksi murni:
+
+```bash
+VITE_USE_MOCK_DATA=false VITE_API_BASE_URL=https://api.eva.id/api/v1 npm run build
+```

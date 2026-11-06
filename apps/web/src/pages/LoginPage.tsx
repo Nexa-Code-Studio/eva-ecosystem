@@ -7,10 +7,9 @@ import {
   type LoginViewMode,
 } from '@/components/portal/login/LoginFormView'
 import { PartnerStatusModal } from '@/components/portal/login/PartnerStatusModal'
+import { QuickLoginDevTool } from '@/components/devtools/PortalDevTools'
 import { LunaOrb } from '@/components/ui'
-import { DEMO_CONFIG } from '@/config/demoConfig'
 import { EMAIL_RE } from '@/constants/portal'
-import { DemoAccountsMenu } from '@/demo/features/DemoAccountsMenu'
 import { authenticateUser, usePortalDb, type PartnerAccount } from '@/lib/portalStore'
 
 export function LoginPage() {
@@ -191,15 +190,13 @@ export function LoginPage() {
         }}
       />
 
-      {DEMO_CONFIG.showDemoAccountsOnLogin && (
-        <DemoAccountsMenu
-          isOpen={demoMenuOpen}
-          partners={db.partners}
-          onToggleOpen={() => setDemoMenuOpen((v) => !v)}
-          onClose={() => setDemoMenuOpen(false)}
-          onSelectCredentials={fillDemoCredentials}
-        />
-      )}
+      <QuickLoginDevTool
+        isOpen={demoMenuOpen}
+        partners={db.partners}
+        onToggleOpen={() => setDemoMenuOpen((v) => !v)}
+        onClose={() => setDemoMenuOpen(false)}
+        onSelectCredentials={fillDemoCredentials}
+      />
 
       <footer className="mx-auto w-full max-w-5xl text-center text-xs text-ink-muted">
         © {year} EVA. Empathetic Vitality Assistant

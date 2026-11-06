@@ -1,7 +1,53 @@
 import { loadPortalDb, savePortalDb } from './storage'
-import type { Psychologist, PsychologistStatus } from '@/types/portal'
+import {
+  buildSimulatedMobilePsychologist,
+  buildSimulatedUpgradeDocuments,
+} from '@/data/mock/psychologists.mock'
+import type {
+  Psychologist,
+  PsychologistStatus,
+  SimulateMobilePsychologistInput,
+} from '@/types/portal'
 
-export { simulateMobilePsychologistSubmission } from '@/demo/features/simulateSubmission'
+export function simulateMobilePsychologistSubmission(
+  input: SimulateMobilePsychologistInput,
+): Psychologist {
+  const db = loadPortalDb()
+  const created = buildSimulatedMobilePsychologist(input)
+  db.psychologists.unshift(created)
+  savePortalDb(db)
+  return created
+}
+
+export function simulateVolunteerUpgradeSubmission(
+  psychologistId: string,
+  targetRole: 'relawan_utama' | 'relawan_profesional' | 'relawan_pro',
+  notes: string,
+): Psychologist | null {
+  const db = loadPortalDb()
+  const idx = db.psychologists.findIndex((p) => p.id === psychologistId)
+  if (idx === -1) return null
+
+  const psy = db.psychologists[idx]
+  const today = new Date().toISOString().slice(0, 10)
+  const isTargetUtama = targetRole === 'relawan_utama' || targetRole === 'relawan_pro'
+  const normalizedTargetRole = isTargetUtama ? 'relawan_utama' : 'relawan_profesional'
+  const upgradeDocs = buildSimulatedUpgradeDocuments(psy, targetRole)
+
+  db.psychologists[idx] = {
+    ...psy,
+    rejectionReason: undefined,
+    upgradeRequest: {
+      targetRole: normalizedTargetRole,
+      requestedAt: today,
+      notes,
+      documents: upgradeDocs,
+    },
+  }
+
+  savePortalDb(db)
+  return db.psychologists[idx]
+}
 
 export function upsertPsychologist(
   input: Omit<Psychologist, 'id'> & { id?: string },

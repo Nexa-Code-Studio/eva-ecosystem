@@ -1,23 +1,22 @@
-import { DEMO_CONFIG } from '@/config/demoConfig'
-import type { DailyPoint } from '@/types/adminDashboard'
+import type { DailyPoint, DashboardAnalyticsBaseline } from '@/types/domain/dashboard'
 
-export const BASELINE_USERS = DEMO_CONFIG.useDummySeedData ? 1240 : 0
+export const MOCK_BASELINE_USERS = 1240
 
-export const BASELINE_DASS = DEMO_CONFIG.useDummySeedData
-  ? {
-      Normal: 540,
-      Mild: 320,
-      Moderate: 215,
-      Severe: 115,
-      Extreme: 50,
-    }
-  : {
-      Normal: 0,
-      Mild: 0,
-      Moderate: 0,
-      Severe: 0,
-      Extreme: 0,
-    }
+export const MOCK_BASELINE_DASS = {
+  Normal: 540,
+  Mild: 320,
+  Moderate: 215,
+  Severe: 115,
+  Extreme: 50,
+}
+
+export const EMPTY_BASELINE_DASS = {
+  Normal: 0,
+  Mild: 0,
+  Moderate: 0,
+  Severe: 0,
+  Extreme: 0,
+}
 
 function mulberry32(a: number) {
   return function () {
@@ -40,11 +39,7 @@ function formatDateLabel(d: Date): string {
   return `${d.getDate()} ${months[d.getMonth()]}`
 }
 
-export function buildHistorySeed(today = new Date('2026-10-29T12:00:00Z'), days = 60): DailyPoint[] {
-  if (!DEMO_CONFIG.useDummySeedData) {
-    return []
-  }
-
+export function buildMockHistorySeed(today = new Date('2026-10-29T12:00:00Z'), days = 60): DailyPoint[] {
   const rand = mulberry32(20261029)
   const result: DailyPoint[] = []
 
@@ -71,3 +66,20 @@ export function buildHistorySeed(today = new Date('2026-10-29T12:00:00Z'), days 
 
   return result
 }
+
+export function getMockDashboardAnalyticsBaseline(): DashboardAnalyticsBaseline {
+  return {
+    baselineUsers: MOCK_BASELINE_USERS,
+    baselineDass: { ...MOCK_BASELINE_DASS },
+    historySeries: buildMockHistorySeed(),
+  }
+}
+
+export function getEmptyDashboardAnalyticsBaseline(): DashboardAnalyticsBaseline {
+  return {
+    baselineUsers: 0,
+    baselineDass: { ...EMPTY_BASELINE_DASS },
+    historySeries: [],
+  }
+}
+

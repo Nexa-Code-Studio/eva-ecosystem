@@ -1,34 +1,32 @@
 import { ArrowUpCircle, GraduationCap, HeartHandshake, Sparkles, Users, X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
-import {
-  simulateMobilePsychologistSubmission,
-  simulateVolunteerUpgradeSubmission,
-} from './simulateSubmission'
 import { CLINICAL_SPECIALIZATIONS } from '@/constants/portal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { cn } from '@/lib/cn'
-import { loadPortalDb } from '@/services/portal/storage'
-import type { Psychologist } from '@/types/portal'
+import {
+  isDevToolsEnabled,
+  loadPortalDb,
+  simulateMobilePsychologistSubmission,
+  simulateVolunteerUpgradeSubmission,
+  type Psychologist,
+} from '@/lib/portalStore'
 
-interface SimulateMobilePsyModalProps {
+interface MobilePsychologistSimulatorModalProps {
   isOpen: boolean
   onClose: () => void
   onCreated: (created: Psychologist, isUpgrade?: boolean) => void
   psychologists?: Psychologist[]
 }
 
-export function SimulateMobilePsyModal({
+export function MobilePsychologistSimulatorModal({
   isOpen,
   onClose,
   onCreated,
   psychologists,
-}: SimulateMobilePsyModalProps) {
+}: MobilePsychologistSimulatorModalProps) {
   useBodyScrollLock(isOpen)
 
-  // Simulation Mode: 'register' | 'upgrade'
   const [simMode, setSimMode] = useState<'register' | 'upgrade'>('register')
-
-  // Registration Fields
   const [selectedRole, setSelectedRole] = useState<'relawan_biasa' | 'relawan_profesional'>(
     'relawan_biasa',
   )
@@ -39,11 +37,10 @@ export function SimulateMobilePsyModal({
   const [simEducation, setSimEducation] = useState('')
   const [simEmail, setSimEmail] = useState('')
   const [simPhone, setSimPhone] = useState('')
-  const [simSchedule, setSimSchedule] = useState('Senin – Jumat (17.00 – 21.00 WIB)')
+  const [simSchedule, setSimSchedule] = useState('Senin - Jumat (17.00 - 21.00 WIB)')
   const [simValidUntil, setSimValidUntil] = useState('2029-12-31')
   const [simSpecs, setSimSpecs] = useState<string[]>(['Kecemasan & Panik', 'Remaja & Mahasiswa'])
 
-  // Upgrade Fields
   const availableVolunteers = (psychologists ?? loadPortalDb().psychologists).filter(
     (p) =>
       (p.role === 'relawan_biasa' ||
@@ -67,7 +64,7 @@ export function SimulateMobilePsyModal({
 
   const [simError, setSimError] = useState<string | null>(null)
 
-  if (!isOpen) return null
+  if (!isDevToolsEnabled() || !isOpen) return null
 
   const handleRegisterSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -170,7 +167,6 @@ export function SimulateMobilePsyModal({
           </button>
         </div>
 
-        {/* Mode Switcher Tabs */}
         <div className="mt-4 flex rounded-[8px] border border-[#E2E8F0] bg-[#F8FAFC] p-1">
           <button
             type="button"
@@ -210,10 +206,8 @@ export function SimulateMobilePsyModal({
           </div>
         )}
 
-        {/* Tab 1: Pendaftaran Baru */}
         {simMode === 'register' && (
           <form onSubmit={handleRegisterSubmit} className="mt-4 space-y-3.5 text-xs">
-            {/* Role Choice */}
             <div>
               <label className="block font-semibold text-ink">Pilih Kategori Relawan *</label>
               <div className="mt-1.5 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -297,7 +291,6 @@ export function SimulateMobilePsyModal({
                       className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 font-mono uppercase text-ink focus:border-primary focus:outline-none"
                     />
                   </div>
-
                   <div>
                     <label className="block font-semibold text-ink">Nomor STR HIMPSI / IPK *</label>
                     <input
@@ -381,7 +374,7 @@ export function SimulateMobilePsyModal({
                   type="text"
                   value={simSchedule}
                   onChange={(e) => setSimSchedule(e.target.value)}
-                  placeholder="Senin – Jumat (17.00 – 21.00 WIB)"
+                  placeholder="Senin - Jumat (17.00 - 21.00 WIB)"
                   className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-ink focus:border-primary focus:outline-none"
                 />
               </div>
@@ -433,7 +426,6 @@ export function SimulateMobilePsyModal({
           </form>
         )}
 
-        {/* Tab 2: Pengajuan Upgrade */}
         {simMode === 'upgrade' && (
           <form onSubmit={handleUpgradeSubmit} className="mt-4 space-y-4 text-xs">
             <div>
@@ -568,3 +560,4 @@ export function SimulateMobilePsyModal({
     </div>
   )
 }
+

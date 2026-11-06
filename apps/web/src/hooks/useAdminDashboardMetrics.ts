@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { PortalDatabase } from '@/types/portal'
+import { getDashboardAnalyticsBaseline, type PortalDatabase } from '@/lib/portalStore'
 import type {
   ActionSummary,
   DailyPoint,
@@ -10,16 +10,12 @@ import type {
   QueueItem,
   SparkPoint,
 } from '@/types/adminDashboard'
-import {
-  BASELINE_DASS,
-  BASELINE_USERS,
-  buildHistorySeed,
-} from '@/demo/data/dashboardHistorySeed'
 
 export function useAdminDashboardMetrics(db: PortalDatabase, range: DashboardRange) {
   return useMemo(() => {
+    const baseline = getDashboardAnalyticsBaseline()
     // 1. Combine deterministic 60-day seed with real store events
-    const basePoints = buildHistorySeed()
+    const basePoints = baseline.historySeries
     const pointMap = new Map<string, DailyPoint>()
     basePoints.forEach((p) => pointMap.set(p.date, { ...p }))
 
@@ -52,7 +48,7 @@ export function useAdminDashboardMetrics(db: PortalDatabase, range: DashboardRan
     }
 
     // 2. Metrics calculation
-    const totalUsers = BASELINE_USERS + db.generalUsers.length
+    const totalUsers = baseline.baselineUsers + db.generalUsers.length
     const currNewUsers = currentSlice.reduce((s, p) => s + p.newUsers, 0)
     const prevNewUsers = prevSlice.reduce((s, p) => s + p.newUsers, 0)
     const usersDelta = calcDelta(currNewUsers, prevNewUsers)
@@ -141,7 +137,7 @@ export function useAdminDashboardMetrics(db: PortalDatabase, range: DashboardRan
     ]
 
     // 3. DASS-21 Distribution
-    const dassCounts = { ...BASELINE_DASS }
+    const dassCounts = { ...baseline.baselineDass }
     db.generalUsers.forEach((u) => {
       if (u.lastDassSeverity && dassCounts[u.lastDassSeverity] !== undefined) {
         dassCounts[u.lastDassSeverity] += 1

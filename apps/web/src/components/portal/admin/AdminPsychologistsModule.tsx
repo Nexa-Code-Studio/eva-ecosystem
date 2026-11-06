@@ -1,4 +1,4 @@
-import { Search, Smartphone } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import {
   PsychologistKpiCards,
@@ -7,8 +7,10 @@ import {
 } from './psychologists/PsychologistKpiCards'
 import { PsychologistTable } from './psychologists/PsychologistTable'
 import { PsychologistDetailModal } from './psychologists/PsychologistDetailModal'
-import { DEMO_CONFIG } from '@/config/demoConfig'
-import { SimulateMobilePsyModal } from '@/demo/features/SimulateMobilePsyModal'
+import {
+  MobilePsychologistSimulatorModal,
+  MobilePsychologistSimulatorTrigger,
+} from '@/components/devtools/PortalDevTools'
 import { cn } from '@/lib/cn'
 import { reviewIndependentPsychologist, type PartnerAccount, type Psychologist } from '@/lib/portalStore'
 
@@ -144,16 +146,7 @@ export function AdminPsychologistsModule({
             Kelola data psikolog mitra, relawan pendamping, verifikasi berkas izin praktik, dan pengajuan upgrade.
           </p>
         </div>
-        {DEMO_CONFIG.showSimulateMobileRegistration && (
-          <button
-            type="button"
-            onClick={() => setIsSimModalOpen(true)}
-            className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-[8px] bg-primary px-3.5 text-xs font-semibold text-white shadow-btn transition-colors hover:bg-primary-hover"
-          >
-            <Smartphone className="size-4" />
-            <span>Simulasi Pendaftaran &amp; Upgrade</span>
-          </button>
-        )}
+        <MobilePsychologistSimulatorTrigger onOpen={() => setIsSimModalOpen(true)} />
       </div>
 
       {/* KPI Metric Cards */}
@@ -233,26 +226,24 @@ export function AdminPsychologistsModule({
         onFeedback={onFeedback}
       />
 
-      {/* Simulation Modal (Demo feature) */}
-      {DEMO_CONFIG.showSimulateMobileRegistration && (
-        <SimulateMobilePsyModal
-          isOpen={isSimModalOpen}
-          psychologists={psychologists}
-          onClose={() => setIsSimModalOpen(false)}
-          onCreated={(created, isUpgrade) => {
-            setIsSimModalOpen(false)
-            if (isUpgrade) {
-              onFeedback(
-                `Simulasi permohonan upgrade "${created.fullName}" berhasil ditambahkan ke antrean verifikasi.`,
-              )
-            } else {
-              onFeedback(
-                `Simulasi pendaftaran "${created.fullName}" berhasil ditambahkan ke antrean verifikasi.`,
-              )
-            }
-          }}
-        />
-      )}
+      {/* Simulation Modal (DevTools Adapter) */}
+      <MobilePsychologistSimulatorModal
+        isOpen={isSimModalOpen}
+        psychologists={psychologists}
+        onClose={() => setIsSimModalOpen(false)}
+        onCreated={(created, isUpgrade) => {
+          setIsSimModalOpen(false)
+          if (isUpgrade) {
+            onFeedback(
+              `Simulasi permohonan upgrade "${created.fullName}" berhasil ditambahkan ke antrean verifikasi.`,
+            )
+          } else {
+            onFeedback(
+              `Simulasi pendaftaran "${created.fullName}" berhasil ditambahkan ke antrean verifikasi.`,
+            )
+          }
+        }}
+      />
     </div>
   )
 }

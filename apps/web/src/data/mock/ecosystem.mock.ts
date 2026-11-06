@@ -6,7 +6,7 @@ import type {
   GeneralAppUser,
   PatientReferral,
   WaitlistEntry,
-} from '@/types/portal'
+} from '@/types/domain/portal'
 
 export const INITIAL_REFERRAL_LIST: PatientReferral[] = [
   {
@@ -33,7 +33,7 @@ export const INITIAL_REFERRAL_LIST: PatientReferral[] = [
     dass21: { depression: 26, anxiety: 24, stress: 29, severity: 'Extreme' },
     clinicalSummary:
       'Pengguna memilih opsi telekonsultasi malam dengan Psikolog Mandiri. Mengalami tekanan akademik berat dan isolasi sosial di tempat kos.',
-    preferredSchedule: 'Malam (19.00 – 21.00 WIB)',
+    preferredSchedule: 'Malam (19.00 - 21.00 WIB)',
     assignedPsychologistId: 'psy-mandiri-3',
     status: 'scheduled',
   },
@@ -217,3 +217,4 @@ export const INITIAL_FAQS: FaqEntry[] = defaultFaqs.map((f) => ({
   answer: f.answer,
   isPublished: true,
 }))
+
