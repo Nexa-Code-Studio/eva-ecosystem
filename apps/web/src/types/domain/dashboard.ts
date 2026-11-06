@@ -2,7 +2,8 @@ export type AdminModuleId =
   | 'dashboard'
   | 'psychologists'
   | 'partners'
-  | 'users_referrals'
+  | 'referrals'
+  | 'users_coins'
   | 'content_config'
 
 export type DashboardRange = 7 | 30

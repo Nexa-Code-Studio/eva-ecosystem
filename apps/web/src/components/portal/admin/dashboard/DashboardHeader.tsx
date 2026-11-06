@@ -86,7 +86,7 @@ export function DashboardHeader({ summary, onSelectModule }: DashboardHeaderProp
             {summary.crisisAndReferral > 0 && (
               <button
                 type="button"
-                onClick={() => onSelectModule('users_referrals')}
+                onClick={() => onSelectModule('referrals')}
                 className="inline-flex cursor-pointer items-center gap-1.5 rounded-[6px] border border-[#FECACA] bg-[#FEF2F2] px-2.5 py-1 text-[11px] font-semibold text-[#B91C1C] shadow-2xs hover:bg-[#FEE2E2]"
               >
                 <ShieldAlert className="size-3 text-[#DC2626]" />

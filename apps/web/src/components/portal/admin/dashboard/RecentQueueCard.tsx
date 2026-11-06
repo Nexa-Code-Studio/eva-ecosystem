@@ -118,7 +118,7 @@ export function RecentQueueCard({
           <span className="text-[#CBD5E1]">·</span>
           <button
             type="button"
-            onClick={() => onSelectModule('users_referrals')}
+            onClick={() => onSelectModule('referrals')}
             className="inline-flex cursor-pointer items-center gap-1 font-semibold text-primary hover:underline"
           >
             Rujukan Pasien <ArrowRight className="size-3" />

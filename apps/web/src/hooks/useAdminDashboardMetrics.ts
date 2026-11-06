@@ -102,7 +102,7 @@ export function useAdminDashboardMetrics(db: PortalDatabase, range: DashboardRan
         deltaPct: usersDelta,
         sublabel: `+${currNewUsers} pengguna baru (${range} hari)`,
         spark: usersSpark,
-        targetModule: 'users_referrals',
+        targetModule: 'users_coins',
       },
       {
         id: 'psychologists',
@@ -132,7 +132,7 @@ export function useAdminDashboardMetrics(db: PortalDatabase, range: DashboardRan
         deltaPct: referralsDelta,
         sublabel: `${db.referrals.filter((r) => r.status === 'unassigned').length} belum ditugaskan`,
         spark: referralsSpark,
-        targetModule: 'users_referrals',
+        targetModule: 'referrals',
       },
     ]
 
@@ -246,7 +246,7 @@ export function useAdminDashboardMetrics(db: PortalDatabase, range: DashboardRan
           date: r.submittedAt,
           timeAgo: 'Prioritas',
           badgeLabel: 'Rujukan Baru',
-          targetModule: 'users_referrals',
+          targetModule: 'referrals',
         })
       })
 

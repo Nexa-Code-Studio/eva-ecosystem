@@ -1,6 +1,7 @@
 import {
   Building2,
   ChevronDown,
+  ClipboardList,
   Globe,
   LayoutDashboard,
   Smartphone,
@@ -13,7 +14,8 @@ export type AdminModule =
   | 'dashboard'
   | 'psychologists'
   | 'partners'
-  | 'users_referrals'
+  | 'referrals'
+  | 'users_coins'
   | 'content_config'
 
 export interface AdminSummaryCounts {
@@ -74,11 +76,18 @@ export function AdminSidebar({
       badgeColor: 'bg-[#FEF3C7] text-[#92400E]',
     },
     {
-      id: 'users_referrals' as const,
-      label: 'Pengguna & Rujukan',
-      icon: Smartphone,
-      badge: counts.crisisUsers + counts.unassignedRefs,
+      id: 'referrals' as const,
+      label: 'Rujukan Pasien',
+      icon: ClipboardList,
+      badge: counts.unassignedRefs,
       badgeColor: 'bg-[#FEE2E2] text-[#991B1B]',
+    },
+    {
+      id: 'users_coins' as const,
+      label: 'Pengguna & Koin',
+      icon: Smartphone,
+      badge: counts.crisisUsers,
+      badgeColor: 'bg-[#FEF3C7] text-[#92400E]',
     },
     {
       id: 'content_config' as const,

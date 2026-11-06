@@ -16,8 +16,10 @@ import {
 import { AdminDashboardOverview } from '@/components/portal/admin/AdminDashboardOverview'
 import { AdminPsychologistsModule } from '@/components/portal/admin/AdminPsychologistsModule'
 import { AdminPartnersModule } from '@/components/portal/admin/AdminPartnersModule'
-import { AdminUsersReferralsModule } from '@/components/portal/admin/AdminUsersReferralsModule'
+import { AdminReferralsModule } from '@/components/portal/admin/AdminReferralsModule'
+import { AdminUsersCoinsModule } from '@/components/portal/admin/AdminUsersCoinsModule'
 import { AdminMobileContentTab } from '@/components/portal/admin/AdminMobileContentTab'
+import { AdminCoinPackagesConfigTab } from '@/components/portal/admin/AdminCoinPackagesConfigTab'
 import { AdminWebsiteContentTab } from '@/components/portal/admin/AdminWebsiteContentTab'
 
 export function AdminDashboardPage() {
@@ -25,7 +27,7 @@ export function AdminDashboardPage() {
   const { db, session } = usePortalDb()
 
   const [activeModule, setActiveModule] = useState<AdminModule>('dashboard')
-  const [cmsSubTab, setCmsSubTab] = useState<'mobile' | 'website'>('mobile')
+  const [cmsSubTab, setCmsSubTab] = useState<'mobile' | 'coins_catalog' | 'website'>('mobile')
   const [feedbackBanner, setFeedbackBanner] = useState<string | null>(null)
 
   useEffect(() => {
@@ -139,8 +141,12 @@ export function AdminDashboardPage() {
             <AdminPartnersModule db={db} onFeedback={setFeedbackBanner} />
           )}
 
-          {activeModule === 'users_referrals' && (
-            <AdminUsersReferralsModule db={db} onFeedback={setFeedbackBanner} />
+          {activeModule === 'referrals' && (
+            <AdminReferralsModule db={db} onFeedback={setFeedbackBanner} />
+          )}
+
+          {activeModule === 'users_coins' && (
+            <AdminUsersCoinsModule db={db} onFeedback={setFeedbackBanner} />
           )}
 
           {activeModule === 'content_config' && (
@@ -151,11 +157,11 @@ export function AdminDashboardPage() {
                     Konten Aplikasi Mobile &amp; Operasional Website
                   </h1>
                   <p className="mt-0.5 text-xs text-ink-muted">
-                    Kelola katalog Misi Koping Harian, konfigurasi Hotline Krisis SafetyNet, serta pendaftar Waitlist &amp; FAQ Website.
+                    Kelola Misi Koping Harian, Hotline Krisis SafetyNet, Kurs &amp; Katalog Paket Koin Suara, serta Waitlist &amp; FAQ Website.
                   </p>
                 </div>
 
-                <div className="inline-flex rounded-[8px] border border-[#E2E8F0] bg-white p-1">
+                <div className="inline-flex flex-wrap rounded-[8px] border border-[#E2E8F0] bg-white p-1">
                   <button
                     type="button"
                     onClick={() => setCmsSubTab('mobile')}
@@ -166,7 +172,19 @@ export function AdminDashboardPage() {
                         : 'text-ink-soft hover:text-ink',
                     )}
                   >
-                    Misi Koping & Krisis (Mobile)
+                    Misi Koping &amp; Krisis (Mobile)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCmsSubTab('coins_catalog')}
+                    className={cn(
+                      'cursor-pointer rounded-[6px] px-3 py-1.5 text-xs font-semibold transition-colors',
+                      cmsSubTab === 'coins_catalog'
+                        ? 'bg-primary text-white'
+                        : 'text-ink-soft hover:text-ink',
+                    )}
+                  >
+                    Kurs &amp; Paket Koin ({db.coinPackages.filter((pkg) => pkg.isActive).length})
                   </button>
                   <button
                     type="button"
@@ -178,13 +196,15 @@ export function AdminDashboardPage() {
                         : 'text-ink-soft hover:text-ink',
                     )}
                   >
-                    Waitlist & FAQ (Website)
+                    Waitlist &amp; FAQ (Website)
                   </button>
                 </div>
               </div>
 
               {cmsSubTab === 'mobile' ? (
                 <AdminMobileContentTab db={db} onFeedback={setFeedbackBanner} />
+              ) : cmsSubTab === 'coins_catalog' ? (
+                <AdminCoinPackagesConfigTab db={db} onFeedback={setFeedbackBanner} />
               ) : (
                 <AdminWebsiteContentTab db={db} onFeedback={setFeedbackBanner} />
               )}
