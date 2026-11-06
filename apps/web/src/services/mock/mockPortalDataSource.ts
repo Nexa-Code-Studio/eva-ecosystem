@@ -85,16 +85,44 @@ function hydrateAndBackfillMockDb(parsed: Partial<PortalDatabase>): {
     }
   }
 
+  const userSeedMap = new Map(INITIAL_MOCK_DB.generalUsers.map((u) => [u.id, u]))
+  const rawUsers = parsed.generalUsers ?? INITIAL_MOCK_DB.generalUsers
+  const migratedUsers = rawUsers.map((u) => {
+    const seedUser = userSeedMap.get(u.id)
+    if (u.coinBalance === undefined || u.totalVoiceMinutesUsed === undefined) {
+      needsSave = true
+    }
+    return {
+      ...u,
+      coinBalance: u.coinBalance ?? seedUser?.coinBalance ?? 10,
+      totalVoiceMinutesUsed:
+        u.totalVoiceMinutesUsed ?? seedUser?.totalVoiceMinutesUsed ?? u.voiceSessionsCount * 3,
+    }
+  })
+
+  if (!parsed.coinEconomyConfig || !parsed.coinPackages || !parsed.coinTransactions) {
+    needsSave = true
+  }
+
   return {
     db: {
       partners: migratedPartners,
       psychologists: migratedPsychologists,
       referrals: parsed.referrals ?? INITIAL_MOCK_DB.referrals,
-      generalUsers: parsed.generalUsers ?? INITIAL_MOCK_DB.generalUsers,
+      generalUsers: migratedUsers,
       copingQuests: parsed.copingQuests ?? INITIAL_MOCK_DB.copingQuests,
       crisisConfig: parsed.crisisConfig ?? INITIAL_MOCK_DB.crisisConfig,
       waitlistEntries: parsed.waitlistEntries ?? INITIAL_MOCK_DB.waitlistEntries,
       faqs: parsed.faqs ?? INITIAL_MOCK_DB.faqs,
+      coinEconomyConfig: parsed.coinEconomyConfig ?? INITIAL_MOCK_DB.coinEconomyConfig,
+      coinPackages:
+        parsed.coinPackages && parsed.coinPackages.length > 0
+          ? parsed.coinPackages
+          : INITIAL_MOCK_DB.coinPackages,
+      coinTransactions:
+        parsed.coinTransactions && parsed.coinTransactions.length > 0
+          ? parsed.coinTransactions
+          : INITIAL_MOCK_DB.coinTransactions,
     },
     needsSave,
   }

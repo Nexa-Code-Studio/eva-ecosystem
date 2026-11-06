@@ -1,5 +1,8 @@
 import type {
   AppUserStatus,
+  CoinEconomyConfig,
+  CoinPackage,
+  CoinTransactionStatus,
   CopingQuest,
   CrisisConfig,
   FaqEntry,
@@ -100,6 +103,24 @@ export interface UpdateWaitlistStatusRequestDto {
 }
 
 export type CreateFaqRequestDto = Omit<FaqEntry, 'id' | 'isPublished'>
+
+export interface AdjustUserCoinBalanceDto {
+  userId: string
+  deltaCoins: number
+  reason: string
+}
+
+export interface UpdateCoinTransactionStatusDto {
+  transactionId: string
+  status: CoinTransactionStatus
+  adminNotes?: string
+}
+
+export type UpsertCoinPackageDto = Omit<CoinPackage, 'id'> & { id?: string }
+
+export type UpdateCoinEconomyConfigDto = Partial<
+  Pick<CoinEconomyConfig, 'basePricePerCoinIdr' | 'freeTrialCoinsNewUser'>
+>
 
 export type PortalSnapshotDto = PortalDatabase
 

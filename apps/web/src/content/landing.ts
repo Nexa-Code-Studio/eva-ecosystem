@@ -203,10 +203,10 @@ export const faqs: FaqItem[] = [
   },
   {
     id: 'pricing',
-    category: 'Biaya & Akses',
-    question: 'Apakah aplikasi EVA gratis digunakan?',
+    category: 'Biaya & Koin Suara',
+    question: 'Bagaimana sistem biaya dan penggunaan Koin di aplikasi EVA?',
     answer:
-      'Selama periode Early Access, seluruh fitur inti EVA (termasuk Curhat Suara 24/7, Misi Koping 3 Menit, dan Diari Otomatis) dapat kamu gunakan sepenuhnya gratis tanpa biaya langganan.',
+      'Fitur Misi Koping Harian, Diari Otomatis, dan Skrining DASS-21 dapat diakses gratis. Untuk sesi Curhat Suara AI 24/7, EVA menggunakan sistem EVA Coin di mana 1 Koin setara dengan 1 menit berbicara bersama EVA (harga dasar Rp1.000/koin dengan pilihan paket hemat). Setiap pengguna baru otomatis mendapatkan bonus 10 Koin gratis untuk mencoba sesi suara.',
   },
   {
     id: 'clinical',

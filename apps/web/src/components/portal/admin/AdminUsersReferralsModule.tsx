@@ -1,8 +1,16 @@
-import { useMemo, useState } from 'react'
-import { Search, ShieldAlert } from 'lucide-react'
+import { Coins, Plus, Search, ShieldAlert, X } from 'lucide-react'
+import { useMemo, useState, type FormEvent } from 'react'
+import { AdminCoinsTransactionsTab } from './AdminCoinsTransactionsTab'
 import { cn } from '@/lib/cn'
-import type { AppUserStatus, PortalDatabase, ReferralStatus } from '@/types/portal'
-import { assignReferral, updateGeneralUserStatus } from '@/services/portal/ecosystemService'
+import {
+  adjustUserCoinBalance,
+  assignReferral,
+  updateGeneralUserStatus,
+  type AppUserStatus,
+  type GeneralAppUser,
+  type PortalDatabase,
+  type ReferralStatus,
+} from '@/lib/portalStore'
 
 interface AdminUsersReferralsModuleProps {
   db: PortalDatabase
@@ -13,8 +21,15 @@ export function AdminUsersReferralsModule({
   db,
   onFeedback,
 }: AdminUsersReferralsModuleProps) {
-  const [userRefSubTab, setUserRefSubTab] = useState<'users' | 'referrals'>('users')
+  const [userRefSubTab, setUserRefSubTab] = useState<'users' | 'referrals' | 'coins'>('users')
   const [userSearch, setUserSearch] = useState('')
+
+  // Manual coin adjustment modal state
+  const [coinModalUser, setCoinModalUser] = useState<GeneralAppUser | null>(null)
+  const [coinDeltaInput, setCoinDeltaInput] = useState('15')
+  const [coinReasonInput, setCoinReasonInput] = useState(
+    'Kompensasi kendala sesi suara / apresiasi pengguna aktif.',
+  )
 
   const filteredUsers = useMemo(() => {
     if (!userSearch.trim()) return db.generalUsers
@@ -36,19 +51,38 @@ export function AdminUsersReferralsModule({
     [db.psychologists],
   )
 
+  const pendingCoinTransactionsCount = useMemo(
+    () => db.coinTransactions.filter((t) => t.status === 'pending').length,
+    [db.coinTransactions],
+  )
+
+  const handleAdjustCoinsSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!coinModalUser) return
+
+    const delta = Number(coinDeltaInput)
+    if (!Number.isFinite(delta) || delta === 0) return
+
+    adjustUserCoinBalance(coinModalUser.id, delta, coinReasonInput)
+    onFeedback(
+      `Saldo koin "${coinModalUser.displayName}" berhasil disesuaikan (${delta > 0 ? `+${delta}` : delta} Koin).`,
+    )
+    setCoinModalUser(null)
+  }
+
   return (
     <div>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-xl font-bold tracking-[-0.02em] text-ink sm:text-2xl">
-            Manajemen Pengguna Aplikasi &amp; Rujukan DASS-21
+            Manajemen Pengguna, Rujukan DASS-21 &amp; Koin Suara
           </h1>
           <p className="mt-0.5 text-xs text-ink-muted">
-            Pantau pengguna aplikasi mobile EVA, sinyal protokol krisis SafetyNet, dan arahkan rujukan pasien ke faskes mitra atau psikolog/relawan.
+            Pantau pengguna aplikasi mobile EVA, saldo koin bicara (1 Koin = 1 Menit), transaksi top-up, dan arahkan rujukan pasien ke faskes mitra atau psikolog/relawan.
           </p>
         </div>
 
-        <div className="inline-flex rounded-[8px] border border-[#E2E8F0] bg-white p-1">
+        <div className="inline-flex flex-wrap rounded-[8px] border border-[#E2E8F0] bg-white p-1">
           <button
             type="button"
             onClick={() => setUserRefSubTab('users')}
@@ -73,6 +107,30 @@ export function AdminUsersReferralsModule({
           >
             Rujukan DASS-21 ({db.referrals.length})
           </button>
+          <button
+            type="button"
+            onClick={() => setUserRefSubTab('coins')}
+            className={cn(
+              'inline-flex cursor-pointer items-center gap-1.5 rounded-[6px] px-3 py-1.5 text-xs font-semibold transition-colors',
+              userRefSubTab === 'coins'
+                ? 'bg-primary text-white'
+                : 'text-ink-soft hover:text-ink',
+            )}
+          >
+            <span>Transaksi &amp; Paket Koin ({db.coinTransactions.length})</span>
+            {pendingCoinTransactionsCount > 0 && (
+              <span
+                className={cn(
+                  'rounded-[4px] px-1.5 py-0.5 text-[10px] font-bold',
+                  userRefSubTab === 'coins'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-amber-100 text-amber-800',
+                )}
+              >
+                {pendingCoinTransactionsCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
@@ -84,7 +142,7 @@ export function AdminUsersReferralsModule({
                 Direktori Pengguna Aplikasi Mobile
               </h2>
               <p className="text-xs text-ink-muted">
-                Data dianonimkan sesuai standar privasi klinis EVA.
+                Data dianonimkan sesuai standar privasi klinis EVA. 1 Koin setara dengan 1 menit berbicara bersama EVA.
               </p>
             </div>
             <div className="relative w-full sm:w-72">
@@ -103,8 +161,9 @@ export function AdminUsersReferralsModule({
             <table className="w-full border-collapse text-left">
               <thead>
                 <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC] text-[11px] font-bold tracking-wider text-ink-muted uppercase">
-                  <th className="px-4 py-3">Pengguna & Kota</th>
+                  <th className="px-4 py-3">Pengguna &amp; Kota</th>
                   <th className="px-4 py-3">Aktivitas App</th>
+                  <th className="px-4 py-3">Saldo Koin &amp; Menit</th>
                   <th className="px-4 py-3">Skrining DASS-21</th>
                   <th className="px-4 py-3">Protokol Krisis</th>
                   <th className="px-4 py-3">Status Akun</th>
@@ -126,6 +185,28 @@ export function AdminUsersReferralsModule({
                       </p>
                       <p className="text-[11px] text-ink-muted">
                         Aktif terakhir: {usr.lastActiveAt}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 rounded-[6px] bg-[#EEF0FF] px-2 py-0.5 text-[11px] font-bold text-primary">
+                          <Coins className="size-3" />
+                          {usr.coinBalance ?? 0} Koin
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCoinModalUser(usr)
+                            setCoinDeltaInput('15')
+                          }}
+                          className="inline-flex h-6 cursor-pointer items-center gap-0.5 rounded-[5px] border border-[#CBD5E1] bg-white px-1.5 text-[10px] font-semibold text-ink-soft hover:border-primary hover:text-primary"
+                          title="Tambah atau kurangi saldo koin pengguna"
+                        >
+                          <Plus className="size-2.5" /> Atur
+                        </button>
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-ink-muted">
+                        Terpakai: {usr.totalVoiceMinutesUsed ?? 0} menit bicara
                       </p>
                     </td>
                     <td className="px-4 py-3.5">
@@ -190,7 +271,7 @@ export function AdminUsersReferralsModule({
             </table>
           </div>
         </div>
-      ) : (
+      ) : userRefSubTab === 'referrals' ? (
         <div className="mt-5 space-y-4">
           {db.referrals.map((ref) => {
             const assignedPsy = db.psychologists.find((p) => p.id === ref.assignedPsychologistId)
@@ -304,6 +385,95 @@ export function AdminUsersReferralsModule({
               </div>
             )
           })}
+        </div>
+      ) : (
+        <AdminCoinsTransactionsTab db={db} onFeedback={onFeedback} />
+      )}
+
+      {/* Manual Coin Balance Adjustment Modal */}
+      {coinModalUser && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="adjust-coin-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
+        >
+          <div className="w-full max-w-md rounded-[14px] border border-[#E2E8F0] bg-white p-5 shadow-2xl">
+            <div className="flex items-start justify-between border-b border-[#E2E8F0] pb-3.5">
+              <div>
+                <span className="inline-flex items-center gap-1 rounded-[5px] bg-[#EEF0FF] px-2 py-0.5 text-[10px] font-bold text-primary uppercase">
+                  Manajemen Saldo Koin
+                </span>
+                <h2 id="adjust-coin-title" className="mt-1 text-sm font-bold text-ink">
+                  Atur Koin: {coinModalUser.displayName}
+                </h2>
+                <p className="text-xs text-ink-muted">
+                  Saldo saat ini: <strong>{coinModalUser.coinBalance ?? 0} Koin</strong> ({coinModalUser.coinBalance ?? 0} menit bicara)
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCoinModalUser(null)}
+                className="inline-flex size-7 cursor-pointer items-center justify-center rounded-[6px] text-ink-muted hover:bg-slate-100"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAdjustCoinsSubmit} className="mt-4 space-y-3.5 text-xs">
+              <div>
+                <label className="block font-semibold text-ink">
+                  Jumlah Penyesuaian Koin (positif untuk tambah, negatif untuk kurangi)
+                </label>
+                <div className="mt-1.5 flex gap-1.5">
+                  {['+10', '+15', '+30', '-10'].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setCoinDeltaInput(preset.replace('+', ''))}
+                      className="cursor-pointer rounded-[6px] border border-[#CBD5E1] bg-[#F8FAFC] px-2.5 py-1 text-[11px] font-semibold text-ink hover:border-primary hover:text-primary"
+                    >
+                      {preset} Koin
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="number"
+                  value={coinDeltaInput}
+                  onChange={(e) => setCoinDeltaInput(e.target.value)}
+                  className="mt-2 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 font-semibold text-ink focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-ink">
+                  Catatan / Alasan Penyesuaian
+                </label>
+                <textarea
+                  rows={2}
+                  value={coinReasonInput}
+                  onChange={(e) => setCoinReasonInput(e.target.value)}
+                  className="mt-1 w-full rounded-[8px] border border-[#CBD5E1] bg-white p-2.5 text-ink focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 border-t border-[#E2E8F0] pt-3.5">
+                <button
+                  type="button"
+                  onClick={() => setCoinModalUser(null)}
+                  className="h-9 cursor-pointer rounded-[8px] border border-[#CBD5E1] bg-white px-3.5 font-semibold text-ink-soft"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="h-9 cursor-pointer rounded-[8px] bg-primary px-4 font-semibold text-white hover:bg-primary-hover"
+                >
+                  Simpan Perubahan Saldo
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

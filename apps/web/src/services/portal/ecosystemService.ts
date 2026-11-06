@@ -1,6 +1,9 @@
 import { loadPortalDb, savePortalDb } from './storage'
 import type {
   AppUserStatus,
+  CoinEconomyConfig,
+  CoinPackage,
+  CoinTransactionStatus,
   CopingQuest,
   CrisisConfig,
   FaqEntry,
@@ -131,6 +134,134 @@ export function toggleFaqPublished(id: string) {
 export function deleteFaqEntry(id: string) {
   const db = loadPortalDb()
   db.faqs = db.faqs.filter((f) => f.id !== id)
+  savePortalDb(db)
+}
+
+export function adjustUserCoinBalance(userId: string, deltaCoins: number, reason: string) {
+  const db = loadPortalDb()
+  const idx = db.generalUsers.findIndex((u) => u.id === userId)
+  if (idx === -1 || !Number.isFinite(deltaCoins) || deltaCoins === 0) return
+
+  const usr = db.generalUsers[idx]
+  const nextBalance = Math.max(0, (usr.coinBalance ?? 0) + Math.trunc(deltaCoins))
+  db.generalUsers[idx] = {
+    ...usr,
+    coinBalance: nextBalance,
+  }
+
+  if (deltaCoins > 0) {
+    const nowStr = new Date().toISOString().slice(0, 16).replace('T', ' ')
+    db.coinTransactions.unshift({
+      id: `trx-manual-${Date.now()}`,
+      invoiceCode: `ADM-GRANT-${Date.now().toString().slice(-5)}`,
+      userId: usr.id,
+      userCode: usr.userCode,
+      userDisplayName: usr.displayName,
+      packageId: 'admin-grant',
+      packageName: `Penyesuaian Admin (+${Math.trunc(deltaCoins)} Koin)`,
+      coinsGranted: Math.trunc(deltaCoins),
+      amountIdr: 0,
+      paymentMethod: 'QRIS',
+      status: 'completed',
+      createdAt: nowStr,
+      completedAt: nowStr,
+      adminNotes: reason.trim() || 'Penambahan koin manual oleh Admin.',
+    })
+  }
+
+  savePortalDb(db)
+}
+
+export function reviewCoinTransaction(
+  transactionId: string,
+  nextStatus: CoinTransactionStatus,
+  adminNotes?: string,
+) {
+  const db = loadPortalDb()
+  const idx = db.coinTransactions.findIndex((t) => t.id === transactionId)
+  if (idx === -1) return
+
+  const trx = db.coinTransactions[idx]
+  const prevStatus = trx.status
+  if (prevStatus === nextStatus) return
+
+  const nowStr = new Date().toISOString().slice(0, 16).replace('T', ' ')
+  const userIdx = db.generalUsers.findIndex((u) => u.id === trx.userId)
+
+  if (userIdx !== -1) {
+    const usr = db.generalUsers[userIdx]
+    let nextCoins = usr.coinBalance ?? 0
+
+    if (prevStatus !== 'completed' && nextStatus === 'completed') {
+      nextCoins += trx.coinsGranted
+    } else if (prevStatus === 'completed' && (nextStatus === 'refunded' || nextStatus === 'failed')) {
+      nextCoins = Math.max(0, nextCoins - trx.coinsGranted)
+    }
+
+    db.generalUsers[userIdx] = {
+      ...usr,
+      coinBalance: nextCoins,
+    }
+  }
+
+  db.coinTransactions[idx] = {
+    ...trx,
+    status: nextStatus,
+    completedAt: nextStatus === 'completed' ? nowStr : trx.completedAt,
+    adminNotes: adminNotes !== undefined ? adminNotes.trim() : trx.adminNotes,
+  }
+
+  savePortalDb(db)
+}
+
+export function updateCoinEconomyConfig(
+  updates: Partial<Pick<CoinEconomyConfig, 'basePricePerCoinIdr' | 'freeTrialCoinsNewUser'>>,
+) {
+  const db = loadPortalDb()
+  const today = new Date().toISOString().slice(0, 10)
+  db.coinEconomyConfig = {
+    ...db.coinEconomyConfig,
+    ...updates,
+    updatedAt: today,
+  }
+  savePortalDb(db)
+}
+
+export function upsertCoinPackage(input: Omit<CoinPackage, 'id'> & { id?: string }): CoinPackage {
+  const db = loadPortalDb()
+  if (input.id) {
+    const idx = db.coinPackages.findIndex((p) => p.id === input.id)
+    if (idx !== -1) {
+      const updated: CoinPackage = {
+        ...db.coinPackages[idx],
+        ...input,
+        id: input.id,
+        code: input.code.trim().toUpperCase(),
+      }
+      db.coinPackages[idx] = updated
+      savePortalDb(db)
+      return updated
+    }
+  }
+
+  const created: CoinPackage = {
+    ...input,
+    id: `pkg-${Date.now()}`,
+    code: input.code.trim().toUpperCase(),
+  }
+  db.coinPackages.push(created)
+  savePortalDb(db)
+  return created
+}
+
+export function toggleCoinPackageActive(packageId: string) {
+  const db = loadPortalDb()
+  const idx = db.coinPackages.findIndex((p) => p.id === packageId)
+  if (idx === -1) return
+  db.coinPackages[idx] = {
+    ...db.coinPackages[idx],
+    isActive: !db.coinPackages[idx].isActive,
+  }
   savePortalDb(db)
 }
 

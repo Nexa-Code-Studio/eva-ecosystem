@@ -138,9 +138,56 @@ export interface GeneralAppUser {
   lastActiveAt: string
   voiceSessionsCount: number
   questStreakDays: number
+  coinBalance: number
+  totalVoiceMinutesUsed: number
   lastDassSeverity: 'Normal' | 'Mild' | 'Moderate' | 'Severe' | 'Extreme'
   crisisProtocolTriggered: boolean
   accountStatus: AppUserStatus
+}
+
+export type CoinPaymentMethod =
+  | 'QRIS'
+  | 'GoPay'
+  | 'OVO'
+  | 'ShopeePay'
+  | 'VA BCA'
+  | 'VA Mandiri'
+
+export type CoinTransactionStatus = 'completed' | 'pending' | 'failed' | 'refunded'
+
+export interface CoinPackage {
+  id: string
+  code: string
+  name: string
+  coins: number
+  bonusCoins: number
+  priceIdr: number
+  description: string
+  isPopular?: boolean
+  isActive: boolean
+}
+
+export interface CoinEconomyConfig {
+  basePricePerCoinIdr: number
+  freeTrialCoinsNewUser: number
+  updatedAt: string
+}
+
+export interface CoinTopupTransaction {
+  id: string
+  invoiceCode: string
+  userId: string
+  userCode: string
+  userDisplayName: string
+  packageId: string
+  packageName: string
+  coinsGranted: number
+  amountIdr: number
+  paymentMethod: CoinPaymentMethod
+  status: CoinTransactionStatus
+  createdAt: string
+  completedAt?: string
+  adminNotes?: string
 }
 
 export interface CopingQuest {
@@ -197,5 +244,8 @@ export interface PortalDatabase {
   crisisConfig: CrisisConfig
   waitlistEntries: WaitlistEntry[]
   faqs: FaqEntry[]
+  coinEconomyConfig: CoinEconomyConfig
+  coinPackages: CoinPackage[]
+  coinTransactions: CoinTopupTransaction[]
 }
 

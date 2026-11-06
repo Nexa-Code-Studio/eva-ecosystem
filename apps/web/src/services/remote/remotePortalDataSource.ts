@@ -31,6 +31,9 @@ export class RemotePortalDataSource implements IPortalDataSource {
         crisisConfig: parsed.crisisConfig ?? EMPTY_PORTAL_DATABASE.crisisConfig,
         waitlistEntries: parsed.waitlistEntries ?? EMPTY_PORTAL_DATABASE.waitlistEntries,
         faqs: parsed.faqs ?? EMPTY_PORTAL_DATABASE.faqs,
+        coinEconomyConfig: parsed.coinEconomyConfig ?? EMPTY_PORTAL_DATABASE.coinEconomyConfig,
+        coinPackages: parsed.coinPackages ?? EMPTY_PORTAL_DATABASE.coinPackages,
+        coinTransactions: parsed.coinTransactions ?? EMPTY_PORTAL_DATABASE.coinTransactions,
       }
     } catch {
       return EMPTY_PORTAL_DATABASE

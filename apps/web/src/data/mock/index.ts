@@ -1,6 +1,11 @@
 import { MOCK_ADMIN_ACCOUNT } from './auth.mock'
 import { generateCertificateSvgUri } from './certificateSvgTemplates'
 import {
+  INITIAL_COIN_ECONOMY_CONFIG,
+  INITIAL_COIN_PACKAGES,
+  INITIAL_COIN_TRANSACTIONS,
+} from './coins.mock'
+import {
   EMPTY_BASELINE_DASS,
   MOCK_BASELINE_DASS,
   MOCK_BASELINE_USERS,
@@ -26,6 +31,9 @@ import type { PortalDatabase } from '@/types/domain/portal'
 
 export {
   EMPTY_BASELINE_DASS,
+  INITIAL_COIN_ECONOMY_CONFIG,
+  INITIAL_COIN_PACKAGES,
+  INITIAL_COIN_TRANSACTIONS,
   INITIAL_COPING_QUESTS,
   INITIAL_CRISIS_CONFIG,
   INITIAL_FAQS,
@@ -54,5 +62,7 @@ export const INITIAL_MOCK_DB: PortalDatabase = {
   crisisConfig: INITIAL_CRISIS_CONFIG,
   waitlistEntries: INITIAL_WAITLIST,
   faqs: INITIAL_FAQS,
+  coinEconomyConfig: INITIAL_COIN_ECONOMY_CONFIG,
+  coinPackages: INITIAL_COIN_PACKAGES,
+  coinTransactions: INITIAL_COIN_TRANSACTIONS,
 }
-
