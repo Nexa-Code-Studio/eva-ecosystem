@@ -70,6 +70,7 @@ apps/eva_counselor_mobile/build/
 .agent/developer.local.json
 .agent/*.local.json
 .agent/worktrees/
+.agent/task-state.json
 
 # Test audio outputs & pitch exploration
 tests/output_*.mp3
