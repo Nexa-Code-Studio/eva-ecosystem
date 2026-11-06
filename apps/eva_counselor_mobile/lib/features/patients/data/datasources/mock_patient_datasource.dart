@@ -37,6 +37,15 @@ class MockPatientDataSource implements PatientDataSource {
         'Sesi 2: Pasien mencoba teknik grounding 5-4-3-2-1 dan merasa lebih stabil.',
         'Sesi 3: Pasien berhasil tidur 6 jam tanpa terbangun tengah malam.',
       ],
+      upcomingSchedule: const PatientScheduleDto(
+        formattedTime: 'Hari Ini • 10:00 - 10:50 WIB',
+        dateLabel: 'Selasa, 11 Nov 2026',
+        timeRange: '10:00 - 10:50 WIB',
+        isLiveNow: true,
+        roomOpensAt: '09:45 WIB (Telah Dibuka)',
+        statusText: 'Sesi Siap Dimulai (Live)',
+        sessionId: 'session-live-001',
+      ),
     ),
     PatientResponseDto(
       id: 'patient-002',
@@ -62,6 +71,15 @@ class MockPatientDataSource implements PatientDataSource {
       sharedDiarySummaries: [
         'Sesi 1: Krisis kecemasan akut. Protokol keselamatan 119 ext 8 diaktifkan.',
       ],
+      upcomingSchedule: const PatientScheduleDto(
+        formattedTime: 'Hari Ini • 14:00 - 14:50 WIB',
+        dateLabel: 'Selasa, 11 Nov 2026',
+        timeRange: '14:00 - 14:50 WIB',
+        isLiveNow: false,
+        roomOpensAt: '13:45 WIB',
+        statusText: 'Menunggu Waktu Sesi (14:00 WIB)',
+        sessionId: 'session-live-002',
+      ),
     ),
     PatientResponseDto(
       id: 'patient-003',
@@ -78,6 +96,7 @@ class MockPatientDataSource implements PatientDataSource {
       consentRequestedAt: null,
       dassHistory: null,
       sharedDiarySummaries: null,
+      upcomingSchedule: null, // Sesi lalu selesai, belum ada reservasi baru
     ),
     PatientResponseDto(
       id: 'patient-004',
@@ -103,6 +122,15 @@ class MockPatientDataSource implements PatientDataSource {
       sharedDiarySummaries: [
         'Sesi 4: Pasien merasa tujuan kariernya sudah mulai jelas dan optimis.',
       ],
+      upcomingSchedule: const PatientScheduleDto(
+        formattedTime: 'Besok Rabu, 12 Nov • 11:00 - 11:50 WIB',
+        dateLabel: 'Rabu, 12 Nov 2026',
+        timeRange: '11:00 - 11:50 WIB',
+        isLiveNow: false,
+        roomOpensAt: 'Rabu, 10:45 WIB',
+        statusText: 'Terkonfirmasi Mendatang',
+        sessionId: 'session-live-004',
+      ),
     ),
   ];
 

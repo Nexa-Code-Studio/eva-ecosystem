@@ -15,6 +15,7 @@ class PatientResponseDto {
   final String? consentRequestedAt;
   final List<DassAssessmentDto>? dassHistory;
   final List<String>? sharedDiarySummaries;
+  final PatientScheduleDto? upcomingSchedule;
 
   const PatientResponseDto({
     required this.id,
@@ -31,6 +32,7 @@ class PatientResponseDto {
     this.consentRequestedAt,
     this.dassHistory,
     this.sharedDiarySummaries,
+    this.upcomingSchedule,
   });
 
   factory PatientResponseDto.fromJson(Map<String, dynamic> json) {
@@ -54,6 +56,9 @@ class PatientResponseDto {
       sharedDiarySummaries: (json['shared_diary_summaries'] as List<dynamic>?)
           ?.map((e) => e.toString())
           .toList(),
+      upcomingSchedule: json['upcoming_schedule'] != null
+          ? PatientScheduleDto.fromJson(json['upcoming_schedule'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -72,6 +77,7 @@ class PatientResponseDto {
         'consent_requested_at': consentRequestedAt,
         'dass_history': dassHistory?.map((e) => e.toJson()).toList(),
         'shared_diary_summaries': sharedDiarySummaries,
+        'upcoming_schedule': upcomingSchedule?.toJson(),
       };
 
   PatientEntity toEntity() {
@@ -90,6 +96,61 @@ class PatientResponseDto {
       consentRequestedAt: consentRequestedAt,
       dassHistory: dassHistory?.map((e) => e.toEntity()).toList(),
       sharedDiarySummaries: sharedDiarySummaries,
+      upcomingSchedule: upcomingSchedule?.toEntity(),
+    );
+  }
+}
+
+class PatientScheduleDto {
+  final String formattedTime;
+  final String dateLabel;
+  final String timeRange;
+  final bool isLiveNow;
+  final String roomOpensAt;
+  final String statusText;
+  final String? sessionId;
+
+  const PatientScheduleDto({
+    required this.formattedTime,
+    required this.dateLabel,
+    required this.timeRange,
+    required this.isLiveNow,
+    required this.roomOpensAt,
+    required this.statusText,
+    this.sessionId,
+  });
+
+  factory PatientScheduleDto.fromJson(Map<String, dynamic> json) {
+    return PatientScheduleDto(
+      formattedTime: json['formatted_time']?.toString() ?? '',
+      dateLabel: json['date_label']?.toString() ?? '',
+      timeRange: json['time_range']?.toString() ?? '',
+      isLiveNow: json['is_live_now'] as bool? ?? false,
+      roomOpensAt: json['room_opens_at']?.toString() ?? '',
+      statusText: json['status_text']?.toString() ?? '',
+      sessionId: json['session_id']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'formatted_time': formattedTime,
+        'date_label': dateLabel,
+        'time_range': timeRange,
+        'is_live_now': isLiveNow,
+        'room_opens_at': roomOpensAt,
+        'status_text': statusText,
+        'session_id': sessionId,
+      };
+
+  PatientScheduleInfo toEntity() {
+    return PatientScheduleInfo(
+      formattedTime: formattedTime,
+      dateLabel: dateLabel,
+      timeRange: timeRange,
+      isLiveNow: isLiveNow,
+      roomOpensAt: roomOpensAt,
+      statusText: statusText,
+      sessionId: sessionId,
     );
   }
 }

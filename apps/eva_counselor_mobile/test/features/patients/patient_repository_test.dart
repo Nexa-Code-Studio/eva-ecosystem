@@ -40,6 +40,31 @@ void main() {
       expect(success, true);
     });
 
+    test('Patient with upcoming live session has isLiveNow == true and VC room ready', () async {
+      final patients = await repository.getPatients();
+      final livePatient = patients.firstWhere((p) => p.id == 'patient-001');
+
+      expect(livePatient.upcomingSchedule, isNotNull);
+      expect(livePatient.upcomingSchedule!.isLiveNow, true);
+      expect(livePatient.upcomingSchedule!.timeRange, '10:00 - 10:50 WIB');
+    });
+
+    test('Patient with future session has isLiveNow == false and VC room locked', () async {
+      final patients = await repository.getPatients();
+      final futurePatient = patients.firstWhere((p) => p.id == 'patient-002');
+
+      expect(futurePatient.upcomingSchedule, isNotNull);
+      expect(futurePatient.upcomingSchedule!.isLiveNow, false);
+      expect(futurePatient.upcomingSchedule!.roomOpensAt, '13:45 WIB');
+    });
+
+    test('Patient without active upcoming booking returns null upcomingSchedule', () async {
+      final patients = await repository.getPatients();
+      final noSchedulePatient = patients.firstWhere((p) => p.id == 'patient-003');
+
+      expect(noSchedulePatient.upcomingSchedule, isNull);
+    });
+
     test('saveClinicalNote creates and stores SOAP note', () async {
       final note = await repository.saveClinicalNote(
         patientId: 'patient-001',

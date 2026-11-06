@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/custom_button.dart';
-import '../../../../core/widgets/custom_text_field.dart';
-import '../../../../core/widgets/glass_card.dart';
 import '../../../../core/widgets/status_badge.dart';
+import '../../../../core/widgets/top_toast.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../providers/finance_provider.dart';
 
@@ -51,41 +49,27 @@ class _TransactionHistoryScreenState
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Tarik Honorarium Konsultasi', style: AppTypography.headingSmall),
+                    const Text('Tarik Honorarium Konsultasi', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     IconButton(
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(Icons.close, size: 20),
                       onPressed: () => Navigator.of(ctx).pop(),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
-                  'Saldo tersedia untuk ditarik: Rp ${availableBalance.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}',
-                  style: AppTypography.bodySmall.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
+                  'Saldo siap ditarik: Rp ${_formatRp(availableBalance)}',
+                  style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13),
                 ),
                 const SizedBox(height: 16),
-                CustomTextField(
-                  label: 'Nominal Penarikan (Rp)',
-                  controller: amountCtrl,
-                  keyboardType: TextInputType.number,
-                ),
+                _buildModalInput('Nominal Penarikan (Rp)', amountCtrl, isNumber: true),
                 const SizedBox(height: 12),
-                CustomTextField(
-                  label: 'Nama Bank Tujuan',
-                  controller: bankCtrl,
-                ),
+                _buildModalInput('Nama Bank Tujuan', bankCtrl),
                 const SizedBox(height: 12),
-                CustomTextField(
-                  label: 'Nomor Rekening',
-                  controller: accountCtrl,
-                  keyboardType: TextInputType.number,
-                ),
+                _buildModalInput('Nomor Rekening', accountCtrl, isNumber: true),
                 const SizedBox(height: 12),
-                CustomTextField(
-                  label: 'Nama Pemilik Rekening (Sesuai KTP)',
-                  controller: nameCtrl,
-                ),
-                const SizedBox(height: 24),
+                _buildModalInput('Nama Pemilik Rekening (Sesuai KTP)', nameCtrl),
+                const SizedBox(height: 20),
                 CustomButton(
                   label: 'Konfirmasi Penarikan Dana',
                   isLoading: isSubmitting,
@@ -103,11 +87,11 @@ class _TransactionHistoryScreenState
                     if (!ctx.mounted) return;
                     Navigator.of(ctx).pop();
                     if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Permintaan pencairan dana berhasil diajukan.'),
-                        backgroundColor: AppColors.verifiedGreen,
-                      ),
+                    TopToast.show(
+                      context,
+                      title: 'Pencairan Berhasil Diajukan',
+                      message: 'Permintaan transfer honorarium sebesar Rp ${_formatRp(int.tryParse(amountCtrl.text) ?? 0)} sedang diproses.',
+                      type: ToastType.success,
                     );
                   },
                 ),
@@ -116,6 +100,31 @@ class _TransactionHistoryScreenState
           );
         },
       ),
+    );
+  }
+
+  Widget _buildModalInput(String label, TextEditingController ctrl, {bool isNumber = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+        const SizedBox(height: 4),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF7F8FC),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: TextField(
+            controller: ctrl,
+            keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+            style: const TextStyle(fontSize: 13),
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -132,97 +141,110 @@ class _TransactionHistoryScreenState
     final txListAsync = ref.watch(transactionsListProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Keuangan & Transaksi', style: AppTypography.headingMedium),
-      ),
+      backgroundColor: const Color(0xFFF8F9FE),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Balance Overview Card
+              // 1. Balance Overview Card (Soft Indigo Gradient)
               summaryAsync.when(
                 data: (summary) {
-                  return GlassCard(
+                  return Container(
                     padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF4B53BB), Color(0xFF6B72E5)],
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF4B53BB).withValues(alpha: 0.25),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Expanded(
-                              child: Text(
-                                'Saldo Tersedia (Siap Tarik)',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppTypography.bodySmall.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                            const Text(
+                              'Saldo Tersedia (Siap Tarik)',
+                              style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500),
                             ),
-                            const SizedBox(width: 8),
-                            StatusBadge.verified('Dompet Mitra'),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Text('BCA Terhubung', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                            ),
                           ],
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
                         Text(
                           'Rp ${_formatRp(summary.availableBalance)}',
-                          style: AppTypography.headingLarge.copyWith(
-                            color: AppColors.primary,
-                            fontSize: 28,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5,
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Menunggu Kliring',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: AppTypography.bodySmall),
+                                  const Text('Menunggu Kliring', style: TextStyle(color: Colors.white70, fontSize: 10)),
                                   const SizedBox(height: 2),
                                   Text(
                                     'Rp ${_formatRp(summary.pendingClearingBalance)}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: AppTypography.headingSmall.copyWith(fontSize: 14),
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                                   ),
                                 ],
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
+                              Container(width: 1, height: 24, color: Colors.white24),
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Pendapatan Bulan Ini',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: AppTypography.bodySmall),
+                                  const Text('Total Bulan Ini', style: TextStyle(color: Colors.white70, fontSize: 10)),
                                   const SizedBox(height: 2),
                                   Text(
                                     'Rp ${_formatRp(summary.totalEarningsThisMonth)}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: AppTypography.headingSmall.copyWith(
-                                      fontSize: 14,
-                                      color: AppColors.verifiedGreen,
-                                    ),
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 18),
-                        CustomButton(
-                          label: 'Tarik Dana ke Rekening',
-                          icon: Icons.payments_rounded,
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: AppColors.primary,
+                            minimumSize: const Size.fromHeight(46),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          icon: const Icon(Icons.arrow_upward_rounded, size: 18),
+                          label: const Text('Tarik Dana ke Rekening', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                           onPressed: () => _showPayoutModal(context, summary.availableBalance),
                         ),
                       ],
@@ -234,29 +256,37 @@ class _TransactionHistoryScreenState
               ),
               const SizedBox(height: 24),
 
-              // Filter Chips
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // 2. Filter Pills
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Riwayat Honorarium', style: AppTypography.headingSmall),
-                  const SizedBox(height: 8),
+                  const Text('Riwayat Transaksi', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: ['Semua', 'Selesai', 'Penarikan'].map((f) {
-                        final isSelected = _selectedFilter == f;
+                        final isSel = _selectedFilter == f;
                         return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: ChoiceChip(
-                            selected: isSelected,
-                            label: Text(f),
-                            selectedColor: AppColors.primaryContainer,
-                            labelStyle: AppTypography.bodySmall.copyWith(
-                              color: isSelected ? AppColors.primary : AppColors.textSecondary,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                              fontSize: 12,
+                          padding: const EdgeInsets.only(left: 6),
+                          child: GestureDetector(
+                            onTap: () => setState(() => _selectedFilter = f),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: isSel ? AppColors.primary : Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: isSel ? AppColors.primary : const Color(0xFFECEFF8)),
+                              ),
+                              child: Text(
+                                f,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                                  color: isSel ? Colors.white : AppColors.textSecondary,
+                                ),
+                              ),
                             ),
-                            onSelected: (_) => setState(() => _selectedFilter = f),
                           ),
                         );
                       }).toList(),
@@ -266,7 +296,7 @@ class _TransactionHistoryScreenState
               ),
               const SizedBox(height: 12),
 
-              // Transaction List
+              // 3. Transactions List (Soft Cards, No Harsh Lines)
               txListAsync.when(
                 data: (transactions) {
                   final filtered = transactions.where((t) {
@@ -279,68 +309,83 @@ class _TransactionHistoryScreenState
                     return true;
                   }).toList();
 
+                  if (filtered.isEmpty) {
+                    return Container(
+                      padding: const EdgeInsets.all(24),
+                      alignment: Alignment.center,
+                      child: const Text('Tidak ada riwayat transaksi.', style: TextStyle(color: AppColors.textSecondary)),
+                    );
+                  }
+
                   return Column(
                     children: filtered.map((t) {
                       final isPayout = t.status == TransactionStatus.payoutRequested;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: GlassCard(
-                          padding: const EdgeInsets.all(14),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: isPayout
-                                      ? AppColors.pendingBg
-                                      : AppColors.primaryContainer,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  isPayout
-                                      ? Icons.account_balance_outlined
-                                      : Icons.video_call_outlined,
-                                  color: isPayout
-                                      ? AppColors.pendingAmber
-                                      : AppColors.primary,
-                                ),
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0xFFECEFF8)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.02),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: isPayout ? AppColors.pendingBg : AppColors.primaryContainer,
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(t.patientName, style: AppTypography.headingSmall.copyWith(fontSize: 14)),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '${t.sessionType} • ${t.date.day}/${t.date.month}',
-                                      style: AppTypography.bodySmall,
-                                    ),
-                                  ],
-                                ),
+                              child: Icon(
+                                isPayout ? Icons.account_balance_outlined : Icons.videocam_outlined,
+                                color: isPayout ? AppColors.pendingAmber : AppColors.primary,
+                                size: 20,
                               ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  Text(t.patientName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                  const SizedBox(height: 2),
                                   Text(
-                                    '${isPayout ? '-' : '+'}Rp ${_formatRp(t.netEarnings)}',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 14,
-                                      color: isPayout
-                                          ? AppColors.textPrimary
-                                          : AppColors.verifiedGreen,
-                                    ),
+                                    '${t.sessionType} • ${t.date.day}/${t.date.month}/${t.date.year}',
+                                    style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  const SizedBox(height: 4),
-                                  isPayout
-                                      ? StatusBadge.pending('Diproses')
-                                      : StatusBadge.verified('Sukses'),
                                 ],
                               ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${isPayout ? '-' : '+'}Rp ${_formatRp(t.netEarnings)}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 13,
+                                    color: isPayout ? AppColors.textPrimary : AppColors.verifiedGreen,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                isPayout
+                                    ? StatusBadge.pending('Diproses')
+                                    : StatusBadge.verified('Selesai'),
+                              ],
+                            ),
+                          ],
                         ),
                       );
                     }).toList(),
@@ -349,6 +394,7 @@ class _TransactionHistoryScreenState
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Text('Error: $e'),
               ),
+              const SizedBox(height: 80),
             ],
           ),
         ),

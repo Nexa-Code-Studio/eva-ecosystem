@@ -6,6 +6,7 @@ import '../../features/patients/presentation/screens/patient_detail_consent_scre
 import '../../features/patients/presentation/screens/patient_list_screen.dart';
 import '../../features/video_call/presentation/screens/video_consultation_screen.dart';
 import '../../features/finances/presentation/screens/transaction_history_screen.dart';
+import '../../features/dashboard/presentation/screens/counselor_notification_screen.dart';
 import 'app_route_transitions.dart';
 
 class AppRouter {
@@ -27,6 +28,12 @@ class AppRouter {
       case '/counselor-shell':
         return FadeThroughPageRoute(
           page: const CounselorMainShellScreen(),
+          settings: settings,
+        );
+
+      case '/counselor-notifications':
+        return FadeThroughPageRoute(
+          page: const CounselorNotificationScreen(),
           settings: settings,
         );
 
