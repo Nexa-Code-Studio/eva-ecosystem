@@ -59,6 +59,9 @@ export default defineConfig({
     strictPort: true,
     host: true,
     allowedHosts: ['eva.test', 'localhost', '127.0.0.1'],
+    hmr: {
+      clientPort: 80,
+    },
   },
 })
 

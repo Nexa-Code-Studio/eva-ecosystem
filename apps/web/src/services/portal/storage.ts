@@ -92,8 +92,21 @@ export function loadPortalDb(): PortalDatabase {
       }
     }
 
+    // Backfill any missing seed partners (e.g. pengajuan ulang, mitra nonaktif, dan pengajuan baru)
+    const rawPartners = parsed.partners ?? INITIAL_DB.partners
+    const existingPartnerIds = new Set(rawPartners.map((p) => p.id))
+    const migratedPartners = [...rawPartners]
+
+    for (const seedPartner of INITIAL_DB.partners) {
+      if (!existingPartnerIds.has(seedPartner.id)) {
+        migratedPartners.push(seedPartner)
+        existingPartnerIds.add(seedPartner.id)
+        needsSave = true
+      }
+    }
+
     const result: PortalDatabase = {
-      partners: parsed.partners ?? INITIAL_DB.partners,
+      partners: migratedPartners,
       psychologists: migratedPsychologists,
       referrals: parsed.referrals ?? INITIAL_DB.referrals,
       generalUsers: parsed.generalUsers ?? INITIAL_DB.generalUsers,

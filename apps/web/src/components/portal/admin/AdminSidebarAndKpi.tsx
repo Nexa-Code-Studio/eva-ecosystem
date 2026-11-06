@@ -68,7 +68,7 @@ export function AdminSidebar({
     },
     {
       id: 'partners' as const,
-      label: 'Verifikasi Mitra Faskes',
+      label: 'Mitra Faskes',
       icon: Building2,
       badge: counts.pendingPartners,
       badgeColor: 'bg-[#FEF3C7] text-[#92400E]',

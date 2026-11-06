@@ -54,7 +54,6 @@ export function VerificationBadge({ status }: { status: VerificationStatus }) {
 
 export function PartnerStatusBadge({
   status,
-  isResubmitted,
 }: {
   status: PartnerStatus
   isResubmitted?: boolean
@@ -63,7 +62,7 @@ export function PartnerStatusBadge({
     return (
       <span className="inline-flex shrink-0 items-center gap-1 rounded-[6px] border border-[#FDE68A] bg-[#FEF3C7] px-2 py-0.5 text-[11px] font-semibold text-[#92400E]">
         <Clock className="size-3" />
-        {isResubmitted ? 'Perbaikan Menunggu' : 'Menunggu Verifikasi'}
+        Menunggu Verifikasi
       </span>
     )
   }
