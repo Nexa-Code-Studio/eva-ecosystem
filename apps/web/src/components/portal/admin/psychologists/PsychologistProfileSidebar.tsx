@@ -7,7 +7,6 @@ import {
   MapPin,
   Phone,
   ShieldCheck,
-  Sparkles,
 } from 'lucide-react'
 import type { PartnerAccount, Psychologist } from '@/types/portal'
 import { PsychologistRoleBadge } from '@/components/portal/PortalBadges'
@@ -48,14 +47,7 @@ export function PsychologistProfileSidebar({
             <span>Pengajuan Upgrade Menunggu Verifikasi:</span>
           </div>
           <p className="mt-1 text-[11px] font-medium leading-relaxed">
-            Mengajukan upgrade ke{' '}
-            <strong>
-              {psy.upgradeRequest.targetRole === 'relawan_utama' ||
-              (psy.upgradeRequest.targetRole as string) === 'relawan_pro'
-                ? 'Relawan Utama'
-                : 'Relawan Profesional'}
-            </strong>{' '}
-            pada {psy.upgradeRequest.requestedAt}.
+            Mengajukan upgrade ke <strong>Relawan Profesional</strong> pada {psy.upgradeRequest.requestedAt}.
           </p>
         </div>
       )}
@@ -67,24 +59,12 @@ export function PsychologistProfileSidebar({
         </span>
         <div className="mt-2 space-y-2">
           <div>
-            <PsychologistRoleBadge role={psy.role} isPriorityMobile={psy.isPriorityMobile} />
+            <PsychologistRoleBadge role={psy.role} />
           </div>
-
-          {(psy.role === 'relawan_utama' || psy.role === 'relawan_pro') && (
-            <div className="rounded-[8px] border border-amber-200 bg-amber-50/80 p-2.5 text-[11px] text-amber-900">
-              <div className="flex items-center gap-1 font-bold text-amber-800">
-                <Sparkles className="size-3 text-amber-600" />
-                <span>Prioritas Relawan Utama:</span>
-              </div>
-              <p className="mt-0.5 text-[10px] leading-relaxed text-amber-800/90">
-                Profil tampil di urutan teratas pada daftar konseling aplikasi mobile EVA.
-              </p>
-            </div>
-          )}
 
           {psy.role === 'relawan_biasa' && (
             <p className="text-[11px] text-ink-muted leading-relaxed">
-              Relawan pendamping sebaya. Memenuhi syarat mengajukan upgrade ke <strong>Relawan Utama</strong> atau <strong>Relawan Profesional</strong>.
+              Relawan pendamping sebaya. Memenuhi syarat mengajukan upgrade ke <strong>Relawan Profesional</strong> dengan verifikasi SIPP &amp; STR klinis.
             </p>
           )}
 

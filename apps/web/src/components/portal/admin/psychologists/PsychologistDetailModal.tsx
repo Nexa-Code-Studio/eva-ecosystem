@@ -49,11 +49,7 @@ export function PsychologistDetailModal({
   const isMitra = psy.role === 'professional_mitra' || (!psy.role && psy.partnerId)
   const isMandiri = !isMitra
   const hasUpgrade = Boolean(psy.upgradeRequest)
-  const targetUpgradeLabel =
-    psy.upgradeRequest?.targetRole === 'relawan_utama' ||
-    (psy.upgradeRequest?.targetRole as string) === 'relawan_pro'
-      ? 'Relawan Utama'
-      : 'Relawan Profesional'
+  const targetUpgradeLabel = 'Relawan Profesional'
 
   // Combine regular documents and upgrade request documents
   const standardDocs: PsychologistCertificate[] = psy.documents ?? []
@@ -104,7 +100,6 @@ export function PsychologistDetailModal({
                 </h2>
                 <PsychologistShieldBadge
                   role={psy.role}
-                  isPriorityMobile={psy.isPriorityMobile}
                   partnerName={partner?.facilityName}
                   upgradeRequest={psy.upgradeRequest}
                 />

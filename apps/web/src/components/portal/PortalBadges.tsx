@@ -3,10 +3,8 @@ import {
   Building2,
   CheckCircle2,
   Clock,
-  Crown,
   GraduationCap,
   HeartHandshake,
-  Sparkles,
   XCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/cn'
@@ -112,11 +110,9 @@ export function PracticeStatusBadge({ status }: { status: PsychologistStatus }) 
 
 export function PsychologistRoleBadge({
   role,
-  isPriorityMobile,
   className,
 }: {
   role?: PsychologistRole
-  isPriorityMobile?: boolean
   className?: string
 }) {
   if (role === 'professional_mitra') {
@@ -147,35 +143,17 @@ export function PsychologistRoleBadge({
     )
   }
 
-  if (role === 'relawan_utama' || role === 'relawan_pro') {
-    return (
-      <div className={cn('inline-flex flex-wrap items-center gap-1.5', className)}>
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-[6px] border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-900 shadow-2xs">
-          <Crown className="size-3 text-amber-600" />
-          <span>Relawan Utama</span>
-        </span>
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-[5px] border border-amber-200 bg-amber-100/90 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
-          <Sparkles className="size-2.5 text-amber-600" />
-          <span>Prioritas Mobile</span>
-        </span>
-      </div>
-    )
-  }
-
-  // Default to relawan
+  // Default to relawan pendamping
   return (
-    <div className={cn('inline-flex flex-wrap items-center gap-1.5', className)}>
-      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-[6px] border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-bold text-sky-800 shadow-2xs">
-        <HeartHandshake className="size-3 text-sky-600" />
-        <span>Relawan</span>
-      </span>
-      {isPriorityMobile && (
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-[5px] border border-amber-200 bg-amber-100/90 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
-          <Sparkles className="size-2.5 text-amber-600" />
-          <span>Prioritas Mobile</span>
-        </span>
+    <span
+      className={cn(
+        'inline-flex shrink-0 items-center gap-1.5 rounded-[6px] border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-bold text-sky-800 shadow-2xs',
+        className,
       )}
-    </div>
+    >
+      <HeartHandshake className="size-3 text-sky-600" />
+      <span>Relawan Pendamping</span>
+    </span>
   )
 }
 
@@ -187,10 +165,6 @@ export function UpgradeRequestBadge({
   className?: string
 }) {
   if (!request) return null
-  const targetLabel =
-    request.targetRole === 'relawan_utama' || (request.targetRole as string) === 'relawan_pro'
-      ? 'Relawan Utama'
-      : 'Relawan Profesional'
 
   return (
     <span
@@ -200,7 +174,7 @@ export function UpgradeRequestBadge({
       )}
     >
       <ArrowUpCircle className="size-3 text-amber-700" />
-      <span>Menunggu Upgrade ke {targetLabel}</span>
+      <span>Menunggu Upgrade ke Relawan Profesional</span>
     </span>
   )
 }

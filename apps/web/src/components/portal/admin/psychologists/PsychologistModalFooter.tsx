@@ -33,11 +33,7 @@ export function PsychologistModalFooter({
   const isApproved = verificationStatus === 'approved'
   const isRejected = verificationStatus === 'rejected'
   const hasUpgrade = Boolean(upgradeRequest)
-  const targetUpgradeLabel =
-    upgradeRequest?.targetRole === 'relawan_utama' ||
-    (upgradeRequest?.targetRole as string) === 'relawan_pro'
-      ? 'Relawan Utama'
-      : 'Relawan Profesional'
+  const targetUpgradeLabel = 'Relawan Profesional'
 
   return (
     <div className="flex flex-col gap-3 border-t border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 sm:px-6 sm:py-3.5 sm:flex-row sm:items-center sm:justify-between">

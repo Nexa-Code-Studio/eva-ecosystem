@@ -44,12 +44,10 @@ export type VerificationStatus = 'pending' | 'approved' | 'rejected' | 'suspende
 export type PsychologistRole =
   | 'professional_mitra'
   | 'relawan_profesional'
-  | 'relawan_utama'
   | 'relawan_biasa'
-  | 'relawan_pro' // Legacy fallback, automatically migrated to relawan_utama
 
 export interface UpgradeRequest {
-  targetRole: 'relawan_utama' | 'relawan_profesional' | 'relawan_pro'
+  targetRole: 'relawan_profesional'
   requestedAt: string
   notes?: string
   documents?: PsychologistCertificate[]
@@ -81,7 +79,6 @@ export interface Psychologist {
   practiceType?: PsychologistPracticeType
   verificationStatus?: VerificationStatus
   role?: PsychologistRole
-  isPriorityMobile?: boolean
   upgradeRequest?: UpgradeRequest | null
   // Required fields
   fullName: string

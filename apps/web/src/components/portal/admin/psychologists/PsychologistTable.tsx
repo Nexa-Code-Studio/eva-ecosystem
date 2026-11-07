@@ -89,7 +89,6 @@ export function PsychologistTable({
                           </span>
                           <PsychologistShieldBadge
                             role={psy.role}
-                            isPriorityMobile={psy.isPriorityMobile}
                             partnerName={partnerName}
                             upgradeRequest={psy.upgradeRequest}
                           />

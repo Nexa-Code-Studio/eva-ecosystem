@@ -41,9 +41,6 @@ export function AdminPsychologistsModule({
         p.role === 'relawan_profesional' ||
         (!p.role && !p.partnerId && p.practiceType === 'mandiri'),
     ).length
-    const relawanUtama = psychologists.filter(
-      (p) => p.role === 'relawan_utama' || p.role === 'relawan_pro',
-    ).length
     const relawan = psychologists.filter(
       (p) => p.role === 'relawan_biasa' || (p.role as string) === 'relawan',
     ).length
@@ -59,12 +56,10 @@ export function AdminPsychologistsModule({
       total: psychologists.length,
       mitra,
       relawanProfesional,
-      relawanUtama,
       relawan,
       pendingAction,
       pendingVerifikasi,
       pendingUpgrade,
-      relawanPro: relawanUtama,
       relawanBiasa: relawan,
     }
   }, [psychologists])
@@ -77,15 +72,12 @@ export function AdminPsychologistsModule({
       const isRelawanProf =
         p.role === 'relawan_profesional' ||
         (!p.role && !p.partnerId && p.practiceType === 'mandiri')
-      const isRelawanUtama = p.role === 'relawan_utama' || p.role === 'relawan_pro'
       const isRelawan = p.role === 'relawan_biasa' || (p.role as string) === 'relawan'
       const hasUpgrade = Boolean(p.upgradeRequest)
       const isPendingVerif = p.verificationStatus === 'pending'
 
       if (activeFilter === 'mitra' && !isMitra) return false
       if (activeFilter === 'relawan_profesional' && !isRelawanProf) return false
-      if ((activeFilter === 'relawan_utama' || activeFilter === 'relawan_pro') && !isRelawanUtama)
-        return false
       if ((activeFilter === 'relawan' || activeFilter === 'relawan_biasa') && !isRelawan)
         return false
       if (activeFilter === 'pending_action' && !isPendingVerif && !hasUpgrade) return false
@@ -129,8 +121,7 @@ export function AdminPsychologistsModule({
     { id: 'all', label: `Semua (${counts.total})` },
     { id: 'mitra', label: `Profesional Mitra (${counts.mitra})` },
     { id: 'relawan_profesional', label: `Relawan Profesional (${counts.relawanProfesional})` },
-    { id: 'relawan_utama', label: `Relawan Utama (${counts.relawanUtama})` },
-    { id: 'relawan', label: `Relawan (${counts.relawan})` },
+    { id: 'relawan', label: `Relawan Pendamping (${counts.relawan})` },
     { id: 'pending_action', label: `Antrean Upgrade / Verifikasi (${counts.pendingAction})` },
   ]
 

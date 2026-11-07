@@ -59,7 +59,6 @@ export function PsychologistCardList({
                     <p className="line-clamp-2 text-sm font-bold leading-snug text-ink">{psy.fullName}</p>
                     <PsychologistShieldBadge
                       role={psy.role}
-                      isPriorityMobile={psy.isPriorityMobile}
                       partnerName={partnerName}
                       upgradeRequest={psy.upgradeRequest}
                     />

@@ -1,4 +1,4 @@
-import { ArrowUpCircle, GraduationCap, HeartHandshake, Sparkles, Users, X } from 'lucide-react'
+import { ArrowUpCircle, GraduationCap, HeartHandshake, Users, X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { CLINICAL_SPECIALIZATIONS } from '@/constants/portal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
@@ -43,23 +43,15 @@ export function MobilePsychologistSimulatorModal({
 
   const availableVolunteers = (psychologists ?? loadPortalDb().psychologists).filter(
     (p) =>
-      (p.role === 'relawan_biasa' ||
-        (p.role as string) === 'relawan' ||
-        p.role === 'relawan_utama' ||
-        p.role === 'relawan_pro') &&
+      (p.role === 'relawan_biasa' || (p.role as string) === 'relawan') &&
       !p.upgradeRequest,
   )
   const [selectedVolunteerId, setSelectedVolunteerId] = useState<string>('')
   const activeVolunteerId = availableVolunteers.some((v) => v.id === selectedVolunteerId)
     ? selectedVolunteerId
     : (availableVolunteers[0]?.id ?? '')
-  const selectedVolunteer = availableVolunteers.find((v) => v.id === activeVolunteerId)
-
-  const [targetUpgradeRole, setTargetUpgradeRole] = useState<'relawan_utama' | 'relawan_profesional'>(
-    'relawan_utama',
-  )
   const [upgradeNotes, setUpgradeNotes] = useState(
-    'Telah menyelesaikan 50+ sesi pendampingan konseling sebaya dengan evaluasi kepuasan 4.9/5.0.',
+    'Telah lulus S2 Magister Profesi Psikologi Klinis dan memiliki SIPP serta STR-PK resmi.',
   )
 
   const [simError, setSimError] = useState<string | null>(null)
@@ -123,13 +115,9 @@ export function MobilePsychologistSimulatorModal({
       return
     }
 
-    const isAlreadyUtama =
-      selectedVolunteer?.role === 'relawan_utama' || selectedVolunteer?.role === 'relawan_pro'
-    const effectiveTargetRole = isAlreadyUtama ? 'relawan_profesional' : targetUpgradeRole
-
     const updated = simulateVolunteerUpgradeSubmission(
       volId,
-      effectiveTargetRole,
+      'relawan_profesional',
       upgradeNotes.trim(),
     )
     if (updated) {
@@ -444,10 +432,7 @@ export function MobilePsychologistSimulatorModal({
                 >
                   {availableVolunteers.map((vol) => (
                     <option key={vol.id} value={vol.id}>
-                      {vol.role === 'relawan_utama' || vol.role === 'relawan_pro'
-                        ? '[Relawan Utama ★] '
-                        : '[Relawan] '}
-                      {vol.fullName} · {vol.city ?? 'Indonesia'} ({vol.education ?? 'Relawan'})
+                      [Relawan Pendamping] {vol.fullName} · {vol.city ?? 'Indonesia'} ({vol.education ?? 'Relawan'})
                     </option>
                   ))}
                 </select>
@@ -456,69 +441,14 @@ export function MobilePsychologistSimulatorModal({
 
             <div>
               <label className="block font-semibold text-ink">Target Role Upgrade *</label>
-              <div className="mt-1.5 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <button
-                  type="button"
-                  disabled={
-                    selectedVolunteer?.role === 'relawan_utama' ||
-                    selectedVolunteer?.role === 'relawan_pro'
-                  }
-                  onClick={() => {
-                    setTargetUpgradeRole('relawan_utama')
-                    setUpgradeNotes(
-                      'Telah mendampingi 60+ sesi peer-counseling dengan rating 4.9/5.0 dan kehadiran 100% pada evaluasi bulanan relawan.',
-                    )
-                  }}
-                  className={cn(
-                    'flex flex-col rounded-[10px] border p-3 text-left transition-all',
-                    selectedVolunteer?.role === 'relawan_utama' ||
-                      selectedVolunteer?.role === 'relawan_pro'
-                      ? 'cursor-not-allowed border-[#E2E8F0] bg-slate-50 opacity-60'
-                      : 'cursor-pointer',
-                    targetUpgradeRole === 'relawan_utama' &&
-                      selectedVolunteer?.role !== 'relawan_utama' &&
-                      selectedVolunteer?.role !== 'relawan_pro'
-                      ? 'border-amber-400 bg-amber-50 ring-1 ring-amber-300'
-                      : 'border-[#CBD5E1] bg-white hover:bg-[#F8FAFC]',
-                  )}
-                >
-                  <div className="flex items-center gap-1.5 font-bold text-amber-900">
-                    <Sparkles className="size-4 text-amber-600" />
-                    <span>Naik ke Relawan Utama</span>
-                  </div>
-                  <p className="mt-1 text-[11px] text-ink-muted">
-                    {selectedVolunteer?.role === 'relawan_utama' ||
-                    selectedVolunteer?.role === 'relawan_pro'
-                      ? 'Akun ini sudah berstatus Relawan Utama.'
-                      : 'Berdasarkan keaktifan dan rekam jejak kinerja. Keuntungan: tampil paling atas di daftar mobile.'}
-                  </p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTargetUpgradeRole('relawan_profesional')
-                    setUpgradeNotes(
-                      'Telah lulus S2 Magister Profesi Psikologi Klinis dan memiliki SIPP serta STR-PK resmi.',
-                    )
-                  }}
-                  className={cn(
-                    'flex cursor-pointer flex-col rounded-[10px] border p-3 text-left transition-all',
-                    targetUpgradeRole === 'relawan_profesional' ||
-                      selectedVolunteer?.role === 'relawan_utama' ||
-                      selectedVolunteer?.role === 'relawan_pro'
-                      ? 'border-indigo-400 bg-indigo-50 ring-1 ring-indigo-300'
-                      : 'border-[#CBD5E1] bg-white hover:bg-[#F8FAFC]',
-                  )}
-                >
-                  <div className="flex items-center gap-1.5 font-bold text-indigo-900">
-                    <GraduationCap className="size-4 text-indigo-600" />
-                    <span>Upgrade ke Relawan Profesional</span>
-                  </div>
-                  <p className="mt-1 text-[11px] text-ink-muted">
-                    Menyertakan bukti Ijazah Magister Profesi Psikolog, SIPP, dan STR Kemenkes.
-                  </p>
-                </button>
+              <div className="mt-1.5 rounded-[10px] border border-indigo-400 bg-indigo-50/80 p-3.5 ring-1 ring-indigo-300">
+                <div className="flex items-center gap-1.5 font-bold text-indigo-900">
+                  <GraduationCap className="size-4 text-indigo-600" />
+                  <span>Upgrade ke Relawan Profesional</span>
+                </div>
+                <p className="mt-1 text-[11px] leading-relaxed text-ink-muted">
+                  Simulasi pengajuan upgrade dari Relawan Pendamping ke Psikolog Relawan Profesional. Otomatis menyertakan berkas verifikasi Ijazah Magister Profesi Psikolog, SIPP, dan STR Kemenkes.
+                </p>
               </div>
             </div>
 

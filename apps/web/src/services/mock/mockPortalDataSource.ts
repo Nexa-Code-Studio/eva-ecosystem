@@ -34,22 +34,18 @@ function hydrateAndBackfillMockDb(parsed: Partial<PortalDatabase>): {
         role = 'relawan_biasa'
       }
     }
-    if (role === 'relawan_pro') role = 'relawan_utama'
-
-    let upgradeRequest = p.upgradeRequest ?? seedPsy?.upgradeRequest
-    if (upgradeRequest && (upgradeRequest.targetRole as string) === 'relawan_pro') {
-      upgradeRequest = {
-        ...upgradeRequest,
-        targetRole: 'relawan_utama',
-      }
+    if ((role as string) === 'relawan_pro' || (role as string) === 'relawan_utama') {
+      role = 'relawan_biasa'
     }
 
-    const isPriorityMobile =
-      p.isPriorityMobile !== undefined
-        ? p.isPriorityMobile
-        : seedPsy?.isPriorityMobile !== undefined
-          ? seedPsy.isPriorityMobile
-          : role === 'relawan_utama'
+    let upgradeRequest = p.upgradeRequest ?? seedPsy?.upgradeRequest
+    if (
+      upgradeRequest &&
+      ((upgradeRequest.targetRole as string) === 'relawan_pro' ||
+        (upgradeRequest.targetRole as string) === 'relawan_utama')
+    ) {
+      upgradeRequest = null
+    }
 
     const documents =
       p.documents && p.documents.length > 0
@@ -59,7 +55,6 @@ function hydrateAndBackfillMockDb(parsed: Partial<PortalDatabase>): {
     return {
       ...p,
       role,
-      isPriorityMobile,
       upgradeRequest,
       documents,
     }

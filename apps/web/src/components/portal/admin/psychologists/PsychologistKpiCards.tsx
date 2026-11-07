@@ -1,7 +1,6 @@
 import {
   ArrowUpCircle,
   Building2,
-  Crown,
   GraduationCap,
   HeartHandshake,
   Users,
@@ -12,9 +11,7 @@ export type PsyFilterTab =
   | 'all'
   | 'mitra'
   | 'relawan_profesional'
-  | 'relawan_utama'
   | 'relawan'
-  | 'relawan_pro' // legacy alias
   | 'relawan_biasa' // legacy alias
   | 'pending_action'
 
@@ -22,12 +19,12 @@ export interface PsychologistKpiCounts {
   total: number
   mitra: number
   relawanProfesional: number
-  relawanUtama: number
   relawan: number
   pendingAction: number
   pendingVerifikasi: number
   pendingUpgrade: number
   // Legacy aliases
+  relawanUtama?: number
   relawanPro?: number
   relawanBiasa?: number
 }
@@ -48,7 +45,7 @@ export function PsychologistKpiCards({
       id: 'all' as PsyFilterTab,
       label: 'Semua Terdaftar',
       value: counts.total,
-      sublabel: `${counts.mitra} Mitra · ${counts.relawanProfesional + counts.relawanUtama + counts.relawan} Relawan`,
+      sublabel: `${counts.mitra} Mitra · ${counts.relawanProfesional + counts.relawan} Relawan`,
       icon: <Users className="size-4 text-primary" />,
       accentBorder: 'hover:border-primary/50',
       activeClass: 'border-primary ring-1 ring-primary/20 bg-[#EEF0FF]/30',
@@ -72,17 +69,8 @@ export function PsychologistKpiCards({
       activeClass: 'border-indigo-500 ring-1 ring-indigo-500/20 bg-indigo-50/40',
     },
     {
-      id: 'relawan_utama' as PsyFilterTab,
-      label: 'Relawan Utama',
-      value: counts.relawanUtama,
-      sublabel: 'Prioritas Tampil di Mobile',
-      icon: <Crown className="size-4 text-amber-500" />,
-      accentBorder: 'hover:border-amber-500/50',
-      activeClass: 'border-amber-400 ring-1 ring-amber-400/20 bg-amber-50/40',
-    },
-    {
       id: 'relawan' as PsyFilterTab,
-      label: 'Relawan',
+      label: 'Relawan Pendamping',
       value: counts.relawan,
       sublabel: 'Pendampingan Konseling Sebaya',
       icon: <HeartHandshake className="size-4 text-sky-600" />,
@@ -102,7 +90,7 @@ export function PsychologistKpiCards({
   ]
 
   return (
-    <div className="hidden gap-3 sm:grid sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+    <div className="hidden gap-3 sm:grid sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
       {cards.map((card) => {
         const isActive = activeFilter === card.id
         return (

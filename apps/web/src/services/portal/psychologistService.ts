@@ -21,7 +21,7 @@ export function simulateMobilePsychologistSubmission(
 
 export function simulateVolunteerUpgradeSubmission(
   psychologistId: string,
-  targetRole: 'relawan_utama' | 'relawan_profesional' | 'relawan_pro',
+  targetRole: 'relawan_profesional',
   notes: string,
 ): Psychologist | null {
   const db = loadPortalDb()
@@ -30,15 +30,13 @@ export function simulateVolunteerUpgradeSubmission(
 
   const psy = db.psychologists[idx]
   const today = new Date().toISOString().slice(0, 10)
-  const isTargetUtama = targetRole === 'relawan_utama' || targetRole === 'relawan_pro'
-  const normalizedTargetRole = isTargetUtama ? 'relawan_utama' : 'relawan_profesional'
-  const upgradeDocs = buildSimulatedUpgradeDocuments(psy, targetRole)
+  const upgradeDocs = buildSimulatedUpgradeDocuments(psy)
 
   db.psychologists[idx] = {
     ...psy,
     rejectionReason: undefined,
     upgradeRequest: {
-      targetRole: normalizedTargetRole,
+      targetRole,
       requestedAt: today,
       notes,
       documents: upgradeDocs,
@@ -54,7 +52,6 @@ export function upsertPsychologist(
 ): Psychologist {
   const db = loadPortalDb()
   const role = input.role || (input.partnerId ? 'professional_mitra' : 'relawan_profesional')
-  const isPriorityMobile = role === 'relawan_utama' ? true : Boolean(input.isPriorityMobile)
   const practiceType = role === 'professional_mitra' ? 'faskes' : 'mandiri'
   const verificationStatus = input.verificationStatus ?? (input.partnerId ? 'approved' : 'pending')
 
@@ -64,17 +61,10 @@ export function upsertPsychologist(
       const existing = db.psychologists[idx]
       const nextRole =
         input.role || existing.role || (existing.partnerId ? 'professional_mitra' : 'relawan_profesional')
-      const nextIsPriority =
-        nextRole === 'relawan_utama'
-          ? true
-          : input.isPriorityMobile !== undefined
-            ? Boolean(input.isPriorityMobile)
-            : existing.isPriorityMobile
       const updated: Psychologist = {
         ...existing,
         ...input,
         role: nextRole,
-        isPriorityMobile: nextIsPriority,
         id: input.id,
       }
       db.psychologists[idx] = updated
@@ -87,7 +77,6 @@ export function upsertPsychologist(
     practiceType,
     verificationStatus,
     role,
-    isPriorityMobile,
     ...input,
     id: `psy-${Date.now()}`,
   }
@@ -202,7 +191,6 @@ export function approvePsychologistUpgrade(psychologistId: string) {
   db.psychologists[idx] = {
     ...psy,
     role: targetRole,
-    isPriorityMobile: targetRole === 'relawan_utama',
     upgradeRequest: null,
     documents: mergedDocs,
     sippNumber: nextSippNumber,
@@ -230,7 +218,7 @@ export function rejectPsychologistUpgrade(psychologistId: string, reason?: strin
 export function requestPsychologistUpgrade(
   psychologistId: string,
   input: {
-    targetRole: 'relawan_utama' | 'relawan_profesional'
+    targetRole: 'relawan_profesional'
     notes?: string
     documents?: Psychologist['documents']
   },

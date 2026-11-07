@@ -55,7 +55,7 @@ export interface UpdatePsychologistVerificationRequestDto {
 }
 
 export interface RequestPsychologistUpgradeDto {
-  targetRole: 'relawan_utama' | 'relawan_profesional'
+  targetRole: 'relawan_profesional'
   notes?: string
   documents?: PsychologistCertificate[]
 }

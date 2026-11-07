@@ -18,18 +18,13 @@ export function PsychologistRejectUpgradeModal({
   isOpen,
   psyId,
   psyFullName,
-  upgradeRequest,
   onClose,
   onFeedback,
   onSuccess,
 }: PsychologistRejectUpgradeModalProps) {
   useBodyScrollLock(isOpen)
 
-  const targetRoleLabel =
-    upgradeRequest?.targetRole === 'relawan_utama' ||
-    (upgradeRequest?.targetRole as string) === 'relawan_pro'
-      ? 'Relawan Utama'
-      : 'Relawan Profesional'
+  const targetRoleLabel = 'Relawan Profesional'
 
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | null>(null)

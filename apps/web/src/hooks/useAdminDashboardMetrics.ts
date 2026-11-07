@@ -166,9 +166,6 @@ export function useAdminDashboardMetrics(db: PortalDatabase, range: DashboardRan
           (!p.role && !p.partnerId && p.practiceType === 'mandiri')) &&
         !isPending(p),
     ).length
-    const relawanUtamaCount = db.psychologists.filter(
-      (p) => (p.role === 'relawan_utama' || p.role === 'relawan_pro') && !isPending(p),
-    ).length
     const relawanCount = db.psychologists.filter(
       (p) => (p.role === 'relawan_biasa' || (p.role as string) === 'relawan') && !isPending(p),
     ).length
@@ -176,8 +173,7 @@ export function useAdminDashboardMetrics(db: PortalDatabase, range: DashboardRan
     const psychologistComposition: PsychologistCompositionItem[] = [
       { name: 'Profesional Mitra', value: mitraCount, color: '#10b981' },
       { name: 'Relawan Profesional', value: relawanProfCount, color: '#6366f1' },
-      { name: 'Relawan Utama', value: relawanUtamaCount, color: '#f59e0b' },
-      { name: 'Relawan', value: relawanCount, color: '#0ea5e9' },
+      { name: 'Relawan Pendamping', value: relawanCount, color: '#0ea5e9' },
       { name: 'Antrean Tindakan', value: pendingPsyAction, color: '#ef4444' },
     ].filter((item) => item.value > 0)
 
@@ -201,11 +197,7 @@ export function useAdminDashboardMetrics(db: PortalDatabase, range: DashboardRan
       .filter((p) => p.verificationStatus === 'pending' || Boolean(p.upgradeRequest))
       .forEach((p) => {
         const isUpgrade = Boolean(p.upgradeRequest)
-        const targetLabel =
-          p.upgradeRequest?.targetRole === 'relawan_utama' ||
-          (p.upgradeRequest?.targetRole as string) === 'relawan_pro'
-            ? 'Relawan Utama'
-            : 'Relawan Profesional'
+        const targetLabel = 'Relawan Profesional'
         queue.push({
           id: `psy-${p.id}`,
           kind: 'mandiri',

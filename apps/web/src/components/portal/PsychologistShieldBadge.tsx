@@ -1,10 +1,8 @@
 import {
   Building2,
   CheckCircle2,
-  Crown,
   GraduationCap,
   HeartHandshake,
-  Sparkles,
 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
@@ -13,7 +11,6 @@ import type { PsychologistRole, UpgradeRequest } from '@/types/portal'
 
 export interface PsychologistShieldBadgeProps {
   role?: PsychologistRole
-  isPriorityMobile?: boolean
   partnerName?: string | null
   upgradeRequest?: UpgradeRequest | null
   size?: 'sm' | 'md'
@@ -30,7 +27,6 @@ interface MedallionInfo {
 
 export function PsychologistShieldBadge({
   role,
-  isPriorityMobile,
   partnerName,
   upgradeRequest,
   size = 'md',
@@ -48,8 +44,6 @@ export function PsychologistShieldBadge({
   if (!effectiveRole) {
     if (partnerName) {
       effectiveRole = 'professional_mitra'
-    } else if (isPriorityMobile) {
-      effectiveRole = 'relawan_utama'
     } else {
       effectiveRole = 'relawan_profesional'
     }
@@ -57,8 +51,6 @@ export function PsychologistShieldBadge({
 
   const isMitra = effectiveRole === 'professional_mitra'
   const isRelawanProf = effectiveRole === 'relawan_profesional'
-  const isRelawanUtama =
-    effectiveRole === 'relawan_utama' || (effectiveRole as string) === 'relawan_pro'
 
   // Define Primary Base Medallion (Mitra or Relawan)
   const baseMedallion: MedallionInfo = isMitra
@@ -77,17 +69,9 @@ export function PsychologistShieldBadge({
         shadowClass: 'shadow-sky-900/20',
       }
 
-  // Define Secondary / Tier Medallion (Utama or Profesional for Relawan)
+  // Define Secondary / Tier Medallion (Profesional for Relawan)
   let tierMedallion: MedallionInfo | null = null
-  if (isRelawanUtama) {
-    tierMedallion = {
-      icon: Crown,
-      label: 'Tingkat Utama',
-      bgClass: 'bg-gradient-to-br from-amber-400 to-amber-600',
-      borderClass: 'border-amber-700',
-      shadowClass: 'shadow-amber-900/25',
-    }
-  } else if (isRelawanProf) {
+  if (isRelawanProf) {
     tierMedallion = {
       icon: GraduationCap,
       label: 'Tingkat Profesional (S2 & SIPP)',
@@ -254,26 +238,16 @@ export function PsychologistShieldBadge({
                 <h4 className="text-xs font-bold text-ink">
                   {isMitra
                     ? 'Profesional Mitra'
-                    : isRelawanUtama
-                      ? 'Relawan • Tingkat Utama'
-                      : isRelawanProf
-                        ? 'Relawan • Tingkat Profesional'
-                        : 'Relawan'}
+                    : isRelawanProf
+                      ? 'Relawan • Tingkat Profesional'
+                      : 'Relawan Pendamping'}
                 </h4>
                 <div className="mt-1 flex flex-wrap items-center gap-1">
                   <span className="inline-flex rounded-[4px] bg-[#F1F5F9] px-1.5 py-0.5 text-[9.5px] font-semibold text-ink-muted">
                     {baseMedallion.label}
                   </span>
                   {tierMedallion && (
-                    <span
-                      className={cn(
-                        'inline-flex items-center gap-0.5 rounded-[4px] px-1.5 py-0.5 text-[9.5px] font-bold',
-                        isRelawanUtama
-                          ? 'bg-amber-100 text-amber-900'
-                          : 'bg-indigo-100 text-indigo-900',
-                      )}
-                    >
-                      {isRelawanUtama && <Sparkles className="size-2 text-amber-600" />}
+                    <span className="inline-flex items-center gap-0.5 rounded-[4px] bg-indigo-100 px-1.5 py-0.5 text-[9.5px] font-bold text-indigo-900">
                       {tierMedallion.label}
                     </span>
                   )}
@@ -321,9 +295,7 @@ export function PsychologistShieldBadge({
                       {tierMedallion.label}
                     </span>
                     <p className="text-[10.5px] text-ink-muted leading-relaxed">
-                      {isRelawanUtama
-                        ? 'Relawan aktif dengan riwayat pendampingan tinggi. Tampil di urutan teratas pada daftar konseling aplikasi mobile.'
-                        : 'Lulusan Magister Profesi Psikologi (S2) dengan izin praktik SIPP dan STR aktif.'}
+                      Lulusan Magister Profesi Psikologi (S2) dengan izin praktik SIPP dan STR aktif.
                     </p>
                   </div>
                 </div>
@@ -339,11 +311,9 @@ export function PsychologistShieldBadge({
               <p className="mt-0.5 text-ink-muted leading-relaxed">
                 {isMitra
                   ? 'Layanan konseling faskes, integrasi rekam medis, dan rujukan klinis.'
-                  : isRelawanUtama
-                    ? 'Prioritas tampil di urutan teratas aplikasi mobile EVA.'
-                    : isRelawanProf
-                      ? 'Layanan konseling psikologi profesional berizin resmi serta supervisi relawan.'
-                      : 'Pendampingan sebaya awal (Psychological First Aid) dan memenuhi syarat mengajukan upgrade.'}
+                  : isRelawanProf
+                    ? 'Layanan konseling psikologi profesional berizin resmi serta supervisi relawan.'
+                    : 'Pendampingan sebaya awal (Psychological First Aid) dan memenuhi syarat mengajukan upgrade.'}
               </p>
             </div>
 
@@ -351,12 +321,7 @@ export function PsychologistShieldBadge({
             {upgradeRequest && (
               <div className="mt-2 rounded-[6px] border border-amber-300 bg-amber-50 p-2 text-[10.5px] text-amber-900">
                 <span className="font-bold">Pengajuan Upgrade:</span> Menunggu verifikasi ke{' '}
-                <strong>
-                  {upgradeRequest.targetRole === 'relawan_utama'
-                    ? 'Relawan Utama'
-                    : 'Relawan Profesional'}
-                </strong>{' '}
-                ({upgradeRequest.requestedAt}).
+                <strong>Relawan Profesional</strong> ({upgradeRequest.requestedAt}).
               </div>
             )}
           </div>,
