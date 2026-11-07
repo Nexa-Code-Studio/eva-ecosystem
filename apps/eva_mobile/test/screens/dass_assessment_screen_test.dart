@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:eva_mobile/core/config/app_config.dart';
-import 'package:eva_mobile/screens/dass_assessment_screen.dart';
+import 'package:eva_mobile/features/dass/presentation/screens/dass_assessment_screen.dart';
 
 void main() {
   setUp(() {

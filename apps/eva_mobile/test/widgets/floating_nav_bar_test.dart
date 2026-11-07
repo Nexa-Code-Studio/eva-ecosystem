@@ -21,7 +21,7 @@ void main() {
     expect(find.text('Beranda'), findsOneWidget);
     expect(find.text('Jurnal'), findsOneWidget);
     expect(find.text('Tren'), findsOneWidget);
-    expect(find.text('Profil'), findsOneWidget);
+    expect(find.text('Layanan'), findsOneWidget);
     expect(find.byIcon(Icons.auto_awesome), findsOneWidget); // Center FAB
 
     // Verify AnimatedPositioned pill exists
@@ -40,6 +40,10 @@ void main() {
     await tester.tap(find.text('Tren'));
     expect(tappedIndex, 2);
 
+    // Tap on Layanan (Index 3)
+    await tester.tap(find.text('Layanan'));
+    expect(tappedIndex, 3);
+
     // Re-render with currentIndex: 3
     await tester.pumpWidget(
       MaterialApp(
@@ -54,8 +58,8 @@ void main() {
     await tester.pumpAndSettle();
 
     final pillBox = tester.getRect(find.byType(AnimatedPositioned));
-    final iconBox = tester.getRect(find.byIcon(Icons.person));
-    final textBox = tester.getRect(find.text('Profil'));
+    final iconBox = tester.getRect(find.byIcon(Icons.volunteer_activism));
+    final textBox = tester.getRect(find.text('Layanan'));
     
     // Verify vertical centering of item column inside sliding pill
     final pillCenterY = pillBox.center.dy;

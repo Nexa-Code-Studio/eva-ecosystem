@@ -13,6 +13,7 @@ eggs/
 .eggs/
 lib/
 !apps/luna_mobile/lib/
+!apps/eva_mobile/lib/
 lib64/
 parts/
 sdist/

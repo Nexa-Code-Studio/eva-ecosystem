@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:eva_mobile/features/voice_call/presentation/providers/ai_call_provider.dart';
-import 'package:eva_mobile/screens/main_shell_screen.dart';
-import 'package:eva_mobile/screens/voice_call_screen.dart';
+import 'package:eva_mobile/features/home/presentation/screens/main_shell_screen.dart';
+import 'package:eva_mobile/features/voice_call/presentation/screens/voice_call_screen.dart';
 import 'package:eva_mobile/widgets/floating_nav_bar.dart';
 
 void main() {

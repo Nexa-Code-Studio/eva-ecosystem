@@ -1,8 +1,26 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:eva_mobile/screens/ai_conversation_screen.dart';
+import 'package:eva_mobile/features/chat/domain/entities/conversation_entity.dart';
+import 'package:eva_mobile/features/chat/domain/repositories/chat_repository.dart';
+import 'package:eva_mobile/features/chat/presentation/providers/chat_provider.dart';
+import 'package:eva_mobile/features/chat/presentation/screens/ai_conversation_screen.dart';
 import 'package:eva_mobile/widgets/glass_card.dart';
+
+class _PendingChatRepository implements ChatRepository {
+  @override
+  Future<List<ConversationEntity>> getConversations() =>
+      Completer<List<ConversationEntity>>().future;
+
+  @override
+  Future<ConversationEntity?> getConversationById(String id) =>
+      Completer<ConversationEntity?>().future;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 void main() {
   setUp(() {
@@ -16,8 +34,10 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      const MaterialApp(
-        home: AiConversationScreen(),
+      const ProviderScope(
+        child: MaterialApp(
+          home: AiConversationScreen(),
+        ),
       ),
     );
 
@@ -37,8 +57,10 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      const MaterialApp(
-        home: AiConversationScreen(),
+      const ProviderScope(
+        child: MaterialApp(
+          home: AiConversationScreen(),
+        ),
       ),
     );
 
@@ -59,8 +81,13 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      const MaterialApp(
-        home: AiConversationScreen(),
+      ProviderScope(
+        overrides: [
+          chatRepositoryProvider.overrideWithValue(_PendingChatRepository()),
+        ],
+        child: const MaterialApp(
+          home: AiConversationScreen(),
+        ),
       ),
     );
 

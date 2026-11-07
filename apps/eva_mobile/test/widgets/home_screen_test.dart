@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:eva_mobile/screens/home_screen.dart';
+import 'package:eva_mobile/features/home/presentation/screens/home_screen.dart';
 
 void main() {
   testWidgets(
@@ -38,8 +38,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    // 1. Brand Header
-    expect(find.text('EVA'), findsOneWidget);
+    // 1. Brand Header removed per UI design
+    expect(find.text('EVA'), findsNothing);
 
     // 2. Greeting & Insight Card
     expect(find.textContaining('Halo, '), findsOneWidget);
@@ -90,6 +90,37 @@ void main() {
     // 8. Test Tab Navigation from Quick Action
     await tester.tap(find.text('Jurnal Refleksi AI'));
     expect(navigatedTab, 1);
+  });
+
+  testWidgets('Tapping profile avatar opens dropdown modal with items', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: HomeScreen(),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Find profile avatar container with circle shape
+    final avatarFinder = find.byWidgetPredicate(
+      (widget) =>
+          widget is Container &&
+          widget.decoration is BoxDecoration &&
+          (widget.decoration as BoxDecoration).shape == BoxShape.circle,
+    );
+    expect(avatarFinder, findsWidgets);
+
+    await tester.tap(avatarFinder.first);
+    await tester.pumpAndSettle();
+
+    // Verify modal dropdown items from Gambar 2
+    expect(find.text('User Profile'), findsOneWidget);
+    expect(find.text('Kontak Darurat'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
+    expect(find.text('Keluar Akun'), findsOneWidget);
   });
 }
 

@@ -1,0 +1,95 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../config/app_config.dart';
+
+/// Custom Exception for API Errors
+class ApiException implements Exception {
+  final String message;
+  final int? statusCode;
+
+  ApiException(this.message, {this.statusCode});
+
+  @override
+  String toString() => 'ApiException: $message (StatusCode: $statusCode)';
+}
+
+/// Generic HTTP Client abstraction for Remote DataSources
+class ApiClient {
+  final http.Client _client;
+
+  ApiClient({http.Client? client}) : _client = client ?? http.Client();
+
+  Duration get _effectiveTimeout =>
+      AppConfig.useHybridFallback ? AppConfig.hybridTimeout : const Duration(seconds: 10);
+
+  Future<dynamic> get(String path, {Map<String, String>? queryParams}) async {
+    try {
+      final cleanPath = path.startsWith('/') ? path : '/$path';
+      final uri = Uri.parse('${AppConfig.baseUrl}$cleanPath').replace(queryParameters: queryParams);
+      final headers = await AppConfig.getAuthHeaders();
+      final response = await _client.get(uri, headers: headers).timeout(_effectiveTimeout);
+      return _processResponse(response);
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Failed to connect to backend: $e');
+    }
+  }
+
+  Future<dynamic> post(String path, {Map<String, dynamic>? body}) async {
+    try {
+      final cleanPath = path.startsWith('/') ? path : '/$path';
+      final uri = Uri.parse('${AppConfig.baseUrl}$cleanPath');
+      final headers = await AppConfig.getAuthHeaders();
+      final response = await _client.post(
+        uri,
+        headers: headers,
+        body: body != null ? jsonEncode(body) : null,
+      ).timeout(_effectiveTimeout);
+      return _processResponse(response);
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Failed to send data to backend: $e');
+    }
+  }
+
+  Future<dynamic> put(String path, {Map<String, dynamic>? body}) async {
+    try {
+      final cleanPath = path.startsWith('/') ? path : '/$path';
+      final uri = Uri.parse('${AppConfig.baseUrl}$cleanPath');
+      final headers = await AppConfig.getAuthHeaders();
+      final response = await _client.put(
+        uri,
+        headers: headers,
+        body: body != null ? jsonEncode(body) : null,
+      ).timeout(_effectiveTimeout);
+      return _processResponse(response);
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Failed to update data on backend: $e');
+    }
+  }
+
+  Future<dynamic> delete(String path) async {
+    try {
+      final cleanPath = path.startsWith('/') ? path : '/$path';
+      final uri = Uri.parse('${AppConfig.baseUrl}$cleanPath');
+      final headers = await AppConfig.getAuthHeaders();
+      final response = await _client.delete(uri, headers: headers).timeout(_effectiveTimeout);
+      return _processResponse(response);
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Failed to delete resource on backend: $e');
+    }
+  }
+
+  dynamic _processResponse(http.Response response) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (response.body.isEmpty) return null;
+      return jsonDecode(response.body);
+    } else {
+      final body = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+      final message = body['detail'] ?? body['message'] ?? 'HTTP Error ${response.statusCode}';
+      throw ApiException(message.toString(), statusCode: response.statusCode);
+    }
+  }
+}

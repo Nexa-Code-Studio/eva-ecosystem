@@ -1,0 +1,726 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import 'package:eva_mobile/features/diary/data/models/diary_entry_model.dart';
+import 'package:eva_mobile/features/diary/presentation/providers/diary_provider.dart';
+import 'package:eva_mobile/services/daily_progress_local_service.dart';
+import 'package:eva_mobile/theme/app_colors.dart';
+import 'package:eva_mobile/widgets/glass_card.dart';
+import 'package:eva_mobile/widgets/skeleton_shimmer.dart';
+
+class AiDiaryScreen extends ConsumerStatefulWidget {
+  const AiDiaryScreen({super.key});
+
+  @override
+  ConsumerState<AiDiaryScreen> createState() => AiDiaryScreenState();
+}
+
+class AiDiaryScreenState extends ConsumerState<AiDiaryScreen> {
+
+  final TextEditingController _searchController = TextEditingController();
+
+  String _selectedFilter = 'Semua';
+
+
+
+  final List<String> _filterCategories = const [
+
+    'Semua',
+
+    'Tenang 😌',
+
+    'Cemas 😰',
+
+    'Bahagia 😃',
+
+    'Sedih 😔',
+
+    'Stres 💥',
+
+  ];
+
+
+
+  late List<Map<String, dynamic>> _entries;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _entries = [];
+    _fetchRemoteDiaries();
+  }
+
+  void refresh() => _fetchRemoteDiaries();
+
+  Future<void> _fetchRemoteDiaries() async {
+    if (mounted) setState(() => _isLoading = true);
+    try {
+      final repository = ref.read(diaryRepositoryProvider);
+      final entries = await repository.getDiaryEntries();
+      if (mounted) {
+        setState(() {
+          _entries = entries.map((e) {
+            if (e is DiaryEntryModel) return e.toJson();
+            return {
+              'id': e.id,
+              'title': e.title,
+              'date': e.date,
+              'sessionCount': e.sessionCount,
+              'lastSessionTime': e.lastSessionTime,
+              'moodTag': e.moodTag,
+              'moodEmoji': e.moodEmoji,
+              'summary': e.summary,
+              'aiInsight': e.aiInsight,
+              'importantEvents': e.importantEvents,
+              'emotionalReflection': e.emotionalReflection,
+              'sessions': e.sessions.map((s) => {
+                'id': s.id,
+                'title': s.title,
+                'time': s.time,
+                'moodTag': s.moodTag,
+                'moodEmoji': s.moodEmoji,
+              }).toList(),
+            };
+          }).toList();
+        });
+      }
+      final todayStr = DailyProgressLocalService.getTodayWibDate();
+      final hasTodayEntry = _entries.any((e) {
+        final date = e['date']?.toString() ?? e['created_at']?.toString() ?? '';
+        return date.startsWith(todayStr);
+      });
+      if (hasTodayEntry) {
+        DailyProgressLocalService.recordDiaryCheckin(hasDiary: true);
+      }
+    } catch (_) {
+      // Keep existing entries or empty
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final query = _searchController.text.toLowerCase();
+    final filteredList = _entries.where((item) {
+      final matchesQuery = query.isEmpty ||
+          item['title'].toString().toLowerCase().contains(query) ||
+          item['summary'].toString().toLowerCase().contains(query) ||
+          item['moodTag'].toString().toLowerCase().contains(query);
+
+
+
+      final matchesFilter = _selectedFilter == 'Semua' ||
+
+          item['moodTag'].toString().toLowerCase().contains(_selectedFilter.split(' ').first.toLowerCase());
+
+
+
+      return matchesQuery && matchesFilter;
+
+    }).toList();
+
+
+
+    return Scaffold(
+
+      body: Container(
+
+        width: double.infinity,
+
+        height: double.infinity,
+
+        decoration: const BoxDecoration(
+
+          gradient: LinearGradient(
+
+            colors: [
+
+              Color(0xFFF6F8FF),
+
+              Color(0xFFEFF2FE),
+
+              Color(0xFFF8F9FE),
+
+            ],
+
+            begin: Alignment.topCenter,
+
+            end: Alignment.bottomCenter,
+
+          ),
+
+        ),
+
+        child: SafeArea(
+
+          child: RefreshIndicator(
+            color: AppColors.primary,
+            onRefresh: _fetchRemoteDiaries,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+
+            padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 100.0),
+
+            child: Column(
+
+              crossAxisAlignment: CrossAxisAlignment.start,
+
+              children: [
+
+                      // Title Header
+
+                      Text(
+
+                        'Jurnal AI Harian & Sesi',
+
+                        style: GoogleFonts.inter(
+
+                          fontSize: 24,
+
+                          fontWeight: FontWeight.w800,
+
+                          color: AppColors.textPrimary,
+
+                        ),
+
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      Text(
+                        'Rangkuman refleksi emosi dan transkrip suara.',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+
+
+                      // Search Bar Field
+
+                      Container(
+
+                        decoration: BoxDecoration(
+
+                          color: Colors.white.withValues(alpha: 0.9),
+
+                          borderRadius: BorderRadius.circular(999),
+
+                          boxShadow: [
+
+                            BoxShadow(
+
+                              color: Colors.black.withValues(alpha: 0.04),
+
+                              blurRadius: 16,
+
+                              offset: const Offset(0, 4),
+
+                            ),
+
+                          ],
+
+                        ),
+
+                        child: TextField(
+
+                          controller: _searchController,
+
+                          onChanged: (_) => setState(() {}),
+
+                          style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimary),
+
+                          decoration: InputDecoration(
+
+                            hintText: 'Cari jurnal atau kata kunci emosi...',
+
+                            hintStyle: GoogleFonts.inter(fontSize: 13, color: AppColors.textLight),
+
+                            prefixIcon: const Icon(Icons.search, color: AppColors.primary, size: 20),
+
+                            suffixIcon: query.isNotEmpty
+
+                                ? IconButton(
+
+                                    icon: const Icon(Icons.clear, size: 18),
+
+                                    onPressed: () {
+
+                                      _searchController.clear();
+
+                                      setState(() {});
+
+                                    },
+
+                                  )
+
+                                : null,
+
+                            border: InputBorder.none,
+
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+
+                          ),
+
+                        ),
+
+                      ),
+
+                      const SizedBox(height: 16),
+
+
+
+                      // Filter Category Chips
+                      SizedBox(
+                        height: 46,
+                        child: ListView.separated(
+                          clipBehavior: Clip.none,
+                          padding: const EdgeInsets.symmetric(vertical: 3),
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _filterCategories.length,
+                          separatorBuilder: (context, index) => const SizedBox(width: 8),
+                          itemBuilder: (context, index) {
+                            final category = _filterCategories[index];
+                            final isSelected = category == _selectedFilter;
+                            return ChoiceChip(
+                              showCheckmark: false,
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              visualDensity: VisualDensity.compact,
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              label: Text(category),
+
+                              selected: isSelected,
+
+                              selectedColor: AppColors.primaryContainer,
+
+                              backgroundColor: Colors.white.withValues(alpha: 0.8),
+
+                              labelStyle: GoogleFonts.inter(
+
+                                fontSize: 12,
+
+                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+
+                                color: isSelected ? AppColors.primary : AppColors.textSecondary,
+
+                              ),
+
+                              shape: RoundedRectangleBorder(
+
+                                borderRadius: BorderRadius.circular(999),
+
+                                side: BorderSide(
+
+                                  color: isSelected ? AppColors.primary : Colors.transparent,
+
+                                ),
+
+                              ),
+
+                              onSelected: (selected) {
+
+                                setState(() {
+
+                                  _selectedFilter = category;
+
+                                });
+
+                              },
+
+                            );
+
+                          },
+
+                        ),
+
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Journal History Cards List / Skeleton Loader
+                      if (_isLoading && _entries.isEmpty)
+                        const _DiaryListSkeleton()
+                      else if (filteredList.isEmpty)
+                        if (_entries.isEmpty && !_isLoading)
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 48.0, horizontal: 16.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryContainer.withValues(alpha: 0.5),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.menu_book_outlined,
+                                      size: 42,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Belum Ada Jurnal Refleksi',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Ceritakan harimu atau lakukan panggilan suara dengan EVA. Setelah sesi selesai, jurnal refleksi emosimu akan otomatis tersintesis dan tersimpan di sini.',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      color: AppColors.textLight,
+                                      height: 1.45,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  ElevatedButton.icon(
+                                    onPressed: () {
+                                      Navigator.pushNamed(context, '/call');
+                                    },
+                                    icon: const Icon(Icons.phone_in_talk, size: 18),
+                                    label: const Text('Mulai Bicara dengan EVA'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      elevation: 0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        else
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 40.0),
+                              child: Column(
+                                children: [
+                                  const Icon(Icons.search_off, size: 48, color: AppColors.textLight),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Tidak ada jurnal yang sesuai',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+
+                      else
+
+                        ListView.separated(
+
+                          shrinkWrap: true,
+
+                          physics: const NeverScrollableScrollPhysics(),
+
+                          itemCount: filteredList.length,
+
+                          separatorBuilder: (context, index) => const SizedBox(width: 0, height: 14),
+
+                          itemBuilder: (context, index) {
+
+                            final item = filteredList[index];
+
+                            final hasRisk = item['riskWarning'] != null &&
+
+                                item['riskWarning']['detected'] == true;
+
+
+
+                            return GlassCard(
+
+                              width: double.infinity,
+
+                              onTap: () {
+
+                                Navigator.pushNamed(
+
+                                  context,
+
+                                  '/diary_detail',
+
+                                  arguments: item,
+
+                                );
+
+                              },
+
+                              padding: const EdgeInsets.all(18),
+
+                              child: Column(
+
+                                crossAxisAlignment: CrossAxisAlignment.start,
+
+                                children: [
+
+                                  Row(
+
+                                    children: [
+
+                                      Text(item['moodEmoji'], style: const TextStyle(fontSize: 18)),
+
+                                      const SizedBox(width: 8),
+
+                                      Expanded(
+
+                                        child: Text(
+
+                                          item['title'],
+
+                                          maxLines: 1,
+
+                                          overflow: TextOverflow.ellipsis,
+
+                                          style: GoogleFonts.inter(
+
+                                            fontSize: 15,
+
+                                            fontWeight: FontWeight.w700,
+
+                                            color: AppColors.textPrimary,
+
+                                          ),
+
+                                        ),
+
+                                      ),
+
+                                      const SizedBox(width: 8),
+
+                                      const Icon(
+
+                                        Icons.arrow_forward_ios,
+
+                                        size: 14,
+
+                                        color: AppColors.textLight,
+
+                                      ),
+
+                                    ],
+
+                                  ),
+
+                                  const SizedBox(height: 6),
+
+                                  Wrap(
+
+                                    crossAxisAlignment: WrapCrossAlignment.center,
+
+                                    spacing: 8,
+
+                                    runSpacing: 4,
+
+                                    children: [
+
+                                      Text(
+
+                                        item['date'],
+
+                                        style: GoogleFonts.inter(
+
+                                          fontSize: 12,
+
+                                          color: AppColors.textLight,
+
+                                        ),
+
+                                      ),
+
+
+                                      if (hasRisk)
+
+                                        Container(
+
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+
+                                          decoration: BoxDecoration(
+
+                                            color: const Color(0xFFFFDCDD),
+
+                                            borderRadius: BorderRadius.circular(999),
+
+                                          ),
+
+                                          child: Text(
+
+                                            '⚠️ PERINGATAN MENTAL HEALTH',
+
+                                            style: GoogleFonts.inter(
+
+                                              fontSize: 9,
+
+                                              fontWeight: FontWeight.w800,
+
+                                              color: const Color(0xFFD32F2F),
+
+                                            ),
+
+                                          ),
+
+                                        ),
+
+                                    ],
+
+                                  ),
+
+                                  const SizedBox(height: 10),
+
+                                  Text(
+
+                                    item['summary'],
+
+                                    maxLines: 2,
+
+                                    overflow: TextOverflow.ellipsis,
+
+                                    style: GoogleFonts.inter(
+
+                                      fontSize: 13,
+
+                                      color: AppColors.textSecondary,
+
+                                      height: 1.4,
+
+                                    ),
+
+                                  ),
+
+                                  const SizedBox(height: 12),
+
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Flexible(
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFEADBFF),
+                                            borderRadius: BorderRadius.circular(999),
+                                          ),
+                                          child: Text(
+                                            item['moodTag'],
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.inter(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.primary,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Lihat Detail Sesi →',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                ],
+
+                              ),
+
+                            );
+
+                          },
+
+                        ),
+
+                      const SizedBox(height: 24),
+
+                    ],
+
+                  ),
+
+                  ),
+                ),
+              ),
+            ),
+          );
+
+  }
+}
+
+/// Shimmer skeleton loader for the AI Diary list.
+class _DiaryListSkeleton extends StatelessWidget {
+  const _DiaryListSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SkeletonShimmerHost(
+      child: Column(
+        children: List.generate(
+          3,
+          (index) => Padding(
+            padding: const EdgeInsets.only(bottom: 14.0),
+            child: GlassCard(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const SkeletonCircle(size: 24),
+                      const SizedBox(width: 10),
+                      const SkeletonLine(width: 130, height: 16),
+                      const Spacer(),
+                      const SkeletonBox(width: 65, height: 22, borderRadius: 12),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  const SkeletonLine(width: double.infinity, height: 13),
+                  const SizedBox(height: 8),
+                  const SkeletonLine(width: 220, height: 13),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: const [
+                      SkeletonBox(width: 75, height: 24, borderRadius: 8),
+                      SizedBox(width: 8),
+                      SkeletonBox(width: 90, height: 24, borderRadius: 8),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
