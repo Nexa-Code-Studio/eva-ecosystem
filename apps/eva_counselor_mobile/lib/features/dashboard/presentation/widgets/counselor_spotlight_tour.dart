@@ -201,13 +201,23 @@ class _SpotlightHolePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final backgroundPath = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-    final holePath = Path()
-      ..addRRect(RRect.fromRectAndRadius(targetRect, Radius.circular(radius)));
-    final combinedPath = Path.combine(PathOperation.difference, backgroundPath, holePath);
+    if (size.width <= 0 || size.height <= 0) return;
 
-    final paint = Paint()..color = overlayColor;
-    canvas.drawPath(combinedPath, paint);
+    final paint = Paint()
+      ..color = overlayColor
+      ..style = PaintingStyle.fill;
+
+    if (targetRect.isEmpty || targetRect.width <= 0 || targetRect.height <= 0) {
+      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+      return;
+    }
+
+    final path = Path()
+      ..fillType = PathFillType.evenOdd
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..addRRect(RRect.fromRectAndRadius(targetRect, Radius.circular(radius)));
+
+    canvas.drawPath(path, paint);
   }
 
   @override
