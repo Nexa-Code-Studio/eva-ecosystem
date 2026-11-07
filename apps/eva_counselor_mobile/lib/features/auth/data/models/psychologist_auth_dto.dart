@@ -28,6 +28,10 @@ class PsychologistRegisterRequestDto {
   final int yearsOfExperience;
   final int consultationRate;
   final String certificateDocFileName;
+  final String counselorRole; // 'professional_partner', 'professional_independent', 'peer_volunteer'
+  final String? partnerName;
+  final int sessionDurationMinutes;
+  final int coinsPerSession;
 
   const PsychologistRegisterRequestDto({
     required this.fullName,
@@ -40,6 +44,10 @@ class PsychologistRegisterRequestDto {
     required this.yearsOfExperience,
     required this.consultationRate,
     required this.certificateDocFileName,
+    this.counselorRole = 'professional_independent',
+    this.partnerName,
+    this.sessionDurationMinutes = 50,
+    this.coinsPerSession = 150,
   });
 
   Map<String, dynamic> toJson() => {
@@ -53,6 +61,10 @@ class PsychologistRegisterRequestDto {
         'years_of_experience': yearsOfExperience,
         'consultation_rate_per_hour': consultationRate,
         'certificate_doc_file_name': certificateDocFileName,
+        'counselor_role': counselorRole,
+        if (partnerName != null) 'partner_name': partnerName,
+        'session_duration_minutes': sessionDurationMinutes,
+        'coins_per_session': coinsPerSession,
       };
 }
 
@@ -72,6 +84,12 @@ class PsychologistProfileResponseDto {
   final String? profilePhotoUrl;
   final String? certificateDocUrl;
   final String? token;
+  final String counselorRole;
+  final String? partnerName;
+  final int sessionDurationMinutes;
+  final int coinsPerSession;
+  final int coinBalance;
+  final String? googleDriveEmail;
 
   const PsychologistProfileResponseDto({
     required this.id,
@@ -88,6 +106,12 @@ class PsychologistProfileResponseDto {
     this.profilePhotoUrl,
     this.certificateDocUrl,
     this.token,
+    this.counselorRole = 'professional_independent',
+    this.partnerName,
+    this.sessionDurationMinutes = 50,
+    this.coinsPerSession = 150,
+    this.coinBalance = 1250,
+    this.googleDriveEmail,
   });
 
   factory PsychologistProfileResponseDto.fromJson(Map<String, dynamic> json) {
@@ -111,6 +135,12 @@ class PsychologistProfileResponseDto {
       profilePhotoUrl: json['profile_photo_url']?.toString(),
       certificateDocUrl: json['certificate_doc_url']?.toString(),
       token: json['token']?.toString(),
+      counselorRole: json['counselor_role']?.toString() ?? 'professional_independent',
+      partnerName: json['partner_name']?.toString(),
+      sessionDurationMinutes: json['session_duration_minutes'] as int? ?? 50,
+      coinsPerSession: json['coins_per_session'] as int? ?? 150,
+      coinBalance: json['coin_balance'] as int? ?? 1250,
+      googleDriveEmail: json['google_drive_email']?.toString(),
     );
   }
 
@@ -129,7 +159,61 @@ class PsychologistProfileResponseDto {
         'profile_photo_url': profilePhotoUrl,
         'certificate_doc_url': certificateDocUrl,
         if (token != null) 'token': token,
+        'counselor_role': counselorRole,
+        if (partnerName != null) 'partner_name': partnerName,
+        'session_duration_minutes': sessionDurationMinutes,
+        'coins_per_session': coinsPerSession,
+        'coin_balance': coinBalance,
+        if (googleDriveEmail != null) 'google_drive_email': googleDriveEmail,
       };
+
+  PsychologistProfileResponseDto copyWith({
+    String? id,
+    String? fullName,
+    String? titleDegree,
+    String? email,
+    String? strNumber,
+    String? association,
+    List<String>? specializations,
+    int? yearsOfExperience,
+    int? consultationRatePerHour,
+    String? verificationStatus,
+    bool? isOnline,
+    String? profilePhotoUrl,
+    String? certificateDocUrl,
+    String? token,
+    String? counselorRole,
+    String? partnerName,
+    int? sessionDurationMinutes,
+    int? coinsPerSession,
+    int? coinBalance,
+    String? googleDriveEmail,
+  }) {
+    return PsychologistProfileResponseDto(
+      id: id ?? this.id,
+      fullName: fullName ?? this.fullName,
+      titleDegree: titleDegree ?? this.titleDegree,
+      email: email ?? this.email,
+      strNumber: strNumber ?? this.strNumber,
+      association: association ?? this.association,
+      specializations: specializations ?? this.specializations,
+      yearsOfExperience: yearsOfExperience ?? this.yearsOfExperience,
+      consultationRatePerHour:
+          consultationRatePerHour ?? this.consultationRatePerHour,
+      verificationStatus: verificationStatus ?? this.verificationStatus,
+      isOnline: isOnline ?? this.isOnline,
+      profilePhotoUrl: profilePhotoUrl ?? this.profilePhotoUrl,
+      certificateDocUrl: certificateDocUrl ?? this.certificateDocUrl,
+      token: token ?? this.token,
+      counselorRole: counselorRole ?? this.counselorRole,
+      partnerName: partnerName ?? this.partnerName,
+      sessionDurationMinutes:
+          sessionDurationMinutes ?? this.sessionDurationMinutes,
+      coinsPerSession: coinsPerSession ?? this.coinsPerSession,
+      coinBalance: coinBalance ?? this.coinBalance,
+      googleDriveEmail: googleDriveEmail ?? this.googleDriveEmail,
+    );
+  }
 
   PsychologistUserEntity toEntity() {
     VerificationStatus status;
@@ -149,6 +233,23 @@ class PsychologistProfileResponseDto {
         break;
     }
 
+    CounselorRole roleEnum;
+    switch (counselorRole.toLowerCase()) {
+      case 'peer_volunteer':
+      case 'volunteer':
+        roleEnum = CounselorRole.peerVolunteer;
+        break;
+      case 'professional_partner':
+      case 'mitra':
+        roleEnum = CounselorRole.professionalPartner;
+        break;
+      case 'professional_independent':
+      case 'mandiri':
+      default:
+        roleEnum = CounselorRole.professionalIndependent;
+        break;
+    }
+
     return PsychologistUserEntity(
       id: id,
       fullName: fullName,
@@ -163,6 +264,12 @@ class PsychologistProfileResponseDto {
       isOnline: isOnline,
       profilePhotoUrl: profilePhotoUrl,
       certificateDocUrl: certificateDocUrl,
+      role: roleEnum,
+      partnerName: partnerName,
+      sessionDurationMinutes: sessionDurationMinutes,
+      coinsPerSession: coinsPerSession,
+      coinBalance: coinBalance,
+      googleDriveEmail: googleDriveEmail ?? 'sarah.anindya@gmail.com',
     );
   }
 }

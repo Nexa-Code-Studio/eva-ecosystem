@@ -9,8 +9,17 @@ import '../providers/video_call_provider.dart';
 
 class VideoConsultationScreen extends ConsumerStatefulWidget {
   final String sessionId;
+  final String? patientName;
+  final String? scheduledTime;
+  final bool isEarlyEntry;
 
-  const VideoConsultationScreen({super.key, required this.sessionId});
+  const VideoConsultationScreen({
+    super.key,
+    required this.sessionId,
+    this.patientName,
+    this.scheduledTime,
+    this.isEarlyEntry = false,
+  });
 
   @override
   ConsumerState<VideoConsultationScreen> createState() =>
@@ -28,19 +37,22 @@ class _VideoConsultationScreenState
   @override
   void initState() {
     super.initState();
+    final name = widget.patientName ?? 'Rian Pratama';
     _initialSession = VideoCallSessionEntity(
       sessionId: widget.sessionId,
       patientId: 'patient-001',
-      patientName: 'Rian Pratama',
+      patientName: name,
       scheduledTime: DateTime.now(),
     );
 
-    // Otomatis simulasi pasien masuk setelah 3.5 detik jika tidak diklik manual
-    _simulatedJoinTimer = Timer(const Duration(milliseconds: 3500), () {
-      if (mounted && !_isPatientPresent) {
-        _connectPatient();
-      }
-    });
+    // Otomatis simulasi pasien masuk setelah 3.5 detik HANYA jika bukan early entry
+    if (!widget.isEarlyEntry) {
+      _simulatedJoinTimer = Timer(const Duration(milliseconds: 3500), () {
+        if (mounted && !_isPatientPresent) {
+          _connectPatient();
+        }
+      });
+    }
   }
 
   void _connectPatient() {
@@ -50,7 +62,7 @@ class _VideoConsultationScreenState
     TopToast.show(
       context,
       title: 'Pasien Telah Bergabung',
-      message: 'Rian Pratama telah terhubung. Penghitung waktu sesi 50 menit resmi dimulai.',
+      message: '${_initialSession.patientName} telah terhubung. Penghitung waktu sesi 50 menit resmi dimulai.',
       type: ToastType.success,
     );
   }
@@ -275,13 +287,41 @@ class _VideoConsultationScreenState
                   ),
                   const SizedBox(height: 8),
 
-                  // TIMER BADGE (MENUNGGU vs AKTIF)
+                  // JADWAL VC CHIP
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.event_available_rounded, size: 12, color: Colors.white70),
+                        const SizedBox(width: 5),
+                        Text(
+                          'Jadwal Sesi: ${widget.scheduledTime ?? "14:00 - 14:50 WIB"}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+
+                  // TIMER / STATUS BADGE (STANDBY vs MENUNGGU vs AKTIF)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: _isPatientPresent
                           ? AppColors.verifiedGreen.withValues(alpha: 0.85)
-                          : AppColors.pendingAmber.withValues(alpha: 0.85),
+                          : (widget.isEarlyEntry
+                              ? const Color(0xFF2563EB).withValues(alpha: 0.85)
+                              : AppColors.pendingAmber.withValues(alpha: 0.85)),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -290,7 +330,7 @@ class _VideoConsultationScreenState
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: Colors.white,
                             shape: BoxShape.circle,
                           ),
@@ -299,7 +339,9 @@ class _VideoConsultationScreenState
                         Text(
                           _isPatientPresent
                               ? 'Sesi Aktif: ${_formatDuration(session.callDuration)} / 50:00'
-                              : 'Menunggu Pasien Masuk...',
+                              : (widget.isEarlyEntry
+                                  ? 'Standby Lebih Awal • Menunggu Jam Jadwal'
+                                  : 'Menunggu Pasien Masuk...'),
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -391,66 +433,180 @@ class _VideoConsultationScreenState
     );
   }
 
-  // WAITING STATE WIDGET (BELUM HADIR)
+  // WAITING / STANDBY STATE WIDGET (BELUM HADIR)
   Widget _buildWaitingPatientView(VideoCallSessionEntity session) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Stack(
-          alignment: Alignment.center,
+    final isEarly = widget.isEarlyEntry;
+
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primary.withValues(alpha: 0.15),
-              ),
-            ),
-            Container(
-              width: 90,
-              height: 90,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.pendingAmber, width: 2),
-                color: AppColors.primary.withValues(alpha: 0.3),
-              ),
-              child: Center(
-                child: Text(
-                  session.patientName.substring(0, 1),
-                  style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Colors.white),
+            const SizedBox(height: 70),
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 110,
+                  height: 110,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: (isEarly ? const Color(0xFF2563EB) : AppColors.primary).withValues(alpha: 0.15),
+                  ),
                 ),
+                Container(
+                  width: 86,
+                  height: 86,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isEarly ? const Color(0xFF60A5FA) : AppColors.pendingAmber,
+                      width: 2,
+                    ),
+                    color: const Color(0xFF1E2333),
+                  ),
+                  child: Center(
+                    child: isEarly
+                        ? const Icon(Icons.hourglass_top_rounded, size: 36, color: Color(0xFF93C5FD))
+                        : Text(
+                            session.patientName.substring(0, 1),
+                            style: const TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isEarly
+                  ? 'Ruang Standby Pra-Konseling'
+                  : 'Menunggu ${session.patientName} Hadir...',
+              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+
+            // Info Jadwal Pill
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.access_time_rounded, size: 14, color: Color(0xFF93C5FD)),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Jadwal Sesi: ${widget.scheduledTime ?? "14:00 - 14:50 WIB"}',
+                    style: const TextStyle(
+                      color: Color(0xFF93C5FD),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ),
+            const SizedBox(height: 14),
+
+            // Card Penjelasan & Cek Perangkat
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1F2C),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFF93C5FD)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          isEarly
+                              ? 'Anda masuk lebih awal dari jam jadwal. Ruang sesi sudah aktif & terenkripsi. Durasi 50 menit baru akan berjalan saat pasien resmi masuk pada jam jadwal.'
+                              : 'Ruang telekonsultasi aktif. Penghitung durasi 50 menit akan berjalan otomatis saat pasien masuk ke dalam panggilan.',
+                          style: const TextStyle(color: Colors.white70, fontSize: 11, height: 1.45),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 20, color: Colors.white12),
+
+                  // Status Audio & Kamera Psikolog
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            session.isMicMuted ? Icons.mic_off : Icons.mic,
+                            size: 14,
+                            color: session.isMicMuted ? AppColors.error : const Color(0xFF4ADE80),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            session.isMicMuted ? 'Mic Mati' : 'Mic Aktif',
+                            style: const TextStyle(color: Colors.white70, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                      Container(width: 1, height: 14, color: Colors.white24),
+                      Row(
+                        children: [
+                          Icon(
+                            session.isVideoDisabled ? Icons.videocam_off : Icons.videocam,
+                            size: 14,
+                            color: session.isVideoDisabled ? AppColors.error : const Color(0xFF4ADE80),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            session.isVideoDisabled ? 'Kamera Mati' : 'Kamera Aktif',
+                            style: const TextStyle(color: Colors.white70, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Tombol Simulasi Masuk Pasien
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              icon: const Icon(Icons.person_add_rounded, size: 16),
+              label: Text(
+                isEarly ? 'Simulasikan Pasien Hadir Lebih Awal' : 'Simulasikan Pasien Masuk',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+              onPressed: _connectPatient,
+            ),
+            const SizedBox(height: 10),
+
+            // Tombol Keluar Standby
+            TextButton.icon(
+              icon: const Icon(Icons.arrow_back, size: 14, color: Colors.white60),
+              label: const Text('Keluar & Kembali Nanti', style: TextStyle(color: Colors.white60, fontSize: 12)),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            const SizedBox(height: 80),
           ],
         ),
-        const SizedBox(height: 16),
-        Text(
-          'Menunggu ${session.patientName} Hadir...',
-          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 6),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 40),
-          child: Text(
-            'Ruang telekonsultasi aktif. Penghitung durasi 50 menit baru akan berjalan saat pasien resmi masuk ke dalam panggilan.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white60, fontSize: 12, height: 1.4),
-          ),
-        ),
-        const SizedBox(height: 20),
-        ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          ),
-          icon: const Icon(Icons.person_add_rounded, size: 16),
-          label: const Text('Simulasikan Pasien Masuk', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-          onPressed: _connectPatient,
-        ),
-      ],
+      ),
     );
   }
 

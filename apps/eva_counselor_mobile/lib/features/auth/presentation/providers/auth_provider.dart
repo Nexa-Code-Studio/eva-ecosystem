@@ -60,6 +60,10 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
     required int yearsOfExperience,
     required int consultationRate,
     required String certificateDocFileName,
+    String counselorRole = 'professional_independent',
+    String? partnerName,
+    int sessionDurationMinutes = 50,
+    int coinsPerSession = 150,
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -74,6 +78,10 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
         yearsOfExperience: yearsOfExperience,
         consultationRate: consultationRate,
         certificateDocFileName: certificateDocFileName,
+        counselorRole: counselorRole,
+        partnerName: partnerName,
+        sessionDurationMinutes: sessionDurationMinutes,
+        coinsPerSession: coinsPerSession,
       );
       state = AsyncValue.data(user);
     } catch (e, st) {
@@ -81,26 +89,112 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
     }
   }
 
+  Future<void> activatePartnerAccount({
+    required String email,
+    required String password,
+    required String partnerName,
+    required String fullName,
+    String? strNumber,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final user = await _repository.register(
+        fullName: fullName,
+        titleDegree: 'M.Psi., Psikolog Klinis',
+        email: email,
+        password: password,
+        strNumber: strNumber ?? 'STR-MITRA-2026-99',
+        association: 'Himpunan Psikologi Indonesia (HIMPSI)',
+        specializations: [
+          'Kecemasan Dewasa',
+          'Konseling Hubungan & Keluarga',
+          'Manajemen Stres',
+        ],
+        yearsOfExperience: 4,
+        consultationRate: 180000,
+        certificateDocFileName: 'STR_Mitra_Verified.pdf',
+        counselorRole: 'professional_partner',
+        partnerName: partnerName,
+        sessionDurationMinutes: 50,
+        coinsPerSession: 180,
+      );
+      state = AsyncValue.data(user);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  void switchRole(CounselorRole newRole, {String? partnerName}) {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncValue.data(current.copyWith(
+      role: newRole,
+      partnerName: partnerName ?? (newRole == CounselorRole.professionalPartner ? 'Klinik Sehati Mitra' : null),
+      coinsPerSession: newRole == CounselorRole.peerVolunteer ? 0 : current.coinsPerSession,
+    ));
+  }
+
+  void updateSessionSettings({
+    required int sessionDurationMinutes,
+    required int coinsPerSession,
+  }) {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncValue.data(current.copyWith(
+      sessionDurationMinutes: sessionDurationMinutes,
+      coinsPerSession: coinsPerSession,
+    ));
+  }
+
+  void upgradeToProfessional({
+    required String strNumber,
+    required String association,
+    required String certificateDocFileName,
+    required CounselorRole newRole,
+    String? partnerName,
+    int sessionDurationMinutes = 50,
+    int coinsPerSession = 150,
+  }) {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncValue.data(current.copyWith(
+      strNumber: strNumber,
+      association: association,
+      certificateDocUrl: certificateDocFileName,
+      role: newRole,
+      partnerName: partnerName,
+      sessionDurationMinutes: sessionDurationMinutes,
+      coinsPerSession: coinsPerSession,
+      verificationStatus: VerificationStatus.verified,
+    ));
+  }
+
+  void syncDriveBackup({
+    required String email,
+    required String frequency,
+  }) {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncValue.data(current.copyWith(
+      googleDriveEmail: email,
+      autoBackupFrequency: frequency,
+      lastDriveBackup: DateTime.now(),
+    ));
+  }
+
+  void redeemCoins(int coins) {
+    final current = state.value;
+    if (current == null) return;
+    final newBalance = (current.coinBalance - coins).clamp(0, 999999);
+    state = AsyncValue.data(current.copyWith(coinBalance: newBalance));
+  }
+
   Future<void> toggleAvailability(bool isOnline) async {
     final current = state.value;
     if (current == null) return;
     try {
       await _repository.setOnlineAvailability(isOnline);
-      state = AsyncValue.data(PsychologistUserEntity(
-        id: current.id,
-        fullName: current.fullName,
-        titleDegree: current.titleDegree,
-        email: current.email,
-        strNumber: current.strNumber,
-        association: current.association,
-        specializations: current.specializations,
-        yearsOfExperience: current.yearsOfExperience,
-        consultationRatePerHour: current.consultationRatePerHour,
-        verificationStatus: current.verificationStatus,
-        isOnline: isOnline,
-        profilePhotoUrl: current.profilePhotoUrl,
-        certificateDocUrl: current.certificateDocUrl,
-      ));
+      state = AsyncValue.data(current.copyWith(isOnline: isOnline));
     } catch (_) {}
   }
 

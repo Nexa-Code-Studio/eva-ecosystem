@@ -57,13 +57,13 @@ class CustomButton extends StatelessWidget {
       height: height,
       width: width ?? double.infinity,
       decoration: BoxDecoration(
-        color: disabled ? bg.withOpacity(0.5) : bg,
+        color: disabled ? bg.withValues(alpha: 0.5) : bg,
         borderRadius: BorderRadius.circular(16.0),
         border: border,
         boxShadow: variant == ButtonVariant.primary && !disabled
             ? [
                 BoxShadow(
-                  color: AppColors.primary.withOpacity(0.3),
+                  color: AppColors.primary.withValues(alpha: 0.25),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),

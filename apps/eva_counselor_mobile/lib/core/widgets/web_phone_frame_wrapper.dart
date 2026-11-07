@@ -27,7 +27,7 @@ class WebPhoneFrameWrapper extends StatelessWidget {
             borderRadius: BorderRadius.circular(48),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.5),
                 blurRadius: 30,
                 offset: const Offset(0, 15),
               ),

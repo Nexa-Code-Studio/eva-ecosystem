@@ -49,7 +49,7 @@ class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScree
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.15),
+                      color: AppColors.primary.withValues(alpha: 0.15),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
@@ -108,28 +108,96 @@ class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScree
                   ],
                 ),
               ),
-              const SizedBox(height: 28),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              const SizedBox(height: 24),
+              Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 6,
+                runSpacing: 4,
                 children: [
                   Text(
-                    'Belum terdaftar sebagai mitra?',
+                    'Belum terdaftar sebagai relawan?',
                     style: AppTypography.bodyMedium,
                   ),
-                  const SizedBox(width: 6),
                   GestureDetector(
                     onTap: () {
                       Navigator.of(context).pushNamed('/counselor-register');
                     },
                     child: Text(
-                      'Daftar & Upload STR',
-                      style: AppTypography.bodySmall.copyWith(
+                      'Daftar di Sini',
+                      style: AppTypography.bodyMedium.copyWith(
                         color: AppColors.primary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFECEFF8)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF4F6FC),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.apartment_rounded, size: 18, color: AppColors.primary),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'Psikolog Mitra Institusi / Klinik',
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppColors.textPrimary),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Daftar via web mitra? Aktivasi akun di sini',
+                            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).pushNamed(
+                          '/counselor-activation',
+                          arguments: {
+                            'email': 'sarah.lestari@gmail.com',
+                            'partnerName': 'RS Mitra Sehati Jakarta',
+                            'fullName': 'Dr. Sarah Lestari, M.Psi., Psikolog',
+                            'token': 'inv-eva-789234',
+                          },
+                        );
+                      },
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Aktivasi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          SizedBox(width: 2),
+                          Icon(Icons.chevron_right_rounded, size: 16),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

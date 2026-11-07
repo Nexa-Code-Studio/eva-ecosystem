@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/status_badge.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/patient_provider.dart';
 
 class PatientDetailConsentScreen extends ConsumerStatefulWidget {
@@ -20,6 +21,41 @@ class _PatientDetailConsentScreenState
   int _activeTabIndex = 0; // 0 = Rekam Emosional, 1 = Catatan SOAP
   bool _isRequestingConsent = false;
   bool _sessionUnlocked = false;
+  bool _showTranscript = true;
+
+  // Transcript sample for detailed review
+  final List<Map<String, String>> _sampleTranscript = [
+    {
+      'time': '00:03',
+      'speaker': 'Pasien',
+      'text': 'Halo Mbak Sarah, selamat pagi. Terima kasih sudah menerima jadwal saya.',
+    },
+    {
+      'time': '00:18',
+      'speaker': 'Psikolog',
+      'text': 'Selamat pagi Rian. Sama-sama. Bagaimana kabar dan istirahat Anda semalam?',
+    },
+    {
+      'time': '00:42',
+      'speaker': 'Pasien',
+      'text': 'Tidur saya masih kurang nyenyak. Dada terasa sesak dan tegang tiap kali teringat revisi skripsi bab 4 yang kemarin kena kritik keras pembimbing.',
+    },
+    {
+      'time': '01:25',
+      'speaker': 'Psikolog',
+      'text': 'Sensasi sesak dan tegang itu adalah reaksi fisik yang alami saat otak mempersepsikan situasi tersebut sebagai ancaman besar. Mari kita identifikasi pikiran otomatis apa yang langsung muncul saat menerima pesan pembimbing?',
+    },
+    {
+      'time': '02:08',
+      'speaker': 'Pasien',
+      'text': 'Pikiran saya langsung: "Aku tidak mampu, aku bakal terlambat lulus, dan aku mengecewakan orang tua saya yang sudah berkorban banyak."',
+    },
+    {
+      'time': '03:15',
+      'speaker': 'Psikolog',
+      'text': 'Bagus sekali Anda bisa mengidentifikasinya dengan jelas. Ada dua distorsi kognitif di sini: Catastrophizing (membayangkan skenario terburuk) dan Emotional Reasoning. Di sesi ini, kita akan melatih restrukturisasi pikiran tersebut.',
+    },
+  ];
 
   // SOAP Note Form
   final _subjCtrl = TextEditingController();
@@ -99,9 +135,14 @@ class _PatientDetailConsentScreenState
       _planCtrl.clear();
     });
 
+    final authUser = ref.read(authStateProvider).value;
+    final rewardText = authUser?.isProfessional == true
+        ? 'Catatan klinis SOAP berhasil disimpan. +${authUser?.coinsPerSession ?? 150} Koin dikreditkan ke dompet Anda!'
+        : 'Catatan klinis SOAP berhasil disimpan.';
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Catatan klinis SOAP berhasil disimpan.'),
+      SnackBar(
+        content: Text(rewardText),
         backgroundColor: AppColors.verifiedGreen,
       ),
     );
@@ -111,6 +152,8 @@ class _PatientDetailConsentScreenState
   Widget build(BuildContext context) {
     final patientAsync = ref.watch(patientDetailProvider(widget.patientId));
     final notesAsync = ref.watch(patientNotesProvider(widget.patientId));
+    final authUser = ref.watch(authStateProvider).value;
+    final isVolunteer = authUser?.isVolunteer == true;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
@@ -130,9 +173,11 @@ class _PatientDetailConsentScreenState
       body: patientAsync.when(
         data: (patient) {
           return SafeArea(
-            child: Column(
-              children: [
-                // Soft Patient Header Card (No harsh borders)
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Soft Patient Header Card (No harsh borders)
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   padding: const EdgeInsets.all(16),
@@ -358,7 +403,9 @@ class _PatientDetailConsentScreenState
                                   : null,
                             ),
                             child: Text(
-                              'Catatan SOAP (Luna AI)',
+                              isVolunteer
+                                  ? 'Curhat Sebaya (Non-SOAP)'
+                                  : 'Catatan SOAP & Transkrip',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 12,
@@ -374,24 +421,21 @@ class _PatientDetailConsentScreenState
                 ),
                 const SizedBox(height: 6),
 
-                // Tab Content Area
-                Expanded(
+                // Tab Content Area (Scrolls naturally with the page)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   child: _activeTabIndex == 0
-                      ? SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          child: patient.hasConsent
-                              ? _buildConsentGrantedContent(patient)
-                              : _buildConsentLockedGuard(patient),
-                        )
-                      : SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          child: _buildSoapTabContent(patient, notesAsync),
-                        ),
+                      ? (patient.hasConsent
+                          ? _buildConsentGrantedContent(patient)
+                          : _buildConsentLockedGuard(patient))
+                      : _buildSoapTabContent(patient, notesAsync),
                 ),
+                const SizedBox(height: 32),
               ],
             ),
-          );
-        },
+          ),
+        );
+      },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
       ),
@@ -555,7 +599,78 @@ class _PatientDetailConsentScreenState
   // TAB 2: SOAP TAB CONTENT
   Widget _buildSoapTabContent(dynamic patient, AsyncValue<List<dynamic>> notesAsync) {
     final schedule = patient.upcomingSchedule;
+    final authUser = ref.watch(authStateProvider).value;
 
+    // 1. JIKA VOLUNTEER (TEMAN SEBAYA): TIDAK PERLU MENGISI SOAP
+    if (authUser?.isVolunteer == true) {
+      return Container(
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFECEFF8)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE0F7F6),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.volunteer_activism_rounded,
+                color: Color(0xFF00796B),
+                size: 40,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Relawan Teman Sebaya (Bebas SOAP)',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Sebagai Relawan Teman Sebaya, Anda tidak perlu mengisi catatan SOAP medis. Rekam medis SOAP klinis secara hukum hanya diperuntukkan bagi Psikolog Berizin STR.\n\nFokus peran Anda adalah pendengar suportif & teman curhat non-kritis. Jika terdapat indikasi bahaya krisis, sistem otomatis mengalihkan pasien ke Psikolog Profesional.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7F8FC),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFECEFF8)),
+              ),
+              child: Row(
+                children: const [
+                  Icon(Icons.workspace_premium_rounded, color: AppColors.primary, size: 20),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Ingin membuka akses SOAP klinis & sistem koin? Upgrade ke Psikolog Profesional di menu Profil Anda.',
+                      style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // 2. JIKA PROFESIONAL: FORM SOAP LENGKAP + TRANSKRIP
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -596,6 +711,10 @@ class _PatientDetailConsentScreenState
           ),
           const SizedBox(height: 14),
 
+          // DETAIL TRANSKRIP PERCAKAPAN SESI (ACCORDION)
+          _buildTranscriptCard(),
+          const SizedBox(height: 14),
+
           // SOAP INPUTS (Soft, No Harsh Outlines)
           Container(
             padding: const EdgeInsets.all(16),
@@ -616,7 +735,7 @@ class _PatientDetailConsentScreenState
                 _buildSoftInput('P (Plan) - Rencana Terapi & PR Pasien', _planCtrl),
                 const SizedBox(height: 16),
                 CustomButton(
-                  label: 'Simpan & Finalisasi Rekam Medis',
+                  label: 'Simpan & Finalisasi Rekam Medis (+${authUser?.coinsPerSession ?? 150} Koin)',
                   icon: Icons.check_circle_outline_rounded,
                   isLoading: _isSavingNote,
                   onPressed: _handleSaveSoapNote,
@@ -654,7 +773,7 @@ class _PatientDetailConsentScreenState
                             'Sesi: ${note.createdAt.day}/${note.createdAt.month}/${note.createdAt.year}',
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                           ),
-                          StatusBadge.verified('Terdokumentasi'),
+                          StatusBadge.verified('Terdokumentasi & Valid'),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -672,6 +791,106 @@ class _PatientDetailConsentScreenState
           error: (e, _) => Text('Error: $e'),
         ),
       ],
+    );
+  }
+
+  Widget _buildTranscriptCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFECEFF8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: const [
+                  Icon(Icons.record_voice_over_rounded, color: AppColors.primary, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Detail Transkrip Audio Percakapan',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: () => setState(() => _showTranscript = !_showTranscript),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Row(
+                    children: [
+                      Text(
+                        _showTranscript ? 'Sembunyikan' : 'Buka Transkrip',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
+                      ),
+                      Icon(
+                        _showTranscript ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                        color: AppColors.primary,
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (_showTranscript) ...[
+            const SizedBox(height: 10),
+            const Divider(height: 1, color: Color(0xFFF0F2F8)),
+            const SizedBox(height: 10),
+            ..._sampleTranscript.map((t) => _buildTranscriptBubble(t)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTranscriptBubble(Map<String, String> item) {
+    final isPatient = item['speaker'] == 'Pasien';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isPatient ? const Color(0xFFF7F8FC) : AppColors.primaryContainer.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isPatient ? const Color(0xFFECEFF8) : AppColors.primary.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                item['speaker'] ?? '',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  color: isPatient ? AppColors.textPrimary : AppColors.primary,
+                ),
+              ),
+              Text(
+                item['time'] ?? '',
+                style: const TextStyle(fontSize: 10, color: AppColors.textLight),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            item['text'] ?? '',
+            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
+          ),
+        ],
+      ),
     );
   }
 
@@ -817,7 +1036,13 @@ class _PatientDetailConsentScreenState
               onPressed: () async {
                 final finished = await Navigator.of(context).pushNamed(
                   '/counselor-video-call',
-                  arguments: schedule.sessionId ?? 'session-live-001',
+                  arguments: {
+                    'sessionId': schedule.sessionId ?? 'session-live-001',
+                    'patientName': patient.name,
+                    'scheduledTime': schedule.timeRange,
+                    'isLiveNow': schedule.isLiveNow,
+                    'roomOpensAt': schedule.roomOpensAt,
+                  },
                 );
                 if (finished == true && mounted) {
                   _populateLunaTranscriptDraft(patient);
@@ -916,69 +1141,38 @@ class _PatientDetailConsentScreenState
               style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.5),
             ),
             const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.lock_outline_rounded, size: 16, color: Color(0xFF94A3B8)),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Ruang VC Dibuka Pukul ${schedule.roomOpensAt}',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8)),
-                  ),
-                ],
-              ),
+            CustomButton(
+              label: 'Masuk / Standby Ruang Video Call',
+              icon: Icons.videocam_rounded,
+              onPressed: () async {
+                final finished = await Navigator.of(context).pushNamed(
+                  '/counselor-video-call',
+                  arguments: {
+                    'sessionId': schedule.sessionId ?? 'session-live-001',
+                    'patientName': patient.name,
+                    'scheduledTime': schedule.timeRange,
+                    'isLiveNow': schedule.isLiveNow,
+                    'roomOpensAt': schedule.roomOpensAt,
+                  },
+                );
+                if (finished == true && mounted) {
+                  _populateLunaTranscriptDraft(patient);
+                }
+              },
             ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFFD0D4E5)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                    ),
-                    icon: const Icon(Icons.play_circle_outline_rounded, color: AppColors.textSecondary, size: 15),
-                    label: const Text(
-                      'Buka VC (Demo)',
-                      style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 11),
-                    ),
-                    onPressed: () async {
-                      final finished = await Navigator.of(context).pushNamed(
-                        '/counselor-video-call',
-                        arguments: schedule.sessionId ?? 'session-live-001',
-                      );
-                      if (finished == true && mounted) {
-                        _populateLunaTranscriptDraft(patient);
-                      }
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFFD0D4E5)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                    ),
-                    icon: const Icon(Icons.auto_awesome, color: AppColors.primary, size: 15),
-                    label: const Text(
-                      'Draf AI (Demo)',
-                      style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 11),
-                    ),
-                    onPressed: () => _populateLunaTranscriptDraft(patient),
-                  ),
-                ),
-              ],
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFFD0D4E5)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
+              icon: const Icon(Icons.auto_awesome, color: AppColors.primary, size: 16),
+              label: const Text(
+                'Simulasikan Draf Transkrip AI Luna',
+                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+              onPressed: () => _populateLunaTranscriptDraft(patient),
             ),
           ],
         ),

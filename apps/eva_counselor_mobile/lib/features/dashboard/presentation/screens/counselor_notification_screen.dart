@@ -16,7 +16,7 @@ class _CounselorNotificationScreenState extends State<CounselorNotificationScree
     {
       'id': 'notif-1',
       'title': 'Peringatan Distres Akut Pasien',
-      'body': 'Dinda Kirana terdeteksi krisis skor 9/10 (DASS-21: 28). Protokol de-eskalasi & kontak darurat disarankan untuk dievaluasi.',
+      'body': 'Dinda Kirana terdeteksi krisis skor 9/10 (DASS-21: 28). Protokol de-eskalasi & evaluasi riwayat klinis disarankan untuk segera ditinjau.',
       'category': 'Darurat',
       'time': '12 menit lalu',
       'isRead': false,
@@ -26,33 +26,51 @@ class _CounselorNotificationScreenState extends State<CounselorNotificationScree
     },
     {
       'id': 'notif-2',
-      'title': 'Permintaan Booking Sesi Baru',
-      'body': 'Maya Saraswati (22 th) mengajukan jadwal telekonsultasi untuk besok Rabu, 12 Nov pukul 14:00 WIB. Mohon konfirmasi ketersediaan Anda.',
-      'category': 'Booking',
+      'title': 'Sesi Baru Terkonfirmasi Otomatis',
+      'body': 'Maya Saraswati (22 th) memilih slot telekonseling Anda untuk besok Rabu, 12 Nov pukul 14:00 WIB (150 Koin). Jadwal langsung terkonfirmasi otomatis ke kalender.',
+      'category': 'Jadwal',
       'time': '45 menit lalu',
       'isRead': false,
-      'isBooking': true,
+      'isConfirmedSession': true,
       'patientId': 'patient-004',
-      'actionLabel': 'Konfirmasi Jadwal',
+      'actionLabel': 'Lihat Jadwal & Pasien',
     },
     {
       'id': 'notif-3',
-      'title': 'Pengingat Sesi Mendatang',
-      'body': 'Sesi telekonsultasi 1-on-1 dengan Rian Pratama akan dimulai dalam 15 menit (10:00 WIB). Ruang panggilan sudah siap.',
+      'title': 'Pengingat: Sesi Dimulai 15 Menit Lagi',
+      'body': 'Sesi telekonsultasi 1-on-1 dengan Rian Pratama akan dimulai pukul 10:00 WIB. Ruang video call terenkripsi telah siap.',
       'category': 'Jadwal',
       'time': '1 jam lalu',
       'isRead': false,
       'sessionId': 'session-live-001',
-      'actionLabel': 'Masuk Sesi VC',
+      'actionLabel': 'Masuk Ruang VC',
     },
     {
       'id': 'notif-4',
+      'title': 'Koin Sesi Masuk ke Dompet 🪙',
+      'body': '150 Koin berhasil ditambahkan ke saldo akun Anda setelah sesi telekonseling dan verifikasi catatan SOAP selesai.',
+      'category': 'Keuangan',
+      'time': '3 jam lalu',
+      'isRead': false,
+      'actionLabel': 'Lihat Saldo Koin',
+    },
+    {
+      'id': 'notif-5',
       'title': 'Pencairan Dana Berhasil',
-      'body': 'Honorarium sebesar Rp 2.000.000 berhasil ditransfer ke rekening BCA Anda (No. Rek: ****8192).',
+      'body': 'Pencairan 2.000 Koin (Rp 2.000.000) berhasil ditransfer ke rekening BCA Anda (No. Rek: ****8192).',
       'category': 'Keuangan',
       'time': '1 hari lalu',
       'isRead': true,
-      'actionLabel': 'Lihat Rincian',
+      'actionLabel': 'Lihat Mutasi',
+    },
+    {
+      'id': 'notif-6',
+      'title': 'Pencadangan Google Drive Selesai ☁️',
+      'body': 'Rekam medis terenkripsi lokal berhasil dicadangkan ke Google Drive pribadi Anda secara end-to-end tanpa disimpan di server pusat.',
+      'category': 'Sistem',
+      'time': '1 hari lalu',
+      'isRead': true,
+      'actionLabel': 'Pengaturan Backup',
     },
   ];
 
@@ -61,8 +79,8 @@ class _CounselorNotificationScreenState extends State<CounselorNotificationScree
     final filtered = _notifications.where((n) {
       if (_selectedFilter == 'Semua') return true;
       if (_selectedFilter == 'Darurat') return n['category'] == 'Darurat';
-      if (_selectedFilter == 'Booking') return n['category'] == 'Booking';
       if (_selectedFilter == 'Jadwal') return n['category'] == 'Jadwal';
+      if (_selectedFilter == 'Keuangan') return n['category'] == 'Keuangan';
       return true;
     }).toList();
 
@@ -106,7 +124,7 @@ class _CounselorNotificationScreenState extends State<CounselorNotificationScree
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: ['Semua', 'Darurat', 'Booking', 'Jadwal'].map((cat) {
+                  children: ['Semua', 'Darurat', 'Jadwal', 'Keuangan'].map((cat) {
                     final isSel = _selectedFilter == cat;
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
@@ -145,8 +163,35 @@ class _CounselorNotificationScreenState extends State<CounselorNotificationScree
                 itemBuilder: (context, index) {
                   final notif = filtered[index];
                   final isCrisis = notif['isCrisis'] == true;
-                  final isBooking = notif['isBooking'] == true;
+                  final isConfirmed = notif['isConfirmedSession'] == true;
                   final isRead = notif['isRead'] == true;
+                  final category = notif['category'] as String;
+
+                  Color catColor;
+                  Color catBg;
+                  IconData catIcon;
+
+                  if (isCrisis) {
+                    catColor = AppColors.highRiskRed;
+                    catBg = AppColors.highRiskBg;
+                    catIcon = Icons.crisis_alert_rounded;
+                  } else if (isConfirmed) {
+                    catColor = AppColors.verifiedGreen;
+                    catBg = AppColors.verifiedBg;
+                    catIcon = Icons.event_available_rounded;
+                  } else if (category == 'Keuangan') {
+                    catColor = const Color(0xFFD97706);
+                    catBg = const Color(0xFFFEF3C7);
+                    catIcon = Icons.monetization_on_rounded;
+                  } else if (category == 'Sistem') {
+                    catColor = const Color(0xFF7C3AED);
+                    catBg = const Color(0xFFF3E8FF);
+                    catIcon = Icons.cloud_done_rounded;
+                  } else {
+                    catColor = AppColors.primary;
+                    catBg = AppColors.primaryContainer;
+                    catIcon = Icons.notifications_active_rounded;
+                  }
 
                   return Container(
                     decoration: BoxDecoration(
@@ -155,8 +200,8 @@ class _CounselorNotificationScreenState extends State<CounselorNotificationScree
                       border: Border.all(
                         color: isCrisis
                             ? AppColors.highRiskRed.withValues(alpha: 0.2)
-                            : (isBooking
-                                ? AppColors.primary.withValues(alpha: 0.15)
+                            : (isConfirmed
+                                ? AppColors.verifiedGreen.withValues(alpha: 0.2)
                                 : const Color(0xFFF0F2F8)),
                         width: 1,
                       ),
@@ -180,19 +225,13 @@ class _CounselorNotificationScreenState extends State<CounselorNotificationScree
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: isCrisis
-                                    ? AppColors.highRiskBg
-                                    : (isBooking ? AppColors.secondary : AppColors.primaryContainer),
+                                color: catBg,
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
-                                isCrisis
-                                    ? Icons.crisis_alert_rounded
-                                    : (isBooking
-                                        ? Icons.event_available_rounded
-                                        : Icons.notifications_active_rounded),
+                                catIcon,
                                 size: 18,
-                                color: isCrisis ? AppColors.highRiskRed : AppColors.primary,
+                                color: catColor,
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -203,11 +242,11 @@ class _CounselorNotificationScreenState extends State<CounselorNotificationScree
                                   Row(
                                     children: [
                                       Text(
-                                        notif['category'] as String,
+                                        category,
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.bold,
-                                          color: isCrisis ? AppColors.highRiskRed : AppColors.primary,
+                                          color: catColor,
                                         ),
                                       ),
                                       const SizedBox(width: 6),
@@ -255,9 +294,9 @@ class _CounselorNotificationScreenState extends State<CounselorNotificationScree
                         // Actions
                         Row(
                           children: [
-                            if (isBooking) ...[
+                            if (isConfirmed) ...[
                               Expanded(
-                                child: ElevatedButton(
+                                child: ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.primary,
                                     foregroundColor: Colors.white,
@@ -265,34 +304,14 @@ class _CounselorNotificationScreenState extends State<CounselorNotificationScree
                                     padding: const EdgeInsets.symmetric(vertical: 10),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   ),
+                                  icon: const Icon(Icons.assignment_ind_outlined, size: 16),
+                                  label: Text(notif['actionLabel'] as String, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                   onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Jadwal booking berhasil disetujui & slot dikonfirmasi ke pasien.'),
-                                        backgroundColor: AppColors.verifiedGreen,
-                                      ),
+                                    Navigator.of(context).pushNamed(
+                                      '/counselor-patient-detail',
+                                      arguments: notif['patientId'],
                                     );
                                   },
-                                  child: const Text('Terima Booking', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: OutlinedButton(
-                                  style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(color: Color(0xFFE0E3EC)),
-                                    padding: const EdgeInsets.symmetric(vertical: 10),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  ),
-                                  onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Opsi reschedule telah dikirimkan ke pasien.'),
-                                        backgroundColor: AppColors.primary,
-                                      ),
-                                    );
-                                  },
-                                  child: const Text('Jadwal Lain', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                                 ),
                               ),
                             ] else if (isCrisis) ...[
@@ -319,7 +338,7 @@ class _CounselorNotificationScreenState extends State<CounselorNotificationScree
                               Expanded(
                                 child: ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
+                                    backgroundColor: const Color(0xFF16A34A),
                                     foregroundColor: Colors.white,
                                     elevation: 0,
                                     padding: const EdgeInsets.symmetric(vertical: 10),
@@ -338,20 +357,24 @@ class _CounselorNotificationScreenState extends State<CounselorNotificationScree
                             ] else ...[
                               GestureDetector(
                                 onTap: () {
-                                  Navigator.of(context).pushNamed('/counselor-finances');
+                                  if (category == 'Keuangan') {
+                                    Navigator.of(context).pushNamed('/counselor-finances');
+                                  } else {
+                                    Navigator.of(context).pop();
+                                  }
                                 },
                                 child: Row(
                                   children: [
                                     Text(
                                       notif['actionLabel'] as String,
-                                      style: const TextStyle(
-                                        color: AppColors.primary,
+                                      style: TextStyle(
+                                        color: catColor,
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                     const SizedBox(width: 4),
-                                    const Icon(Icons.arrow_forward_rounded, color: AppColors.primary, size: 14),
+                                    Icon(Icons.arrow_forward_rounded, color: catColor, size: 14),
                                   ],
                                 ),
                               ),

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/status_badge.dart';
-import '../../../../core/widgets/top_toast.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../patients/presentation/providers/patient_provider.dart';
 import '../providers/counselor_nav_provider.dart';
@@ -17,39 +16,6 @@ class CounselorHomeScreen extends ConsumerStatefulWidget {
 
 class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
   int _selectedCalendarIndex = 1; // 1 = Sel 11 (Hari Ini)
-  int _currentBookingIndex = 0;
-  late final PageController _bookingPageController = PageController();
-
-  @override
-  void dispose() {
-    _bookingPageController.dispose();
-    super.dispose();
-  }
-
-  // MULTIPLE PENDING BOOKINGS
-  final List<Map<String, dynamic>> _pendingBookings = [
-    {
-      'id': 'book-1',
-      'patientName': 'Maya Saraswati (22 th)',
-      'chiefComplaint': 'Burnout Skripsi & Beban Ekspektasi',
-      'requestedSchedule': 'Besok Rabu, 12 Nov • 14:00 - 14:50 WIB',
-      'expiresIn': '01:45:00',
-    },
-    {
-      'id': 'book-2',
-      'patientName': 'Dimas Setiawan (27 th)',
-      'chiefComplaint': 'Kecemasan Karier & Problem Hubungan',
-      'requestedSchedule': 'Kamis, 13 Nov • 10:00 - 10:50 WIB',
-      'expiresIn': '00:52:30',
-    },
-    {
-      'id': 'book-3',
-      'patientName': 'Gita Savira (24 th)',
-      'chiefComplaint': 'Insomnia Akut & Serangan Panik',
-      'requestedSchedule': 'Jumat, 14 Nov • 16:00 - 16:50 WIB',
-      'expiresIn': '01:15:10',
-    },
-  ];
 
   // FULL 7-DAY WEEK (Senin s/d Minggu)
   final List<Map<String, dynamic>> _calendarDays = [
@@ -345,23 +311,20 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 2),
-                          Row(
-                            children: const [
-                              Icon(Icons.verified_rounded, size: 13, color: AppColors.verifiedGreen),
-                              SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  'STR Aktif #4192-PSI',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.verifiedGreen,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
+                          const SizedBox(height: 4),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              if (user?.isVolunteer == true)
+                                StatusBadge.volunteer('Relawan Teman Sebaya')
+                              else if (user?.isPartner == true)
+                                StatusBadge.proPartner('Psikolog Mitra • ${user?.partnerName ?? "RS Mitra"}')
+                              else
+                                StatusBadge.proIndependent('Psikolog Mandiri'),
+                              if (user?.isProfessional == true)
+                                StatusBadge.coins(user?.coinBalance ?? 1250),
                             ],
                           ),
                         ],
@@ -479,23 +442,11 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.25),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Text(
-                            'Telekonsul',
-                            style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                          ),
-                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
 
-                    // Patient Photo + Clinical & Emotional Record
+                    // Patient Photo + Info
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -517,8 +468,8 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
+                            children: const [
+                              Text(
                                 'Rian Pratama (24 Thn)',
                                 style: TextStyle(
                                   color: Colors.white,
@@ -526,35 +477,17 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              const SizedBox(height: 2),
-                              const Text(
+                              SizedBox(height: 3),
+                              Text(
                                 'Generalized Anxiety & Insomnia',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(color: Colors.white70, fontSize: 11),
+                                style: TextStyle(color: Colors.white70, fontSize: 12),
                               ),
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.18),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: const [
-                                    Text('😟', style: TextStyle(fontSize: 11)),
-                                    SizedBox(width: 4),
-                                    Flexible(
-                                      child: Text(
-                                        'Cemas • DASS-21: 18',
-                                        style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Durasi 50 Menit • Video Call',
+                                style: TextStyle(color: Colors.white60, fontSize: 11),
                               ),
                             ],
                           ),
@@ -617,259 +550,29 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
               ),
               const SizedBox(height: 18),
 
-              // 4. PERMINTAAN KONSULTASI BARU (DISTINCT ACTION CARD DENGAN WARM AMBER STYLING & FOCUSED PAGER)
-              if (_pendingBookings.isNotEmpty) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFD97706),
-                            shape: BoxShape.circle,
-                          ),
+              // 4. PROTOKOL KESELAMATAN (KHUSUS RELAWAN)
+              if (user?.isVolunteer == true) ...[
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE0F7F6),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFB2DFDB)),
+                  ),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.shield_outlined, color: Color(0xFF00796B), size: 22),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Protokol Keselamatan: Kasus krisis darurat & indikasi risiko tinggi secara otomatis dialihkan sistem ke Psikolog Klinis Berizin. Anda hanya menangani sesi curhat non-kritis.',
+                          style: TextStyle(fontSize: 11, color: Color(0xFF004D40), height: 1.4),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Permintaan Booking (${_pendingBookings.length} Menunggu)',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
-                        ),
-                      ],
-                    ),
-                    if (_pendingBookings.length > 1)
-                      Text(
-                        '${_currentBookingIndex + 1} dari ${_pendingBookings.length}',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
                       ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: 222,
-                  child: PageView.builder(
-                    controller: _bookingPageController,
-                    itemCount: _pendingBookings.length,
-                    onPageChanged: (i) => setState(() => _currentBookingIndex = i),
-                    itemBuilder: (context, idx) {
-                      final b = _pendingBookings[idx];
-                      return Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFFBF3),
-                          borderRadius: BorderRadius.circular(22),
-                          border: Border.all(color: const Color(0xFFFFDFB0), width: 1.4),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFD97706).withValues(alpha: 0.08),
-                              blurRadius: 16,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // Header: Tag Konsultasi Baru & Expiry Pill
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(5),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFFEF3C7),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Icon(Icons.mark_email_unread_rounded, size: 14, color: Color(0xFFD97706)),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    const Text(
-                                      'PERMINTAAN KONSULTASI BARU',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w800,
-                                        color: Color(0xFFB45309),
-                                        letterSpacing: 0.4,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFEE2E2),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.timer_outlined, size: 11, color: Color(0xFFDC2626)),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Sisa ${b['expiresIn'] ?? "01:30:00"}',
-                                        style: const TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFFDC2626),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            // Patient Profile & Problem
-                            Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 18,
-                                  backgroundColor: const Color(0xFFFFEDD5),
-                                  child: Text(
-                                    (b['patientName'] as String).substring(0, 1),
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFFC2410C)),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        b['patientName'] as String,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 1),
-                                      Text(
-                                        b['chiefComplaint'] as String,
-                                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            // Proposed Schedule Capsule (Clear contrast box)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: const Color(0xFFF1E5D5)),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.calendar_month_rounded, size: 14, color: AppColors.primary),
-                                  const SizedBox(width: 6),
-                                  const Text('Jadwal: ', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                                  Expanded(
-                                    child: Text(
-                                      b['requestedSchedule'] as String,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppColors.textPrimary),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Action Buttons (Terima vs Jadwal Lain)
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton(
-                                    style: OutlinedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      side: const BorderSide(color: Color(0xFFD6D9E4)),
-                                      padding: const EdgeInsets.symmetric(vertical: 9),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    ),
-                                    onPressed: () {
-                                      final name = b['patientName'];
-                                      setState(() {
-                                        _pendingBookings.removeAt(idx);
-                                        if (_currentBookingIndex >= _pendingBookings.length && _currentBookingIndex > 0) {
-                                          _currentBookingIndex = _pendingBookings.length - 1;
-                                        }
-                                      });
-                                      TopToast.show(
-                                        context,
-                                        title: 'Opsi Reschedule Dikirim',
-                                        message: 'Tawaran opsi jadwal alternatif telah dikirimkan ke $name.',
-                                        type: ToastType.info,
-                                      );
-                                    },
-                                    child: const Text('Jadwal Lain', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.primary,
-                                      foregroundColor: Colors.white,
-                                      elevation: 0,
-                                      padding: const EdgeInsets.symmetric(vertical: 9),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    ),
-                                    icon: const Icon(Icons.check_rounded, size: 16),
-                                    label: const Text('Terima Booking', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                                    onPressed: () {
-                                      final name = b['patientName'];
-                                      setState(() {
-                                        _pendingBookings.removeAt(idx);
-                                        if (_currentBookingIndex >= _pendingBookings.length && _currentBookingIndex > 0) {
-                                          _currentBookingIndex = _pendingBookings.length - 1;
-                                        }
-                                      });
-                                      TopToast.show(
-                                        context,
-                                        title: 'Booking Diterima',
-                                        message: 'Jadwal telekonsultasi dengan $name telah disetujui & slot terkunci.',
-                                        type: ToastType.success,
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                    ],
                   ),
                 ),
-                if (_pendingBookings.length > 1) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(_pendingBookings.length, (dotIdx) {
-                      final isActive = dotIdx == _currentBookingIndex;
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        width: isActive ? 16 : 6,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: isActive ? const Color(0xFFD97706) : const Color(0xFFE2E4EB),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      );
-                    }),
-                  ),
-                ],
-                const SizedBox(height: 18),
+                const SizedBox(height: 16),
               ],
 
               // 5. HORIZONTAL SCHEDULE MINI-CALENDAR STRIP (LENGKAP 7 HARI, MERAH JIKA LIBUR)

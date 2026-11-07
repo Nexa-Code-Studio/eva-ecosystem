@@ -36,6 +36,10 @@ class AuthRepositoryImpl implements IAuthRepository {
     required int yearsOfExperience,
     required int consultationRate,
     required String certificateDocFileName,
+    String counselorRole = 'professional_independent',
+    String? partnerName,
+    int sessionDurationMinutes = 50,
+    int coinsPerSession = 150,
   }) async {
     final request = PsychologistRegisterRequestDto(
       fullName: fullName,
@@ -48,6 +52,10 @@ class AuthRepositoryImpl implements IAuthRepository {
       yearsOfExperience: yearsOfExperience,
       consultationRate: consultationRate,
       certificateDocFileName: certificateDocFileName,
+      counselorRole: counselorRole,
+      partnerName: partnerName,
+      sessionDurationMinutes: sessionDurationMinutes,
+      coinsPerSession: coinsPerSession,
     );
     final dto = await _dataSource.register(request);
     if (dto.token != null) {
