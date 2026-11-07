@@ -25,6 +25,27 @@ class CommunityStatusModel extends CommunityStatusEntity {
     );
   }
 
+  @override
+  CommunityStatusModel copyWith({
+    bool? isMember,
+    bool? isVipActive,
+    int? vipRemainingDays,
+    DateTime? joinedAt,
+    String? serverName,
+    String? inviteUrl,
+    int? memberCount,
+  }) {
+    return CommunityStatusModel(
+      isMember: isMember ?? this.isMember,
+      isVipActive: isVipActive ?? this.isVipActive,
+      vipRemainingDays: vipRemainingDays ?? this.vipRemainingDays,
+      joinedAt: joinedAt ?? this.joinedAt,
+      serverName: serverName ?? this.serverName,
+      inviteUrl: inviteUrl ?? this.inviteUrl,
+      memberCount: memberCount ?? this.memberCount,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'is_member': isMember,

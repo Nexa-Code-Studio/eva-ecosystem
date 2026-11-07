@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:eva_mobile/config/app_config.dart';
-import 'package:eva_mobile/core/utils/responsive_layout_helper.dart';
 import 'package:eva_mobile/features/auth/domain/entities/user_entity.dart';
 import 'package:eva_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:eva_mobile/features/chat/domain/entities/conversation_entity.dart';
@@ -14,13 +13,16 @@ import 'package:eva_mobile/features/dass/presentation/providers/dass_provider.da
 import 'package:eva_mobile/features/diary/domain/entities/diary_entry_entity.dart';
 import 'package:eva_mobile/features/diary/presentation/providers/diary_provider.dart';
 import 'package:eva_mobile/features/home/presentation/widgets/home_activity_modal.dart';
+import 'package:eva_mobile/features/home/presentation/widgets/home_daily_progress_card.dart';
+import 'package:eva_mobile/features/home/presentation/widgets/home_eva_insight_card.dart';
+import 'package:eva_mobile/features/home/presentation/widgets/home_quick_actions.dart';
+import 'package:eva_mobile/features/home/presentation/widgets/home_recommendations_section.dart';
 import 'package:eva_mobile/features/home/presentation/widgets/profile_dropdown_modal.dart';
 import 'package:eva_mobile/features/recommendations/presentation/providers/recommendation_provider.dart';
 import 'package:eva_mobile/providers/daily_progress_provider.dart';
 import 'package:eva_mobile/services/daily_progress_local_service.dart';
 import 'package:eva_mobile/theme/app_colors.dart';
 import 'package:eva_mobile/widgets/app_snack_bar.dart';
-import 'package:eva_mobile/widgets/glass_card.dart';
 import 'package:eva_mobile/widgets/staggered_entrance.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -69,30 +71,6 @@ class HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObser
   String _crisisGuidance =
       'Keselamatan dan ketenanganmu adalah prioritas paling berharga. Silakan hubungi bantuan darurat bila beban terasa terlalu berat.';
   Map<String, dynamic>? _todayActivity;
-
-  Color _getSeverityColor(String severity) {
-    switch (severity.toLowerCase()) {
-      case 'berat':
-      case 'sangat berat':
-      case 'krisis / darurat':
-        return const Color(0xFFEF4444);
-      case 'sedang':
-        return const Color(0xFFF59E0B);
-      case 'ringan':
-        return const Color(0xFF10B981);
-      default:
-        return const Color(0xFF6366F1);
-    }
-  }
-
-  String _normalizeCategory(String? raw) {
-    final cat = (raw ?? '').toLowerCase();
-    if (cat.contains('mindful') || cat.contains('napas') || cat.contains('breath')) return 'Mindfulness';
-    if (cat.contains('cbt') || cat.contains('kognitif') || cat.contains('problem')) return 'CBT';
-    if (cat.contains('refleksi') || cat.contains('syukur') || cat.contains('self-care')) return 'Refleksi';
-    if (cat.contains('fisik') || cat.contains('gerak') || cat.contains('somatis') || cat.contains('aktivasi') || cat.contains('jalan')) return 'Fisik & Gerak';
-    return raw?.isNotEmpty == true ? raw! : 'Self-Care';
-  }
 
   static final List<Map<String, dynamic>> _defaultRecommendations = [
     {
@@ -540,1049 +518,126 @@ class HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObser
                       ],
                     ),
                   ),
-                        const SizedBox(height: 18),
+                  const SizedBox(height: 18),
 
-                        // Empathetic AI Psychologist Insight Card
-                        StaggeredEntrance(
-                          index: 2,
-                          child: _buildLunaInsightCard(),
-                        ),
-                        const SizedBox(height: 20),
+                  // Empathetic AI Psychologist Insight Card
+                  StaggeredEntrance(
+                    index: 2,
+                    child: HomeEvaInsightCard(insightText: _aiInsight),
+                  ),
+                  const SizedBox(height: 20),
 
-                        // Quick Navigation Shortcuts
-                        StaggeredEntrance(
-                          index: 3,
-                          child: _buildQuickActionShortcuts(),
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Evidence-Based Daily Progress Section (3 Pillars)
-                        StaggeredEntrance(
-                          index: 4,
-                          child: _buildDailyProgressSection(),
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Latest Clinically-Informed Recommendation
-                        StaggeredEntrance(
-                          index: 5,
-                          child: _buildLatestRecommendationSection(),
-                        ),
-                      ],
+                  // Quick Navigation Shortcuts
+                  StaggeredEntrance(
+                    index: 3,
+                    child: HomeQuickActions(
+                      onTapChat: () async {
+                        await Navigator.pushNamed(context, '/chat');
+                        refresh();
+                      },
+                      onTapDiary: () async {
+                        if (widget.onNavigateTab != null) {
+                          widget.onNavigateTab!(1);
+                        } else {
+                          await Navigator.pushNamed(context, '/diary');
+                          refresh();
+                        }
+                      },
+                      onTapDass: () async {
+                        await Navigator.pushNamed(context, '/dass_assessment');
+                        refresh();
+                      },
+                      dassSubtitle: _dassVerifiedByUser
+                          ? 'Stres: $_dassStressScore • Cemas: $_dassAnxietyScore • Depresi: $_dassDepressionScore'
+                          : (_hasTodayDass && _dassStatus == 'auto_extracted'
+                              ? 'Tersintesis AI • Ketuk untuk meninjau'
+                              : 'Evaluasi & koreksi 21 butir emosi'),
+                      showDassNotificationDot: _hasTodayDass &&
+                          _dassStatus == 'auto_extracted' &&
+                          !_dassVerifiedByUser,
                     ),
                   ),
-                ),
-              ),
-            ),
-          );
-  }
+                  const SizedBox(height: 24),
 
-  // --------------------------------------------------------------------------
-  // 1. Empathetic Psychological Insight Card from Eva
-  // --------------------------------------------------------------------------
-  Widget _buildLunaInsightCard() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFFEDE9FE),
-            Color(0xFFF3E8FF),
-            Color(0xFFE0E7FF),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.08),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.9),
-          width: 1.5,
-        ),
-      ),
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.auto_awesome,
-                  size: 15,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'CATATAN DARI EVA',
-                style: GoogleFonts.inter(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.8,
-                  color: AppColors.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            '"$_aiInsight"',
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              fontStyle: FontStyle.italic,
-              height: 1.5,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF333878),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --------------------------------------------------------------------------
-  // 2. Quick Action Shortcuts
-  // --------------------------------------------------------------------------
-  Widget _buildQuickActionShortcuts() {
-    return Column(
-      children: [
-        _buildQuickCard(
-          icon: Icons.chat_bubble_outline,
-          iconBg: const Color(0xFF5358CB),
-          iconColor: Colors.white,
-          title: 'Curhat ke EVA',
-          subtitle: 'Mulai dialog suara atau teks',
-          onTap: () async {
-            await Navigator.pushNamed(context, '/chat');
-            refresh();
-          },
-        ),
-        const SizedBox(height: 12),
-        _buildQuickCard(
-          icon: Icons.menu_book_outlined,
-          iconBg: const Color(0xFFE2DAFF),
-          iconColor: const Color(0xFF5358CB),
-          title: 'Jurnal Refleksi AI',
-          subtitle: 'Lihat rangkuman emosi harimu',
-          onTap: () async {
-            if (widget.onNavigateTab != null) {
-              widget.onNavigateTab!(1);
-            } else {
-              await Navigator.pushNamed(context, '/diary');
-              refresh();
-            }
-          },
-        ),
-        const SizedBox(height: 12),
-        _buildQuickCard(
-          icon: Icons.psychology_outlined,
-          iconBg: const Color(0xFFE0F4FB),
-          iconColor: const Color(0xFF20667B),
-          title: 'Asesmen DASS-21',
-          subtitle: _dassVerifiedByUser
-              ? 'Stres: $_dassStressScore • Cemas: $_dassAnxietyScore • Depresi: $_dassDepressionScore'
-              : (_hasTodayDass && _dassStatus == 'auto_extracted'
-                  ? 'Tersintesis AI • Ketuk untuk meninjau'
-                  : 'Evaluasi & koreksi 21 butir emosi'),
-          showNotificationDot: _hasTodayDass && _dassStatus == 'auto_extracted' && !_dassVerifiedByUser,
-          onTap: () async {
-            await Navigator.pushNamed(context, '/dass_assessment');
-            refresh();
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuickCard({
-    required IconData icon,
-    required Color iconBg,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    bool showNotificationDot = false,
-    required VoidCallback onTap,
-  }) {
-    return GlassCard(
-      width: double.infinity,
-      onTap: onTap,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: iconBg,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: iconColor, size: 22),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inter(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                    if (showNotificationDot) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFF59E0B),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: AppColors.textLight,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Icon(
-            Icons.chevron_right,
-            size: 20,
-            color: AppColors.textLight,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --------------------------------------------------------------------------
-  // 3. Evidence-Based Daily Progress Section (3 Pillars)
-  // --------------------------------------------------------------------------
-  Widget _buildDailyProgressSection() {
-    final completed = _completedRoutinesCount;
-    final progressFraction = (completed / 3.0).clamp(0.0, 1.0);
-
-    String progressMotivation;
-    if (completed == 3) {
-      progressMotivation =
-          'Luar biasa! Semua target perawatan dirimu tercapai hari ini 🌟';
-    } else if (completed == 2) {
-      progressMotivation =
-          'Tinggal 1 langkah lagi untuk melengkapi rutinitas terapeutikmu.';
-    } else if (completed == 1) {
-      progressMotivation =
-          'Kemajuan yang sangat baik! Terus jaga ritme emosionalmu.';
-    } else {
-      progressMotivation =
-          'Mulai harimu dengan satu langkah kecil penuh perhatian bersama EVA.';
-    }
-
-    final bool isConversationDone =
-        _localProgress.hasConversation || _todayConversationsCount > 0;
-    final bool isDiaryDone = _localProgress.hasDiary || _hasTodayDiary;
-    final bool isExerciseDone =
-        _localProgress.completedActivityIds.isNotEmpty ||
-            (_todayActivity != null &&
-                _todayActivity!['isCompleted'] == true) ||
-            _recommendations.any((r) => r['isCompleted'] == true);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Section Header
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: completed == 3
-                          ? const Color(0xFF10B981).withValues(alpha: 0.15)
-                          : AppColors.primary.withValues(alpha: 0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      completed == 3 ? Icons.stars_rounded : Icons.spa_rounded,
-                      size: 16,
-                      color: completed == 3
-                          ? const Color(0xFF10B981)
-                          : AppColors.primary,
+                  // Evidence-Based Daily Progress Section (3 Pillars)
+                  StaggeredEntrance(
+                    index: 4,
+                    child: HomeDailyProgressCard(
+                      completedCount: _completedRoutinesCount,
+                      isConversationDone:
+                          _localProgress.hasConversation || _todayConversationsCount > 0,
+                      isDiaryDone: _localProgress.hasDiary || _hasTodayDiary,
+                      isExerciseDone: _localProgress.completedActivityIds.isNotEmpty ||
+                          (_todayActivity != null &&
+                              _todayActivity!['isCompleted'] == true) ||
+                          _recommendations.any((r) => r['isCompleted'] == true),
+                      todayConversationsCount: _todayConversationsCount,
+                      onTapConversation: () async {
+                        await Navigator.pushNamed(context, '/chat');
+                        refresh();
+                      },
+                      onTapDiary: () async {
+                        if (widget.onNavigateTab != null) {
+                          widget.onNavigateTab!(1);
+                        } else {
+                          await Navigator.pushNamed(context, '/diary');
+                          refresh();
+                        }
+                      },
+                      onTapExercise: () async {
+                        await Navigator.pushNamed(context, '/recommendation');
+                        refresh();
+                      },
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      'Perawatan Diri',
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
-                        fontSize: context.responsiveFont(15),
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
+                  const SizedBox(height: 24),
+
+                  // Latest Clinically-Informed Recommendation
+                  StaggeredEntrance(
+                    index: 5,
+                    child: _buildLatestRecommendationSection(),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-              decoration: BoxDecoration(
-                color: completed == 3
-                    ? const Color(0xFFD1FAE5)
-                    : AppColors.primaryContainer,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                  color: completed == 3
-                      ? const Color(0xFF10B981).withValues(alpha: 0.3)
-                      : AppColors.primary.withValues(alpha: 0.15),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (completed == 3) ...[
-                    const Icon(
-                      Icons.check_circle_rounded,
-                      size: 13,
-                      color: Color(0xFF047857),
-                    ),
-                    const SizedBox(width: 4),
-                  ],
-                  Text(
-                    '$completed/3 Selesai',
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: completed == 3
-                          ? const Color(0xFF047857)
-                          : AppColors.primary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-
-        // Premium Progress Container
-        GlassCard(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Segmented 3-Step Progress Bars
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSegmentBar(isActive: isConversationDone),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: _buildSegmentBar(isActive: isDiaryDone),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: _buildSegmentBar(isActive: isExerciseDone),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Motivation & Percentage Banner
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: completed == 3
-                      ? const Color(0xFFF0FDF4)
-                      : const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: completed == 3
-                        ? const Color(0xFF86EFAC).withValues(alpha: 0.5)
-                        : const Color(0xFFE2E8F0),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      completed == 3
-                          ? Icons.emoji_events_rounded
-                          : Icons.auto_awesome,
-                      size: 16,
-                      color: completed == 3
-                          ? const Color(0xFF10B981)
-                          : AppColors.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        progressMotivation,
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: completed == 3
-                              ? const Color(0xFF065F46)
-                              : AppColors.textSecondary,
-                          height: 1.35,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: completed == 3
-                            ? const Color(0xFF10B981)
-                            : AppColors.primary,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        '${(progressFraction * 100).round()}%',
-                        style: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // Routine 1: Sesi Curhat / Dialog Emosi
-              _buildProgressCheckItem(
-                title: 'Sesi Curhat Bersama Eva',
-                subtitle: isConversationDone
-                    ? '$_todayConversationsCount sesi dialog telah tercatat hari ini'
-                    : 'Ekspresikan perasaanmu lewat suara atau teks',
-                icon: Icons.chat_bubble_outline_rounded,
-                isCompleted: isConversationDone,
-                onTap: () async {
-                  await Navigator.pushNamed(context, '/chat');
-                  refresh();
-                },
-              ),
-              const SizedBox(height: 8),
-
-              // Routine 2: Refleksi Jurnal AI
-              _buildProgressCheckItem(
-                title: 'Refleksi Jurnal Harian',
-                subtitle: isDiaryDone
-                    ? 'Jurnal & analisis emosi telah disintesis'
-                    : 'Baca rangkuman & pola emosimu hari ini',
-                icon: Icons.menu_book_rounded,
-                isCompleted: isDiaryDone,
-                onTap: () async {
-                  if (widget.onNavigateTab != null) {
-                    widget.onNavigateTab!(1);
-                  } else {
-                    await Navigator.pushNamed(context, '/diary');
-                    refresh();
-                  }
-                },
-              ),
-              const SizedBox(height: 8),
-
-              // Routine 3: Latihan Koping Terpandu
-              _buildProgressCheckItem(
-                title: 'Latihan Relaksasi & Koping',
-                subtitle: isExerciseDone
-                    ? '1 latihan koping mandiri telah diselesaikan'
-                    : 'Coba 1 teknik pernapasan atau mindfulness',
-                icon: Icons.spa_rounded,
-                isCompleted: isExerciseDone,
-                onTap: () async {
-                  await Navigator.pushNamed(context, '/recommendation');
-                  refresh();
-                },
-              ),
-            ],
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildSegmentBar({required bool isActive}) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      height: 6,
-      decoration: BoxDecoration(
-        color: isActive ? const Color(0xFF10B981) : const Color(0xFFE2E8F0),
-        borderRadius: BorderRadius.circular(999),
-        boxShadow: isActive
-            ? [
-                BoxShadow(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.35),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : null,
-      ),
-    );
-  }
-
-  Widget _buildProgressCheckItem({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required bool isCompleted,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: isCompleted
-                ? const Color(0xFFF0FDF4)
-                : Colors.white.withValues(alpha: 0.85),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isCompleted
-                  ? const Color(0xFF86EFAC).withValues(alpha: 0.6)
-                  : const Color(0xFFE2E8F0),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              // Icon Container
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isCompleted
-                      ? const Color(0xFF10B981)
-                      : AppColors.primaryContainer,
-                  boxShadow: isCompleted
-                      ? [
-                          BoxShadow(
-                            color: const Color(0xFF10B981).withValues(alpha: 0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Icon(
-                  isCompleted ? Icons.check_rounded : icon,
-                  size: isCompleted ? 18 : 17,
-                  color: isCompleted ? Colors.white : AppColors.primary,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w400,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Action Pill / Status
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: isCompleted
-                      ? const Color(0xFFD1FAE5)
-                      : AppColors.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      isCompleted ? 'Selesai' : 'Mulai',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: isCompleted
-                            ? const Color(0xFF047857)
-                            : AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 3),
-                    Icon(
-                      isCompleted
-                          ? Icons.check_rounded
-                          : Icons.arrow_forward_rounded,
-                      size: 12,
-                      color: isCompleted
-                          ? const Color(0xFF047857)
-                          : AppColors.primary,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // --------------------------------------------------------------------------
-  // 4. Tailored Daily Recommendation Container
-  // --------------------------------------------------------------------------
-  Widget _buildCrisisBanner() {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFECACA), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.red.withValues(alpha: 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(7),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFEE2E2),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.favorite,
-                  color: Color(0xFFDC2626),
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Kamu Berharga & Tidak Sendirian',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF991B1B),
-                      ),
-                    ),
-                    Text(
-                      'Prioritas Utama: Keselamatan & Bantuan Nyata',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        color: const Color(0xFFB91C1C),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _crisisGuidance,
-            style: GoogleFonts.inter(
-              fontSize: 11.5,
-              height: 1.4,
-              color: const Color(0xFF7F1D1D),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Hotline: $_crisisHotline',
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF991B1B),
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pushNamed(context, '/support');
-              },
-              icon: const Icon(Icons.support_agent, size: 16, color: Colors.white),
-              label: Text(
-                'Pusat Bantuan & Hotline Darurat',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFDC2626),
-                padding: const EdgeInsets.symmetric(vertical: 9),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
 
   Widget _buildLatestRecommendationSection() {
-    Map<String, dynamic> activeRec = (_todayActivity != null &&
-            _todayActivity!['isCompleted'] != true)
+    final Map<String, dynamic> activeRec = (_todayActivity != null &&
+            _todayActivity!["isCompleted"] != true)
         ? _todayActivity!
         : (_recommendations.isNotEmpty
             ? _recommendations.firstWhere(
-                (r) => r['isCompleted'] != true,
+                (r) => r["isCompleted"] != true,
                 orElse: () => _todayActivity ?? _recommendations.first,
               )
             : _defaultRecommendations.first);
 
-    final id = activeRec['id']?.toString() ?? '1';
-    final isDone = activeRec['isCompleted'] == true ||
+    final id = activeRec["id"]?.toString() ?? "1";
+    final isDone = activeRec["isCompleted"] == true ||
         _localProgress.isActivityCompleted(id);
-    final rawCategory = activeRec['category']?.toString() ?? 'Self-Care';
-    final category = _normalizeCategory(rawCategory);
-    final duration = activeRec['duration']?.toString() ?? '5 menit';
-    final title = activeRec['title']?.toString() ?? 'Latihan Relaksasi';
-    final description = activeRec['description']?.toString() ?? '';
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Aktivitas Pilihan Hari Ini',
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            GestureDetector(
-              onTap: () async {
-                await Navigator.pushNamed(context, '/recommendation');
-                _loadHomeScreenData();
-              },
-              child: Row(
-                children: [
-                  Text(
-                    'Lihat Semua',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 2),
-                  const Icon(
-                    Icons.arrow_forward_ios,
-                    size: 10,
-                    color: AppColors.primary,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 3),
-        Text(
-          _conditionLabel.isNotEmpty
-              ? _conditionLabel
-              : 'Disesuaikan dengan kondisi emosionalmu hari ini',
-          style: GoogleFonts.inter(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // Crisis Alert Banner (if applicable)
-        if (_isCrisis) _buildCrisisBanner(),
-
-        // Clean, Sleek Recommendation Card
-        Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: const LinearGradient(
-              colors: [
-                Color(0xFF4F46E5),
-                Color(0xFF6366F1),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF4F46E5).withValues(alpha: 0.22),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(18.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top Tag Row: Category • Duration + Severity Pill
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '$category  •  $duration'.toUpperCase(),
-                        style: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                    if (_severityLevel != 'Normal')
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _getSeverityColor(_severityLevel)
-                              .withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: _getSeverityColor(_severityLevel)
-                                .withValues(alpha: 0.5),
-                          ),
-                        ),
-                        child: Text(
-                          'Level: $_severityLevel',
-                          style: GoogleFonts.inter(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // Title
-                Text(
-                  title,
-                  style: GoogleFonts.inter(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 6),
-
-                // Description (clean, concise)
-                Text(
-                  description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    fontSize: 12.5,
-                    height: 1.45,
-                    color: Colors.white.withValues(alpha: 0.85),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Bottom Action Buttons: Mulai Latihan (CTA) + Tandai Selesai
-                Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () =>
-                            _showActivityDetailModal(context, activeRec),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 11),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.06),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.play_circle_filled,
-                                size: 18,
-                                color: Color(0xFF4F46E5),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                isDone ? 'Buka Panduan' : 'Mulai Latihan',
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF4F46E5),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    GestureDetector(
-                      onTap: () {
-                        if (isDone) {
-                          AppSnackBar.showPrimary(
-                            context,
-                            'Kamu sudah menyelesaikan latihan ini hari ini! Kerja bagus, istirahatlah sejenak dan lanjutkan kembali besok 🌿',
-                            icon: Icons.info_outline,
-                          );
-                          return;
-                        }
-                        _toggleRecommendationComplete(id);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: isDone
-                              ? const Color(0xFF10B981)
-                              : Colors.white.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isDone
-                                ? const Color(0xFF10B981)
-                                : Colors.white.withValues(alpha: 0.35),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isDone
-                                  ? Icons.check_circle
-                                  : Icons.check_circle_outline,
-                              size: 16,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              isDone ? 'Selesai' : 'Tandai',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+    return HomeRecommendationsSection(
+      activeRec: activeRec,
+      conditionLabel: _conditionLabel,
+      severityLevel: _severityLevel,
+      isCrisis: _isCrisis,
+      crisisGuidance: _crisisGuidance,
+      crisisHotline: _crisisHotline,
+      isDone: isDone,
+      onSeeAll: () async {
+        await Navigator.pushNamed(context, "/recommendation");
+        _loadHomeScreenData();
+      },
+      onSupportTap: () {
+        Navigator.pushNamed(context, "/support");
+      },
+      onOpenDetail: () => _showActivityDetailModal(context, activeRec),
+      onToggleComplete: (toggleId) => _toggleRecommendationComplete(toggleId),
     );
   }
 

@@ -54,7 +54,7 @@ class _InteractiveSpotlightOverlayState extends State<InteractiveSpotlightOverla
     _haloController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2400),
-    )..repeat(reverse: true);
+    );
 
     _scheduleMeasurement();
 
@@ -66,6 +66,7 @@ class _InteractiveSpotlightOverlayState extends State<InteractiveSpotlightOverla
           _fadeController.value = 1.0;
         } else {
           _fadeController.forward();
+          _haloController.repeat(reverse: true);
         }
       }
     });
@@ -75,8 +76,9 @@ class _InteractiveSpotlightOverlayState extends State<InteractiveSpotlightOverla
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _updateTargetMeasurement();
-      // Retry in subsequent frame if target is still mounting or laying out
-      if (_measuredTargetRect == null && widget.targetKey != null) {
+      // Retry in subsequent frame if target is still mounting or laying out or measured invalid
+      if ((_measuredTargetRect == null || _measuredTargetRect!.top < 0) &&
+          widget.targetKey != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) _updateTargetMeasurement();
         });
@@ -121,7 +123,8 @@ class _InteractiveSpotlightOverlayState extends State<InteractiveSpotlightOverla
       }
 
       final rect = offset & renderBox.size;
-      if (_measuredTargetRect != rect) {
+
+      if (rect.top >= 0 && _measuredTargetRect != rect) {
         setState(() {
           _measuredTargetRect = rect;
         });
@@ -138,6 +141,13 @@ class _InteractiveSpotlightOverlayState extends State<InteractiveSpotlightOverla
 
   @override
   Widget build(BuildContext context) {
+    if ((_measuredTargetRect == null || _measuredTargetRect!.top < 0) &&
+        widget.targetKey != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _updateTargetMeasurement();
+      });
+    }
+
     final mediaQuery = MediaQuery.of(context);
     final screenSize = mediaQuery.size;
 
@@ -167,7 +177,7 @@ class _InteractiveSpotlightOverlayState extends State<InteractiveSpotlightOverla
               // 1. Fullscreen Dimmed Backdrop (Absorbs taps outside target hole)
               Positioned.fill(
                 child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
+                  behavior: HitTestBehavior.deferToChild,
                   onTap: () {
                     // Absorbs taps on dimmed area so background buttons cannot be accidentally clicked
                   },
@@ -183,18 +193,13 @@ class _InteractiveSpotlightOverlayState extends State<InteractiveSpotlightOverla
                 ),
               ),
 
-              // 2. Direct Tap Target for the Highlighted Control (Guarantees responsive tapping)
-              if (effectiveTargetRect != null)
+              // 2. Direct Tap Target for the Highlighted Control (Optional explicit handler)
+              if (widget.onTargetTap != null && effectiveTargetRect != null)
                 Positioned.fromRect(
-                  rect: effectiveTargetRect.inflate(widget.cutoutPadding + 8.0),
+                  rect: effectiveTargetRect.inflate(widget.cutoutPadding),
                   child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      widget.onTargetTap?.call();
-                    },
-                    child: Container(
-                      color: Colors.transparent,
-                    ),
+                    behavior: HitTestBehavior.translucent,
+                    onTap: widget.onTargetTap,
                   ),
                 ),
 
@@ -337,6 +342,22 @@ class _SpotlightCutoutPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     canvas.drawPath(holePath, borderPaint);
+  }
+
+  @override
+  bool? hitTest(Offset position) {
+    if (targetRect == null) return true;
+    final holeRect = shape == SpotlightShape.circle
+        ? Rect.fromCircle(
+            center: targetRect!.center,
+            radius: (math.max(targetRect!.width, targetRect!.height) / 2) + padding,
+          )
+        : targetRect!.inflate(padding);
+
+    if (holeRect.contains(position)) {
+      return false;
+    }
+    return true;
   }
 
   @override

@@ -36,9 +36,8 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Navigator(
-            onPopPage: (route, result) {
+            onDidRemovePage: (page) {
               didPop = true;
-              return route.didPop(result);
             },
             pages: const [
               MaterialPage(child: Scaffold(body: Text('Page 1'))),

@@ -34,5 +34,9 @@ class PsychologistEntity {
     required this.bio,
   });
 
-  bool get isPsychiatrist => title.toLowerCase().contains('sp.kj');
+  bool get isPsychiatrist =>
+      title.toLowerCase().contains('sp.kj') ||
+      title.toLowerCase().contains('kedokteran jiwa') ||
+      title.toLowerCase().contains('psikiater') ||
+      name.toLowerCase().contains('sp.kj');
 }

@@ -75,7 +75,8 @@ void main() {
       );
 
       await tester.tap(find.text('Go Home Tab 1'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.byType(MainShellScreen), findsOneWidget);
       expect(find.byType(FloatingNavBar), findsOneWidget);

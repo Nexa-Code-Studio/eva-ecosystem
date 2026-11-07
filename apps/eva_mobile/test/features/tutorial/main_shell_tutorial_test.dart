@@ -44,7 +44,7 @@ void main() {
       expect(find.text('REKOMENDASI LUNA'), findsOneWidget);
 
       // 2. Tap the central action button (Icons.auto_awesome) directly through the spotlight cutout
-      await tester.tap(find.byIcon(Icons.auto_awesome));
+      await tester.tap(find.byIcon(Icons.auto_awesome).last);
       await tester.pumpAndSettle();
 
       // 3. Navigation was triggered

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:eva_mobile/config/app_config.dart';
 import 'package:eva_mobile/features/care/presentation/screens/care_screen.dart';
 import 'package:eva_mobile/features/care/presentation/widgets/community_banner_card.dart';
 import 'package:eva_mobile/features/care/presentation/widgets/community_paywall_sheet.dart';
@@ -10,6 +11,7 @@ import 'package:eva_mobile/features/care/presentation/widgets/clinic_card.dart';
 
 void main() {
   setUp(() {
+    AppConfig.useMockData = true;
     SharedPreferences.setMockInitialValues({
       'user_name': 'Alexander Agung',
       'user_email': 'alex@example.com',
@@ -51,7 +53,13 @@ void main() {
 
     // Verify Psychologist Card rendered from mock data
     expect(find.byType(PsychologistCard), findsWidgets);
-    expect(find.text('Amanda Zahra, M.Psi., Psikolog'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(PsychologistCard),
+        matching: find.text('Amanda Zahra, M.Psi., Psikolog'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('SIPP Terdaftar'), findsWidgets);
   });
 

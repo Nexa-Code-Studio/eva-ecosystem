@@ -214,7 +214,7 @@ class MockCareDataSource implements CareDataSource {
       vipRemainingDays: 30,
       joinedAt: DateTime.now(),
       memberCount: _communityStatus.memberCount + 1,
-    ) as CommunityStatusModel;
+    );
     return _communityStatus;
   }
 
