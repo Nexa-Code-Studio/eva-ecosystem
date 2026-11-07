@@ -6,3 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// 2: Keuangan (Finances & Payouts)
 /// 3: Profil (Profile & Practice Settings)
 final counselorBottomNavIndexProvider = StateProvider<int>((ref) => 0);
+
+/// Trigger to launch or restart the spotlight coachmark tour on demand.
+final triggerCounselorSpotlightTourProvider = StateProvider<int>((ref) => 0);

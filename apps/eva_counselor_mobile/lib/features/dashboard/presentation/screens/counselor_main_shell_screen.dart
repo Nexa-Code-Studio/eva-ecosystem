@@ -11,7 +11,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../finances/presentation/screens/transaction_history_screen.dart';
 import '../../../patients/presentation/screens/patient_list_screen.dart';
 import '../providers/counselor_nav_provider.dart';
-import '../widgets/counselor_tour_guide_modal.dart';
+import '../widgets/counselor_spotlight_tour.dart';
 import 'counselor_home_screen.dart';
 
 class CounselorMainShellScreen extends ConsumerStatefulWidget {
@@ -31,6 +31,10 @@ class _CounselorMainShellScreenState
     _CounselorProfileTab(),
   ];
 
+  final List<GlobalKey> _navKeys = List.generate(4, (_) => GlobalKey());
+  bool _showSpotlight = false;
+  int _spotlightStep = 0;
+
   @override
   void initState() {
     super.initState();
@@ -38,13 +42,54 @@ class _CounselorMainShellScreenState
   }
 
   Future<void> _checkFirstTimeTour() async {
-    final hasSeen = await CounselorTourGuideModal.hasSeenTour();
+    final hasSeen = await CounselorSpotlightTourOverlay.hasSeenTour();
     if (!hasSeen && mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          CounselorTourGuideModal.show(context, ref, isFirstTime: true);
+          setState(() {
+            _showSpotlight = true;
+            _spotlightStep = 0;
+          });
+          ref.read(counselorBottomNavIndexProvider.notifier).state = 0;
         }
       });
+    }
+  }
+
+  Offset _getNavCenter(int index) {
+    final key = _navKeys[index];
+    final renderBox = key.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox != null && renderBox.hasSize) {
+      final pos = renderBox.localToGlobal(Offset.zero);
+      return Offset(pos.dx + renderBox.size.width / 2, pos.dy + renderBox.size.height / 2);
+    }
+    final size = MediaQuery.of(context).size;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final itemWidth = (size.width - 40) / 4;
+    final x = 20 + (index + 0.5) * itemWidth;
+    final y = size.height - 20 - bottomPadding - 34;
+    return Offset(x, y);
+  }
+
+  void _nextSpotlightStep() {
+    if (_spotlightStep < CounselorSpotlightTourOverlay.steps.length - 1) {
+      setState(() {
+        _spotlightStep++;
+      });
+      ref.read(counselorBottomNavIndexProvider.notifier).state = _spotlightStep;
+    } else {
+      _finishSpotlight();
+    }
+  }
+
+  Future<void> _finishSpotlight() async {
+    await CounselorSpotlightTourOverlay.markTourSeen();
+    if (mounted) {
+      setState(() {
+        _showSpotlight = false;
+        _spotlightStep = 0;
+      });
+      ref.read(counselorBottomNavIndexProvider.notifier).state = 0;
     }
   }
 
@@ -52,53 +97,75 @@ class _CounselorMainShellScreenState
   Widget build(BuildContext context) {
     final currentIndex = ref.watch(counselorBottomNavIndexProvider);
 
-    return Scaffold(
-      extendBody: true,
-      body: IndexedStack(
-        index: currentIndex,
-        children: _pages,
-      ),
-      bottomNavigationBar: Container(
-        margin: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: const [
-            BoxShadow(
-              color: AppColors.glassShadow,
-              blurRadius: 24,
-              offset: Offset(0, 8),
+    ref.listen(triggerCounselorSpotlightTourProvider, (previous, next) {
+      if (next > 0 && mounted) {
+        setState(() {
+          _spotlightStep = 0;
+          _showSpotlight = true;
+        });
+        ref.read(counselorBottomNavIndexProvider.notifier).state = 0;
+      }
+    });
+
+    return Stack(
+      children: [
+        Scaffold(
+          extendBody: true,
+          body: IndexedStack(
+            index: currentIndex,
+            children: _pages,
+          ),
+          bottomNavigationBar: Container(
+            margin: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: const [
+                BoxShadow(
+                  color: AppColors.glassShadow,
+                  blurRadius: 24,
+                  offset: Offset(0, 8),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-            child: Container(
-              height: 68,
-              decoration: BoxDecoration(
-                color: AppColors.glassBackground,
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: AppColors.glassBorder, width: 1.2),
-              ),
-              child: Row(
-                children: [
-                  Expanded(child: _buildNavItem(0, currentIndex, Icons.home_rounded, Icons.home_outlined, 'Beranda')),
-                  Expanded(child: _buildNavItem(1, currentIndex, Icons.people_alt_rounded, Icons.people_alt_outlined, 'Pasien')),
-                  Expanded(child: _buildNavItem(2, currentIndex, Icons.account_balance_wallet_rounded, Icons.account_balance_wallet_outlined, 'Keuangan')),
-                  Expanded(child: _buildNavItem(3, currentIndex, Icons.person_rounded, Icons.person_outline, 'Profil')),
-                ],
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: Container(
+                  height: 68,
+                  decoration: BoxDecoration(
+                    color: AppColors.glassBackground,
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(color: AppColors.glassBorder, width: 1.2),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(child: _buildNavItem(0, currentIndex, Icons.home_rounded, Icons.home_outlined, 'Beranda')),
+                      Expanded(child: _buildNavItem(1, currentIndex, Icons.people_alt_rounded, Icons.people_alt_outlined, 'Pasien')),
+                      Expanded(child: _buildNavItem(2, currentIndex, Icons.account_balance_wallet_rounded, Icons.account_balance_wallet_outlined, 'Keuangan')),
+                      Expanded(child: _buildNavItem(3, currentIndex, Icons.person_rounded, Icons.person_outline, 'Profil')),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
         ),
-      ),
+        if (_showSpotlight)
+          CounselorSpotlightTourOverlay(
+            currentStep: _spotlightStep,
+            targetCenter: _getNavCenter(_spotlightStep),
+            onNext: _nextSpotlightStep,
+            onSkip: _finishSpotlight,
+          ),
+      ],
     );
   }
 
   Widget _buildNavItem(int index, int currentIndex, IconData activeIcon, IconData inactiveIcon, String label) {
     final isSelected = currentIndex == index;
     return GestureDetector(
+      key: _navKeys[index],
       onTap: () => ref.read(counselorBottomNavIndexProvider.notifier).state = index,
       behavior: HitTestBehavior.opaque,
       child: Column(
@@ -3369,7 +3436,7 @@ class _CounselorProfileTabState extends ConsumerState<_CounselorProfileTab> {
                   ),
                   child: const Text('Buka Tur 🧭', style: TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.bold, fontSize: 10)),
                 ),
-                onTap: () => CounselorTourGuideModal.show(context, ref),
+                onTap: () => ref.read(triggerCounselorSpotlightTourProvider.notifier).state++,
               ),
               const SizedBox(height: 24),
 

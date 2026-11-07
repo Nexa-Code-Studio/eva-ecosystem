@@ -1,85 +1,124 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:eva_counselor_mobile/features/dashboard/presentation/providers/counselor_nav_provider.dart';
-import 'package:eva_counselor_mobile/features/dashboard/presentation/widgets/counselor_tour_guide_modal.dart';
+import 'package:eva_counselor_mobile/features/dashboard/presentation/widgets/counselor_spotlight_tour.dart';
 
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  group('Counselor Tour Guide & Navigation Tests', () {
+  group('Counselor Spotlight Tour & Navigation Tests', () {
     test('hasSeenTour returns false initially and true after markTourSeen', () async {
-      expect(await CounselorTourGuideModal.hasSeenTour(), isFalse);
-      await CounselorTourGuideModal.markTourSeen();
-      expect(await CounselorTourGuideModal.hasSeenTour(), isTrue);
+      expect(await CounselorSpotlightTourOverlay.hasSeenTour(), isFalse);
+      await CounselorSpotlightTourOverlay.markTourSeen();
+      expect(await CounselorSpotlightTourOverlay.hasSeenTour(), isTrue);
     });
 
-    testWidgets('CounselorTourGuideModal steps through menus and updates nav index', (tester) async {
-      int activeIndex = 0;
+    testWidgets('Spotlight tour highlights menu with darkened blur backdrop and advances on tap', (tester) async {
+      int step = 0;
+      bool isClosed = false;
 
       await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            home: Consumer(
-              builder: (context, ref, _) {
-                activeIndex = ref.watch(counselorBottomNavIndexProvider);
-                return Scaffold(
-                  body: Center(
-                    child: ElevatedButton(
-                      onPressed: () => CounselorTourGuideModal.show(context, ref),
-                      child: const Text('Buka Tur'),
-                    ),
-                  ),
-                );
-              },
-            ),
+        MaterialApp(
+          home: StatefulBuilder(
+            builder: (context, setState) {
+              if (isClosed) {
+                return const Scaffold(body: Center(child: Text('Tour Finished')));
+              }
+              return Scaffold(
+                body: CounselorSpotlightTourOverlay(
+                  currentStep: step,
+                  targetCenter: const Offset(100, 600),
+                  onNext: () {
+                    if (step < CounselorSpotlightTourOverlay.steps.length - 1) {
+                      setState(() => step++);
+                    } else {
+                      setState(() => isClosed = true);
+                    }
+                  },
+                  onSkip: () {
+                    setState(() => isClosed = true);
+                  },
+                ),
+              );
+            },
           ),
         ),
       );
 
-      // Buka modal
-      await tester.tap(find.text('Buka Tur'));
       await tester.pumpAndSettle();
 
-      // Step 1: Beranda Praktik
-      expect(find.text('Beranda Praktik'), findsOneWidget);
-      expect(find.text('Mode Kesiapan Online Langsung'), findsOneWidget);
-      expect(activeIndex, 0);
+      // Spotlight overlay should be displayed on step 0
+      expect(find.byType(CounselorSpotlightTourOverlay), findsOneWidget);
+      expect(find.text('Beranda Praktik Konseling'), findsOneWidget);
+      expect(find.text('Menu 1 dari 4'), findsOneWidget);
 
-      // Klik Lanjut ke step 2
-      final lanjutBtn = find.textContaining('Lanjut ke');
-      expect(lanjutBtn, findsOneWidget);
-      await tester.tap(lanjutBtn);
+      // Tap "Lanjut →" to step 2 (Rekam Medis & SOAP)
+      await tester.tap(find.text('Lanjut →'));
       await tester.pumpAndSettle();
 
-      // Step 2: Rekam Medis
-      expect(find.text('Rekam Medis Pasien'), findsOneWidget);
-      expect(find.text('Consent Gating (Izin Pasien)'), findsOneWidget);
-      expect(activeIndex, 1);
+      expect(find.text('Rekam Medis & SOAP'), findsOneWidget);
+      expect(find.text('Menu 2 dari 4'), findsOneWidget);
 
-      // Klik Lanjut ke step 3
-      await tester.tap(find.textContaining('Lanjut ke'));
+      // Tap "Lanjut →" to step 3 (Keuangan & Saldo Koin)
+      await tester.tap(find.text('Lanjut →'));
       await tester.pumpAndSettle();
 
-      // Step 3: Keuangan
       expect(find.text('Keuangan & Saldo Koin'), findsOneWidget);
-      expect(activeIndex, 2);
+      expect(find.text('Menu 3 dari 4'), findsOneWidget);
 
-      // Klik Sebelumnya -> balik ke step 2
-      await tester.tap(find.text('Sebelumnya'));
+      // Tap "Lanjut →" to step 4 (Profil, Drive E2EE & Sertifikat)
+      await tester.tap(find.text('Lanjut →'));
       await tester.pumpAndSettle();
-      expect(find.text('Rekam Medis Pasien'), findsOneWidget);
-      expect(activeIndex, 1);
 
-      // Klik Lewati -> modal tertutup & prefs diset true
+      expect(find.text('Profil, Drive E2EE & Sertifikat'), findsOneWidget);
+      expect(find.text('Menu 4 dari 4'), findsOneWidget);
+      expect(find.text('Mulai Praktik 🚀'), findsOneWidget);
+
+      // Tap "Mulai Praktik 🚀"
+      await tester.tap(find.text('Mulai Praktik 🚀'));
+      await tester.pumpAndSettle();
+
+      // Spotlight overlay is dismissed
+      expect(find.byType(CounselorSpotlightTourOverlay), findsNothing);
+      expect(find.text('Tour Finished'), findsOneWidget);
+    });
+
+    testWidgets('Spotlight tour can be skipped immediately with Lewati button', (tester) async {
+      bool isClosed = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: StatefulBuilder(
+            builder: (context, setState) {
+              if (isClosed) {
+                return const Scaffold(body: Center(child: Text('Tour Skipped')));
+              }
+              return Scaffold(
+                body: CounselorSpotlightTourOverlay(
+                  currentStep: 0,
+                  targetCenter: const Offset(100, 600),
+                  onNext: () {},
+                  onSkip: () {
+                    setState(() => isClosed = true);
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(find.byType(CounselorSpotlightTourOverlay), findsOneWidget);
+
+      // Tap Lewati
       await tester.tap(find.text('Lewati'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(CounselorTourGuideModal), findsNothing);
-      expect(await CounselorTourGuideModal.hasSeenTour(), isTrue);
+      expect(find.byType(CounselorSpotlightTourOverlay), findsNothing);
+      expect(find.text('Tour Skipped'), findsOneWidget);
     });
   });
 }
