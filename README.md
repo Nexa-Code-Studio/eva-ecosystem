@@ -11,6 +11,11 @@ Production-oriented monorepo architecture for the **Eva AI** voice assistant and
 ├── apps/
 │   ├── eva_mobile/             # Flutter mobile application (UI, Clean Architecture, Riverpod)
 │   │
+│   ├── web/                    # React web application (Landing page, partner & admin portal)
+│   │   ├── src/                # Pages, UI components, portal services, and demo features
+│   │   ├── package.json
+│   │   └── vite.config.ts
+│   │
 │   └── backend/
 │       ├── api/                # FastAPI application server (REST, WebSocket, Auth, Sessions)
 │       │   ├── app/
@@ -90,6 +95,7 @@ Production-oriented monorepo architecture for the **Eva AI** voice assistant and
 | **Redis** | Redis 7 | High-performance cache, pub/sub channel for audio streaming, and ARQ task queue storage. |
 | **Qdrant** | Qdrant | Vector database for storing and querying long-term semantic memory embeddings. |
 | **Flutter Mobile** | Flutter / Riverpod | Mobile application with Clean Architecture and mock/remote data source toggle. |
+| **Web App & Portal** | React 19 / Vite / Tailwind CSS | Landing page interaktif, portal pendaftaran mitra faskes, serta dashboard verifikasi psikolog & admin. |
 
 ---
 
@@ -99,6 +105,7 @@ Production-oriented monorepo architecture for the **Eva AI** voice assistant and
 - **Git**
 - **Docker & Docker Compose** (for Docker setup)
 - **Python 3.11+** (for local development)
+- **Node.js 18+ & npm** (for running `apps/web`)
 - **Flutter SDK** (for running `eva_mobile`)
 
 ---
@@ -275,6 +282,30 @@ Tambahkan konfigurasi berikut ke `.vscode/launch.json` di root workspace agar da
 
 ---
 
+### 🌐 Metode D: Running Web App (React & Vite)
+
+Aplikasi web (`apps/web`) mencakup landing page publik dan portal manajemen mitra/psikolog:
+
+1. **Instalasi Dependensi:**
+   ```bash
+   cd apps/web
+   npm install
+   ```
+
+2. **Jalankan Development Server:**
+   ```bash
+   npm run dev
+   ```
+   Aplikasi berjalan di `http://localhost:5174`.
+
+3. **Mode Demo vs Produksi:**
+   - Atur saklar melalui variabel `VITE_ENABLE_DEMO` pada `apps/web/.env`.
+   - `VITE_ENABLE_DEMO=true`: memuat data mock psikolog, mitra, dan riwayat metrik untuk keperluan pengujian.
+   - `VITE_ENABLE_DEMO=false`: menonaktifkan data mock dan beralih ke database kosong.
+   - Dokumentasi lengkap tersedia di [apps/web/README.md](file:///home/oktavian/Project/React/eva-ecosystem/apps/web/README.md).
+
+---
+
 ### 🔑 Akun Demo (Demo Accounts & Mock Mode)
 
 Untuk keperluan pengujian dan demonstrasi aplikasi:
@@ -294,9 +325,14 @@ Jika ingin menguji antarmuka aplikasi `eva_mobile` secara langsung tanpa menghub
 * Buka `apps/eva_mobile/lib/core/config/app_config.dart`.
 * Set variabel `static const bool useMockData = true;`.
 
+#### **3. Mode Demo Web Portal (apps/web):**
+Jika ingin menguji antarmuka portal admin dan mitra tanpa koneksi API backend:
+* Buka `apps/web/.env`.
+* Set variabel `VITE_ENABLE_DEMO=true;`.
+
 ---
 
-### 🧪 Metode D: Running Tests & Spesifikasi Lingkungan Pengujian
+### 🧪 Metode E: Running Tests & Spesifikasi Lingkungan Pengujian
 
 #### **1. 🖥️ Spesifikasi Lingkungan Pengujian (Test Environment Specs):**
 | Komponen | Spesifikasi Direkomendasikan | Catatan Pengujian |
@@ -320,6 +356,9 @@ pytest apps/backend/workers/tests
 
 # Test AI Packages
 pytest packages/ai/tests
+
+# Test Web App
+cd apps/web && npm run lint
 ```
 
 #### **3. Menjalankan POC Speech Emotion Recognition (emotion2vec_plus_large):**
@@ -335,6 +374,7 @@ python3 tests/test_emotion/test_emotion.py
 ```mermaid
 graph TD
     Client["📱 Eva Mobile (Flutter)"] -->|REST / WebSocket :8888| API["⚡ FastAPI Backend"]
+    Web["🌐 Web App & Portal (React)"] -->|Unduh APK & Info| Client
     LLM["🤖 LLM Agent / Client"] -->|MCP Protocol :8889| MCP["🛠️ FastMCP Server"]
     
     API -->|Read/Write| DB[(🐘 PostgreSQL :5433)]

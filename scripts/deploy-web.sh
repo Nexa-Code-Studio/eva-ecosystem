@@ -1,27 +1,33 @@
 #!/usr/bin/env bash
 set -e
 
-ARCHIVE_PATH="${1:-/opt/eva-ecosystem/apps/eva_mobile/web.tar.gz}"
+ARCHIVE_PATH="${1:-/opt/eva-ecosystem/apps/web/dist.tar.gz}"
 WEB_ROOT="/var/www/eva-web"
+DOMAIN="eva.nexacode.dev"
 
 if [ ! -f "$ARCHIVE_PATH" ]; then
     echo "Error: Archive file not found at $ARCHIVE_PATH"
     exit 1
 fi
 
-echo "Deploying Flutter Web from $ARCHIVE_PATH to $WEB_ROOT..."
+echo "Deploying Eva Web from $ARCHIVE_PATH to $WEB_ROOT..."
 mkdir -p "$WEB_ROOT"
 rm -rf "${WEB_ROOT:?}"/*
 
-# Check if archive contains a top-level directory (web/ or build/web/)
-if tar -ztf "$ARCHIVE_PATH" | grep -qE "^(web|build/web)/"; then
+# Check if archive contains a top-level directory (dist/ or web/)
+if tar -ztf "$ARCHIVE_PATH" | grep -qE "^(dist|web)/"; then
     tar -zxf "$ARCHIVE_PATH" --strip-components=1 -C "$WEB_ROOT"
 else
     tar -zxf "$ARCHIVE_PATH" -C "$WEB_ROOT"
 fi
 
-chown -R www-data:www-data "$WEB_ROOT"
-chmod -R 755 "$WEB_ROOT"
-systemctl reload nginx
+if command -v chown >/dev/null 2>&1 && [ "$(id -u)" -eq 0 ]; then
+    chown -R www-data:www-data "$WEB_ROOT"
+    chmod -R 755 "$WEB_ROOT"
+fi
 
-echo "Deployment successful! Check https://eva.nexacode.dev"
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl reload nginx || true
+fi
+
+echo "Deployment successful! Check https://$DOMAIN"

@@ -14,6 +14,7 @@ eggs/
 lib/
 !apps/eva_mobile/lib/
 !apps/eva_counselor_mobile/lib/
+!apps/web/src/lib/
 lib64/
 parts/
 sdist/
@@ -54,6 +55,13 @@ apps/eva_mobile/.idea/
 apps/eva_mobile/.pub-cache/
 apps/eva_mobile/.pub/
 apps/eva_mobile/build/
+# Web Frontend (apps/web)
+apps/web/node_modules/
+apps/web/dist/
+apps/web/dist-ssr/
+apps/web/*.local
+
+# Counselor Mobile (apps/eva_counselor_mobile)
 apps/eva_counselor_mobile/.dart_tool/
 apps/eva_counselor_mobile/.fvm/
 apps/eva_counselor_mobile/.idea/
