@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/config/app_config.dart';
+import 'package:eva_mobile/config/app_config.dart';
 import '../../domain/repositories/voice_call_repository.dart';
 import '../../domain/entities/voice_session_entity.dart';
 import '../../data/datasources/mock_voice_call_datasource.dart';

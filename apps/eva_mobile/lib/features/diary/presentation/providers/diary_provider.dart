@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/config/app_config.dart';
+import 'package:eva_mobile/config/app_config.dart';
 import '../../domain/repositories/diary_repository.dart';
 import '../../domain/entities/diary_entry_entity.dart';
 import '../../data/datasources/mock_diary_datasource.dart';

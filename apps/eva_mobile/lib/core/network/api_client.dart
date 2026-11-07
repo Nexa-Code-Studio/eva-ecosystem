@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../config/app_config.dart';
+import 'package:eva_mobile/config/app_config.dart';
 
 /// Custom Exception for API Errors
 class ApiException implements Exception {

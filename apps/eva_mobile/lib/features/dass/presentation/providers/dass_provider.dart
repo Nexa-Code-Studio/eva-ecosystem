@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/config/app_config.dart';
+import 'package:eva_mobile/config/app_config.dart';
 import '../../data/datasources/dass_datasource.dart';
 import '../../data/repositories/dass_repository_impl.dart';
 import '../../data/repositories/fallback_dass_repository.dart';

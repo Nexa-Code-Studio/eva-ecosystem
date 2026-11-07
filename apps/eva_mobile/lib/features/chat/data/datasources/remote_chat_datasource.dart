@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'chat_datasource.dart';
 import '../models/conversation_model.dart';
 import '../models/chat_message_model.dart';
-import '../../../../core/config/app_config.dart';
+import 'package:eva_mobile/config/app_config.dart';
 import '../../../../core/network/api_client.dart';
 
 class RemoteChatDataSource implements ChatDataSource {

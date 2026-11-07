@@ -300,5 +300,3 @@ class _EvaOrbFluidPainter extends CustomPainter {
   }
 }
 
-/// Backwards-compatible alias for legacy screens.
-typedef LunaLoadingOrb = EvaLoadingOrb;

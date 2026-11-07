@@ -38,10 +38,10 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      // 1. Overlay is visible with Luna tutorial card
+      // 1. Overlay is visible with Eva tutorial card
       expect(find.byType(InteractiveSpotlightOverlay), findsOneWidget);
-      expect(find.text('Cerita ke Luna, yuk!'), findsOneWidget);
-      expect(find.text('REKOMENDASI LUNA'), findsOneWidget);
+      expect(find.text('Cerita ke Eva, yuk!'), findsOneWidget);
+      expect(find.text('REKOMENDASI EVA'), findsOneWidget);
 
       // 2. Tap the central action button (Icons.auto_awesome) directly through the spotlight cutout
       await tester.tap(find.byIcon(Icons.auto_awesome).last);

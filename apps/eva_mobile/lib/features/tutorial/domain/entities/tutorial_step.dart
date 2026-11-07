@@ -29,7 +29,7 @@ class TutorialContent {
     required this.title,
     required this.description,
     this.actionHint,
-    this.badgeText = 'LUNA AI',
+    this.badgeText = 'EVA AI',
     this.shape = SpotlightShape.circle,
     this.pointerDirection = PointerDirection.down,
     this.isInteractiveTarget = true,
@@ -37,11 +37,11 @@ class TutorialContent {
 
   static const Map<TutorialStep, TutorialContent> stepContents = {
     TutorialStep.voiceSession: TutorialContent(
-      title: 'Cerita ke Luna, yuk!',
+      title: 'Cerita ke Eva, yuk!',
       description:
           'Tekan tombol tengah untuk mulai berbicara. Kamu bisa mulai saat sudah siap.',
       actionHint: 'Ketuk tombol di bawah untuk mencoba',
-      badgeText: 'REKOMENDASI LUNA',
+      badgeText: 'REKOMENDASI EVA',
       shape: SpotlightShape.circle,
       pointerDirection: PointerDirection.down,
       isInteractiveTarget: true,

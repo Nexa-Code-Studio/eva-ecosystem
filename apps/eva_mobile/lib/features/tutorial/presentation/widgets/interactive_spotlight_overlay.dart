@@ -4,7 +4,7 @@ import '../../../../theme/app_colors.dart';
 import '../../domain/entities/tutorial_step.dart';
 import 'branded_guidance_card.dart';
 
-/// An interactive, branded spotlight overlay for Luna/Eva AI.
+/// An interactive, branded spotlight overlay for Eva AI.
 /// Renders a dimmed, calming backdrop with an exact cutout around the target widget,
 /// soft ambient halo ring, and a dynamically positioned [BrandedGuidanceCard].
 ///

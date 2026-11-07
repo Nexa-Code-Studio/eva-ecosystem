@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'package:eva_mobile/data/repositories/voice_call_repository.dart';
+import 'package:eva_mobile/features/chat/presentation/providers/chat_provider.dart';
 import 'package:eva_mobile/features/diary/presentation/providers/diary_provider.dart';
 import 'package:eva_mobile/theme/app_colors.dart';
 import 'package:eva_mobile/widgets/app_back_button.dart';
@@ -24,7 +24,6 @@ class VoiceSessionDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _VoiceSessionDetailScreenState extends ConsumerState<VoiceSessionDetailScreen> {
-  final VoiceCallRepository _voiceCallRepo = VoiceCallRepository();
   Map<String, dynamic>? _sessionData;
   Timer? _pollingTimer;
   int _pollCount = 0;
@@ -83,12 +82,29 @@ class _VoiceSessionDetailScreenState extends ConsumerState<VoiceSessionDetailScr
   Future<void> _pollUpdatedSessionData() async {
     final sessionId = _sessionData?['id']?.toString();
     if (sessionId != null && sessionId.isNotEmpty) {
-      final updated = await _voiceCallRepo.fetchConversationById(sessionId);
+      final chatRepo = ref.read(chatRepositoryProvider);
+      final updated = await chatRepo.getConversationById(sessionId);
       if (updated != null && mounted) {
-        final newTitle = updated['title']?.toString() ?? '';
+        final newTitle = updated.title;
         setState(() {
           _sessionData?['title'] = newTitle;
-          _sessionData?['is_title_generating'] = updated['is_title_generating'];
+          if (updated.summary.isNotEmpty) {
+            _sessionData?['summary'] = updated.summary;
+          }
+          if (updated.messages.isNotEmpty) {
+            final raw = _sessionData?['transcript'];
+            if (raw == null || (raw is List && raw.isEmpty)) {
+              _sessionData?['transcript'] = updated.messages
+                  .map((m) => {
+                        'role': m.isUser ? 'user' : 'assistant',
+                        'content': m.text,
+                        'time': m.time,
+                        'emotionTag': m.emotionTag,
+                        'emotionEmoji': m.emotionEmoji,
+                      })
+                  .toList();
+            }
+          }
         });
 
         if (!_isTitleLoading(newTitle)) {
@@ -97,22 +113,21 @@ class _VoiceSessionDetailScreenState extends ConsumerState<VoiceSessionDetailScr
         }
         return;
       }
-    }
 
-    final res = await _voiceCallRepo.fetchTodayVoiceSessions(page: 1, limit: 10);
-    final items = (res['items'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-    if (items.isNotEmpty && mounted) {
-      final match = items.firstWhere(
-        (it) => it['id']?.toString() == sessionId,
-        orElse: () => items.first,
-      );
-      final newTitle = match['title']?.toString() ?? '';
-      setState(() {
-        _sessionData = Map<String, dynamic>.from(match);
-      });
-      if (!_isTitleLoading(newTitle)) {
-        _pollingTimer?.cancel();
-        _pollingTimer = null;
+      final conversations = await chatRepo.getConversations();
+      final match = conversations.where((it) => it.id == sessionId).firstOrNull;
+      if (match != null && mounted) {
+        final newTitle = match.title;
+        setState(() {
+          _sessionData?['title'] = newTitle;
+          if (match.summary.isNotEmpty) {
+            _sessionData?['summary'] = match.summary;
+          }
+        });
+        if (!_isTitleLoading(newTitle)) {
+          _pollingTimer?.cancel();
+          _pollingTimer = null;
+        }
       }
     }
   }

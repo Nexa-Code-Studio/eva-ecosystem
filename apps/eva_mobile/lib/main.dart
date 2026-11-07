@@ -36,6 +36,3 @@ class EvaApp extends StatelessWidget {
     );
   }
 }
-
-/// Backwards-compatible alias for existing tests
-typedef LunaApp = EvaApp;

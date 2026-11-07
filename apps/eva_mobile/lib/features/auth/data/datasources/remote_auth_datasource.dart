@@ -2,7 +2,7 @@ import 'auth_datasource.dart';
 import '../models/user_model.dart';
 import '../models/emergency_contact_model.dart';
 import '../../../../core/network/api_client.dart';
-import '../../../../core/config/app_config.dart';
+import 'package:eva_mobile/config/app_config.dart';
 import '../../../../core/storage/token_storage.dart';
 
 class RemoteAuthDataSource implements AuthDataSource {

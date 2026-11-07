@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/config/app_config.dart';
+import 'package:eva_mobile/config/app_config.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/entities/emergency_contact_entity.dart';

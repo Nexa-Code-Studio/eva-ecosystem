@@ -66,7 +66,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
 
       // Check card content rendered
-      expect(find.text('Cerita ke Luna, yuk!'), findsOneWidget);
+      expect(find.text('Cerita ke Eva, yuk!'), findsOneWidget);
 
       // Attempt tapping the background button outside the cutout
       await tester.tap(find.text('Background Button'));

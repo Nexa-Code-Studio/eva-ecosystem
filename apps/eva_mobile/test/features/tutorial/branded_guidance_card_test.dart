@@ -13,11 +13,11 @@ void main() {
           home: Scaffold(
             body: Center(
               child: BrandedGuidanceCard(
-                title: 'Cerita ke Luna, yuk!',
+                title: 'Cerita ke Eva, yuk!',
                 description:
                     'Tekan tombol tengah untuk mulai berbicara. Kamu bisa mulai saat sudah siap.',
                 actionHint: 'Ketuk tombol di bawah untuk mencoba',
-                badgeText: 'LUNA AI',
+                badgeText: 'EVA AI',
                 onSkip: () => skipped = true,
               ),
             ),
@@ -26,13 +26,13 @@ void main() {
       );
 
       // Verify title & description
-      expect(find.text('Cerita ke Luna, yuk!'), findsOneWidget);
+      expect(find.text('Cerita ke Eva, yuk!'), findsOneWidget);
       expect(
         find.text(
             'Tekan tombol tengah untuk mulai berbicara. Kamu bisa mulai saat sudah siap.'),
         findsOneWidget,
       );
-      expect(find.text('LUNA AI'), findsOneWidget);
+      expect(find.text('EVA AI'), findsOneWidget);
       expect(find.text('Ketuk tombol di bawah untuk mencoba'), findsOneWidget);
       expect(find.text('Lewati'), findsOneWidget);
 

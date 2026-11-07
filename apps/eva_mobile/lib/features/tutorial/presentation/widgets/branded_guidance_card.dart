@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../theme/app_colors.dart';
 import '../../domain/entities/tutorial_step.dart';
 
-/// A branded, calming guidance card styled specifically for Luna/Eva AI.
+/// A branded, calming guidance card styled specifically for Eva AI.
 /// Combines typography hierarchy, subtle brand identity accents, and an optional
 /// subtle downward/upward pointer connected seamlessly to the card.
 class BrandedGuidanceCard extends StatelessWidget {
@@ -22,7 +22,7 @@ class BrandedGuidanceCard extends StatelessWidget {
     required this.title,
     required this.description,
     this.actionHint,
-    this.badgeText = 'LUNA AI',
+    this.badgeText = 'EVA AI',
     this.pointerDirection = PointerDirection.down,
     this.pointerHorizontalOffset = 0.0,
     this.isInteractiveTarget = true,
@@ -85,7 +85,7 @@ class BrandedGuidanceCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Image.asset(
-                          'assets/images/luna_logo_square.png',
+                          'assets/images/eva_logo_square.png',
                           width: 14,
                           height: 14,
                           errorBuilder: (context, error, stackTrace) => const Icon(
