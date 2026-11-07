@@ -1,0 +1,19 @@
+{
+  "session-preflight": {
+    "enabled": true,
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "python3 scripts/agentic/hook-preflight.py --event SessionStart",
+        "timeout": 15
+      }
+    ],
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "python3 scripts/agentic/hook-preflight.py --event PreInvocation",
+        "timeout": 10
+      }
+    ]
+  }
+}

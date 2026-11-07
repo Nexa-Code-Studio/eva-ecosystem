@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-ARCHIVE_PATH="${1:-/opt/eva_ai/apps/web/dist.tar.gz}"
+ARCHIVE_PATH="${1:-/opt/eva-ecosystem/apps/web/dist.tar.gz}"
 WEB_ROOT="/var/www/eva-web"
 DOMAIN="eva.nexacode.dev"
 

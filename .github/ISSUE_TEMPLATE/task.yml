@@ -1,0 +1,59 @@
+name: "Task Issue"
+description: "Create a structured development task for Supervised Autonomous Development Coordination"
+title: "[Task]: "
+labels: ["task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please fill out this form completely. All tasks require explicit scope, acceptance criteria, and definition of done.
+
+  - type: textarea
+    id: goal_and_scope
+    attributes:
+      label: "Goal & Scope"
+      description: "What problem does this task solve and what are the boundaries?"
+      placeholder: "Describe the objective and boundary of this task..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: "Acceptance Criteria"
+      description: "Verifiable conditions required for this task to be considered complete."
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical_notes
+    attributes:
+      label: "Technical Notes & Architecture"
+      description: "Relevant layers, classes, API contracts, or constraints."
+      placeholder: "Follow Clean Architecture in apps/eva_mobile or FastAPI patterns in apps/backend..."
+    validations:
+      required: false
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: "Dependencies & Blockers"
+      description: "Any prerequisite issues or external services needed."
+      placeholder: "None or depends on #..."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: definition_of_done
+    attributes:
+      label: "Definition of Done"
+      options:
+        - label: "Unit / integration tests implemented and passing"
+          required: true
+        - label: "Branch conforms to `{type}/{issue}-{slug}` convention"
+          required: true
+        - label: "Pull request includes test evidence and passes review"
+          required: true

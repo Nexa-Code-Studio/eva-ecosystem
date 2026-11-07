@@ -143,7 +143,7 @@ docker compose up --build
 | **Redis** | `6380` | `6379` | `localhost:6380` |
 | **Qdrant Vector DB** | `6333` | `6333` | `http://localhost:6333` |
 
-> ℹ️ *Detail panduan Docker dapat dibaca di [scripts/DOCKER_SETUP.md](file:///home/mashupsoat/Project/eva_ai/scripts/DOCKER_SETUP.md).*
+> ℹ️ *Detail panduan Docker dapat dibaca di [scripts/DOCKER_SETUP.md](file:///home/mashupsoat/Project/eva-ecosystem/scripts/DOCKER_SETUP.md).*
 
 ---
 
@@ -365,7 +365,7 @@ cd apps/web && npm run lint
 ```bash
 python3 tests/test_emotion/test_emotion.py
 ```
-*Hasil pengujian emotion recognition akan otomatis ditulis ke [tests/test_emotion/poc_result.md](file:///e:/nexaCode/eva_ai/tests/test_emotion/poc_result.md).*
+*Hasil pengujian emotion recognition akan otomatis ditulis ke [tests/test_emotion/poc_result.md](file:///e:/nexaCode/eva-ecosystem/tests/test_emotion/poc_result.md).*
 
 ---
 

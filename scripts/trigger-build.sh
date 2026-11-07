@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Script Pemicu GitHub Actions Build Mobile (Android APK & iOS Unsigned)
-# Repositori: Nexa-Code-Studio/luna_ai
+# Repositori: Nexa-Code-Studio/eva-ecosystem
 # ==============================================================================
 
 set -e
@@ -24,7 +24,7 @@ CONFIG="release"
 MODE="auto"
 DRY_RUN=false
 BRANCH="$(git -C "$ROOT_DIR" branch --show-current 2>/dev/null || echo "test")"
-REPO_DEFAULT="Nexa-Code-Studio/luna_ai"
+REPO_DEFAULT="Nexa-Code-Studio/eva-ecosystem"
 
 # Deteksi nama repository dari remote origin
 get_repo_slug() {
@@ -138,7 +138,7 @@ load_token() {
 TOKEN="$(load_token)"
 
 echo -e "${CYAN}======================================================${NC}"
-echo -e "${CYAN}   LUNA AI - Mobile Build Workflow Trigger            ${NC}"
+echo -e "${CYAN}   EVA AI - Mobile Build Workflow Trigger            ${NC}"
 echo -e "${CYAN}======================================================${NC}"
 echo -e "Repositori : ${GREEN}${REPO_SLUG}${NC}"
 echo -e "Branch     : ${GREEN}${BRANCH}${NC}"

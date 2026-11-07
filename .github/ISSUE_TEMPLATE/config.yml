@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "Agentic Workflow Documentation"
+    url: "https://github.com/Nexa-Code-Studio/eva-ecosystem/tree/main/docs/agentic-workflow"
+    about: "Read guidelines on onboarding, task startup, and state sync."

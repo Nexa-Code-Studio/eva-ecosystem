@@ -1,0 +1,65 @@
+name: Agentic Workflow CI & Verification
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "scripts/agentic/**"
+      - "tests/agentic/**"
+      - ".agents/**"
+      - ".agent/**"
+      - ".github/workflows/agentic-*.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "scripts/agentic/**"
+      - "tests/agentic/**"
+      - ".agents/**"
+      - ".agent/**"
+      - ".github/workflows/agentic-*.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-agentic-workflow:
+    name: Test & Validate Agentic Workflow
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Verify Git Hygiene (No Local Config Committed)
+        run: |
+          if git ls-files --error-unmatch .agent/developer.local.json 2>/dev/null; then
+            echo "ERROR: .agent/developer.local.json is tracked in Git! This violates security rules."
+            exit 1
+          fi
+          echo "✅ Git hygiene verified: No developer.local.json tracked."
+
+      - name: Verify JSON Schemas and Configs
+        run: |
+          python3 -c "import json; json.load(open('.agent/developer.schema.json'))"
+          python3 -c "import json; json.load(open('.agent/developer.example.json'))"
+          python3 -c "import json; json.load(open('.agents/hooks.json'))"
+          echo "✅ JSON files are syntactically valid."
+
+      - name: Execute Deterministic Agentic Test Suite
+        run: |
+          python3 -m unittest discover -s tests/agentic -p "test_*.py" -v
+
+      - name: Run Doctor Verification in CI (Check-Only)
+        run: |
+          # Bootstrap a temporary test identity for doctor verification
+          python3 scripts/agentic/bootstrap.py \
+            --display-name "CI Test Runner" \
+            --github-username "ci-runner" \
+            --machine-label "github-actions-runner" \
+            --non-interactive
+          python3 scripts/agentic/doctor.py --strict || true

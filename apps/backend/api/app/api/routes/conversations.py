@@ -200,7 +200,7 @@ async def get_today_conversations(
     today_diary = res_diary.scalar_one_or_none()
 
     mood_tag = today_diary.mood_tag if today_diary and today_diary.mood_tag else "Tenang & Nyaman 🌿"
-    ai_insight = today_diary.ai_insight if today_diary and today_diary.ai_insight else "Pengguna merasa didengarkan dan tenang setelah berdialog bersama LUNA."
+    ai_insight = today_diary.ai_insight if today_diary and today_diary.ai_insight else "Pengguna merasa didengarkan dan tenang setelah berdialog bersama EVA."
 
     items = []
     for c in convs:
@@ -242,7 +242,7 @@ async def get_today_conversations(
 
         items.append({
             "id": str(c.id),
-            "title": c.title or "Sesi Panggilan Suara LUNA",
+            "title": c.title or "Sesi Panggilan Suara EVA",
             "is_title_generating": "$skeleton" in (c.title or ""),
             "date": f"Hari ini, {time_formatted}",
             "duration": _format_duration_str(c.started_at, c.last_message_at),
@@ -297,7 +297,7 @@ async def get_today_conversation_messages(
     all_msgs = []
     for c in convs:
         sorted_msgs = sorted(c.messages, key=lambda m: m.sequence_number) if c.messages else []
-        sess_title = (c.title or "Sesi Panggilan Suara LUNA").replace("$skeleton", "").strip()
+        sess_title = (c.title or "Sesi Panggilan Suara EVA").replace("$skeleton", "").strip()
         for m in sorted_msgs:
             if m.role in ("user", "assistant") and m.content and m.content.strip():
                 is_user = m.role == "user"
@@ -466,7 +466,7 @@ async def stream_conversation_summary(
     has_crisis = any(kw in full_lower for kw in CRISIS_KEYWORDS)
 
     if not user_assistant_msgs:
-        fallback_summary = "Sesi percakapan curhat bersama LUNA berjalan dengan tenang dan aman."
+        fallback_summary = "Sesi percakapan curhat bersama EVA berjalan dengan tenang dan aman."
 
         async def empty_stream():
             yield f"data: {json.dumps({'token': fallback_summary})}\n\n"
@@ -485,10 +485,10 @@ async def stream_conversation_summary(
     system_prompt = LLMMessage(
         role="system",
         content=(
-            "Anda adalah konselor psikologis profesional LUNA AI. "
+            "Anda adalah konselor psikologis profesional EVA AI. "
             "Tugas Anda adalah membuat ringkasan percakapan konseling yang sangat ringkas, padat, dan menenangkan (tepat 2-3 kalimat Bahasa Indonesia).\n"
             "Pedoman wajib:\n"
-            "1. Fokus pada esensi perasaan yang dicurahkan pengguna dan pendampingan reflektif dari LUNA.\n"
+            "1. Fokus pada esensi perasaan yang dicurahkan pengguna dan pendampingan reflektif dari EVA.\n"
             "2. Gunakan nada bicara hangat, empatik, tenang, dan suportif.\n"
             "3. DILARANG KERAS mengutip mentah kata-kata pengguna dalam tanda kutip.\n"
             "4. Jika terdeteksi kondisi krisis berat, berikan narasi suportif yang menekankan ruang aman dan pentingnya pertolongan profesional.\n"
@@ -511,11 +511,11 @@ async def stream_conversation_summary(
             logger.error(f"⚠️ [SUMMARY STREAM LLM EXCEPTION]: {e}")
             fallback_text = (
                 "Pengguna meluangkan waktu untuk mengekspresikan beban emosional yang berat dalam sesi ini. "
-                "LUNA hadir mendampingi secara suportif, memberikan ruang aman untuk bercerita, "
+                "EVA hadir mendampingi secara suportif, memberikan ruang aman untuk bercerita, "
                 "dan menegaskan bahwa setiap perasaan berharga serta bantuan selalu tersedia."
                 if has_crisis
                 else "Pengguna berbagi refleksi harian dan tantangan perasaan secara terbuka. "
-                "LUNA memberikan tanggapan yang menenangkan serta ruang aman untuk meredakan ketegangan."
+                "EVA memberikan tanggapan yang menenangkan serta ruang aman untuk meredakan ketegangan."
             )
             if not full_tokens:
                 yield f"data: {json.dumps({'token': fallback_text})}\n\n"
