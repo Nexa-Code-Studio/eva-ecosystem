@@ -31,7 +31,7 @@ class _CounselorMainShellScreenState
     _CounselorProfileTab(),
   ];
 
-  final List<GlobalKey> _navKeys = List.generate(4, (_) => GlobalKey());
+  final GlobalKey _navBarKey = GlobalKey();
   bool _showSpotlight = false;
   int _spotlightStep = 0;
 
@@ -56,19 +56,24 @@ class _CounselorMainShellScreenState
     }
   }
 
-  Offset _getNavCenter(int index) {
-    final key = _navKeys[index];
-    final renderBox = key.currentContext?.findRenderObject() as RenderBox?;
+  Rect _getNavRect(int index) {
+    final renderBox = _navBarKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox != null && renderBox.hasSize) {
-      final pos = renderBox.localToGlobal(Offset.zero);
-      return Offset(pos.dx + renderBox.size.width / 2, pos.dy + renderBox.size.height / 2);
+      final navPos = renderBox.localToGlobal(Offset.zero);
+      final navWidth = renderBox.size.width;
+      final navHeight = renderBox.size.height;
+      final itemWidth = navWidth / 4;
+      final itemLeft = navPos.dx + index * itemWidth;
+      return Rect.fromLTWH(itemLeft + 4, navPos.dy + 6, itemWidth - 8, navHeight - 12);
     }
     final size = MediaQuery.of(context).size;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
-    final itemWidth = (size.width - 40) / 4;
-    final x = 20 + (index + 0.5) * itemWidth;
-    final y = size.height - 20 - bottomPadding - 34;
-    return Offset(x, y);
+    final navWidth = size.width - 40;
+    const navHeight = 68.0;
+    final navTop = size.height - 20 - bottomPadding - navHeight;
+    final itemWidth = navWidth / 4;
+    final itemLeft = 20 + index * itemWidth;
+    return Rect.fromLTWH(itemLeft + 4, navTop + 6, itemWidth - 8, navHeight - 12);
   }
 
   void _nextSpotlightStep() {
@@ -116,6 +121,7 @@ class _CounselorMainShellScreenState
             children: _pages,
           ),
           bottomNavigationBar: Container(
+            key: _navBarKey,
             margin: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(28),
@@ -154,7 +160,7 @@ class _CounselorMainShellScreenState
         if (_showSpotlight)
           CounselorSpotlightTourOverlay(
             currentStep: _spotlightStep,
-            targetCenter: _getNavCenter(_spotlightStep),
+            targetRect: _getNavRect(_spotlightStep),
             onNext: _nextSpotlightStep,
             onSkip: _finishSpotlight,
           ),
@@ -165,7 +171,6 @@ class _CounselorMainShellScreenState
   Widget _buildNavItem(int index, int currentIndex, IconData activeIcon, IconData inactiveIcon, String label) {
     final isSelected = currentIndex == index;
     return GestureDetector(
-      key: _navKeys[index],
       onTap: () => ref.read(counselorBottomNavIndexProvider.notifier).state = index,
       behavior: HitTestBehavior.opaque,
       child: Column(

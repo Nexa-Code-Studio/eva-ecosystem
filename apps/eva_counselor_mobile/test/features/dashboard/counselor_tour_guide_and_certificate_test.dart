@@ -29,7 +29,7 @@ void main() {
               return Scaffold(
                 body: CounselorSpotlightTourOverlay(
                   currentStep: step,
-                  targetCenter: const Offset(100, 600),
+                  targetRect: const Rect.fromLTWH(60, 500, 60, 56),
                   onNext: () {
                     if (step < CounselorSpotlightTourOverlay.steps.length - 1) {
                       setState(() => step++);
@@ -98,7 +98,7 @@ void main() {
               return Scaffold(
                 body: CounselorSpotlightTourOverlay(
                   currentStep: 0,
-                  targetCenter: const Offset(100, 600),
+                  targetRect: const Rect.fromLTWH(60, 500, 60, 56),
                   onNext: () {},
                   onSkip: () {
                     setState(() => isClosed = true);

@@ -21,16 +21,14 @@ class SpotlightStepModel {
 
 class CounselorSpotlightTourOverlay extends StatelessWidget {
   final int currentStep;
-  final Offset targetCenter;
-  final double targetRadius;
+  final Rect targetRect;
   final VoidCallback onNext;
   final VoidCallback onSkip;
 
   const CounselorSpotlightTourOverlay({
     super.key,
     required this.currentStep,
-    required this.targetCenter,
-    this.targetRadius = 30.0,
+    required this.targetRect,
     required this.onNext,
     required this.onSkip,
   });
@@ -90,22 +88,20 @@ class CounselorSpotlightTourOverlay extends StatelessWidget {
     final isLast = step.index == steps.length - 1;
     final size = MediaQuery.of(context).size;
     final navLabels = ['Beranda', 'Pasien', 'Keuangan', 'Profil'];
+    final rrect = RRect.fromRectAndRadius(targetRect, const Radius.circular(18));
 
     return Material(
       color: Colors.transparent,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // 1. GENTLE DARK DIMMED OVERLAY (SUBTLE DEFOCUS BLUR, NO HEAVY BLUR)
+          // 1. BLURRED & DARKENED SCRIM EVERYWHERE EXCEPT THE BOXED MENU
           ClipPath(
-            clipper: _InvertedCircleClipper(
-              center: targetCenter,
-              radius: targetRadius + 2,
-            ),
+            clipper: _InvertedRRectClipper(rrect: rrect),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 2.0, sigmaY: 2.0),
+              filter: ImageFilter.blur(sigmaX: 4.0, sigmaY: 4.0),
               child: Container(
-                color: const Color(0xC2080C16),
+                color: const Color(0xC6070B14),
               ),
             ),
           ),
@@ -118,26 +114,17 @@ class CounselorSpotlightTourOverlay extends StatelessWidget {
             ),
           ),
 
-          // 3. GLOWING ILLUMINATION RINGS AROUND THE MENU ITEM
-          CustomPaint(
-            size: size,
-            painter: _SpotlightRingsPainter(
-              targetCenter: targetCenter,
-              radius: targetRadius,
-              accentColor: step.accentColor,
-            ),
-          ),
-
-          // 4. SPOTLIGHTED MENU ITEM (100% SHARP & CRISP, ZERO BLUR ON TOP OF SCRIM)
+          // 3. THE BOXED MENU ITEM (100% SHARP, ZERO BLUR, HIGHLIGHTED IN A ROUNDED BOX)
           Positioned(
-            left: targetCenter.dx - targetRadius,
-            top: targetCenter.dy - targetRadius,
-            width: targetRadius * 2,
-            height: targetRadius * 2,
+            left: targetRect.left,
+            top: targetRect.top,
+            width: targetRect.width,
+            height: targetRect.height,
             child: Container(
               decoration: BoxDecoration(
                 color: step.accentColor,
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.white, width: 2.2),
                 boxShadow: [
                   BoxShadow(
                     color: step.accentColor.withValues(alpha: 0.6),
@@ -145,29 +132,37 @@ class CounselorSpotlightTourOverlay extends StatelessWidget {
                     spreadRadius: 2,
                   ),
                 ],
-                border: Border.all(color: Colors.white, width: 2.2),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(step.icon, color: Colors.white, size: 22),
-                  const SizedBox(height: 2),
-                  Text(
-                    navLabels[step.index],
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.bold,
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(step.icon, color: Colors.white, size: 20),
+                        const SizedBox(height: 2),
+                        Text(
+                          navLabels[step.index],
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
             ),
           ),
 
-          // 5. FLOATING COACHMARK TOOLTIP CARD (ABOVE TARGET)
+          // 4. FLOATING COACHMARK TOOLTIP CARD (ABOVE TARGET BOX)
           Positioned(
-            bottom: (size.height - targetCenter.dy) + targetRadius + 14,
+            bottom: (size.height - targetRect.top) + 12,
             left: 20,
             right: 20,
             child: Container(
@@ -177,8 +172,8 @@ class CounselorSpotlightTourOverlay extends StatelessWidget {
                 borderRadius: BorderRadius.circular(22),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 26,
+                    color: Colors.black.withValues(alpha: 0.35),
+                    blurRadius: 28,
                     offset: const Offset(0, 8),
                   ),
                 ],
@@ -216,11 +211,11 @@ class CounselorSpotlightTourOverlay extends StatelessWidget {
                       GestureDetector(
                         onTap: onSkip,
                         behavior: HitTestBehavior.opaque,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
-                            children: const [
+                            children: [
                               Text(
                                 'Lewati',
                                 style: TextStyle(
@@ -301,10 +296,10 @@ class CounselorSpotlightTourOverlay extends StatelessWidget {
             ),
           ),
 
-          // 6. EXACT TRIANGLE POINTER POINTING DIRECTLY DOWN TO TARGET CENTER
+          // 5. EXACT TRIANGLE POINTER POINTING DIRECTLY AT THE BOX CENTER
           Positioned(
-            left: targetCenter.dx - 9,
-            bottom: (size.height - targetCenter.dy) + targetRadius + 6,
+            left: targetRect.center.dx - 9,
+            bottom: (size.height - targetRect.top) + 4,
             child: CustomPaint(
               size: const Size(18, 9),
               painter: _TrianglePointerPainter(color: Colors.white),
@@ -316,52 +311,22 @@ class CounselorSpotlightTourOverlay extends StatelessWidget {
   }
 }
 
-class _InvertedCircleClipper extends CustomClipper<Path> {
-  final Offset center;
-  final double radius;
+class _InvertedRRectClipper extends CustomClipper<Path> {
+  final RRect rrect;
 
-  _InvertedCircleClipper({required this.center, required this.radius});
+  _InvertedRRectClipper({required this.rrect});
 
   @override
   Path getClip(Size size) {
     return Path()
       ..fillType = PathFillType.evenOdd
       ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
-      ..addOval(Rect.fromCircle(center: center, radius: radius));
+      ..addRRect(rrect);
   }
 
   @override
-  bool shouldReclip(covariant _InvertedCircleClipper oldClipper) {
-    return oldClipper.center != center || oldClipper.radius != radius;
-  }
-}
-
-class _SpotlightRingsPainter extends CustomPainter {
-  final Offset targetCenter;
-  final double radius;
-  final Color accentColor;
-
-  _SpotlightRingsPainter({
-    required this.targetCenter,
-    required this.radius,
-    required this.accentColor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Outer halo ring
-    final haloPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0
-      ..color = accentColor.withValues(alpha: 0.5);
-    canvas.drawCircle(targetCenter, radius + 4.0, haloPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _SpotlightRingsPainter oldDelegate) {
-    return oldDelegate.targetCenter != targetCenter ||
-        oldDelegate.radius != radius ||
-        oldDelegate.accentColor != accentColor;
+  bool shouldReclip(covariant _InvertedRRectClipper oldClipper) {
+    return oldClipper.rrect != rrect;
   }
 }
 
