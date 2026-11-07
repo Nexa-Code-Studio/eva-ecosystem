@@ -13,6 +13,10 @@ abstract class IAuthRepository {
     required int yearsOfExperience,
     required int consultationRate,
     required String certificateDocFileName,
+    String counselorRole = 'professional_independent',
+    String? partnerName,
+    int sessionDurationMinutes = 50,
+    int coinsPerSession = 150,
   });
   Future<PsychologistUserEntity?> getCurrentProfile();
   Future<bool> setOnlineAvailability(bool isOnline);

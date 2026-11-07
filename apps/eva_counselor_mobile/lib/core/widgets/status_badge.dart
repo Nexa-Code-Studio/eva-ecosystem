@@ -55,9 +55,45 @@ class StatusBadge extends StatelessWidget {
   factory StatusBadge.consentLocked([String label = 'Akses Terkunci']) {
     return StatusBadge(
       label: label,
-      backgroundColor: Colors.black.withOpacity(0.06),
+      backgroundColor: Colors.black.withValues(alpha: 0.06),
       textColor: AppColors.textSecondary,
       icon: Icons.lock_outline_rounded,
+    );
+  }
+
+  factory StatusBadge.volunteer([String label = 'Relawan Teman Sebaya']) {
+    return StatusBadge(
+      label: label,
+      backgroundColor: const Color(0xFFE0F7F6),
+      textColor: const Color(0xFF00796B),
+      icon: Icons.volunteer_activism_rounded,
+    );
+  }
+
+  factory StatusBadge.proIndependent([String label = 'Psikolog Mandiri']) {
+    return StatusBadge(
+      label: label,
+      backgroundColor: AppColors.primaryContainer,
+      textColor: AppColors.primary,
+      icon: Icons.verified_user_rounded,
+    );
+  }
+
+  factory StatusBadge.proPartner([String label = 'Psikolog Mitra']) {
+    return StatusBadge(
+      label: label,
+      backgroundColor: const Color(0xFFF3E8FF),
+      textColor: const Color(0xFF7E22CE),
+      icon: Icons.apartment_rounded,
+    );
+  }
+
+  factory StatusBadge.coins(int coins) {
+    return StatusBadge(
+      label: '$coins Koin',
+      backgroundColor: const Color(0xFFFFF7ED),
+      textColor: const Color(0xFFC2410C),
+      icon: Icons.monetization_on_rounded,
     );
   }
 

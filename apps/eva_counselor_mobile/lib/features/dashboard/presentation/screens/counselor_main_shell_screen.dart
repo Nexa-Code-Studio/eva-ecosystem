@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/custom_button.dart';
+import '../../../../core/widgets/status_badge.dart';
 import '../../../../core/widgets/top_toast.dart';
+import '../../../auth/domain/entities/psychologist_user_entity.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../finances/presentation/screens/transaction_history_screen.dart';
 import '../../../patients/presentation/screens/patient_list_screen.dart';
@@ -111,6 +114,32 @@ class _CounselorMainShellScreenState
   }
 }
 
+class EvaCertificateEntity {
+  final String id;
+  final String title;
+  final String subtitle;
+  final String recipientName;
+  final String milestoneCriteria;
+  final String certificateNumber;
+  final String issueDate;
+  final String categoryLabel;
+  final String description;
+  final Color badgeColor;
+
+  const EvaCertificateEntity({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    required this.recipientName,
+    required this.milestoneCriteria,
+    required this.certificateNumber,
+    required this.issueDate,
+    required this.categoryLabel,
+    required this.description,
+    this.badgeColor = const Color(0xFFD97706),
+  });
+}
+
 class _CounselorProfileTab extends ConsumerStatefulWidget {
   const _CounselorProfileTab();
 
@@ -127,8 +156,9 @@ class _CounselorProfileTabState extends ConsumerState<_CounselorProfileTab> {
   bool _isVacationMode = false;
   int _sessionDuration = 50;
   int _bufferTime = 15;
-  int _consultationRate = 200000;
-  bool _requireManualApproval = true; // Booking confirmation mode
+  bool _isBackingUp = false;
+  String _backupFrequency = 'Harian';
+  bool _backupWifiOnly = true;
 
   String _formatTimeOfDay(TimeOfDay tod) {
     final h = tod.hour.toString().padLeft(2, '0');
@@ -619,179 +649,6 @@ class _CounselorProfileTabState extends ConsumerState<_CounselorProfileTab> {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-    );
-  }
-
-  // 3. EDIT RATE MODAL (BISA MANUAL INPUT & PILIH REKOMENDASI)
-  void _showEditRateModal() {
-    int selectedRate = _consultationRate;
-    final rateCtrl = TextEditingController(text: selectedRate.toString());
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) => Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Ubah Tarif Konsultasi', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  IconButton(icon: const Icon(Icons.close, size: 20), onPressed: () => Navigator.pop(ctx)),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Tentukan tarif per sesi ($_sessionDuration menit). Anda dapat mengetik manual atau memilih rekomendasi:',
-                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 16),
-
-              // INPUT MANUAL TARIF DENGAN KEYBOARD ANGKA
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF7F8FD),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.35), width: 1.4),
-                ),
-                child: Row(
-                  children: [
-                    const Text('Rp', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primary)),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextField(
-                        controller: rateCtrl,
-                        keyboardType: TextInputType.number,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 19, color: AppColors.textPrimary),
-                        decoration: const InputDecoration(
-                          hintText: '0',
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(vertical: 8),
-                        ),
-                        onChanged: (val) {
-                          final parsed = int.tryParse(val.replaceAll(RegExp(r'[^0-9]'), ''));
-                          if (parsed != null && parsed >= 0) {
-                            setModalState(() => selectedRate = parsed);
-                          }
-                        },
-                      ),
-                    ),
-                    Text('/ $_sessionDuration Mnt', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              const Text('Rekomendasi Tarif Populer:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
-              const SizedBox(height: 8),
-
-              // Rate Option Chips
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [150000, 200000, 250000, 300000, 350000].map((rate) {
-                  final isSelected = selectedRate == rate;
-                  return GestureDetector(
-                    onTap: () {
-                      setModalState(() {
-                        selectedRate = rate;
-                        rateCtrl.text = rate.toString();
-                      });
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected ? AppColors.primary : const Color(0xFFF7F8FD),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: isSelected ? AppColors.primary : const Color(0xFFECEFF8),
-                          width: 1.2,
-                        ),
-                      ),
-                      child: Text(
-                        'Rp ${_formatNumber(rate)}${rate == 200000 ? " (HIMPSI)" : ""}',
-                        style: TextStyle(
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                          fontSize: 11,
-                          color: isSelected ? Colors.white : AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 16),
-
-              // Breakdown Honorarium
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF7F8FD),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFECEFF8)),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Honorarium Bersih Psikolog (85%):', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                        Text('Rp ${_formatNumber((selectedRate * 0.85).toInt())}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.verifiedGreen)),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Operasional Luna & Enkripsi Medis (15%):', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                        Text('Rp ${_formatNumber((selectedRate * 0.15).toInt())}', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size.fromHeight(46),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  elevation: 0,
-                ),
-                onPressed: () {
-                  setState(() => _consultationRate = selectedRate);
-                  Navigator.pop(ctx);
-                  TopToast.show(
-                    context,
-                    title: 'Tarif Konsultasi Disimpan',
-                    message: 'Tarif berhasil diatur ke Rp ${_formatNumber(_consultationRate)} / $_sessionDuration menit.',
-                    type: ToastType.success,
-                  );
-                },
-                child: const Text('Simpan Tarif Baru', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -1431,10 +1288,1308 @@ class _CounselorProfileTabState extends ConsumerState<_CounselorProfileTab> {
     );
   }
 
+  void _showPeerCounselorGuidelinesModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE0F2FE),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.menu_book_rounded, color: Color(0xFF0284C7), size: 20),
+                      ),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'Panduan Etika Teman Sebaya',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                  IconButton(icon: const Icon(Icons.close, size: 20), onPressed: () => Navigator.pop(ctx)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Pedoman Etik Pendampingan Non-Klinis & Batasan Peran Relawan Eva:',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 14),
+              _buildEthicItem(
+                '1. Batasan Peran Sebaya (Non-Klinis)',
+                'Relawan berperan murni sebagai teman curhat & pendengar aktif yang suportif. Tidak berwenang memberikan diagnosis klinis atau saran medis.',
+              ),
+              const SizedBox(height: 8),
+              _buildEthicItem(
+                '2. Tanpa Beban Rekam Medis SOAP',
+                'Sesi pendampingan teman sebaya bebas dari kewajiban rekam SOAP klinis. Fokus utama Anda adalah hadir penuh bagi teman curhat.',
+              ),
+              const SizedBox(height: 8),
+              _buildEthicItem(
+                '3. Protokol Deteksi & Eskalasi Bahaya',
+                'Apabila teman curhat menunjukkan indikasi melukai diri (self-harm) atau krisis berat, wajib segera arahkan atau eskalasi ke Psikolog Profesional.',
+              ),
+              const SizedBox(height: 8),
+              _buildEthicItem(
+                '4. Kerahasiaan Penuh & Tanpa Penghakiman',
+                'Seluruh cerita dijaga kerahasiaannya dengan penerimaan tulus dan empati tanpa menghakimi latar belakang teman curhat.',
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(44),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Saya Mengerti & Sepakat', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDriveBackupSettingsModal(PsychologistUserEntity? user) {
+    String tempFreq = _backupFrequency;
+    bool tempWifi = _backupWifiOnly;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Pengaturan Cadangan Google Drive', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  IconButton(icon: const Icon(Icons.close, size: 20), onPressed: () => Navigator.pop(ctx)),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Rekam medis terenkripsi dicadangkan ke Google Drive pribadi Anda:',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  const Text('Frekuensi: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(width: 8),
+                  ...['Harian', 'Mingguan', 'Manual'].map((f) => Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: ChoiceChip(
+                          label: Text(f),
+                          selected: tempFreq == f,
+                          onSelected: (_) => setModalState(() => tempFreq = f),
+                        ),
+                      )),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Cadangkan Hanya Melalui Wi-Fi', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                subtitle: const Text('Hindari penggunaan kuota seluler untuk pencadangan', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                value: tempWifi,
+                activeColor: AppColors.primary,
+                onChanged: (val) => setModalState(() => tempWifi = val),
+              ),
+              const SizedBox(height: 16),
+              CustomButton(
+                label: 'Simpan Preferensi',
+                onPressed: () {
+                  setState(() {
+                    _backupFrequency = tempFreq;
+                    _backupWifiOnly = tempWifi;
+                  });
+                  ref.read(authStateProvider.notifier).syncDriveBackup(
+                        email: user?.googleDriveEmail ?? 'sarah.anindya@gmail.com',
+                        frequency: tempFreq,
+                      );
+                  Navigator.pop(ctx);
+                  TopToast.show(
+                    context,
+                    title: 'Preferensi Cadangan Disimpan',
+                    message: 'Jadwal cadangan otomatis Google Drive diatur ke $tempFreq.',
+                    type: ToastType.success,
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _handleBackupNow(PsychologistUserEntity? user) async {
+    setState(() => _isBackingUp = true);
+    await Future.delayed(const Duration(milliseconds: 1400));
+    if (!mounted) return;
+    setState(() => _isBackingUp = false);
+
+    ref.read(authStateProvider.notifier).syncDriveBackup(
+          email: user?.googleDriveEmail ?? 'sarah.anindya@gmail.com',
+          frequency: _backupFrequency,
+        );
+
+    TopToast.show(
+      context,
+      title: 'Pencadangan Berhasil! ☁️',
+      message: '18.4 MB data rekam SOAP & audio transkrip terenkripsi aman di Google Drive Anda.',
+      type: ToastType.success,
+    );
+  }
+
+  void _handleRestoreDrive() async {
+    TopToast.show(
+      context,
+      title: 'Memeriksa Cadangan Google Drive...',
+      message: 'Data lokal terverifikasi sinkron dengan cadangan cloud terakhir (Hari ini, 10:15 WIB).',
+      type: ToastType.info,
+    );
+  }
+
+  void _showEditCoinsRateModal(PsychologistUserEntity? user) {
+    int currentCoins = user?.coinsPerSession ?? 150;
+    final coinsList = [50, 100, 150, 200, 250, 300, 500];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Atur Tarif Koin per Sesi', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  IconButton(icon: const Icon(Icons.close, size: 20), onPressed: () => Navigator.pop(ctx)),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Pasien membayar sesi konsultasi dengan Koin. 1 Koin = Rp 1.000.',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: coinsList.map((c) {
+                  final isSelected = currentCoins == c;
+                  return GestureDetector(
+                    onTap: () => setModalState(() => currentCoins = c),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected ? const Color(0xFFC2410C) : const Color(0xFFF7F8FD),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected ? const Color(0xFFC2410C) : const Color(0xFFECEFF8),
+                        ),
+                      ),
+                      child: Text(
+                        '$c Koin (≈ Rp ${_formatNumber(c * 1000)})',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected ? Colors.white : AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 20),
+              CustomButton(
+                label: 'Simpan Tarif Koin',
+                onPressed: () {
+                  ref.read(authStateProvider.notifier).updateSessionSettings(
+                        sessionDurationMinutes: _sessionDuration,
+                        coinsPerSession: currentCoins,
+                      );
+                  Navigator.pop(ctx);
+                  TopToast.show(
+                    context,
+                    title: 'Tarif Koin Berhasil Disimpan',
+                    message: 'Tarif sesi konsultasi kini $currentCoins Koin (≈ Rp ${_formatNumber(currentCoins * 1000)}).',
+                    type: ToastType.success,
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showUpgradeRoleModal(BuildContext context) {
+    final strCtrl = TextEditingController();
+    final assocCtrl = TextEditingController(text: 'HIMPSI');
+    final partnerCtrl = TextEditingController();
+    CounselorRole targetRole = CounselorRole.professionalIndependent;
+    String? pickedFile;
+    bool isUpgrading = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          final isMandiri = targetRole == CounselorRole.professionalIndependent;
+
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 16,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE2E8F0),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryContainer,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(Icons.workspace_premium_rounded, color: AppColors.primary, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              'Upgrade ke Psikolog Profesional',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Daftarkan nomor STR/SIPP aktif untuk membuka dompet koin dan rekam SOAP klinis.',
+                              style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.3),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, size: 20, color: AppColors.textSecondary),
+                        onPressed: () => Navigator.of(ctx).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Segmented Role Switcher (Soft borders, NO harsh black outline)
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F3FA),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setModalState(() => targetRole = CounselorRole.professionalIndependent),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: isMandiri ? Colors.white : Colors.transparent,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isMandiri ? const Color(0xFFECEFF8) : Colors.transparent,
+                                ),
+                                boxShadow: isMandiri
+                                    ? [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.04),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.person_outline_rounded,
+                                    size: 15,
+                                    color: isMandiri ? AppColors.primary : AppColors.textSecondary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Praktik Mandiri',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: isMandiri ? FontWeight.bold : FontWeight.w500,
+                                      color: isMandiri ? AppColors.primary : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setModalState(() => targetRole = CounselorRole.professionalPartner),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: !isMandiri ? Colors.white : Colors.transparent,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: !isMandiri ? const Color(0xFFECEFF8) : Colors.transparent,
+                                ),
+                                boxShadow: !isMandiri
+                                    ? [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.04),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.apartment_rounded,
+                                    size: 15,
+                                    color: !isMandiri ? const Color(0xFF7E22CE) : AppColors.textSecondary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Dengan Mitra',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: !isMandiri ? FontWeight.bold : FontWeight.w500,
+                                      color: !isMandiri ? const Color(0xFF7E22CE) : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  if (!isMandiri) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFAF5FF),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE9D5FF)),
+                      ),
+                      child: Row(
+                        children: const [
+                          Icon(Icons.info_outline_rounded, color: Color(0xFF7E22CE), size: 16),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Akun psikolog mitra diatur jadwal dan tarif koinnya via Web Portal Mitra.',
+                              style: TextStyle(fontSize: 11, color: Color(0xFF6B21A8), height: 1.3),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Form Input STR
+                  const Text('Nomor STR / SIPP Aktif', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  const SizedBox(height: 6),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF7F8FC),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFECEFF8)),
+                    ),
+                    child: TextField(
+                      controller: strCtrl,
+                      decoration: const InputDecoration(
+                        hintText: 'Misal: 4192-PSI-2024',
+                        hintStyle: TextStyle(fontSize: 13, color: AppColors.textLight),
+                        prefixIcon: Icon(Icons.badge_outlined, size: 18, color: AppColors.primary),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Form Organisasi Profesi
+                  const Text('Organisasi Profesi Psikologi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  const SizedBox(height: 6),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF7F8FC),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFECEFF8)),
+                    ),
+                    child: TextField(
+                      controller: assocCtrl,
+                      decoration: const InputDecoration(
+                        hintText: 'HIMPSI / IPK Indonesia',
+                        hintStyle: TextStyle(fontSize: 13, color: AppColors.textLight),
+                        prefixIcon: Icon(Icons.account_balance_outlined, size: 18, color: AppColors.primary),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                    ),
+                  ),
+
+                  if (!isMandiri) ...[
+                    const SizedBox(height: 12),
+                    const Text('Nama Lembaga / RS Mitra', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                    const SizedBox(height: 6),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF7F8FC),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFECEFF8)),
+                      ),
+                      child: TextField(
+                        controller: partnerCtrl,
+                        decoration: const InputDecoration(
+                          hintText: 'Misal: RS Jiwa Sanjiwani / PT Sehat Jiwa',
+                          hintStyle: TextStyle(fontSize: 13, color: AppColors.textLight),
+                          prefixIcon: Icon(Icons.apartment_rounded, size: 18, color: Color(0xFF7E22CE)),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 14),
+
+                  // Upload STR Document Container (Clean & Soft)
+                  const Text('Unggah Berkas Bukti STR', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  const SizedBox(height: 6),
+                  InkWell(
+                    onTap: () {
+                      setModalState(() {
+                        pickedFile = 'STR_Verified_${DateTime.now().year}.pdf';
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: pickedFile != null ? AppColors.verifiedBg : const Color(0xFFF7F8FC),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: pickedFile != null ? const Color(0xFFBBF7D0) : const Color(0xFFECEFF8),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: pickedFile != null ? const Color(0xFFDCFCE7) : AppColors.primaryContainer,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              pickedFile != null ? Icons.check_circle_rounded : Icons.cloud_upload_outlined,
+                              size: 18,
+                              color: pickedFile != null ? AppColors.verifiedGreen : AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  pickedFile ?? 'Pilih File Scan STR (PDF/JPG)',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: pickedFile != null ? AppColors.verifiedGreen : AppColors.primary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  pickedFile != null ? 'Berkas siap diverifikasi (1.8 MB)' : 'Maksimal 5 MB • Kerahasiaan terenkripsi',
+                                  style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Button Upgrade
+                  CustomButton(
+                    label: 'Verifikasi & Upgrade Sekarang',
+                    isLoading: isUpgrading,
+                    icon: Icons.check_circle_outline_rounded,
+                    onPressed: () async {
+                      if (strCtrl.text.isEmpty) {
+                        TopToast.show(
+                          context,
+                          title: 'Nomor STR Wajib Diisi',
+                          message: 'Mohon masukkan nomor STR/SIPP Anda.',
+                          type: ToastType.error,
+                        );
+                        return;
+                      }
+
+                      setModalState(() => isUpgrading = true);
+                      ref.read(authStateProvider.notifier).upgradeToProfessional(
+                            strNumber: strCtrl.text,
+                            association: assocCtrl.text,
+                            certificateDocFileName: pickedFile ?? 'STR_Uploaded.pdf',
+                            newRole: targetRole,
+                            partnerName: targetRole == CounselorRole.professionalPartner
+                                ? partnerCtrl.text
+                                : null,
+                          );
+
+                      await Future.delayed(const Duration(milliseconds: 500));
+                      if (!ctx.mounted) return;
+                      Navigator.of(ctx).pop();
+                      if (!context.mounted) return;
+
+                      TopToast.show(
+                        context,
+                        title: 'Akun Berhasil Di-Upgrade!',
+                        message:
+                            'Selamat! Akun Anda kini aktif sebagai Psikolog Profesional dengan akses dompet koin.',
+                        type: ToastType.success,
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildBenefitPill(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFD6E4FF)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: AppColors.primary,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRoleSwitcherChip(String label, CounselorRole role, CounselorRole? currentRole) {
+    final isSelected = currentRole == role;
+    return GestureDetector(
+      onTap: () {
+        ref.read(authStateProvider.notifier).switchRole(role);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : const Color(0xFFECEFF8),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            color: isSelected ? Colors.white : AppColors.textPrimary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12, bottom: 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 14, color: AppColors.primary),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<EvaCertificateEntity> _getCertificatesForUser(PsychologistUserEntity? user) {
+    final name = user?.displayName ?? 'dr. Sarah Jenkins, M.Psi';
+    final isVol = user?.isVolunteer == true;
+
+    if (isVol) {
+      return [
+        EvaCertificateEntity(
+          id: 'CERT-VOL-01',
+          title: 'SERTIFIKAT KELULUSAN PEER COUNSELOR',
+          subtitle: 'Certified Active Listener & Support Specialist',
+          recipientName: name,
+          milestoneCriteria: 'Lulus Uji Etika & Pelatihan Konseling Sebaya',
+          certificateNumber: 'EVA/CERT/2026/VOL/00094',
+          issueDate: '15 Oktober 2026',
+          categoryLabel: 'Relawan Teman Sebaya',
+          description:
+              'Diberikan atas kelulusan program sertifikasi pendampingan emosional, komunikasi empatik non-klinis, dan kepatuhan penuh terhadap etika teman sebaya Eva.',
+          badgeColor: const Color(0xFF0284C7),
+        ),
+        EvaCertificateEntity(
+          id: 'CERT-VOL-02',
+          title: 'SERTIFIKAT DEDIKASI TEMAN SEBAYA',
+          subtitle: 'Community Mental Health Dedication Award',
+          recipientName: name,
+          milestoneCriteria: 'Menyelesaikan 10 Sesi Curhat Komunitas',
+          certificateNumber: 'EVA/CERT/2026/VOL/00148',
+          issueDate: '01 November 2026',
+          categoryLabel: 'Relawan Teman Sebaya',
+          description:
+              'Diberikan sebagai penghargaan atas ketulusan mendengarkan aktif dan mendampingi keluhan emosional teman sebaya di ekosistem kesehatan mental Eva.',
+          badgeColor: const Color(0xFFD97706),
+        ),
+        EvaCertificateEntity(
+          id: 'CERT-VOL-03',
+          title: 'SERTIFIKAT KONTRIBUTOR EMPATI SEBAYA',
+          subtitle: 'Excellence in Community Empathy 2026',
+          recipientName: name,
+          milestoneCriteria: 'Pendampingan 25 Sesi Tanpa Keluhan & Rating 5.0',
+          certificateNumber: 'EVA/CERT/2026/VOL/00220',
+          issueDate: '05 November 2026',
+          categoryLabel: 'Relawan Teman Sebaya',
+          description:
+              'Diberikan atas kontribusi konsisten menjaga ruang aman bebas penghakiman, memberikan pertolongan pertama psikologis suportif bagi sesama.',
+          badgeColor: const Color(0xFF16A34A),
+        ),
+      ];
+    } else {
+      return [
+        EvaCertificateEntity(
+          id: 'CERT-PRO-01',
+          title: 'SERTIFIKAT PRAKTIK TELEKONSELING KLINIS',
+          subtitle: 'Clinical Tele-Psychology Excellence & Competence',
+          recipientName: name,
+          milestoneCriteria: 'Penyelesaian 25 Sesi Klinis Terverifikasi',
+          certificateNumber: 'EVA/CERT/2026/PRO/00341',
+          issueDate: '20 Oktober 2026',
+          categoryLabel: user?.isPartner == true ? 'Psikolog Mitra' : 'Psikolog Mandiri',
+          description:
+              'Diberikan atas dedikasi dan kompetensi klinis prima dalam menyelenggarakan telekonsultasi kesehatan mental dengan standar etika tertinggi.',
+          badgeColor: const Color(0xFF2563EB),
+        ),
+        EvaCertificateEntity(
+          id: 'CERT-PRO-02',
+          title: 'SERTIFIKAT KEPATUHAN REKAM MEDIS SOAP',
+          subtitle: 'Certified Clinical Medical Record Standard',
+          recipientName: name,
+          milestoneCriteria: 'Kepatuhan Rekam SOAP 100% pada 50 Sesi',
+          certificateNumber: 'EVA/CERT/2026/PRO/00512',
+          issueDate: '02 November 2026',
+          categoryLabel: user?.isPartner == true ? 'Psikolog Mitra' : 'Psikolog Mandiri',
+          description:
+              'Diberikan atas komitmen integritas dokumentasi SOAP klinis (Subjective, Objective, Assessment, Plan) yang terenkripsi aman demi keselamatan pasien.',
+          badgeColor: const Color(0xFFD97706),
+        ),
+        EvaCertificateEntity(
+          id: 'CERT-PRO-03',
+          title: 'SERTIFIKAT KONSELOR TELADAN EVA 2026',
+          subtitle: 'Distinguished Clinical Practitioner 2026',
+          recipientName: name,
+          milestoneCriteria: '100+ Sesi Terlaksana dengan Rating Kepuasan 4.9+',
+          certificateNumber: 'EVA/CERT/2026/PRO/00789',
+          issueDate: '06 November 2026',
+          categoryLabel: user?.isPartner == true ? 'Psikolog Mitra' : 'Psikolog Mandiri',
+          description:
+              'Penghargaan tertinggi platform Eva atas loyalitas pelayanan intervensi krisis, kepuasan pasien bintang lima, dan kontribusi nyata pada kesehatan jiwa bangsa.',
+          badgeColor: const Color(0xFF7E22CE),
+        ),
+      ];
+    }
+  }
+
+  void _showCertificatesGalleryModal(BuildContext context, PsychologistUserEntity? user) {
+    final certs = _getCertificatesForUser(user);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 16,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE2E8F0),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFD97706), size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Sertifikat & Pencapaian',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
+                          ),
+                          Text(
+                            '${certs.length} Sertifikat resmi diraih berdasarkan milestone',
+                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 20, color: AppColors.textSecondary),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ...certs.map((c) => Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: const Color(0xFFECEFF8)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: c.badgeColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(Icons.military_tech_rounded, color: c.badgeColor, size: 20),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    c.title,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.textPrimary),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    c.milestoneCriteria,
+                                    style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                c.issueDate,
+                                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          c.description,
+                          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const Divider(height: 20, color: Color(0xFFF1F5F9)),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'No: ${c.certificateNumber}',
+                              style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
+                            ),
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              icon: const Icon(Icons.remove_red_eye_outlined, size: 14),
+                              label: const Text('Buka & Unduh', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                              onPressed: () {
+                                Navigator.of(ctx).pop();
+                                _showOfficialCertificateDialog(context, c);
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  )),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showOfficialCertificateDialog(BuildContext context, EvaCertificateEntity cert) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
+        backgroundColor: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: const [
+              BoxShadow(color: Colors.black38, blurRadius: 28, offset: Offset(0, 10)),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 12, right: 14, left: 18),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: const [
+                        Icon(Icons.workspace_premium_rounded, size: 18, color: Color(0xFFD97706)),
+                        SizedBox(width: 6),
+                        Text('Pratinjau Sertifikat Resmi', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+              ),
+
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFDF8),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFB45309), width: 3),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFD97706).withValues(alpha: 0.08),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFD97706), width: 1.2),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: const [
+                              Text('✦', style: TextStyle(color: Color(0xFFB45309), fontSize: 14)),
+                              Text('✦', style: TextStyle(color: Color(0xFFB45309), fontSize: 14)),
+                            ],
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.spa_rounded, color: AppColors.primary, size: 18),
+                              SizedBox(width: 6),
+                              Text(
+                                'EVA MENTAL HEALTH ECOSYSTEM',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.8,
+                                  color: Color(0xFF1E3A8A),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'LEMBAGA LAYANAN TELEKONSELING & KESEHATAN JIWA TERINTEGRASI',
+                            style: TextStyle(
+                              fontSize: 7.5,
+                              letterSpacing: 0.8,
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            cert.title,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.2,
+                              color: Color(0xFF1E293B),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            cert.subtitle,
+                            style: const TextStyle(
+                              fontSize: 9.5,
+                              fontStyle: FontStyle.italic,
+                              color: Color(0xFFB45309),
+                              fontWeight: FontWeight.w600,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(width: 40, height: 1.2, color: const Color(0xFFD97706)),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 6),
+                                child: Text('★', style: TextStyle(color: Color(0xFFD97706), fontSize: 10)),
+                              ),
+                              Container(width: 40, height: 1.2, color: const Color(0xFFD97706)),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Diberikan dengan penuh hormat & apresiasi kepada:',
+                            style: TextStyle(fontSize: 10, color: Color(0xFF64748B), fontStyle: FontStyle.italic),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            cert.recipientName,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0F172A),
+                              letterSpacing: 0.5,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          Container(
+                            margin: const EdgeInsets.only(top: 4, bottom: 8),
+                            height: 1.5,
+                            width: 140,
+                            color: const Color(0xFFD97706),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '★ ${cert.milestoneCriteria} ★',
+                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              cert.description,
+                              style: const TextStyle(fontSize: 10.5, color: Color(0xFF334155), height: 1.45),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No: ${cert.certificateNumber}  •  Diterbitkan di Jakarta, ${cert.issueDate}',
+                            style: const TextStyle(fontSize: 9, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Column(
+                                children: [
+                                  const Text(
+                                    'dr. Robert W., Sp.KJ',
+                                    style: TextStyle(
+                                      fontFamily: 'serif',
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF1E3A8A),
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                  Container(height: 1, width: 85, color: const Color(0xFFCBD5E1)),
+                                  const SizedBox(height: 2),
+                                  const Text('Ketua Komite Medis', style: TextStyle(fontSize: 8, color: Color(0xFF64748B))),
+                                ],
+                              ),
+                              Container(
+                                width: 52,
+                                height: 52,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: const RadialGradient(
+                                    colors: [Color(0xFFFDE68A), Color(0xFFD97706), Color(0xFFB45309)],
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFFD97706).withValues(alpha: 0.35),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                  border: Border.all(color: const Color(0xFFFEF3C7), width: 1.5),
+                                ),
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: const [
+                                      Icon(Icons.workspace_premium_rounded, size: 20, color: Colors.white),
+                                      Text(
+                                        'VERIFIED',
+                                        style: TextStyle(
+                                          fontSize: 6,
+                                          fontWeight: FontWeight.w900,
+                                          color: Colors.white,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              Column(
+                                children: [
+                                  const Text(
+                                    'Nadine L., M.Psi',
+                                    style: TextStyle(
+                                      fontFamily: 'serif',
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF1E3A8A),
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                  Container(height: 1, width: 85, color: const Color(0xFFCBD5E1)),
+                                  const SizedBox(height: 2),
+                                  const Text('Direktur Konseling', style: TextStyle(fontSize: 8, color: Color(0xFF64748B))),
+                                ],
+                              ),
+                            ],
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: const [
+                              Text('✦', style: TextStyle(color: Color(0xFFB45309), fontSize: 14)),
+                              Text('✦', style: TextStyle(color: Color(0xFFB45309), fontSize: 14)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF16A34A),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        icon: const Icon(Icons.download_rounded, size: 18),
+                        label: const Text('Unduh Sertifikat (PDF)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        onPressed: () {
+                          Navigator.of(ctx).pop();
+                          TopToast.show(
+                            context,
+                            title: 'Sertifikat Berhasil Diunduh! 📄',
+                            message: 'Tersimpan di unduhan: ${cert.certificateNumber.replaceAll("/", "_")}.pdf',
+                            type: ToastType.success,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
     final user = authState.value;
+    final userCerts = _getCertificatesForUser(user);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
@@ -1488,23 +2643,19 @@ class _CounselorProfileTabState extends ConsumerState<_CounselorProfileTab> {
                                 style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                               ),
                               const SizedBox(height: 6),
-                              Row(
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.verifiedBg,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      'STR: ${user?.strNumber ?? "4192-PSI-2024"}',
-                                      style: const TextStyle(
-                                        color: AppColors.verifiedGreen,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ),
+                                  if (user?.isVolunteer == true)
+                                    StatusBadge.volunteer('Relawan Teman Sebaya')
+                                  else if (user?.isPartner == true)
+                                    StatusBadge.proPartner('Psikolog Mitra')
+                                  else
+                                    StatusBadge.proIndependent('Psikolog Mandiri'),
+                                  if (user?.isProfessional == true)
+                                    StatusBadge.coins(user?.coinBalance ?? 1250),
                                 ],
                               ),
                             ],
@@ -1542,133 +2693,129 @@ class _CounselorProfileTabState extends ConsumerState<_CounselorProfileTab> {
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
 
-              // CARD REVIW & KEPUASAN PASIEN
-              InkWell(
-                onTap: _showPatientReviewsModal,
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
+              // 1.B. PROMINENT UPGRADE CARD (KHUSUS RELAWAN TEMAN SEBAYA)
+              if (user?.isVolunteer == true) ...[
+                const SizedBox(height: 12),
+                Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFEEF2FF), Color(0xFFF5F3FF)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFECEFF8)),
+                    border: Border.all(color: const Color(0xFFD6E4FF)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.05),
+                        blurRadius: 14,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.secondary,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Icon(Icons.star_rounded, color: AppColors.primary, size: 24),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Text(
+                                  'Tingkatkan Status Praktik',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Upgrade ke Psikolog Profesional untuk membuka tarif koin honorarium dan rekam klinis SOAP.',
+                                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.35),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text('Kepuasan Pasien • 4.9 / 5.0', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            SizedBox(height: 2),
-                            Text('Lihat rincian 140 ulasan & testimoni konseling Anda', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                          ],
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          _buildBenefitPill('💰 Tarif Koin'),
+                          _buildBenefitPill('📋 Rekam SOAP Medis'),
+                          _buildBenefitPill('📜 Sertifikasi Praktisi'),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                          label: const Text(
+                            'Ajukan Verifikasi STR & Upgrade Sekarang',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                          onPressed: () => _showUpgradeRoleModal(context),
                         ),
                       ),
-                      const Icon(Icons.chevron_right_rounded, color: AppColors.textLight, size: 22),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
+              ],
 
-              // 2. SISTEM PENERIMAAN BOOKING PASIEN (MANUAL CONFIRM VS AUTO)
-              const Text('Sistem Penerimaan Booking Pasien', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              const SizedBox(height: 4),
-              const Text(
-                'Tentukan bagaimana reservasi jadwal konsultasi baru dari pasien diproses oleh sistem.',
-                style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 10),
-
+              // CATEGORY SWITCHER PILLS (PREVIEW MODES) - SUBTLE & CLEAN
               Container(
-                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.only(top: 10, bottom: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFECEFF8)),
+                  color: const Color(0xFFF1F3FA),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: Column(
+                child: Row(
                   children: [
-                    // Opsi 1: Menunggu Persetujuan Psikolog
-                    InkWell(
-                      onTap: () => setState(() => _requireManualApproval = true),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            _requireManualApproval ? Icons.radio_button_checked : Icons.radio_button_off,
-                            color: _requireManualApproval ? AppColors.primary : AppColors.textLight,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
-                                Text('Menunggu Persetujuan Psikolog (Disarankan)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                SizedBox(height: 2),
-                                Text(
-                                  'Setiap pasien booking, Anda mendapat notifikasi & berhak menyetujui atau mengajukan opsi jadwal lain.',
-                                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Divider(height: 20, color: Color(0xFFF0F2F8)),
-
-                    // Opsi 2: Otomatis Diterima (Instan)
-                    InkWell(
-                      onTap: () => setState(() => _requireManualApproval = false),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            !_requireManualApproval ? Icons.radio_button_checked : Icons.radio_button_off,
-                            color: !_requireManualApproval ? AppColors.primary : AppColors.textLight,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
-                                Text('Otomatis Diterima (Instan Booking)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                SizedBox(height: 2),
-                                Text(
-                                  'Slot konsultasi langsung terkunci otomatis jika pembayaran pasien telah terkonfirmasi.',
-                                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                    const Icon(Icons.tune_rounded, size: 13, color: AppColors.textSecondary),
+                    const SizedBox(width: 6),
+                    const Text('Pratinjau Peran:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _buildRoleSwitcherChip('Teman Sebaya', CounselorRole.peerVolunteer, user?.role),
+                            const SizedBox(width: 6),
+                            _buildRoleSwitcherChip('Mandiri', CounselorRole.professionalIndependent, user?.role),
+                            const SizedBox(width: 6),
+                            _buildRoleSwitcherChip('Mitra', CounselorRole.professionalPartner, user?.role),
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-              // 3. JADWAL PRAKTIK & OPERASIONAL
-              const Text('Hari & Jam Praktik Online', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              const SizedBox(height: 10),
+              // 2. JADWAL PRAKTIK & OPERASIONAL
+              _buildSectionHeader('Hari & Jam Praktik Online', Icons.calendar_month_rounded),
 
               Container(
                 padding: const EdgeInsets.all(16),
@@ -1710,14 +2857,14 @@ class _CounselorProfileTabState extends ConsumerState<_CounselorProfileTab> {
                                 width: 1.2,
                               ),
                               boxShadow: isActive
-                                  ? [
-                                      BoxShadow(
-                                        color: AppColors.primary.withValues(alpha: 0.18),
-                                        blurRadius: 6,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ]
-                                  : null,
+                                    ? [
+                                        BoxShadow(
+                                          color: AppColors.primary.withValues(alpha: 0.18),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ]
+                                    : null,
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -1871,76 +3018,327 @@ class _CounselorProfileTabState extends ConsumerState<_CounselorProfileTab> {
               ),
               const SizedBox(height: 20),
 
-              // 4. HONORARIUM & TARIF (CLEAN MODERN CARDS)
-              const Text('Honorarium & Keuangan Praktik', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              // 3. HONORARIUM & TARIF KOIN (SESUAI PERAN)
+              _buildSectionHeader('Honorarium & Keuangan Praktik', Icons.account_balance_wallet_outlined),
+
+              if (user?.isVolunteer == true) ...[
+                _buildCleanMenuCard(
+                  icon: Icons.workspace_premium_rounded,
+                  iconColor: AppColors.primary,
+                  iconBg: AppColors.primaryContainer,
+                  title: 'Upgrade ke Psikolog Profesional',
+                  subtitle: 'Daftarkan STR/SIPP untuk membuka dompet koin & rekam SOAP',
+                  trailingBadge: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text('Upgrade 🚀', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)),
+                  ),
+                  onTap: () => _showUpgradeRoleModal(context),
+                ),
+              ] else if (user?.isPartner == true) ...[
+                _buildCleanMenuCard(
+                  icon: Icons.apartment_rounded,
+                  iconColor: const Color(0xFF7E22CE),
+                  iconBg: const Color(0xFFF3E8FF),
+                  title: 'Tarif & Keuangan Mitra (Web Portal)',
+                  subtitle: 'Koin sesi masuk ke kas lembaga mitra (${user?.partnerName ?? "RS Mitra"})',
+                  trailingBadge: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3E8FF),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text('Web Mitra', style: TextStyle(color: Color(0xFF7E22CE), fontWeight: FontWeight.bold, fontSize: 10)),
+                  ),
+                  onTap: () {
+                    TopToast.show(
+                      context,
+                      title: 'Pengaturan Koin Mitra',
+                      message: 'Sebagai psikolog mitra, tarif koin dikelola oleh administrator mitra via Web Portal.',
+                      type: ToastType.info,
+                    );
+                  },
+                ),
+              ] else ...[
+                _buildCleanMenuCard(
+                  icon: Icons.monetization_on_rounded,
+                  iconColor: const Color(0xFFC2410C),
+                  iconBg: const Color(0xFFFFF7ED),
+                  title: 'Tarif Koin Konsultasi',
+                  subtitle: '${user?.coinsPerSession ?? 150} Koin per $_sessionDuration menit (≈ Rp ${_formatNumber((user?.coinsPerSession ?? 150) * 1000)})',
+                  trailingBadge: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF7ED),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${user?.coinsPerSession ?? 150} Koin',
+                          style: const TextStyle(color: Color(0xFFC2410C), fontWeight: FontWeight.bold, fontSize: 11),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.edit_outlined, size: 12, color: Color(0xFFC2410C)),
+                      ],
+                    ),
+                  ),
+                  onTap: () => _showEditCoinsRateModal(user),
+                ),
+                _buildCleanMenuCard(
+                  icon: Icons.account_balance_outlined,
+                  iconColor: const Color(0xFF2563EB),
+                  iconBg: const Color(0xFFEFF6FF),
+                  title: 'Rekening Bank Pencairan Koin',
+                  subtitle: 'BCA • ****8192 (dr. Sarah Jenkins)',
+                  trailingBadge: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.verifiedBg,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text('Terverifikasi ✅', style: TextStyle(color: AppColors.verifiedGreen, fontWeight: FontWeight.bold, fontSize: 10)),
+                  ),
+                  onTap: _showBankAccountModal,
+                ),
+              ],
+
+              const SizedBox(height: 16),
+
+              // 4. PENCADANGAN REKAM MEDIS & GOOGLE DRIVE E2EE (GAYA WHATSAPP)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: _buildSectionHeader('Pencadangan Rekam Medis', Icons.cloud_sync_outlined),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.verifiedBg,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text('E2EE 256-bit ✅', style: TextStyle(color: AppColors.verifiedGreen, fontWeight: FontWeight.bold, fontSize: 10)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Data rekam medis SOAP & audio transkrip tersimpan lokal di perangkat Anda (bukan di server EVA). Cadangkan ke Google Drive pribadi Anda untuk keamanan.',
+                style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
+              ),
               const SizedBox(height: 10),
 
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFECEFF8)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F5E9),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(Icons.cloud_sync_rounded, color: AppColors.verifiedGreen, size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                user?.googleDriveEmail ?? 'sarah.anindya@gmail.com',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Cadangan: ${user?.lastDriveBackup != null ? "Hari ini, 10:15 WIB (18.4 MB)" : "Belum dicadangkan"} • Otomatis $_backupFrequency',
+                                style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.tune_rounded, color: AppColors.primary, size: 20),
+                          onPressed: () => _showDriveBackupSettingsModal(user),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 20, color: Color(0xFFF0F2F8)),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Color(0xFFECEFF8)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                            ),
+                            icon: const Icon(Icons.cloud_download_outlined, size: 16, color: AppColors.textPrimary),
+                            label: const FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text('Pulihkan Data', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                            ),
+                            onPressed: _handleRestoreDrive,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                            ),
+                            icon: _isBackingUp
+                                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                : const Icon(Icons.cloud_upload_rounded, size: 16),
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                _isBackingUp ? 'Mencadangkan...' : 'Cadangkan Sekarang',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            onPressed: _isBackingUp ? null : () => _handleBackupNow(user),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 5. PENCAPAIAN & SERTIFIKASI EVA (MULTIPLE CERTIFICATES SYSTEM)
+              _buildSectionHeader('Pencapaian & Sertifikasi Eva', Icons.military_tech_rounded),
+
               _buildCleanMenuCard(
-                icon: Icons.payments_outlined,
-                iconColor: AppColors.verifiedGreen,
-                iconBg: AppColors.verifiedBg,
-                title: 'Tarif Konsultasi',
-                subtitle: 'Rp ${_formatNumber(_consultationRate)} per $_sessionDuration menit',
+                icon: Icons.workspace_premium_rounded,
+                iconColor: const Color(0xFFD97706),
+                iconBg: const Color(0xFFFEF3C7),
+                title: 'Sertifikat Penghargaan & Pencapaian',
+                subtitle: '${userCerts.length} Sertifikat Resmi Diraih • Siap Diunduh (PDF)',
                 trailingBadge: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryContainer,
+                    color: const Color(0xFFFEF3C7),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Rp ${_formatNumber(_consultationRate)}',
-                        style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 11),
+                  child: Text(
+                    '${userCerts.length} Sertif 🏆',
+                    style: const TextStyle(color: Color(0xFFB45309), fontWeight: FontWeight.bold, fontSize: 10),
+                  ),
+                ),
+                onTap: () => _showCertificatesGalleryModal(context, user),
+              ),
+
+              SizedBox(
+                height: 104,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: userCerts.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 10),
+                  itemBuilder: (context, idx) {
+                    final cert = userCerts[idx];
+                    return GestureDetector(
+                      onTap: () => _showOfficialCertificateDialog(context, cert),
+                      child: Container(
+                        width: 200,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFECEFF8)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.02),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.workspace_premium_rounded, color: cert.badgeColor, size: 16),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    cert.title,
+                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              cert.milestoneCriteria,
+                              style: const TextStyle(fontSize: 9.5, color: AppColors.textSecondary),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  cert.issueDate,
+                                  style: const TextStyle(fontSize: 8.5, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600),
+                                ),
+                                const Text(
+                                  'Lihat Sertif >',
+                                  style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: AppColors.primary),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.edit_outlined, size: 12, color: AppColors.primary),
-                    ],
-                  ),
+                    );
+                  },
                 ),
-                onTap: _showEditRateModal,
               ),
+              const SizedBox(height: 16),
 
-              _buildCleanMenuCard(
-                icon: Icons.account_balance_outlined,
-                iconColor: const Color(0xFF2563EB),
-                iconBg: const Color(0xFFEFF6FF),
-                title: 'Rekening Bank Pencairan',
-                subtitle: 'BCA • ****8192 (dr. Sarah Jenkins)',
-                trailingBadge: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.verifiedBg,
-                    borderRadius: BorderRadius.circular(8),
+              // 6. LEGALITAS & KEAMANAN KLINIS (CLEAN MODERN CARDS)
+              _buildSectionHeader('Legalitas & Keamanan Praktik', Icons.verified_user_outlined),
+
+              // Kredensial SIPP & STR hanya untuk profesional (bukan relawan teman sebaya)
+              if (user?.isVolunteer != true) ...[
+                _buildCleanMenuCard(
+                  icon: Icons.verified_user_outlined,
+                  iconColor: AppColors.verifiedGreen,
+                  iconBg: AppColors.verifiedBg,
+                  title: 'Kredensial SIPP & STR Psikolog',
+                  subtitle: 'STR #4192-PSI-2024 • KTKI & HIMPSI',
+                  trailingBadge: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.verifiedBg,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text('Aktif 2029', style: TextStyle(color: AppColors.verifiedGreen, fontWeight: FontWeight.bold, fontSize: 10)),
                   ),
-                  child: const Text('Terverifikasi ✅', style: TextStyle(color: AppColors.verifiedGreen, fontWeight: FontWeight.bold, fontSize: 10)),
+                  onTap: _showStrCredentialsModal,
                 ),
-                onTap: _showBankAccountModal,
-              ),
-
-              const SizedBox(height: 10),
-
-              // 5. LEGALITAS & KEAMANAN KLINIS (CLEAN MODERN CARDS)
-              const Text('Legalitas & Keamanan Praktik', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              const SizedBox(height: 10),
-
-              _buildCleanMenuCard(
-                icon: Icons.verified_user_outlined,
-                iconColor: AppColors.verifiedGreen,
-                iconBg: AppColors.verifiedBg,
-                title: 'Kredensial SIPP & STR Psikolog',
-                subtitle: 'STR #4192-PSI-2024 • KTKI & HIMPSI',
-                trailingBadge: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.verifiedBg,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text('Aktif 2029', style: TextStyle(color: AppColors.verifiedGreen, fontWeight: FontWeight.bold, fontSize: 10)),
-                ),
-                onTap: _showStrCredentialsModal,
-              ),
+              ],
 
               _buildCleanMenuCard(
                 icon: Icons.shield_outlined,
@@ -1959,18 +3357,31 @@ class _CounselorProfileTabState extends ConsumerState<_CounselorProfileTab> {
                 onTap: _showSecuritySettingsModal,
               ),
 
-              _buildCleanMenuCard(
-                icon: Icons.menu_book_outlined,
-                iconColor: const Color(0xFFD97706),
-                iconBg: const Color(0xFFFEF3C7),
-                title: 'Panduan Etik & SOP HIMPSI',
-                subtitle: 'Kode etik layanan telekonseling & penanganan krisis',
-                trailingBadge: const SizedBox.shrink(),
-                onTap: _showEthicalGuidelinesModal,
-              ),
+              // Panduan Etik sesuai peran
+              if (user?.isVolunteer == true) ...[
+                _buildCleanMenuCard(
+                  icon: Icons.menu_book_rounded,
+                  iconColor: const Color(0xFF0284C7),
+                  iconBg: const Color(0xFFE0F2FE),
+                  title: 'Panduan Etika Konselor Teman Sebaya',
+                  subtitle: 'Kode etik pendampingan non-klinis & protokol krisis',
+                  trailingBadge: const SizedBox.shrink(),
+                  onTap: _showPeerCounselorGuidelinesModal,
+                ),
+              ] else ...[
+                _buildCleanMenuCard(
+                  icon: Icons.menu_book_outlined,
+                  iconColor: const Color(0xFFD97706),
+                  iconBg: const Color(0xFFFEF3C7),
+                  title: 'Panduan Etik & SOP HIMPSI',
+                  subtitle: 'Kode etik layanan telekonseling & penanganan krisis',
+                  trailingBadge: const SizedBox.shrink(),
+                  onTap: _showEthicalGuidelinesModal,
+                ),
+              ],
               const SizedBox(height: 24),
 
-              // 6. LOGOUT
+              // 7. LOGOUT
               GestureDetector(
                 onTap: () async {
                   await ref.read(authStateProvider.notifier).logout();

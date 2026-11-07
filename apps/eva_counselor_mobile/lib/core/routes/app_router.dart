@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../features/auth/presentation/screens/partner_counselor_activation_screen.dart';
 import '../../features/auth/presentation/screens/psychologist_login_screen.dart';
 import '../../features/auth/presentation/screens/psychologist_registration_screen.dart';
 import '../../features/dashboard/presentation/screens/counselor_main_shell_screen.dart';
@@ -11,11 +12,30 @@ import 'app_route_transitions.dart';
 
 class AppRouter {
   static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
-    switch (settings.name) {
+    final uri = Uri.parse(settings.name ?? '/');
+    switch (uri.path) {
       case '/':
       case '/counselor-login':
         return FadeThroughPageRoute(
           page: const PsychologistLoginScreen(),
+          settings: settings,
+        );
+
+      case '/counselor-activation':
+        final args = settings.arguments as Map<String, dynamic>?;
+        final token = args?['token'] as String? ?? uri.queryParameters['token'];
+        final email = args?['email'] as String? ?? uri.queryParameters['email'];
+        final partnerName =
+            args?['partnerName'] as String? ?? uri.queryParameters['partner'];
+        final fullName =
+            args?['fullName'] as String? ?? uri.queryParameters['name'];
+        return FadeThroughPageRoute(
+          page: PartnerCounselorActivationScreen(
+            invitationToken: token,
+            prefilledEmail: email,
+            partnerName: partnerName,
+            fullName: fullName,
+          ),
           settings: settings,
         );
 
@@ -51,6 +71,22 @@ class AppRouter {
         );
 
       case '/counselor-video-call':
+        if (settings.arguments is Map<String, dynamic>) {
+          final args = settings.arguments as Map<String, dynamic>;
+          final sessionId = args['sessionId'] as String? ?? 'session-live-001';
+          final patientName = args['patientName'] as String?;
+          final scheduledTime = args['scheduledTime'] as String?;
+          final isLiveNow = args['isLiveNow'] as bool? ?? true;
+          return FadeThroughPageRoute(
+            page: VideoConsultationScreen(
+              sessionId: sessionId,
+              patientName: patientName,
+              scheduledTime: scheduledTime,
+              isEarlyEntry: !isLiveNow,
+            ),
+            settings: settings,
+          );
+        }
         final sessionId = settings.arguments as String? ?? 'session-live-001';
         return FadeThroughPageRoute(
           page: VideoConsultationScreen(sessionId: sessionId),
