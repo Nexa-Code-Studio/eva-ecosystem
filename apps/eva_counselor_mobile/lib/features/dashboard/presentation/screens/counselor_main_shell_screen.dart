@@ -11,6 +11,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../finances/presentation/screens/transaction_history_screen.dart';
 import '../../../patients/presentation/screens/patient_list_screen.dart';
 import '../providers/counselor_nav_provider.dart';
+import '../widgets/counselor_tour_guide_modal.dart';
 import 'counselor_home_screen.dart';
 
 class CounselorMainShellScreen extends ConsumerStatefulWidget {
@@ -29,6 +30,23 @@ class _CounselorMainShellScreenState
     TransactionHistoryScreen(),
     _CounselorProfileTab(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkFirstTimeTour();
+  }
+
+  Future<void> _checkFirstTimeTour() async {
+    final hasSeen = await CounselorTourGuideModal.hasSeenTour();
+    if (!hasSeen && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          CounselorTourGuideModal.show(context, ref, isFirstTime: true);
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2122,14 +2140,15 @@ class _CounselorProfileTabState extends ConsumerState<_CounselorProfileTab> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 16,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-        ),
-        child: SingleChildScrollView(
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 14,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2144,136 +2163,151 @@ class _CounselorProfileTabState extends ConsumerState<_CounselorProfileTab> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFEF3C7),
-                          borderRadius: BorderRadius.circular(14),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFD97706), size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Sertifikat & Pencapaian',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        child: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFD97706), size: 22),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Sertifikat & Pencapaian',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
-                          ),
-                          Text(
-                            '${certs.length} Sertifikat resmi diraih berdasarkan milestone',
-                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                          ),
-                        ],
-                      ),
-                    ],
+                        Text(
+                          '${certs.length} Sertifikat resmi diraih berdasarkan milestone',
+                          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 20, color: AppColors.textSecondary),
+                    icon: const Icon(Icons.close_rounded, size: 22, color: AppColors.textSecondary),
+                    splashRadius: 22,
                     onPressed: () => Navigator.of(ctx).pop(),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              ...certs.map((c) => Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFFECEFF8)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: c.badgeColor.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(10),
+              const SizedBox(height: 14),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(ctx).size.height * 0.65,
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: certs.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (modalCtx, idx) {
+                    final c = certs[idx];
+                    return Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFFECEFF8)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: c.badgeColor.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(Icons.military_tech_rounded, color: c.badgeColor, size: 20),
                               ),
-                              child: Icon(Icons.military_tech_rounded, color: c.badgeColor, size: 20),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    c.title,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.textPrimary),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    c.milestoneCriteria,
-                                    style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                                  ),
-                                ],
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      c.title,
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.textPrimary),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      c.milestoneCriteria,
+                                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  c.issueDate,
+                                  style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
+                                ),
                               ),
-                              child: Text(
-                                c.issueDate,
-                                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            c.description,
+                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const Divider(height: 20, color: Color(0xFFF1F5F9)),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'No: ${c.certificateNumber}',
+                                style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          c.description,
-                          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const Divider(height: 20, color: Color(0xFFF1F5F9)),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'No: ${c.certificateNumber}',
-                              style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
-                            ),
-                            ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                icon: const Icon(Icons.remove_red_eye_outlined, size: 14),
+                                label: const Text('Buka & Unduh', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                onPressed: () {
+                                  Navigator.of(modalCtx).pop();
+                                  _showOfficialCertificateDialog(context, c);
+                                },
                               ),
-                              icon: const Icon(Icons.remove_red_eye_outlined, size: 14),
-                              label: const Text('Buka & Unduh', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                              onPressed: () {
-                                Navigator.of(ctx).pop();
-                                _showOfficialCertificateDialog(context, c);
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  )),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
             ],
           ),
         ),
@@ -2300,19 +2334,20 @@ class _CounselorProfileTabState extends ConsumerState<_CounselorProfileTab> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.only(top: 12, right: 14, left: 18),
+                padding: const EdgeInsets.only(top: 8, right: 8, left: 16),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: const [
-                        Icon(Icons.workspace_premium_rounded, size: 18, color: Color(0xFFD97706)),
-                        SizedBox(width: 6),
-                        Text('Pratinjau Sertifikat Resmi', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                      ],
+                    const Icon(Icons.workspace_premium_rounded, size: 18, color: Color(0xFFD97706)),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Pratinjau Sertifikat Resmi',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: AppColors.textPrimary),
+                      ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, size: 20),
+                      icon: const Icon(Icons.close_rounded, size: 22, color: AppColors.textSecondary),
+                      splashRadius: 22,
                       onPressed: () => Navigator.of(ctx).pop(),
                     ),
                   ],
@@ -2553,6 +2588,16 @@ class _CounselorProfileTabState extends ConsumerState<_CounselorProfileTab> {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text('Tutup', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                    ),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
@@ -3245,76 +3290,6 @@ class _CounselorProfileTabState extends ConsumerState<_CounselorProfileTab> {
                 ),
                 onTap: () => _showCertificatesGalleryModal(context, user),
               ),
-
-              SizedBox(
-                height: 104,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: userCerts.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 10),
-                  itemBuilder: (context, idx) {
-                    final cert = userCerts[idx];
-                    return GestureDetector(
-                      onTap: () => _showOfficialCertificateDialog(context, cert),
-                      child: Container(
-                        width: 200,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFECEFF8)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.02),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.workspace_premium_rounded, color: cert.badgeColor, size: 16),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    cert.title,
-                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Text(
-                              cert.milestoneCriteria,
-                              style: const TextStyle(fontSize: 9.5, color: AppColors.textSecondary),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  cert.issueDate,
-                                  style: const TextStyle(fontSize: 8.5, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600),
-                                ),
-                                const Text(
-                                  'Lihat Sertif >',
-                                  style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: AppColors.primary),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
               const SizedBox(height: 16),
 
               // 6. LEGALITAS & KEAMANAN KLINIS (CLEAN MODERN CARDS)
@@ -3379,6 +3354,23 @@ class _CounselorProfileTabState extends ConsumerState<_CounselorProfileTab> {
                   onTap: _showEthicalGuidelinesModal,
                 ),
               ],
+
+              _buildCleanMenuCard(
+                icon: Icons.explore_rounded,
+                iconColor: const Color(0xFF6366F1),
+                iconBg: const Color(0xFFEEF2FF),
+                title: 'Tur Panduan Aplikasi Konselor',
+                subtitle: 'Pelajari alur tiap menu, rekam medis, koin & backup Drive',
+                trailingBadge: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEEF2FF),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text('Buka Tur 🧭', style: TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.bold, fontSize: 10)),
+                ),
+                onTap: () => CounselorTourGuideModal.show(context, ref),
+              ),
               const SizedBox(height: 24),
 
               // 7. LOGOUT
