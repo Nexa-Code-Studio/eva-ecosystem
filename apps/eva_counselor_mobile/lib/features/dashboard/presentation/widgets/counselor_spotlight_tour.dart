@@ -1,7 +1,7 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/theme/app_colors.dart';
+import 'counselor_spotlight_card.dart';
 
 class SpotlightStepModel {
   final int index;
@@ -88,25 +88,19 @@ class CounselorSpotlightTourOverlay extends StatelessWidget {
     final isLast = step.index == steps.length - 1;
     final size = MediaQuery.of(context).size;
     final navLabels = ['Beranda', 'Pasien', 'Keuangan', 'Profil'];
-    final rrect = RRect.fromRectAndRadius(targetRect, const Radius.circular(18));
 
     return Material(
       color: Colors.transparent,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // 1. BLURRED & DARKENED SCRIM EVERYWHERE EXCEPT THE BOXED MENU
-          ClipPath(
-            clipper: _InvertedRRectClipper(rrect: rrect),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 4.0, sigmaY: 4.0),
-              child: Container(
-                color: const Color(0xC6070B14),
-              ),
-            ),
+          // 1. LIGHTWEIGHT DARK SCRIM WITH CUT-OUT HOLE (ZERO BLUR, ZERO GPU STALL)
+          CustomPaint(
+            size: size,
+            painter: _SpotlightHolePainter(targetRect: targetRect),
           ),
 
-          // 2. TAP LISTENER OVER DARK BACKGROUND TO ADVANCE
+          // 2. TAP BACKGROUND TO ADVANCE
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
@@ -114,7 +108,7 @@ class CounselorSpotlightTourOverlay extends StatelessWidget {
             ),
           ),
 
-          // 3. THE BOXED MENU ITEM (100% SHARP, ZERO BLUR, HIGHLIGHTED IN A ROUNDED BOX)
+          // 3. THE PROMINENT ROUNDED HIGHLIGHT BOX (CRISP, 100% SHARP)
           Positioned(
             left: targetRect.left,
             top: targetRect.top,
@@ -123,13 +117,18 @@ class CounselorSpotlightTourOverlay extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 color: step.accentColor,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.white, width: 2.2),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white, width: 2.5),
                 boxShadow: [
                   BoxShadow(
-                    color: step.accentColor.withValues(alpha: 0.6),
+                    color: step.accentColor.withValues(alpha: 0.7),
                     blurRadius: 18,
                     spreadRadius: 2,
+                  ),
+                  const BoxShadow(
+                    color: Colors.black38,
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
                   ),
                 ],
               ),
@@ -142,13 +141,13 @@ class CounselorSpotlightTourOverlay extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(step.icon, color: Colors.white, size: 20),
+                        Icon(step.icon, color: Colors.white, size: 21),
                         const SizedBox(height: 2),
                         Text(
                           navLabels[step.index],
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 10,
+                            fontSize: 10.5,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -160,146 +159,24 @@ class CounselorSpotlightTourOverlay extends StatelessWidget {
             ),
           ),
 
-          // 4. FLOATING COACHMARK TOOLTIP CARD (ABOVE TARGET BOX)
+          // 4. FLOATING COACHMARK TOOLTIP CARD
           Positioned(
-            bottom: (size.height - targetRect.top) + 12,
+            bottom: (size.height - targetRect.top) + 14,
             left: 20,
             right: 20,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.35),
-                    blurRadius: 28,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header: Step pill & Skip
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: step.accentColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(step.icon, size: 14, color: step.accentColor),
-                            const SizedBox(width: 5),
-                            Text(
-                              'Menu ${step.index + 1} dari ${steps.length}',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: step.accentColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: onSkip,
-                        behavior: HitTestBehavior.opaque,
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Lewati',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                              SizedBox(width: 3),
-                              Icon(Icons.close_rounded, size: 16, color: AppColors.textSecondary),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Title
-                  Text(
-                    step.title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-
-                  // Short Snappy Description
-                  Text(
-                    step.description,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      color: Color(0xFF475569),
-                      height: 1.45,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Footer: Step dots & Action Button
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: List.generate(steps.length, (dotIdx) {
-                          final isActive = dotIdx == step.index;
-                          return AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            margin: const EdgeInsets.only(right: 6),
-                            width: isActive ? 20 : 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: isActive ? step.accentColor : const Color(0xFFCBD5E1),
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                          );
-                        }),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: step.accentColor,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        onPressed: onNext,
-                        child: Text(
-                          isLast ? 'Mulai Praktik 🚀' : 'Lanjut →',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            child: CounselorSpotlightCard(
+              step: step,
+              totalSteps: steps.length,
+              isLast: isLast,
+              onNext: onNext,
+              onSkip: onSkip,
             ),
           ),
 
-          // 5. EXACT TRIANGLE POINTER POINTING DIRECTLY AT THE BOX CENTER
+          // 5. TRIANGLE POINTER
           Positioned(
             left: targetRect.center.dx - 9,
-            bottom: (size.height - targetRect.top) + 4,
+            bottom: (size.height - targetRect.top) + 6,
             child: CustomPaint(
               size: const Size(18, 9),
               painter: _TrianglePointerPainter(color: Colors.white),
@@ -311,22 +188,31 @@ class CounselorSpotlightTourOverlay extends StatelessWidget {
   }
 }
 
-class _InvertedRRectClipper extends CustomClipper<Path> {
-  final RRect rrect;
+class _SpotlightHolePainter extends CustomPainter {
+  final Rect targetRect;
+  final double radius;
+  final Color overlayColor;
 
-  _InvertedRRectClipper({required this.rrect});
+  _SpotlightHolePainter({
+    required this.targetRect,
+    this.radius = 16.0,
+    this.overlayColor = const Color(0xDD0A0F1D),
+  });
 
   @override
-  Path getClip(Size size) {
-    return Path()
-      ..fillType = PathFillType.evenOdd
-      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
-      ..addRRect(rrect);
+  void paint(Canvas canvas, Size size) {
+    final backgroundPath = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+    final holePath = Path()
+      ..addRRect(RRect.fromRectAndRadius(targetRect, Radius.circular(radius)));
+    final combinedPath = Path.combine(PathOperation.difference, backgroundPath, holePath);
+
+    final paint = Paint()..color = overlayColor;
+    canvas.drawPath(combinedPath, paint);
   }
 
   @override
-  bool shouldReclip(covariant _InvertedRRectClipper oldClipper) {
-    return oldClipper.rrect != rrect;
+  bool shouldRepaint(covariant _SpotlightHolePainter oldDelegate) {
+    return oldDelegate.targetRect != targetRect || oldDelegate.overlayColor != overlayColor;
   }
 }
 
@@ -343,15 +229,13 @@ class _TrianglePointerPainter extends CustomPainter {
 
     final path = Path()
       ..moveTo(0, 0)
-      ..lineTo(size.width / 2, size.height)
       ..lineTo(size.width, 0)
+      ..lineTo(size.width / 2, size.height)
       ..close();
 
     canvas.drawPath(path, paint);
   }
 
   @override
-  bool shouldRepaint(covariant _TrianglePointerPainter oldDelegate) {
-    return oldDelegate.color != color;
-  }
+  bool shouldRepaint(covariant _TrianglePointerPainter oldDelegate) => oldDelegate.color != color;
 }
