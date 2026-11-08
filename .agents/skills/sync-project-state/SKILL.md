@@ -7,6 +7,9 @@ description: Synchronize task status and GitHub Project v2 based on verifiable e
 
 This skill validates concrete evidence before updating a task's state in `.agent/task-state.json` and the bound GitHub Project v2.
 
+> [!IMPORTANT]
+> **Developer Review Gate**: Mutasi status terminal (seperti menutup issue ke `Done`) atau modifikasi issue GitHub harus didahului konfirmasi dan review dari developer.
+
 ## Status Machine
 
 ```text

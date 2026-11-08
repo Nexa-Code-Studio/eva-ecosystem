@@ -11,5 +11,8 @@ class RecommendationRepositoryImpl implements RecommendationRepository {
   Future<List<RecommendationEntity>> getRecommendations() => _dataSource.getRecommendations();
 
   @override
+  Future<Map<String, dynamic>> getTodayRecommendation() => _dataSource.getTodayRecommendation();
+
+  @override
   Future<void> markAsCompleted(String id) => _dataSource.markAsCompleted(id);
 }

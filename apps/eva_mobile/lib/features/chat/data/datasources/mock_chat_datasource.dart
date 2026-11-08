@@ -111,4 +111,14 @@ class MockChatDataSource implements ChatDataSource {
 
     return userMsg;
   }
+
+  @override
+  Stream<String> streamConversationSummary(String conversationId) async* {
+    await Future.delayed(const Duration(milliseconds: 300));
+    const sample = 'Sesi percakapan curhat bersama EVA berjalan dengan hangat dan memberikan ruang aman untuk refleksi batin.';
+    for (final word in sample.split(' ')) {
+      await Future.delayed(const Duration(milliseconds: 60));
+      yield '$word ';
+    }
+  }
 }

@@ -1,16 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/config/app_config.dart';
+import 'package:eva_mobile/config/app_config.dart';
 import '../../domain/repositories/diary_repository.dart';
 import '../../domain/entities/diary_entry_entity.dart';
 import '../../data/datasources/mock_diary_datasource.dart';
 import '../../data/datasources/remote_diary_datasource.dart';
 import '../../data/repositories/diary_repository_impl.dart';
+import '../../data/repositories/fallback_diary_repository.dart';
 
 final diaryRepositoryProvider = Provider<DiaryRepository>((ref) {
+  final mockRepo = DiaryRepositoryImpl(MockDiaryDataSource());
+  final remoteRepo = DiaryRepositoryImpl(RemoteDiaryDataSource());
+
   if (AppConfig.useMockData) {
-    return DiaryRepositoryImpl(MockDiaryDataSource());
+    return mockRepo;
+  } else if (AppConfig.useHybridFallback) {
+    return FallbackDiaryRepository(remote: remoteRepo, mock: mockRepo);
   } else {
-    return DiaryRepositoryImpl(RemoteDiaryDataSource());
+    return remoteRepo;
   }
 });
 

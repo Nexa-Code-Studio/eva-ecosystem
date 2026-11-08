@@ -344,11 +344,11 @@ void main() {
 
     controller.handleSocketEvent({
       'type': 'turn.committed',
-      'final_transcript': 'halo luna apa kabar',
+      'final_transcript': 'halo eva apa kabar',
     });
 
     expect(controller.state.callState, CallState.thinking);
-    expect(controller.state.currentTranscript, 'halo luna apa kabar');
+    expect(controller.state.currentTranscript, 'halo eva apa kabar');
     expect(fakeSpeech.isListening, isFalse);
   });
 

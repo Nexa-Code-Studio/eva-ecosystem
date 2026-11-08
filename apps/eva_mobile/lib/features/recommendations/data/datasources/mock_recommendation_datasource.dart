@@ -44,6 +44,55 @@ class MockRecommendationDataSource implements RecommendationDataSource {
   }
 
   @override
+  Future<Map<String, dynamic>> getTodayRecommendation() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    return {
+      'conditionLabel': 'Fokus: Perawatan Diri & Relaksasi',
+      'conditionReason': 'Tingkat stres stabil. Pertahankan rutinitas meditasi.',
+      'severityLevel': 'Normal',
+      'isCrisis': false,
+      'todayActivity': {
+        'id': 'c1',
+        'title': 'Latihan Pernapasan 4-7-8',
+        'category': 'Mindfulness',
+        'targetCondition': 'stress',
+        'duration': '3-5 Menit',
+        'difficulty': 'Pemula',
+        'description': 'Tarik napas selama 4 hitungan, tahan 7 hitungan, buang perlahan selama 8 hitungan untuk menenangkan sistem saraf parasimpatis.',
+      },
+      'allRecommendations': [
+        {
+          'id': 'c1',
+          'title': 'Latihan Pernapasan 4-7-8',
+          'category': 'Mindfulness',
+          'targetCondition': 'stress',
+          'duration': '3-5 Menit',
+          'difficulty': 'Pemula',
+          'description': 'Tarik napas selama 4 hitungan, tahan 7 hitungan, buang perlahan selama 8 hitungan.',
+        },
+        {
+          'id': 'c2',
+          'title': 'Jurnal Rasa Syukur 3 Poin',
+          'category': 'Refleksi',
+          'targetCondition': 'general',
+          'duration': '5 Menit',
+          'difficulty': 'Mudah',
+          'description': 'Tuliskan 3 hal kecil yang kamu syukuri hari ini.',
+        },
+        {
+          'id': 'c3',
+          'title': 'Peregangan Leher & Bahu',
+          'category': 'Fisik',
+          'targetCondition': 'stress',
+          'duration': '3 Menit',
+          'difficulty': 'Mudah',
+          'description': 'Gerakkan leher ke kiri, kanan, atas, dan bawah secara perlahan.',
+        },
+      ],
+    };
+  }
+
+  @override
   Future<void> markAsCompleted(String id) async {
     await Future.delayed(const Duration(milliseconds: 200));
     final idx = _items.indexWhere((e) => e.id == id);

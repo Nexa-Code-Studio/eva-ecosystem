@@ -15,6 +15,12 @@ class DiaryRepositoryImpl implements DiaryRepository {
   Future<DiaryEntryEntity?> getDiaryEntryById(String id) => _dataSource.getDiaryEntryById(id);
 
   @override
+  Future<DiaryEntryEntity?> getTodayDiary() => _dataSource.getTodayDiary();
+
+  @override
+  Future<DiaryEntryEntity?> generateTodayDiary() => _dataSource.generateTodayDiary();
+
+  @override
   Future<DiaryEntryEntity> createDiaryEntry(String content, String moodTag) =>
       _dataSource.createDiaryEntry(content, moodTag);
 

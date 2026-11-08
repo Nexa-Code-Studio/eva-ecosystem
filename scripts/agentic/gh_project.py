@@ -220,6 +220,115 @@ def view_project(project_number: int = DEFAULT_PROJECT_NUMBER, owner: str = DEFA
     else:
         print(f"Error viewing project #{project_number}: {res.stderr.strip()}", file=sys.stderr)
 
+def edit_issue(
+    issue_number: int,
+    title: Optional[str] = None,
+    body: Optional[str] = None,
+    add_labels: Optional[List[str]] = None,
+    remove_labels: Optional[List[str]] = None,
+    add_assignees: Optional[List[str]] = None,
+    remove_assignees: Optional[List[str]] = None,
+    repo: str = f"{DEFAULT_ORG}/{DEFAULT_REPO}",
+    dry_run: bool = False,
+) -> Dict[str, Any]:
+    """Edits an existing GitHub issue."""
+    if dry_run:
+        print(f"\n--- DRY-RUN: GitHub Issue #{issue_number} Edit ---")
+        print(f"Repository:       {repo}")
+        print(f"Issue Number:     #{issue_number}")
+        if title:
+            print(f"New Title:        {title}")
+        if body:
+            print(f"New Body:\n{body}\n")
+        if add_labels:
+            print(f"Add Labels:       {', '.join(add_labels)}")
+        if remove_labels:
+            print(f"Remove Labels:    {', '.join(remove_labels)}")
+        if add_assignees:
+            print(f"Add Assignees:    {', '.join(add_assignees)}")
+        if remove_assignees:
+            print(f"Remove Assignees: {', '.join(remove_assignees)}")
+        print("--------------------------------------------------")
+        return {"status": "dry_run", "issue_number": issue_number}
+
+    cmd = ["issue", "edit", str(issue_number), "--repo", repo]
+    if title:
+        cmd.extend(["--title", sanitize_text(title, max_len=256)])
+    if body:
+        cmd.extend(["--body", body.strip()])
+    if add_labels:
+        for lbl in add_labels:
+            cmd.extend(["--add-label", lbl])
+    if remove_labels:
+        for lbl in remove_labels:
+            cmd.extend(["--remove-label", lbl])
+    if add_assignees:
+        for a in add_assignees:
+            cmd.extend(["--add-assignee", a])
+    if remove_assignees:
+        for a in remove_assignees:
+            cmd.extend(["--remove-assignee", a])
+
+    print(f"✏️ Editing issue #{issue_number} in {repo}...")
+    res = exec_gh(cmd)
+    if res.returncode != 0:
+        raise RuntimeError(f"Failed to edit issue #{issue_number}: {res.stderr.strip() or res.stdout.strip()}")
+
+    print(f"✅ Issue #{issue_number} edited successfully.")
+    return {"status": "success", "issue_number": issue_number}
+
+def close_issue(
+    issue_number: int,
+    comment: Optional[str] = None,
+    reason: str = "completed",
+    repo: str = f"{DEFAULT_ORG}/{DEFAULT_REPO}",
+    dry_run: bool = False,
+) -> Dict[str, Any]:
+    """Closes an existing GitHub issue."""
+    if dry_run:
+        print(f"\n--- DRY-RUN: GitHub Issue #{issue_number} Close ---")
+        print(f"Repository:   {repo}")
+        print(f"Issue Number: #{issue_number}")
+        print(f"Reason:       {reason}")
+        if comment:
+            print(f"Comment:      {comment}")
+        print("---------------------------------------------------")
+        return {"status": "dry_run", "issue_number": issue_number}
+
+    cmd = ["issue", "close", str(issue_number), "--repo", repo, "--reason", reason]
+    if comment:
+        cmd.extend(["--comment", comment.strip()])
+
+    print(f"🔒 Closing issue #{issue_number} in {repo}...")
+    res = exec_gh(cmd)
+    if res.returncode != 0:
+        raise RuntimeError(f"Failed to close issue #{issue_number}: {res.stderr.strip() or res.stdout.strip()}")
+
+    print(f"✅ Issue #{issue_number} closed successfully.")
+    return {"status": "success", "issue_number": issue_number}
+
+def delete_issue(
+    issue_number: int,
+    repo: str = f"{DEFAULT_ORG}/{DEFAULT_REPO}",
+    dry_run: bool = False,
+) -> Dict[str, Any]:
+    """Deletes an existing GitHub issue."""
+    if dry_run:
+        print(f"\n--- DRY-RUN: GitHub Issue #{issue_number} Delete ---")
+        print(f"Repository:   {repo}")
+        print(f"Issue Number: #{issue_number}")
+        print("---------------------------------------------------")
+        return {"status": "dry_run", "issue_number": issue_number}
+
+    cmd = ["issue", "delete", str(issue_number), "--repo", repo, "--yes"]
+    print(f"🗑️ Deleting issue #{issue_number} in {repo}...")
+    res = exec_gh(cmd)
+    if res.returncode != 0:
+        raise RuntimeError(f"Failed to delete issue #{issue_number}: {res.stderr.strip() or res.stdout.strip()}")
+
+    print(f"✅ Issue #{issue_number} deleted successfully.")
+    return {"status": "success", "issue_number": issue_number}
+
 def main():
     parser = argparse.ArgumentParser(description="Native GitHub CLI Project & Issue Management Automation")
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
@@ -248,6 +357,32 @@ def main():
     p_view.add_argument("--project", type=int, default=DEFAULT_PROJECT_NUMBER, help="Project number")
     p_view.add_argument("--owner", type=str, default=DEFAULT_ORG, help="Org owner")
 
+    # Command: edit-issue
+    p_edit = subparsers.add_parser("edit-issue", help="Edit existing issue")
+    p_edit.add_argument("--issue", type=int, required=True, help="Issue number to edit")
+    p_edit.add_argument("--title", type=str, help="New issue title")
+    p_edit.add_argument("--body", type=str, help="New issue body")
+    p_edit.add_argument("--add-label", action="append", help="Label to add (repeatable)")
+    p_edit.add_argument("--remove-label", action="append", help="Label to remove (repeatable)")
+    p_edit.add_argument("--add-assignee", action="append", help="Assignee to add (repeatable)")
+    p_edit.add_argument("--remove-assignee", action="append", help="Assignee to remove (repeatable)")
+    p_edit.add_argument("--repo", type=str, default=f"{DEFAULT_ORG}/{DEFAULT_REPO}", help="Target repo")
+    p_edit.add_argument("--dry-run", action="store_true", help="Preview without editing")
+
+    # Command: close-issue
+    p_close = subparsers.add_parser("close-issue", help="Close existing issue")
+    p_close.add_argument("--issue", type=int, required=True, help="Issue number to close")
+    p_close.add_argument("--comment", type=str, help="Closing comment")
+    p_close.add_argument("--reason", choices=["completed", "not planned"], default="completed", help="Close reason")
+    p_close.add_argument("--repo", type=str, default=f"{DEFAULT_ORG}/{DEFAULT_REPO}", help="Target repo")
+    p_close.add_argument("--dry-run", action="store_true", help="Preview without closing")
+
+    # Command: delete-issue
+    p_del = subparsers.add_parser("delete-issue", help="Delete existing issue")
+    p_del.add_argument("--issue", type=int, required=True, help="Issue number to delete")
+    p_del.add_argument("--repo", type=str, default=f"{DEFAULT_ORG}/{DEFAULT_REPO}", help="Target repo")
+    p_del.add_argument("--dry-run", action="store_true", help="Preview without deleting")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -266,6 +401,32 @@ def main():
                 repo=args.repo,
                 project_number=args.project,
                 project_owner=args.owner,
+                dry_run=args.dry_run,
+            )
+        elif args.command == "edit-issue":
+            edit_issue(
+                issue_number=args.issue,
+                title=args.title,
+                body=args.body,
+                add_labels=args.add_label,
+                remove_labels=args.remove_label,
+                add_assignees=args.add_assignee,
+                remove_assignees=args.remove_assignee,
+                repo=args.repo,
+                dry_run=args.dry_run,
+            )
+        elif args.command == "close-issue":
+            close_issue(
+                issue_number=args.issue,
+                comment=args.comment,
+                reason=args.reason,
+                repo=args.repo,
+                dry_run=args.dry_run,
+            )
+        elif args.command == "delete-issue":
+            delete_issue(
+                issue_number=args.issue,
+                repo=args.repo,
                 dry_run=args.dry_run,
             )
         elif args.command == "link-repo":

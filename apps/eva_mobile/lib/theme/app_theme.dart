@@ -16,17 +16,18 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.background,
 
       colorScheme: const ColorScheme.light(
-
         primary: AppColors.primary,
-
+        onPrimary: Colors.white,
         primaryContainer: AppColors.primaryContainer,
-
         secondary: AppColors.secondary,
-
+        onSecondary: Colors.white,
         tertiary: AppColors.tertiary,
-
         surface: AppColors.surface,
-
+        onSurface: AppColors.textPrimary,
+      ),
+      chipTheme: const ChipThemeData(
+        checkmarkColor: Colors.white,
+        selectedColor: AppColors.primary,
       ),
 
       appBarTheme: const AppBarTheme(

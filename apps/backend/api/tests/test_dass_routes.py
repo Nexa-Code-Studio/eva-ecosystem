@@ -3,7 +3,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app.db.session import engine
 from app.main import app
-from app.services.dass_service import DASSService
+from app.services.dass import DASSService
 
 
 @pytest.fixture(autouse=True)

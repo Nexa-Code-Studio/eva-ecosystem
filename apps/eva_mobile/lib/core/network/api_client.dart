@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../config/app_config.dart';
+import 'package:eva_mobile/config/app_config.dart';
 
 /// Custom Exception for API Errors
 class ApiException implements Exception {
@@ -19,12 +19,15 @@ class ApiClient {
 
   ApiClient({http.Client? client}) : _client = client ?? http.Client();
 
+  Duration get _effectiveTimeout =>
+      AppConfig.useHybridFallback ? AppConfig.hybridTimeout : const Duration(seconds: 10);
+
   Future<dynamic> get(String path, {Map<String, String>? queryParams}) async {
     try {
       final cleanPath = path.startsWith('/') ? path : '/$path';
       final uri = Uri.parse('${AppConfig.baseUrl}$cleanPath').replace(queryParameters: queryParams);
       final headers = await AppConfig.getAuthHeaders();
-      final response = await _client.get(uri, headers: headers);
+      final response = await _client.get(uri, headers: headers).timeout(_effectiveTimeout);
       return _processResponse(response);
     } catch (e) {
       if (e is ApiException) rethrow;
@@ -41,7 +44,7 @@ class ApiClient {
         uri,
         headers: headers,
         body: body != null ? jsonEncode(body) : null,
-      );
+      ).timeout(_effectiveTimeout);
       return _processResponse(response);
     } catch (e) {
       if (e is ApiException) rethrow;
@@ -58,7 +61,7 @@ class ApiClient {
         uri,
         headers: headers,
         body: body != null ? jsonEncode(body) : null,
-      );
+      ).timeout(_effectiveTimeout);
       return _processResponse(response);
     } catch (e) {
       if (e is ApiException) rethrow;
@@ -71,7 +74,7 @@ class ApiClient {
       final cleanPath = path.startsWith('/') ? path : '/$path';
       final uri = Uri.parse('${AppConfig.baseUrl}$cleanPath');
       final headers = await AppConfig.getAuthHeaders();
-      final response = await _client.delete(uri, headers: headers);
+      final response = await _client.delete(uri, headers: headers).timeout(_effectiveTimeout);
       return _processResponse(response);
     } catch (e) {
       if (e is ApiException) rethrow;

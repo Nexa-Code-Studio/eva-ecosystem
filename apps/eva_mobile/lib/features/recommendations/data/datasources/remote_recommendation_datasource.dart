@@ -15,6 +15,15 @@ class RemoteRecommendationDataSource implements RecommendationDataSource {
   }
 
   @override
+  Future<Map<String, dynamic>> getTodayRecommendation() async {
+    final response = await _apiClient.get('/recommendations/today');
+    if (response is Map<String, dynamic>) {
+      return response;
+    }
+    return {};
+  }
+
+  @override
   Future<void> markAsCompleted(String id) async {
     await _apiClient.post('/recommendations/$id/complete');
   }

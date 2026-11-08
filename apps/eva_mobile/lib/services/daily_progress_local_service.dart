@@ -94,8 +94,7 @@ class DailyProgressLocalService {
   static Future<DailyProgressData> loadTodayProgress({DateTime? now}) async {
     final todayStr = getTodayWibDate(now);
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_getStorageKey(todayStr)) ??
-        prefs.getString('luna_daily_progress_$todayStr');
+    final raw = prefs.getString(_getStorageKey(todayStr));
 
     if (raw == null || raw.isEmpty) {
       final initial = DailyProgressData(date: todayStr);

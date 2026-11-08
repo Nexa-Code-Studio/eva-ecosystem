@@ -5,4 +5,5 @@ abstract class ChatRepository {
   Future<List<ConversationEntity>> getConversations();
   Future<ConversationEntity?> getConversationById(String id);
   Future<ChatMessageEntity> sendMessage(String conversationId, String text);
+  Stream<String> streamConversationSummary(String conversationId);
 }

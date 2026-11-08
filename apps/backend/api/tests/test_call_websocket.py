@@ -1,7 +1,7 @@
 import json
 import pytest
 from app.main import app
-from app.services.audio_stream_buffer import AudioStreamBufferService, analyze_audio_placeholder
+from app.services.call import AudioStreamBufferService, analyze_audio_placeholder
 from fastapi.testclient import TestClient
 
 client = TestClient(app)
@@ -65,4 +65,26 @@ def test_call_websocket_lifecycle():
                 break
 
         # 7. Client sends end_call
+        websocket.send_json({"type": "end_call"})
+
+
+def test_call_websocket_authenticated_mobile_flow():
+    """Validates mobile WebSocket connection with JWT token and voice_mode query params."""
+    login_res = client.post("/api/v1/auth/login", json={"email": "samsul@gmail.com", "password": "password123"})
+    assert login_res.status_code == 200
+    token = login_res.json()["access_token"]
+
+    with client.websocket_connect(f"/api/v1/call/ws/test_mobile_auth_session?token={token}&voice_mode=supportive") as websocket:
+        connected = websocket.receive_json()
+        assert connected["type"] == "call_connected"
+        assert connected["session_id"] == "test_mobile_auth_session"
+
+        websocket.send_json({"type": "start_call", "voice_mode": "supportive"})
+        started = websocket.receive_json()
+        assert started["type"] == "call_started"
+
+        websocket.send_json({"type": "ping"})
+        pong = websocket.receive_json()
+        assert pong["type"] == "pong"
+
         websocket.send_json({"type": "end_call"})

@@ -92,7 +92,7 @@ class MockDiaryDataSource implements DiaryDataSource {
         level: 'RISIKO TINGGI',
         message: 'Sistem EVA mendeteksi indikasi krisis emosional tinggi dan stres berat pada percakapan Samsul hari ini. Protokol keselamatan aktif untuk rujukan darurat.',
       ),
-      aiInsight: 'EVA AI mengaktifkan mode de-eskalasi dan menyajikan rujukan kontak krisis darurat (Hotline 119 ext 8).',
+      aiInsight: 'Eva AI mengaktifkan mode de-eskalasi dan menyajikan rujukan kontak krisis darurat (Hotline 119 ext 8).',
       importantEvents: [
         '[Sesi #1] Samsul menyampaikan keluhan kelelahan fisik dan kecemasan mendalam.',
         '[Sesi #2] Terdeteksi puncak stres emosional tinggi — Protokol Krisis dipicu.',

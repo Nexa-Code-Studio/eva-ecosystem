@@ -28,26 +28,32 @@ Always use these targets unless explicitly overridden by the user:
 
 ---
 
-## 3. Autonomous Issue & Project Management Policy
+## 3. Issue & Project Management Policy (Mandatory Developer Review Gate)
 
-When the user asks to create an issue, start a feature/bugfix, or add a task:
-1. **Never ask the user to open the browser or create the issue manually.**
+When the user asks to create an issue, start a feature/bugfix, or add/edit/delete a task:
+1. **Never ask the user to open the browser or create/edit the issue manually.**
 2. Formulate a structured GitHub Issue title and body matching repository standards:
    - `## Summary`
    - `## Scope / Out of Scope`
    - `## Acceptance Criteria`
    - `## Definition of Done`
-3. Execute the automated script:
-   ```bash
-   python3 scripts/agentic/gh_project.py create-issue \
-     --title "<Title>" \
-     --body "<Structured Body>" \
-     --type <feat|fix|refactor|docs|test|chore> \
-     --status <Backlog|Ready|In Progress> \
-     --priority <Urgent|High|Medium|Low> \
-     --assignee ekyaaa
-   ```
-4. If starting work immediately on that issue:
+3. **MANDATORY REVIEW GATE**: Before executing actual creation, editing, closing, or deletion on GitHub:
+   - Present the structured proposal / diff / impact to the developer.
+   - Run `--dry-run` to preview the command payload:
+     ```bash
+     python3 scripts/agentic/gh_project.py create-issue \
+       --title "<Title>" \
+       --body "<Structured Body>" \
+       --type <feat|fix|refactor|docs|test|chore> \
+       --status <Backlog|Ready|In Progress> \
+       --priority <Urgent|High|Medium|Low> \
+       --assignee ekyaaa \
+       --dry-run
+     ```
+   - **Ask the developer for explicit review and confirmation.**
+4. **Execute Only After Explicit Developer Approval**:
+   - Run the script without `--dry-run` once the developer approves.
+5. If starting work immediately on that approved issue:
    - Create the task branch using `start-task.py`:
      ```bash
      python3 scripts/agentic/start-task.py --type <type> --issue <number> --slug <slug>

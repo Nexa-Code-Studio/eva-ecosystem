@@ -32,3 +32,13 @@
   - Multi-step interactive modals or bottom sheets.
   - Reusable loaders (skeleton shimmer) and buttons.
 - Place extracted widgets into `features/<feature>/presentation/widgets/`.
+
+## 5. Component Reuse & Design System Invariant
+- **Reuse Existing Components First**: Before building custom UI elements or writing inline styling, ALWAYS check and reuse standard widgets in `lib/widgets/`:
+  - `AppBackButton`: Standardized frosted circular back button across all screens.
+  - `GlassCard`: Frosted glass container with rounded corners and gradient borders.
+  - `AppSnackBar`: Standardized snackbar notification banners.
+  - `SkeletonShimmer`: Standardized loading placeholder animations.
+  - `CustomButton` & `CustomTextField`: Standardized input elements.
+  - `StaggeredEntrance`: Fluid entrance animation wrapper.
+- **No Inline Duplication**: Do not declare manual inline back buttons (`IconButton`, custom `BoxShape.circle`, etc.) directly inside screens. Always consume `AppBackButton`.

@@ -1,16 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/config/app_config.dart';
+import 'package:eva_mobile/config/app_config.dart';
 import '../../data/datasources/dass_datasource.dart';
 import '../../data/repositories/dass_repository_impl.dart';
+import '../../data/repositories/fallback_dass_repository.dart';
 import '../../domain/entities/dass_assessment_entity.dart';
 import '../../domain/repositories/dass_repository.dart';
 import '../../../monitoring/presentation/providers/monitoring_provider.dart';
 
 final dassRepositoryProvider = Provider<DASSRepository>((ref) {
+  final mockRepo = DASSRepositoryImpl(MockDASSDataSource());
+  final remoteRepo = DASSRepositoryImpl(RemoteDASSDataSource());
+
   if (AppConfig.useMockData) {
-    return DASSRepositoryImpl(MockDASSDataSource());
+    return mockRepo;
+  } else if (AppConfig.useHybridFallback) {
+    return FallbackDASSRepository(remote: remoteRepo, mock: mockRepo);
   } else {
-    return DASSRepositoryImpl(RemoteDASSDataSource());
+    return remoteRepo;
   }
 });
 

@@ -2,7 +2,7 @@ import 'auth_datasource.dart';
 import '../models/user_model.dart';
 import '../models/emergency_contact_model.dart';
 import '../../../../core/network/api_client.dart';
-import '../../../../core/config/app_config.dart';
+import 'package:eva_mobile/config/app_config.dart';
 import '../../../../core/storage/token_storage.dart';
 
 class RemoteAuthDataSource implements AuthDataSource {
@@ -25,10 +25,19 @@ class RemoteAuthDataSource implements AuthDataSource {
     });
     if (response['access_token'] != null) {
       final token = response['access_token'] as String;
+      final refreshToken = response['refresh_token'] as String?;
       AppConfig.authToken = token;
+      if (refreshToken != null) {
+        await AppConfig.setTokens(accessToken: token, refreshToken: refreshToken);
+      } else {
+        await AppConfig.setToken(token);
+      }
       await TokenStorage.saveToken(token);
     }
-    return UserModel.fromJson(response['user']);
+    final userData = response['user'] as Map<String, dynamic>? ?? {};
+    final user = UserModel.fromJson(userData);
+    await AppConfig.setUserInfo(name: user.name, email: user.email);
+    return user;
   }
 
   @override
@@ -40,10 +49,32 @@ class RemoteAuthDataSource implements AuthDataSource {
     });
     if (response['access_token'] != null) {
       final token = response['access_token'] as String;
+      final refreshToken = response['refresh_token'] as String?;
       AppConfig.authToken = token;
+      if (refreshToken != null) {
+        await AppConfig.setTokens(accessToken: token, refreshToken: refreshToken);
+      } else {
+        await AppConfig.setToken(token);
+      }
       await TokenStorage.saveToken(token);
     }
-    return UserModel.fromJson(response['user']);
+    final userData = response['user'] as Map<String, dynamic>? ?? {};
+    final user = UserModel.fromJson(userData);
+    await AppConfig.setUserInfo(name: user.name, email: user.email);
+    return user;
+  }
+
+  @override
+  Future<bool> checkEmailAvailability(String email) async {
+    try {
+      final response = await _apiClient.get('/auth/check-email', queryParams: {'email': email});
+      if (response is Map && response['available'] != null) {
+        return response['available'] == true;
+      }
+      return true;
+    } catch (_) {
+      return true;
+    }
   }
 
   @override

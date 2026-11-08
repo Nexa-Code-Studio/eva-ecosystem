@@ -1,6 +1,6 @@
 from app.api.dependencies import get_redis_client
 from app.schemas.health import HealthCheckResponse
-from app.services.status_service import SystemStatusService
+from app.services.status import SystemStatusService
 from fastapi import APIRouter, Depends
 from redis.asyncio import Redis
 from shared.config import settings

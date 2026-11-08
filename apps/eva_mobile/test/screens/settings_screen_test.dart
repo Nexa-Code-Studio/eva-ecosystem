@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:eva_mobile/screens/settings_screen.dart';
+import 'package:eva_mobile/features/auth/presentation/screens/settings_screen.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

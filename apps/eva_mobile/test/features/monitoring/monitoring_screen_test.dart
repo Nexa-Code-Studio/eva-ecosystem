@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:eva_mobile/features/monitoring/data/models/monitoring_data_model.dart';
 import 'package:eva_mobile/features/monitoring/domain/entities/monitoring_data_entity.dart';
 import 'package:eva_mobile/features/monitoring/presentation/providers/monitoring_provider.dart';
-import 'package:eva_mobile/screens/monitoring_screen.dart';
+import 'package:eva_mobile/features/monitoring/presentation/screens/monitoring_screen.dart';
 
 void main() {
   group('MonitoringDataModel Tests', () {

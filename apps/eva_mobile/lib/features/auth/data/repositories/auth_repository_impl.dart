@@ -19,6 +19,9 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<UserEntity> register(String name, String email, String password) => _dataSource.register(name, email, password);
 
   @override
+  Future<bool> checkEmailAvailability(String email) => _dataSource.checkEmailAvailability(email);
+
+  @override
   Future<void> logout() => _dataSource.logout();
 
   @override

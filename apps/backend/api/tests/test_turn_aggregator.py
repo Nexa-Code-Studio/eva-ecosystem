@@ -2,8 +2,7 @@ import time
 import pytest
 
 from app.core.call_config import CallTurnConfig
-from app.services.turn_aggregator import TurnAggregator, merge_overlapping_segments
-from app.services.turn_detection_service import TurnDetectionService
+from app.services.call import TurnAggregator, TurnDetectionService, merge_overlapping_segments
 
 
 def test_merge_overlapping_segments():

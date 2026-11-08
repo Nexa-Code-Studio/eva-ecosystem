@@ -30,7 +30,10 @@ class EdgeTTSProvider(BaseTTSProvider):
         voice_id: str | None = None,
         voice_settings: dict[str, float] | None = None,
     ) -> tuple[bytes, list[float]]:
+        # EdgeTTS requires voices like 'id-ID-GadisNeural'. If an ElevenLabs voice ID or invalid voice is passed, fallback to default.
         voice = voice_id or self.default_voice
+        if "-" not in voice or not voice.endswith("Neural"):
+            voice = self.default_voice
         try:
             import edge_tts
         except ImportError:
@@ -87,6 +90,8 @@ class EdgeTTSProvider(BaseTTSProvider):
         self, text_stream: AsyncGenerator[str, None], voice_id: str | None = None
     ) -> AsyncGenerator[bytes, None]:
         voice = voice_id or self.default_voice
+        if "-" not in voice or not voice.endswith("Neural"):
+            voice = self.default_voice
         try:
             import edge_tts
         except ImportError:

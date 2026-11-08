@@ -92,7 +92,7 @@ class WebPhoneFrameWrapper extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'EVA AI • Mobile Web Simulator',
+                        'Eva AI • Mobile Web Simulator',
                         style: GoogleFonts.inter(
                           color: Colors.white70,
                           fontSize: 12,

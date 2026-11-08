@@ -5,11 +5,21 @@ import '../theme/app_colors.dart';
 class FloatingNavBar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
+  final VoidCallback? onCenterTap;
+  final Key? centerButtonKey;
+  final Key? journalTabKey;
+  final Key? trenTabKey;
+  final Key? careTabKey;
 
   const FloatingNavBar({
     super.key,
     required this.currentIndex,
     required this.onTap,
+    this.onCenterTap,
+    this.centerButtonKey,
+    this.journalTabKey,
+    this.trenTabKey,
+    this.careTabKey,
   });
 
   /// Map page currentIndex (0..3) to 5-slot layout column index:
@@ -116,6 +126,7 @@ class FloatingNavBar extends StatelessWidget {
 
                           // Slot 1: Jurnal (Diary)
                           Expanded(
+                            key: journalTabKey,
                             flex: 1,
                             child: _buildSideNavItem(
                               index: 1,
@@ -133,6 +144,7 @@ class FloatingNavBar extends StatelessWidget {
 
                           // Slot 3: Tren (Monitoring)
                           Expanded(
+                            key: trenTabKey,
                             flex: 1,
                             child: _buildSideNavItem(
                               index: 2,
@@ -142,14 +154,15 @@ class FloatingNavBar extends StatelessWidget {
                             ),
                           ),
 
-                          // Slot 4: Profil (Profile)
+                          // Slot 4: Layanan (Care & Komunitas)
                           Expanded(
+                            key: careTabKey,
                             flex: 1,
                             child: _buildSideNavItem(
                               index: 3,
-                              iconUnselected: Icons.person_outline,
-                              iconSelected: Icons.person,
-                              label: 'Profil',
+                              iconUnselected: Icons.volunteer_activism_outlined,
+                              iconSelected: Icons.volunteer_activism,
+                              label: 'Layanan',
                             ),
                           ),
                         ],
@@ -166,7 +179,8 @@ class FloatingNavBar extends StatelessWidget {
         Positioned(
           bottom: 30,
           child: GestureDetector(
-            onTap: () {
+            key: centerButtonKey,
+            onTap: onCenterTap ?? () {
               Navigator.pushNamed(context, '/chat');
             },
             child: Container(

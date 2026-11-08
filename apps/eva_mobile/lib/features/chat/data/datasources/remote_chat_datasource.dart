@@ -1,6 +1,10 @@
+import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'chat_datasource.dart';
 import '../models/conversation_model.dart';
 import '../models/chat_message_model.dart';
+import 'package:eva_mobile/config/app_config.dart';
 import '../../../../core/network/api_client.dart';
 
 class RemoteChatDataSource implements ChatDataSource {
@@ -36,5 +40,41 @@ class RemoteChatDataSource implements ChatDataSource {
       'modality': 'text',
     });
     return ChatMessageModel.fromJson(response);
+  }
+
+  @override
+  Stream<String> streamConversationSummary(String conversationId) async* {
+    final headers = await AppConfig.getAuthHeaders();
+    final url = Uri.parse('${AppConfig.baseUrl}/conversations/$conversationId/summary/stream');
+    final request = http.Request('GET', url);
+    request.headers.addAll(headers);
+
+    final client = http.Client();
+    try {
+      final streamedResponse = await client.send(request).timeout(const Duration(seconds: 25));
+      if (streamedResponse.statusCode != 200) {
+        throw ApiException('Failed to stream summary', statusCode: streamedResponse.statusCode);
+      }
+
+      final stream = streamedResponse.stream
+          .transform(utf8.decoder)
+          .transform(const LineSplitter());
+
+      await for (final line in stream) {
+        final trimmed = line.trim();
+        if (trimmed.startsWith('data:')) {
+          final jsonStr = trimmed.substring(5).trim();
+          if (jsonStr.isEmpty) continue;
+          try {
+            final payload = jsonDecode(jsonStr);
+            if (payload is Map && payload.containsKey('token')) {
+              yield payload['token']?.toString() ?? '';
+            }
+          } catch (_) {}
+        }
+      }
+    } finally {
+      client.close();
+    }
   }
 }

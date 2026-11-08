@@ -25,7 +25,7 @@ class EvaApp extends StatelessWidget {
         title: 'EVA AI - Mental Health Companion',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        initialRoute: '/',
+        initialRoute: '/home',
         onGenerateRoute: AppRouter.onGenerateRoute,
         builder: (context, child) {
           return WebPhoneFrameWrapper(
@@ -36,6 +36,3 @@ class EvaApp extends StatelessWidget {
     );
   }
 }
-
-// Backwards compatibility alias
-typedef LunaApp = EvaApp;

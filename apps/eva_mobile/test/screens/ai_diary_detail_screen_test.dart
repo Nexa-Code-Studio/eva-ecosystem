@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:eva_mobile/screens/ai_diary_detail_screen.dart';
+import 'package:eva_mobile/features/diary/presentation/screens/ai_diary_detail_screen.dart';
 
 void main() {
   setUp(() {
@@ -40,7 +40,7 @@ void main() {
             {
               'isUser': true,
               'time': '09:15 AM',
-              'text': 'Halo Luna, aku merasa lelah dengan deadline pekerjaan.',
+              'text': 'Halo Eva, aku merasa lelah dengan deadline pekerjaan.',
               'emotionTag': 'lelah (80%)',
               'emotionEmoji': '💥',
             },
@@ -85,7 +85,7 @@ void main() {
     expect(find.text('09:16 AM'), findsNothing);
 
     // Transcript message text is present
-    expect(find.text('Halo Luna, aku merasa lelah dengan deadline pekerjaan.'), findsOneWidget);
+    expect(find.text('Halo Eva, aku merasa lelah dengan deadline pekerjaan.'), findsOneWidget);
     expect(find.text('Aku mendengarkanmu. Mari kita urai bebanmu satu per satu.'), findsOneWidget);
   });
 
@@ -115,7 +115,7 @@ void main() {
           'moodTag': 'Tenang',
           'moodEmoji': '😌',
           'transcripts': [
-            {'isUser': true, 'time': '08:00 AM', 'text': 'Pagi Luna'}
+            {'isUser': true, 'time': '08:00 AM', 'text': 'Pagi Eva'}
           ],
         },
         {
@@ -125,7 +125,7 @@ void main() {
           'moodTag': 'Lega',
           'moodEmoji': '😃',
           'transcripts': [
-            {'isUser': true, 'time': '05:00 PM', 'text': 'Sore Luna'}
+            {'isUser': true, 'time': '05:00 PM', 'text': 'Sore Eva'}
           ],
         },
       ],

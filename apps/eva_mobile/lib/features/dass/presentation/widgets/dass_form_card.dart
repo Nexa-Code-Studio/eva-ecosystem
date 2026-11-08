@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../theme/app_colors.dart';
+import '../../../../widgets/app_snack_bar.dart';
 import '../../../../widgets/glass_card.dart';
 import '../../../../widgets/skeleton_shimmer.dart';
 import '../providers/dass_provider.dart';
@@ -249,14 +250,11 @@ class _DASSFormCardState extends ConsumerState<DASSFormCard> {
                                         final success = await notifier.saveAssessment();
                                         if (!mounted) return;
                                         if (success) {
-                                          scaffoldMessenger.showSnackBar(
-                                            SnackBar(
-                                              content: Text(
+                                          AppSnackBar.showWithMessenger(
+                                            scaffoldMessenger,
+                                            message:
                                                 'Koreksi DASS-21 berhasil disimpan & ritem emosional diselaraskan!',
-                                                style: GoogleFonts.plusJakartaSans(),
-                                              ),
-                                              backgroundColor: const Color(0xFF10B981),
-                                            ),
+                                            variant: SnackBarVariant.success,
                                           );
                                         }
                                       },

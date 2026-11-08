@@ -9,7 +9,7 @@ class MockAuthDataSource implements AuthDataSource {
     name: 'Samsul',
     email: 'samsul@gmail.com',
     phone: '+62 812-3456-7890',
-    bio: 'Pengguna aktif EVA AI.',
+    bio: 'Pengguna aktif Eva AI.',
   );
 
   final List<EmergencyContactModel> _contacts = [
@@ -65,6 +65,12 @@ class MockAuthDataSource implements AuthDataSource {
     );
     await TokenStorage.saveToken('mock_jwt_token');
     return _currentUser!;
+  }
+
+  @override
+  Future<bool> checkEmailAvailability(String email) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    return !email.contains('taken');
   }
 
   @override

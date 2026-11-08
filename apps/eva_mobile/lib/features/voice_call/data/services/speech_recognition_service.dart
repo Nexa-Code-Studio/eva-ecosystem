@@ -200,9 +200,6 @@ class SpeechRecognitionService {
             _soundLevelController.add(normalized);
           }
         },
-        localeId: _resolvedLocaleId,
-        listenFor: const Duration(seconds: 60),
-        pauseFor: const Duration(milliseconds: 2500),
         listenOptions: stt.SpeechListenOptions(
           localeId: _resolvedLocaleId,
           listenMode: stt.ListenMode.dictation,

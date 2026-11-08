@@ -8,6 +8,9 @@ import unittest
 from unittest.mock import patch, MagicMock
 from scripts.agentic.gh_project import (
     create_issue,
+    edit_issue,
+    close_issue,
+    delete_issue,
     link_repository_to_project,
     get_gh_env,
     DEFAULT_ORG,
@@ -79,6 +82,93 @@ class TestGhProject(unittest.TestCase):
         self.assertEqual(result.get("status"), "success")
         self.assertEqual(result.get("issue_number"), 100)
         self.assertEqual(result.get("item_id"), "PVTI_lADOAA")
+
+    def test_edit_issue_dry_run(self):
+        result = edit_issue(
+            issue_number=100,
+            title="Updated Title",
+            body="Updated Body",
+            add_labels=["bug"],
+            dry_run=True,
+        )
+        self.assertEqual(result.get("status"), "dry_run")
+        self.assertEqual(result.get("issue_number"), 100)
+
+    @patch("scripts.agentic.gh_project.exec_gh")
+    def test_edit_issue_success(self, mock_exec):
+        mock_res = MagicMock()
+        mock_res.returncode = 0
+        mock_res.stdout = ""
+        mock_exec.return_value = mock_res
+
+        result = edit_issue(
+            issue_number=100,
+            title="Updated Title",
+            add_labels=["bug"],
+            dry_run=False,
+        )
+        self.assertEqual(result.get("status"), "success")
+        self.assertEqual(result.get("issue_number"), 100)
+        mock_exec.assert_called_once()
+        args = mock_exec.call_args[0][0]
+        self.assertIn("edit", args)
+        self.assertIn("100", args)
+        self.assertIn("--add-label", args)
+        self.assertIn("bug", args)
+
+    def test_close_issue_dry_run(self):
+        result = close_issue(
+            issue_number=100,
+            comment="Completed in PR #12",
+            dry_run=True,
+        )
+        self.assertEqual(result.get("status"), "dry_run")
+        self.assertEqual(result.get("issue_number"), 100)
+
+    @patch("scripts.agentic.gh_project.exec_gh")
+    def test_close_issue_success(self, mock_exec):
+        mock_res = MagicMock()
+        mock_res.returncode = 0
+        mock_res.stdout = ""
+        mock_exec.return_value = mock_res
+
+        result = close_issue(
+            issue_number=100,
+            comment="Done!",
+            dry_run=False,
+        )
+        self.assertEqual(result.get("status"), "success")
+        mock_exec.assert_called_once()
+        args = mock_exec.call_args[0][0]
+        self.assertIn("close", args)
+        self.assertIn("100", args)
+        self.assertIn("--comment", args)
+
+    def test_delete_issue_dry_run(self):
+        result = delete_issue(
+            issue_number=100,
+            dry_run=True,
+        )
+        self.assertEqual(result.get("status"), "dry_run")
+        self.assertEqual(result.get("issue_number"), 100)
+
+    @patch("scripts.agentic.gh_project.exec_gh")
+    def test_delete_issue_success(self, mock_exec):
+        mock_res = MagicMock()
+        mock_res.returncode = 0
+        mock_res.stdout = ""
+        mock_exec.return_value = mock_res
+
+        result = delete_issue(
+            issue_number=100,
+            dry_run=False,
+        )
+        self.assertEqual(result.get("status"), "success")
+        mock_exec.assert_called_once()
+        args = mock_exec.call_args[0][0]
+        self.assertIn("delete", args)
+        self.assertIn("100", args)
+        self.assertIn("--yes", args)
 
 if __name__ == "__main__":
     unittest.main()

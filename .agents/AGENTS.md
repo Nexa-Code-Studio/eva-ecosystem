@@ -32,9 +32,11 @@
 - **Sweet-Spot Cohesion & Modularity**:
   - Keep files cohesive; extract independent timers, custom painters, and multi-step modals into dedicated widget files while keeping local layout together.
   - See [.agents/rules/cohesion-and-modularity.md](file:///home/mashupsoat/Project/eva-ecosystem/.agents/rules/cohesion-and-modularity.md) for natural separation criteria.
+- **Component Reuse & Single Source of Truth**:
+  - Before creating new UI elements or duplicate styling, always verify and reuse existing widgets in `apps/eva_mobile/lib/widgets/` (e.g. `AppBackButton`, `GlassCard`, `AppSnackBar`) or feature widgets. Never declare manual inline back buttons across screens.
 - **Hierarchical Workspace Scopes**:
   - Flutter Mobile: Follow [apps/eva_mobile/AGENTS.md](file:///home/mashupsoat/Project/eva-ecosystem/apps/eva_mobile/AGENTS.md) (Clean Architecture, Riverpod DI, Pure Dart models).
-  - Backend API: Follow [apps/backend/AGENTS.md](file:///home/mashupsoat/Project/eva-ecosystem/apps/backend/AGENTS.md) (FastAPI routes, Pydantic schemas, Alembic migrations, FastMCP).
+  - Backend API: Follow [apps/backend/AGENTS.md](file:///home/mashupsoat/Project/eva-ecosystem/apps/backend/AGENTS.md) and [.agents/rules/backend-clean-architecture.md](file:///home/mashupsoat/Project/eva-ecosystem/.agents/rules/backend-clean-architecture.md) (Thin routes 3-5 lines, modular services/schemas, centralized DI, Alembic migrations).
   - AI & Orchestration: Follow [packages/ai/AGENTS.md](file:///home/mashupsoat/Project/eva-ecosystem/packages/ai/AGENTS.md) (Abstract Base Classes, LLM/TTS factories, graceful fallbacks).
 - **Available Skills**:
   - `monorepo-ops`: Docker dev/prod, Alembic migrations, database resets, and backend service runner.
@@ -61,6 +63,7 @@
 ## 5. Supervised Autonomous Development Coordination Policies
 
 - **Human-Owned Tasks**: Every task has a single human developer owner. AI agents code only on the task selected by the developer and must never auto-claim or auto-assign tasks.
+- **Issue Mutation Review Gate**: The AI agent must never create, edit, close, or delete GitHub Issues autonomously. All additions, updates, or deletions must be presented to the developer (via draft/dry-run) and receive explicit review and approval before execution.
 - **Identity Preflight Mandatory**: Before modifying code or updating task status, verify local identity via `python3 scripts/agentic/doctor.py`. If identity is missing, prompt developer to run `python3 scripts/agentic/bootstrap.py`.
 - **Session Context Reconciliation**: At the beginning of a session, inspect active context via `python3 scripts/agentic/tasks.py` to reconcile local and remote state.
 - **Strict Branch & Worktree Naming**: All branches must follow `{type}/{issue-number}-{short-kebab-slug}` where type is one of `feat`, `fix`, `refactor`, `docs`, `test`, `chore`. Personal branches (`dev/{name}`) are prohibited.

@@ -1,16 +1,25 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 
-import '../config/app_config.dart';
+import '../features/chat/domain/entities/conversation_entity.dart';
+import '../features/chat/domain/repositories/chat_repository.dart';
+import '../features/chat/presentation/providers/chat_provider.dart';
+import '../features/diary/domain/repositories/diary_repository.dart';
+import '../features/diary/presentation/providers/diary_provider.dart';
 import '../services/daily_progress_local_service.dart';
 
 /// Notifier managing real-time reactive updates for the user's daily self-care progress.
 class DailyProgressNotifier extends StateNotifier<DailyProgressData> {
+  final ChatRepository _chatRepo;
+  final DiaryRepository _diaryRepo;
   StreamSubscription<DailyProgressData>? _streamSub;
 
-  DailyProgressNotifier() : super(DailyProgressData(date: DailyProgressLocalService.getTodayWibDate())) {
+  DailyProgressNotifier({
+    required ChatRepository chatRepo,
+    required DiaryRepository diaryRepo,
+  })  : _chatRepo = chatRepo,
+        _diaryRepo = diaryRepo,
+        super(DailyProgressData(date: DailyProgressLocalService.getTodayWibDate())) {
     _init();
   }
 
@@ -82,43 +91,27 @@ class DailyProgressNotifier extends StateNotifier<DailyProgressData> {
     }
   }
 
-  /// Synchronize today's progress with remote backend
+  /// Synchronize today's progress with repositories
   Future<void> syncWithServer() async {
-    if (AppConfig.useMockData) return;
-
     try {
-      final headers = await AppConfig.getAuthHeaders();
       final results = await Future.wait([
         // 0: Conversations today
-        http
-            .get(Uri.parse('${AppConfig.baseUrl}/conversations/today'), headers: headers)
-            .timeout(const Duration(seconds: 4))
-            .catchError((_) => http.Response('{}', 500)),
+        _chatRepo.getConversations().catchError((_) => <ConversationEntity>[]),
         // 1: Diary today
-        http
-            .get(Uri.parse('${AppConfig.baseUrl}/diaries/today'), headers: headers)
-            .timeout(const Duration(seconds: 4))
-            .catchError((_) => http.Response('{}', 500)),
+        _diaryRepo.getTodayDiary().catchError((_) => null),
       ]);
 
       bool hasConv = state.hasConversation;
       bool hasDiary = state.hasDiary;
 
-      final resConv = results[0];
-      if (resConv.statusCode == 200) {
-        final data = jsonDecode(resConv.body);
-        if (data is Map<String, dynamic>) {
-          final count = data['total'] ?? (data['items'] as List?)?.length ?? 0;
-          if (count > 0) hasConv = true;
-        }
+      final convList = results[0] as List;
+      if (convList.isNotEmpty) {
+        hasConv = true;
       }
 
-      final resDiary = results[1];
-      if (resDiary.statusCode == 200) {
-        final data = jsonDecode(resDiary.body);
-        if (data is Map<String, dynamic> && data['id'] != null) {
-          hasDiary = true;
-        }
+      final diary = results[1];
+      if (diary != null) {
+        hasDiary = true;
       }
 
       if (hasConv != state.hasConversation || hasDiary != state.hasDiary) {
@@ -154,5 +147,8 @@ class DailyProgressNotifier extends StateNotifier<DailyProgressData> {
 /// Global Riverpod provider for daily self-care progress.
 final dailyProgressProvider =
     StateNotifierProvider<DailyProgressNotifier, DailyProgressData>((ref) {
-  return DailyProgressNotifier();
+  return DailyProgressNotifier(
+    chatRepo: ref.watch(chatRepositoryProvider),
+    diaryRepo: ref.watch(diaryRepositoryProvider),
+  );
 });

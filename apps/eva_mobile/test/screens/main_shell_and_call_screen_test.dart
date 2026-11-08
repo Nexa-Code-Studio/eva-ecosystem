@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:eva_mobile/features/voice_call/presentation/providers/ai_call_provider.dart';
-import 'package:eva_mobile/screens/main_shell_screen.dart';
-import 'package:eva_mobile/screens/voice_call_screen.dart';
+import 'package:eva_mobile/features/home/presentation/screens/main_shell_screen.dart';
+import 'package:eva_mobile/features/voice_call/presentation/screens/voice_call_screen.dart';
+import 'package:eva_mobile/features/tutorial/presentation/widgets/interactive_spotlight_overlay.dart';
 import 'package:eva_mobile/widgets/floating_nav_bar.dart';
 
 void main() {
@@ -75,7 +76,8 @@ void main() {
       );
 
       await tester.tap(find.text('Go Home Tab 1'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.byType(MainShellScreen), findsOneWidget);
       expect(find.byType(FloatingNavBar), findsOneWidget);
@@ -159,6 +161,52 @@ void main() {
       // Destination reached
       expect(find.text('Home Screen Destination'), findsOneWidget);
       expect(receivedArgs, isNotNull);
+      expect(receivedArgs!['initialIndex'], 1);
+    });
+
+    testWidgets('shows interactive spotlight overlay on Lihat Detail Jurnal Refleksi during tutorial',
+        (tester) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      Map<String, dynamic>? receivedArgs;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            routes: {
+              '/home': (context) {
+                receivedArgs = ModalRoute.of(context)?.settings.arguments
+                    as Map<String, dynamic>?;
+                return const Scaffold(body: Text('Home Screen Destination'));
+              },
+            },
+            home: const VoiceCallScreen(),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // End call
+      await tester.tap(find.byIcon(Icons.call_end));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // Spotlight overlay is present on the bottom sheet
+      expect(find.byType(InteractiveSpotlightOverlay), findsOneWidget);
+      expect(find.text('Refleksi Sesi Suara'), findsOneWidget);
+      expect(find.text('REFLEKSI AI'), findsOneWidget);
+
+      // Tap "Lihat Detail Jurnal Refleksi"
+      await tester.tap(find.text('Lihat Detail Jurnal Refleksi'));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(find.text('Home Screen Destination'), findsOneWidget);
       expect(receivedArgs!['initialIndex'], 1);
     });
   });

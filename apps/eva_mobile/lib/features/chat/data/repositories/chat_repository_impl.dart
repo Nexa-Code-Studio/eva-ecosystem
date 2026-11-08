@@ -16,4 +16,8 @@ class ChatRepositoryImpl implements ChatRepository {
 
   @override
   Future<ChatMessageEntity> sendMessage(String conversationId, String text) => _dataSource.sendMessage(conversationId, text);
+
+  @override
+  Stream<String> streamConversationSummary(String conversationId) =>
+      _dataSource.streamConversationSummary(conversationId);
 }

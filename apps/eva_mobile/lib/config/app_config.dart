@@ -3,7 +3,20 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AppConfig {
-  static bool useMockData = false;
+  /// Compile-time mock flag: --dart-define=USE_MOCK_DATA=true or --dart-define=MOCK=true
+  static bool useMockData = const bool.fromEnvironment(
+    'USE_MOCK_DATA',
+    defaultValue: bool.fromEnvironment('MOCK', defaultValue: false),
+  );
+
+  /// Compile-time hybrid fallback flag: --dart-define=USE_HYBRID_FALLBACK=true or --dart-define=HYBRID=true
+  static const bool useHybridFallback = bool.fromEnvironment(
+    'USE_HYBRID_FALLBACK',
+    defaultValue: bool.fromEnvironment('HYBRID', defaultValue: false),
+  );
+
+  /// Fast failover timeout for hybrid fallback requests to keep UI responsive
+  static const Duration hybridTimeout = Duration(seconds: 3);
   static String? authToken;
   static String? _cachedRefreshToken;
   static String? _customHost;
@@ -11,10 +24,13 @@ class AppConfig {
   static String? _cachedUserName;
   static String? _cachedUserEmail;
 
-  /// Compile-time environment flag: --dart-define=USE_LOCAL_API=true or --dart-define=LOCAL=true
+  /// Compile-time environment flag: --dart-define=USE_LOCAL_API=true or --dart-define=LOCAL=true or --dart-define=USE_LOCALHOST=true
   static const bool useLocalApi = bool.fromEnvironment(
     'USE_LOCAL_API',
-    defaultValue: bool.fromEnvironment('LOCAL', defaultValue: false),
+    defaultValue: bool.fromEnvironment(
+      'LOCAL',
+      defaultValue: bool.fromEnvironment('USE_LOCALHOST', defaultValue: false),
+    ),
   );
 
   /// Compile-time emulator flag: --dart-define=IS_EMULATOR=true or --dart-define=USE_EMULATOR=true
@@ -25,6 +41,12 @@ class AppConfig {
       'USE_EMULATOR',
       defaultValue: bool.fromEnvironment('EMULATOR', defaultValue: false),
     ),
+  );
+
+  /// Optional compile-time custom API base URL: --dart-define=API_BASE_URL=http://10.0.2.2:8888/api/v1
+  static const String customBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: String.fromEnvironment('BASE_URL', defaultValue: ''),
   );
 
   /// Optional compile-time custom host: --dart-define=LOCAL_HOST=192.168.1.100:8888
@@ -42,11 +64,21 @@ class AppConfig {
   /// Android emulator host (10.0.2.2:8888)
   static const String emulatorServerHost = '10.0.2.2:8888';
 
+  /// Default seeded demo credentials for quick access and testing
+  static const String demoEmail = 'samsul@gmail.com';
+  static const String demoPassword = 'password123';
+
   /// Get the active host (IP or domain).
   /// Respects --dart-define=USE_LOCAL_API=true when running locally.
   static String get host {
     if (_customHost != null && _customHost!.isNotEmpty) {
       return _customHost!;
+    }
+    if (customBaseUrl.isNotEmpty) {
+      final uri = Uri.tryParse(customBaseUrl);
+      if (uri != null && uri.host.isNotEmpty) {
+        return uri.hasPort ? '${uri.host}:${uri.port}' : uri.host;
+      }
     }
     if (customLocalHost.isNotEmpty) {
       return customLocalHost;
@@ -68,6 +100,7 @@ class AppConfig {
   /// Production domain uses HTTPS/WSS, while local dev loopbacks use HTTP/WS.
   static bool get isSecure {
     if (useLocalApi) return false;
+    if (customBaseUrl.startsWith('http://')) return false;
     final currentHost = host;
     if (currentHost.startsWith('127.') ||
         currentHost.startsWith('10.') ||
@@ -82,6 +115,9 @@ class AppConfig {
   static String get wsScheme => isSecure ? 'wss' : 'ws';
 
   static String get baseUrl {
+    if (customBaseUrl.isNotEmpty) {
+      return customBaseUrl;
+    }
     if (host.startsWith('http://') || host.startsWith('https://')) {
       return '$host/api/v1';
     }
@@ -200,6 +236,39 @@ class AppConfig {
     await prefs.setString('user_email', email);
   }
 
+  /// Get cached user phone number
+  static Future<String?> getUserPhone() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('user_phone') ?? '+62 812-3456-7890';
+  }
+
+  /// Get cached user gender
+  static Future<String?> getUserGender() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('user_gender') ?? 'Laki-laki';
+  }
+
+  /// Get cached user birth date
+  static Future<String?> getUserBirthDate() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('user_birth_date') ?? '18 Agustus 2002';
+  }
+
+  /// Save detailed user profile data
+  static Future<void> setUserProfileDetails({
+    required String name,
+    required String email,
+    String? phone,
+    String? gender,
+    String? birthDate,
+  }) async {
+    await setUserInfo(name: name, email: email);
+    final prefs = await SharedPreferences.getInstance();
+    if (phone != null) await prefs.setString('user_phone', phone);
+    if (gender != null) await prefs.setString('user_gender', gender);
+    if (birthDate != null) await prefs.setString('user_birth_date', birthDate);
+  }
+
   /// Clear token and profile info (Logout)
   static Future<void> clearToken() async {
     authToken = null;
@@ -211,6 +280,18 @@ class AppConfig {
     await prefs.remove('refresh_token');
     await prefs.remove('user_name');
     await prefs.remove('user_email');
+  }
+
+  /// Get cached coin balance
+  static Future<int> getCoinBalance() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('user_coin_balance') ?? 120;
+  }
+
+  /// Set cached coin balance
+  static Future<void> setCoinBalance(int coins) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('user_coin_balance', coins);
   }
 
   /// Synchronous default headers

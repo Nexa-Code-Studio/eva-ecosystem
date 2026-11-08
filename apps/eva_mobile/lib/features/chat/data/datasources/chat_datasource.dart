@@ -5,4 +5,5 @@ abstract class ChatDataSource {
   Future<List<ConversationModel>> getConversations();
   Future<ConversationModel?> getConversationById(String id);
   Future<ChatMessageModel> sendMessage(String conversationId, String text);
+  Stream<String> streamConversationSummary(String conversationId);
 }
