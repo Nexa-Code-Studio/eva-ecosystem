@@ -1,4 +1,4 @@
-.PHONY: help dev dev-d dev-build dev-api dev-mcp dev-worker prod prod-down logs logs-api logs-worker logs-prod ps down db-shell migrate migration-gen db-reset seed mobile-usb mobile-emu mobile-mock mobile-hybrid mobile-emu-hybrid mobile-web-hybrid mobile-web mobile-usb-cloud mobile-emu-cloud mobile-web-cloud mobile-cloud counselor-mock counselor-web test-counselor web-dev web-build web-lint test test-backend test-mobile lint format doctor tasks bootstrap test-agentic link-project view-project
+.PHONY: help dev dev-d dev-build dev-api dev-mcp dev-worker prod prod-down logs logs-api logs-worker logs-prod ps down db-shell migrate migration-gen db-reset seed mobile-usb mobile-emu mobile-mock mobile-hybrid mobile-emu-hybrid mobile-web-hybrid mobile-web mobile-usb-cloud mobile-emu-cloud mobile-web-cloud mobile-cloud counselor-mock counselor-web test-counselor web-dev web-build web-lint test test-backend test-mobile lint format doctor tasks bootstrap test-agentic link-project view-project check-server
 
 help:
 	@echo "EVA Ecosystem Management Commands (Full Docker Environment):"
@@ -58,6 +58,7 @@ help:
 	@echo "  Agentic Workflow & GitHub Project Automation:"
 	@echo "    make doctor        - Jalankan preflight health check & diagnostic lokal/remote"
 	@echo "    make tasks         - Cek daftar issue, active branch, blocker, dan review request"
+	@echo "    make check-server  - Cek kelayakan hardware server (CPU, RAM, Swap, Disk, Docker)"
 	@echo "    make bootstrap     - Inisialisasi identitas developer (.agent/developer.local.json)"
 	@echo "    make test-agentic  - Jalankan test suite unit untuk agentic workflow scripts"
 	@echo "    make link-project  - Hubungkan repositori eva-ecosystem ke Project #2 Nexa-Code-Studio"
@@ -230,3 +231,7 @@ link-project:
 
 view-project:
 	@python3 scripts/agentic/gh_project.py view-project
+
+check-server:
+	@python3 scripts/check_server_resources.py
+
