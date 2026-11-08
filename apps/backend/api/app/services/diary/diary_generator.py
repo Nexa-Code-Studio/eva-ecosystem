@@ -59,7 +59,7 @@ class DiaryGeneratorService:
         system_prompt = LLMMessage(
             role="system",
             content=(
-                "Anda adalah sistem analis kesehatan mental & konseling psikologi LUNA AI. "
+                "Anda adalah sistem analis kesehatan mental & konseling psikologi EVA AI. "
                 "Tugas Anda adalah menganalisis seluruh transkrip percakapan harian pengguna hari ini, "
                 "lalu menghasilkan output JSON VALID HANYA TANPA MARKDOWN (tanpa ```json atau teks tambahan lainnya).\n\n"
                 "Format JSON yang HARUS dihasilkan secara presisi:\n"
@@ -125,8 +125,8 @@ class DiaryGeneratorService:
             "depression": 0.15,
         }
         ai_insight = data.get("ai_insight") or "Kondisi emosional pengguna terpantau stabil."
-        emotional_reflection = data.get("emotional_reflection") or "Pengguna merasa lebih tenang setelah berdialog bersama LUNA."
-        important_events = data.get("important_events") or [f"[{get_wib_now().strftime('%H:%M')}] Sesi Percakapan LUNA"]
+        emotional_reflection = data.get("emotional_reflection") or "Pengguna merasa lebih tenang setelah berdialog bersama EVA."
+        important_events = data.get("important_events") or [f"[{get_wib_now().strftime('%H:%M')}] Sesi Percakapan EVA"]
 
         # Check existing diary entry for today
         query = select(DiaryEntry).where(DiaryEntry.user_id == user_id, DiaryEntry.entry_date == entry_date).order_by(DiaryEntry.created_at.desc())
@@ -170,7 +170,7 @@ class DiaryGeneratorService:
         default_data = {
             "title": f"Refleksi Harian - {entry_date.strftime('%d %b %Y')}",
             "summary": "Sesi percakapan hari ini berjalan dengan baik dan memberikan ketenangan emosional.",
-            "content": "Pengguna telah berinteraksi dengan LUNA AI untuk merefleksikan perasaan dan aktivitas hari ini.",
+            "content": "Pengguna telah berinteraksi dengan EVA AI untuk merefleksikan perasaan dan aktivitas hari ini.",
             "mood_tag": "Netral & Tenang 😌",
             "mood_emoji": "😌",
             "emotional_level": 4,
@@ -180,7 +180,7 @@ class DiaryGeneratorService:
                 "depression": 0.15,
             },
             "ai_insight": "Pengguna merasa didengarkan dan mulai merasa lebih rileks selama percakapan.",
-            "emotional_reflection": "Refleksi emosi menunjukkan respon positif terhadap konseling LUNA.",
-            "important_events": [f"[{get_wib_now().strftime('%H:%M')}] Sesi Panggilan Suara & Chat LUNA"],
+            "emotional_reflection": "Refleksi emosi menunjukkan respon positif terhadap konseling EVA.",
+            "important_events": [f"[{get_wib_now().strftime('%H:%M')}] Sesi Panggilan Suara & Chat EVA"],
         }
         return await DiaryGeneratorService._save_parsed_diary(user_id, entry_date, default_data, db)

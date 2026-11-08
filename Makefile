@@ -1,4 +1,4 @@
-.PHONY: help dev dev-d dev-build dev-api dev-mcp dev-worker prod prod-down logs logs-api logs-worker logs-prod ps down db-shell migrate migration-gen db-reset seed mobile-usb mobile-emu mobile-mock mobile-hybrid mobile-emu-hybrid mobile-web-hybrid mobile-web mobile-usb-cloud mobile-emu-cloud mobile-web-cloud mobile-cloud test test-backend test-mobile lint format doctor tasks bootstrap test-agentic link-project view-project
+.PHONY: help dev dev-d dev-build dev-api dev-mcp dev-worker prod prod-down logs logs-api logs-worker logs-prod ps down db-shell migrate migration-gen db-reset seed mobile-usb mobile-emu mobile-mock mobile-hybrid mobile-emu-hybrid mobile-web-hybrid mobile-web mobile-usb-cloud mobile-emu-cloud mobile-web-cloud mobile-cloud counselor-mock counselor-web test-counselor web-dev web-build web-lint test test-backend test-mobile lint format doctor tasks bootstrap test-agentic link-project view-project
 
 help:
 	@echo "EVA Ecosystem Management Commands (Full Docker Environment):"
@@ -40,6 +40,13 @@ help:
 	@echo "    make mobile-emu-cloud  - Jalankan di Android Emulator nembak ke Cloud (eva.nexacode.dev)"
 	@echo "    make mobile-web-cloud  - Jalankan di Chrome Web nembak ke Cloud (eva.nexacode.dev)"
 	@echo "    make mobile-cloud      - Shortcut jalankan mobile nembak ke Cloud"
+	@echo "    make counselor-mock    - Jalankan Eva Counselor (Psikolog) dengan Mock Data"
+	@echo "    make counselor-web     - Jalankan Eva Counselor di Chrome Web Simulator"
+	@echo ""
+	@echo "  Web Application (Eva Web Portal):"
+	@echo "    make web-dev           - Jalankan server development Vite apps/web (port 5174)"
+	@echo "    make web-build         - Jalankan build produksi apps/web (tsc -b && vite build)"
+	@echo "    make web-lint          - Jalankan code linter ESLint untuk apps/web"
 	@echo ""
 	@echo "  Testing & Code Quality:"
 	@echo "    make test          - Jalankan seluruh test suite (Backend via Docker & Mobile)"
@@ -162,6 +169,27 @@ mobile-web-cloud:
 
 mobile-cloud: mobile-usb-cloud
 
+counselor-mock:
+	@APP=eva_counselor_mobile ./scripts/run_mobile.sh mock $(ARGS)
+
+counselor-web:
+	@APP=eva_counselor_mobile ./scripts/run_mobile.sh web $(ARGS)
+
+test-counselor:
+	cd apps/eva_counselor_mobile && flutter test
+
+# ------------------------------------------------------------------------------
+# Web Application Runner & Build (React & Vite)
+# ------------------------------------------------------------------------------
+web-dev:
+	cd apps/web && npm run dev
+
+web-build:
+	cd apps/web && npm run build
+
+web-lint:
+	cd apps/web && npm run lint
+
 # ------------------------------------------------------------------------------
 # Testing & Code Quality
 # ------------------------------------------------------------------------------
@@ -176,6 +204,7 @@ test-mobile:
 lint:
 	docker compose exec -T api ruff check . 2>/dev/null || ruff check .
 	cd apps/eva_mobile && flutter analyze
+	cd apps/web && npm run lint
 
 format:
 	docker compose exec -T api ruff format . 2>/dev/null || ruff format .

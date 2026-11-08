@@ -59,7 +59,7 @@ case "$ACTION" in
     ;;
 
   restart)
-    echo "🔄 Re-applying configuration and restarting LUNA AI Production stack..."
+    echo "🔄 Re-applying configuration and restarting EVA AI Production stack..."
     docker compose -f "${COMPOSE_FILE}" up -d "$@"
     echo ""
     echo "==> Waiting for services..."

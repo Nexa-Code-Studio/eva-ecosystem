@@ -1,0 +1,304 @@
+@import 'tailwindcss';
+@import './styles/cursor.css';
+
+/* ==========================================================================
+   EVA / Luna Design System: Web tokens
+   Source of truth: docs/design-token.md
+   Tailwind v4 uses CSS-first config: every `--*` inside @theme becomes a
+   utility (e.g. --color-primary → bg-primary / text-primary).
+   ========================================================================== */
+
+@theme {
+  /* --- Typography --- */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* --- Color Palette --- */
+  --color-primary: #5358cb;
+  --color-primary-light: #8b93ff;
+  --color-primary-container: #e8e9ff;
+  --color-primary-vivid: #6c63ff;
+  --color-primary-deep: #3b3e99;
+  --color-secondary: #e2daff;
+  --color-secondary-dark: #605a79;
+  --color-tertiary: #a7e6ff;
+  --color-tertiary-dark: #20667b;
+  --color-blush: #ffb6c1;
+
+  --color-canvas: #f8f9fe;
+  --color-surface: #ffffff;
+  --color-obsidian: #0c0a14;
+
+  /* Text */
+  --color-ink: #191c1f;
+  --color-ink-soft: #767684;
+  --color-ink-muted: #9ea0ab;
+
+  /* Lines & glass */
+  --color-divider: rgba(83, 88, 203, 0.055);
+  --color-border-subtle: #e2e8f0;
+  --color-glass: rgba(255, 255, 255, 0.8);
+  --color-glass-border: rgba(255, 255, 255, 0.4);
+
+  /* Status */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ba1a1a;
+  --color-crisis-bg: #fef2f2;
+  --color-crisis-border: #fecaca;
+  --color-crisis-text: #991b1b;
+
+  /* DASS-21 severity */
+  --color-dass-normal: #2e7d32;
+  --color-dass-mild: #fbc02d;
+  --color-dass-moderate: #f57c00;
+  --color-dass-severe: #e65100;
+  --color-dass-extreme: #d32f2f;
+
+  /* --- Type scale (mobile app scale, 1:1) --- */
+  --text-display: 1.75rem;
+  --text-display--line-height: 1.3;
+  --text-display--font-weight: 700;
+  --text-headline: 1.375rem;
+  --text-headline--line-height: 1.3;
+  --text-headline--font-weight: 700;
+  --text-title-md: 1rem;
+  --text-title-md--line-height: 1.4;
+  --text-title-md--font-weight: 600;
+  --text-body-lg: 0.9375rem;
+  --text-body-lg--line-height: 1.5;
+  --text-body-md: 0.875rem;
+  --text-body-md--line-height: 1.5;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.4;
+  --text-caption--letter-spacing: 0.04em;
+  --text-caption--font-weight: 600;
+  --text-overline: 0.6875rem;
+  --text-overline--line-height: 1.2;
+  --text-overline--letter-spacing: 0.12em;
+  --text-overline--font-weight: 800;
+
+  /* Web-only scale-ups for landing hero / section titles */
+  --text-hero: clamp(2.5rem, 1.8rem + 3vw, 4.25rem);
+  --text-hero--line-height: 1.12;
+  --text-hero--letter-spacing: -0.025em;
+  --text-hero--font-weight: 700;
+  --text-section: clamp(1.85rem, 1.45rem + 1.8vw, 2.85rem);
+  --text-section--line-height: 1.2;
+  --text-section--letter-spacing: -0.02em;
+  --text-section--font-weight: 700;
+
+  /* --- Border radius hierarchy --- */
+  --radius-badge: 8px;
+  --radius-icon: 14px;
+  --radius-shortcut: 18px;
+  --radius-card: 24px;
+  --radius-modal: 28px;
+  --radius-pill: 9999px;
+
+  /* --- Shadows & elevation --- */
+  --shadow-subtle: 0 2px 10px rgba(0, 0, 0, 0.05);
+  --shadow-glass: 0 10px 30px rgba(83, 88, 203, 0.08);
+  --shadow-btn: 0 4px 14px rgba(83, 88, 203, 0.3);
+  --shadow-nav: 0 8px 25px rgba(83, 88, 203, 0.12), 0 2px 10px rgba(0, 0, 0, 0.05);
+  --shadow-fab: 0 6px 20px rgba(83, 88, 203, 0.45);
+  --shadow-halo: 0 0 36px rgba(199, 210, 254, 0.4), 0 0 28px rgba(255, 209, 220, 0.3);
+
+  /* --- Motion --- */
+  --ease-luna: cubic-bezier(0.215, 0.61, 0.355, 1);
+
+  --animate-breath: breath 3.2s ease-in-out infinite;
+  --animate-shimmer: shimmer 1.1s ease-in-out infinite alternate;
+  --animate-spin-slow: spin 14s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-wave: wave 1.2s ease-in-out infinite;
+  --animate-enter: enter 320ms var(--ease-luna) both;
+
+  @keyframes breath {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.85;
+    }
+    50% {
+      transform: scale(1.06);
+      opacity: 1;
+    }
+  }
+  @keyframes shimmer {
+    0% {
+      opacity: 0.28;
+    }
+    100% {
+      opacity: 0.68;
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  @keyframes wave {
+    0%,
+    100% {
+      transform: scaleY(0.35);
+    }
+    50% {
+      transform: scaleY(1);
+    }
+  }
+  @keyframes enter {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Keyframes for Feature card progress bar */
+@keyframes feature-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* ==========================================================================
+   Raw CSS custom properties (for non-Tailwind usage / inline styles)
+   ========================================================================== */
+:root {
+  --gradient-bg-screen: linear-gradient(180deg, #f3f5ff 0%, #e9ecff 50%, #f8f9fe 100%);
+  --gradient-fab: linear-gradient(135deg, #6c63ff 0%, #5358cb 50%, #3b3e99 100%);
+  --gradient-insight: linear-gradient(135deg, #ede9fe 0%, #f3e8ff 50%, #e0e7ff 100%);
+  --gradient-orb: conic-gradient(from 0deg, #ffb6c1, #e2daff, #a7e6ff, #8b93ff, #ffb6c1);
+  --gradient-orb-halo: radial-gradient(
+    circle,
+    rgba(199, 210, 254, 0.35) 0%,
+    rgba(255, 209, 220, 0.2) 60%,
+    transparent 100%
+  );
+  --glass-blur: blur(20px);
+  --duration-fast: 250ms;
+  --duration-normal: 320ms;
+  --nav-height: 76px;
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+@layer base {
+  html {
+    scroll-padding-top: calc(var(--nav-height) + 28px);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  body {
+    @apply bg-canvas font-sans text-body-lg text-ink-soft antialiased;
+    min-height: 100dvh;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply text-ink;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    @apply bg-primary-container text-primary;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 3px;
+  }
+}
+
+/* ==========================================================================
+   Components & utilities
+   ========================================================================== */
+@utility glass {
+  background: var(--color-glass);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1.2px solid var(--color-glass-border);
+  box-shadow: var(--shadow-glass);
+}
+
+@utility bg-luna-screen {
+  background-image: var(--gradient-bg-screen);
+}
+@utility bg-luna-fab {
+  background-image: var(--gradient-fab);
+}
+@utility bg-luna-insight {
+  background-image: var(--gradient-insight);
+}
+@utility bg-luna-orb {
+  background-image: var(--gradient-orb);
+}
+@utility bg-luna-halo {
+  background-image: var(--gradient-orb-halo);
+}
+
+@utility text-gradient {
+  background-image: linear-gradient(120deg, #6c63ff 0%, #5358cb 45%, #8b93ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.animate-enter {
+  animation-delay: calc(60ms + var(--i, 0) * 40ms);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports ((animation-timeline: view()) and (animation-range: entry)) {
+    @keyframes reveal-up {
+      from {
+        opacity: 0;
+        transform: translateY(28px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    .reveal {
+      animation: reveal-up linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 28%;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

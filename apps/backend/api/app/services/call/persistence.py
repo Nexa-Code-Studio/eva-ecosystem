@@ -108,7 +108,7 @@ class CallPersistenceService:
                     now_str = get_wib_now().strftime("%d %b %Y %H:%M")
                     new_conv = Conversation(
                         user_id=user.id,
-                        title=f"Panggilan Suara LUNA {now_str}",
+                        title=f"Panggilan Suara EVA {now_str}",
                     )
                     db.add(new_conv)
                     await db.commit()

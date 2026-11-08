@@ -131,7 +131,8 @@ else
     exit 1
 fi
 
-APP_DIR="${ROOT_DIR}/apps/eva_mobile"
+APP_TARGET="${APP:-eva_mobile}"
+APP_DIR="${ROOT_DIR}/apps/${APP_TARGET}"
 if [ ! -d "${APP_DIR}" ]; then
     echo -e "${RED}${BOLD}[ERROR]${NC} Direktori aplikasi tidak ditemukan: ${APP_DIR}"
     exit 1

@@ -12,8 +12,9 @@ downloads/
 eggs/
 .eggs/
 lib/
-!apps/luna_mobile/lib/
 !apps/eva_mobile/lib/
+!apps/eva_counselor_mobile/lib/
+!apps/web/src/lib/
 lib64/
 parts/
 sdist/
@@ -48,12 +49,27 @@ htmlcov/
 .dockerdata/
 
 # Flutter / Mobile
-apps/luna_mobile/.dart_tool/
-apps/luna_mobile/.fvm/
-apps/luna_mobile/.idea/
-apps/luna_mobile/.pub-cache/
-apps/luna_mobile/.pub/
-apps/luna_mobile/build/
+apps/eva_mobile/.dart_tool/
+apps/eva_mobile/.fvm/
+apps/eva_mobile/.idea/
+apps/eva_mobile/.pub-cache/
+apps/eva_mobile/.pub/
+apps/eva_mobile/build/
+# Web Frontend (apps/web)
+apps/web/node_modules/
+apps/web/dist/
+apps/web/dist-ssr/
+apps/web/*.local
+
+# Counselor Mobile (apps/eva_counselor_mobile)
+apps/eva_counselor_mobile/.dart_tool/
+apps/eva_counselor_mobile/.fvm/
+apps/eva_counselor_mobile/.idea/
+apps/eva_counselor_mobile/.pub-cache/
+apps/eva_counselor_mobile/.pub/
+apps/eva_counselor_mobile/build/
+.flutter-plugins
+.flutter-plugins-dependencies
 
 # Agents logs
 .agents/logs/
@@ -62,7 +78,11 @@ apps/luna_mobile/build/
 .agent/developer.local.json
 .agent/*.local.json
 .agent/worktrees/
+.agent/task-state.json
 
 # Test audio outputs & pitch exploration
 tests/output_*.mp3
 tests/samples_pitch/
+
+# User reference screenshots
+immg/
