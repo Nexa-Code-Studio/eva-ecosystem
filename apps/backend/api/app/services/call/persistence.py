@@ -12,11 +12,10 @@ from app.db.session import AsyncSessionLocal
 from app.models.conversation import Conversation, ConversationSummary, Message, MessageType
 from app.models.dass import DASSAssessment
 from app.models.user import User
-from app.services.audio_stream_buffer import audio_buffer_service
-from app.services.dass_service import DASSService
-from app.services.diary_generator import DiaryGeneratorService
-from app.services.emotion_analyzer import EmotionAnalyzerService
-from app.services.ml_emotion_detector import MLEmotionDetectorService
+from app.services.call.stream_buffer import audio_buffer_service
+from app.services.dass import DASSService
+from app.services.diary import DiaryGeneratorService
+from app.services.emotion import EmotionAnalyzerService, MLEmotionDetectorService
 from packages.ai.services.dass_extraction_service import DASSExtractionService
 
 logger = logging.getLogger(__name__)

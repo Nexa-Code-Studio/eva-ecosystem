@@ -4,7 +4,7 @@ import time
 from typing import Any
 
 from app.core.call_config import CallTurnConfig, call_config
-from app.services.turn_detection_service import TurnDetectionResult, TurnDetectionService
+from app.services.call.turn_detector import TurnDetectionResult, TurnDetectionService
 
 logger = logging.getLogger(__name__)
 

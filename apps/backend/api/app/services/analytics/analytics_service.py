@@ -13,6 +13,7 @@ from app.models.conversation import Conversation, Message
 from app.models.dass import DASSAssessment
 from app.models.diary import DiaryEntry
 from app.models.safety import EmotionAnalysis
+from app.schemas.analytics import MonitoringDataResponse
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,15 @@ class AnalyticsService:
     """Service to compute emotional rhythm, mental health risks, and AI summaries
     for the Monitoring/Tren screen across 'today', 'week', and 'month' periods.
     """
+
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    async def get_data(self, user_id: uuid.UUID, period: str = "today") -> MonitoringDataResponse:
+        """Fetch monitoring data for the user and return structured Pydantic response."""
+        raw = await self.get_monitoring_data(user_id, period, self.db)
+        return MonitoringDataResponse.model_validate(raw)
+
 
     # 7 UI Emotions index mapping:
     # 0: happy, 1: netral, 2: fear, 3: sadness, 4: surprise, 5: anger, 6: disgusted

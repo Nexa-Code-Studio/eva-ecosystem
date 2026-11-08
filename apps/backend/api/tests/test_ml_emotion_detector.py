@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 import pytest
-from app.services.ml_emotion_detector import MLEmotionDetectorService
+from app.services.emotion import MLEmotionDetectorService
 
 # Paths to sample WAV audio files
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent

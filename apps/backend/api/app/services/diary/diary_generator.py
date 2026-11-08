@@ -1,17 +1,16 @@
 import json
 import logging
-from datetime import date, datetime, timezone
+from datetime import date
 from typing import Any
 import uuid
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.tz import get_wib_day_range_utc, get_wib_now, get_wib_today, to_wib
 from app.models.conversation import Conversation
 from app.models.diary import DiaryEntry
-from app.models.user import User
 from packages.ai.factories.llm_factory import LLMFactory
 from packages.ai.interfaces.llm import LLMMessage
 
