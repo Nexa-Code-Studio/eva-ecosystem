@@ -42,6 +42,7 @@ Backlog  ───>  Ready  ───>  In Progress  ───>  In Review  ─�
 ```
 
 - **Human-Owned Tasks**: Every task has a single human developer owner. AI agents code only on the task selected by the developer and must never auto-claim or auto-assign tasks.
+- **Developer Review Gate for Issue Lifecycle**: Adding, editing, closing, or deleting GitHub issues requires prior review and explicit confirmation by the human developer. The AI agent must present the draft/dry-run and await approval before modifying GitHub state.
 - **Evidence-Based Progress Updates**: Task transitions require concrete evidence:
   - `Ready ➔ In Progress`: Active task branch matching `{type}/{issue}-{slug}`.
   - `In Progress ➔ Blocked`: Explicit blocker reason (minimum 3 characters).

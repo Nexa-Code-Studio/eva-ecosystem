@@ -11,17 +11,17 @@ Runbook for developing, building, and testing `apps/eva_mobile`.
 
 From the repository root:
 ```bash
-# Run on physical Android device connected via USB (auto adb reverse port 8888):
-make mobile-usb
+# DEFAULT: Local API Stack (Port 8888)
+make mobile-usb        # HP fisik via USB (auto adb reverse port 8888 -> 127.0.0.1:8888)
+make mobile-emu        # Android Emulator (auto route gateway 10.0.2.2:8888)
+make mobile-web        # Chrome Web Simulator (127.0.0.1:8888)
+make mobile-mock       # Offline Mock Data (tanpa backend)
 
-# Run on Android Emulator (auto routes to 10.0.2.2:8888):
-make mobile-emu
-
-# Run with Mock Data (no backend required):
-make mobile-mock
-
-# Run on Chrome Browser Simulator:
-make mobile-web
+# CLOUD: Production Cloud Stack (eva.nexacode.dev)
+make mobile-usb-cloud  # HP fisik nembak production cloud
+make mobile-emu-cloud  # Android Emulator nembak production cloud
+make mobile-web-cloud  # Chrome Web nembak production cloud
+make mobile-cloud      # Shortcut alias ke mobile-usb-cloud
 ```
 
 ## 2. Manual Profile Execution

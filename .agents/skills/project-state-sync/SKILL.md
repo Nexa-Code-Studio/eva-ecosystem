@@ -10,6 +10,7 @@ This skill defines the evidence requirements and operational procedures for tran
 ## Overview
 
 State transitions are **evidence-based and deterministic**:
+- Mutasi lifecycle issue (tambah, edit, tutup, atau hapus) wajib melalui review dan persetujuan eksplisit developer.
 - The agent must **never** infer task completion merely because code was edited.
 - A passing unit test alone does **not** mark a task `Done`.
 - An agent crash or process termination never triggers automated state transitions.

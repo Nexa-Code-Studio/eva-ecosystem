@@ -122,17 +122,18 @@ class LLMFactory:
 ```
 
 ### 2.3 Dependency Injection di FastAPI Endpoints
-Endpoint di `apps/backend/api/app/api/routes` **DILARANG KERAS** menginisialisasi provider atau service konkret secara manual di dalam handler fungsi. Gunakan `Depends()`:
+Endpoint di `apps/backend/api/app/api/routes` **DILARANG KERAS** menginisialisasi provider atau service konkret secara manual di dalam handler fungsi, dan dilarang mengorkestrasi provider AI/DB langsung di dalam router. Router wajib menginjeksi Domain Service via `Depends()`:
 ```python
-# ✅ BENAR: Menggunakan Dependency Injection
-@router.post("/chat/completions")
+# ✅ BENAR: Menggunakan Domain Service Injection & Pydantic response_model
+@router.post("/chat/completions", response_model=ChatCompletionResponse)
 async def chat_completion(
     payload: ChatRequest,
-    llm: BaseLLMProvider = Depends(get_llm_provider),
-    db: AsyncSession = Depends(get_db_session)
-):
-    return await llm.generate_response(payload.message)
+    service: ConversationService = Depends(get_conversation_service),
+) -> ChatCompletionResponse:
+    """Delegasikan prompt generation dan DB logging ke service domain."""
+    return await service.generate_chat_reply(payload)
 ```
+> **Catatan Arsitektur:** Provider konkret (`BaseLLMProvider`) diinjeksi ke dalam `ConversationService` melalui factory di `app/api/dependencies.py`, bukan di dalam router handler.
 
 ---
 

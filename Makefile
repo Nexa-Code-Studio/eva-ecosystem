@@ -1,4 +1,4 @@
-.PHONY: help dev dev-d dev-build dev-api dev-mcp dev-worker prod prod-down logs logs-api logs-worker logs-prod ps down db-shell migrate migration-gen db-reset seed mobile-usb mobile-emu mobile-mock mobile-web test test-backend test-mobile lint format doctor tasks bootstrap test-agentic link-project view-project
+.PHONY: help dev dev-d dev-build dev-api dev-mcp dev-worker prod prod-down logs logs-api logs-worker logs-prod ps down db-shell migrate migration-gen db-reset seed mobile-usb mobile-emu mobile-mock mobile-hybrid mobile-emu-hybrid mobile-web-hybrid mobile-web mobile-usb-cloud mobile-emu-cloud mobile-web-cloud mobile-cloud test test-backend test-mobile lint format doctor tasks bootstrap test-agentic link-project view-project
 
 help:
 	@echo "EVA Ecosystem Management Commands (Full Docker Environment):"
@@ -29,10 +29,17 @@ help:
 	@echo "    make seed          - Jalankan seeder akun & mental health knowledge via Docker"
 	@echo ""
 	@echo "  Mobile Applications (Eva Mobile):"
-	@echo "    make mobile-usb    - Jalankan Eva Mobile di HP Fisik via USB (auto adb reverse 8888)"
-	@echo "    make mobile-emu    - Jalankan Eva Mobile di Android Emulator (route 10.0.2.2:8888)"
-	@echo "    make mobile-mock   - Jalankan Eva Mobile dengan Mock Data lokal"
-	@echo "    make mobile-web    - Jalankan Eva Mobile di Chrome Web Simulator"
+	@echo "    make mobile-usb        - Jalankan di HP Fisik (DEFAULT: API Lokal via reverse 8888)"
+	@echo "    make mobile-emu        - Jalankan di Android Emulator (DEFAULT: API Lokal 10.0.2.2:8888)"
+	@echo "    make mobile-web        - Jalankan di Chrome Web (DEFAULT: API Lokal 127.0.0.1:8888)"
+	@echo "    make mobile-mock       - Jalankan dengan Mock Data lokal (offline)"
+	@echo "    make mobile-hybrid     - Jalankan mode Hybrid di HP Fisik (Remote API + Auto Fallback Mock)"
+	@echo "    make mobile-emu-hybrid - Jalankan mode Hybrid di Android Emulator"
+	@echo "    make mobile-web-hybrid - Jalankan mode Hybrid di Chrome Web"
+	@echo "    make mobile-usb-cloud  - Jalankan di HP Fisik nembak ke Cloud (eva.nexacode.dev)"
+	@echo "    make mobile-emu-cloud  - Jalankan di Android Emulator nembak ke Cloud (eva.nexacode.dev)"
+	@echo "    make mobile-web-cloud  - Jalankan di Chrome Web nembak ke Cloud (eva.nexacode.dev)"
+	@echo "    make mobile-cloud      - Shortcut jalankan mobile nembak ke Cloud"
 	@echo ""
 	@echo "  Testing & Code Quality:"
 	@echo "    make test          - Jalankan seluruh test suite (Backend via Docker & Mobile)"
@@ -120,7 +127,8 @@ seed:
 	docker compose exec -T api python -m app.db.seed
 
 # ------------------------------------------------------------------------------
-# Mobile Applications Runner (Physical USB / Emulator / Mock / Web)
+# Mobile Applications Runner (Physical USB / Emulator / Web / Mock)
+# DEFAULT: Local API (8888). Append '-cloud' to connect to production cloud.
 # ------------------------------------------------------------------------------
 mobile-usb:
 	@./scripts/run_mobile.sh usb $(ARGS)
@@ -128,11 +136,31 @@ mobile-usb:
 mobile-emu:
 	@./scripts/run_mobile.sh emu $(ARGS)
 
+mobile-web:
+	@./scripts/run_mobile.sh web $(ARGS)
+
 mobile-mock:
 	@./scripts/run_mobile.sh mock $(ARGS)
 
-mobile-web:
-	@./scripts/run_mobile.sh web $(ARGS)
+mobile-hybrid:
+	@./scripts/run_mobile.sh hybrid $(ARGS)
+
+mobile-emu-hybrid:
+	@./scripts/run_mobile.sh emu-hybrid $(ARGS)
+
+mobile-web-hybrid:
+	@./scripts/run_mobile.sh web-hybrid $(ARGS)
+
+mobile-usb-cloud:
+	@./scripts/run_mobile.sh usb-cloud $(ARGS)
+
+mobile-emu-cloud:
+	@./scripts/run_mobile.sh emu-cloud $(ARGS)
+
+mobile-web-cloud:
+	@./scripts/run_mobile.sh web-cloud $(ARGS)
+
+mobile-cloud: mobile-usb-cloud
 
 # ------------------------------------------------------------------------------
 # Testing & Code Quality

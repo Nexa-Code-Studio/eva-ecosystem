@@ -64,7 +64,7 @@ make db-shell
 ## 4. Tests & Quality Checks
 
 ```bash
-# Run backend & AI package tests via Docker
+# Run backend & AI package tests via Docker (includes Clean Architecture guardrail test)
 make test-backend
 
 # Run mobile tests
@@ -74,3 +74,10 @@ make test-mobile
 make lint
 make format
 ```
+
+> **Clean Architecture Guardrail:**
+> Running `make test-backend` automatically validates `test_clean_architecture.py`, ensuring:
+> 1. Zero loose `.py` files in `app/services/` or `app/schemas/` root.
+> 2. Zero inline SQL queries (`select()`, `db.execute()`, `db.commit()`) in router files.
+> 3. Zero duplicated `_get_current_user` private functions.
+> 4. All router endpoints are thin controllers ($\le 15$ lines) returning Pydantic `response_model`.

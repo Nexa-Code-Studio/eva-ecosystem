@@ -41,15 +41,31 @@ Panduan ini mengatur standar modularitas kode pada monorepo Eva AI menggunakan p
 
 1. **Pemisahan I/O & Realtime dari Persistensi**:
    Service yang menangani koneksi real-time (WebSockets, STT/TTS streaming) tidak boleh mencampur transaksi SQL langsung di dalam perulangan event. Delegasikan operasi database ke *Persistence Collaborator*.
-2. **Peran Router yang Ramping**:
-   Router FastAPI (`app/api/routes/`) hanya bertugas memvalidasi schema HTTP request, memanggil domain service, dan mengembalikan DTO. Dilarang menaruh query SQL mentah kompleks di dalam router handler.
-3. **Cohesive Domain Services**:
-   Bila sebuah service mulai mengelola lebih dari 3 entitas database atau mencampur komputasi teks dengan operasi I/O, pecah menjadi service kolaborator yang terfokus.
+2. **Peran Router yang Ramping (Thin Controllers)**:
+   Router FastAPI (`app/api/routes/`) wajib ramping (3–5 baris per handler), hanya bertugas memvalidasi schema HTTP request, memanggil domain service via `Depends()`, dan mengembalikan Pydantic `response_model`. Dilarang menaruh query SQL mentah kompleks atau kalkulasi bisnis di dalam router handler.
+3. **Cohesive Domain Services & Modular Packaging**:
+   Bila sebuah domain memiliki beberapa sub-komponen berat (seperti panggilan suara, deteksi emosi, orkestrasi AI), kumpulkan ke dalam direktori paket `app/services/{module}/nama_service.py` dan `app/schemas/{module}/` dengan barrel export `__init__.py`, alih-alih menumpuk file flat di root folder `services/`.
+   Lihat panduan lengkap di [.agents/rules/backend-clean-architecture.md](file:///home/mashupsoat/Project/eva-ecosystem/.agents/rules/backend-clean-architecture.md).
 
 ---
 
-## 4. Checklist Saat Merancang atau Merefaktor Komponen
+## 4. Prinsip Component Reuse & Single Source of Truth
 
+Sebelum menulis elemen UI baru atau menduplikasi styling secara *inline* di dalam sebuah screen:
+1. **Wajib Memeriksa Komponen Reusable yang Sudah Ada**:
+   - Periksa direktori komponen global `apps/eva_mobile/lib/widgets/` (misalnya `AppBackButton`, `GlassCard`, `AppSnackBar`, `CustomButton`, `CustomTextField`, `SkeletonShimmer`, `StaggeredEntrance`).
+   - Periksa komponen tingkat fitur di `apps/eva_mobile/lib/features/<feature>/presentation/widgets/`.
+2. **Dilarang Menulis Ulang Komponen Standar Secara Inline**:
+   - Jangan membuat tombol *back* manual (`IconButton(icon: Icon(Icons.arrow_back...))` atau `Container(...)` bulat) secara terpisah di setiap screen. Selalu gunakan `AppBackButton`.
+   - Jangan membuat dialog / card / snack bar secara *ad-hoc* jika sudah tersedia komponen terstandarisasi.
+3. **Ekstraksi Jika Dipakai di Lebih Dari 1 Tempat**:
+   - Jika sebuah komponen UI memiliki pola visual atau fungsi umum yang dibutuhkan oleh $\ge 2$ layar, ekstraksi menjadi reusable widget di `lib/widgets/` alih-alih menduplikasinya.
+
+---
+
+## 5. Checklist Saat Merancang atau Merefaktor Komponen
+
+- [ ] Apakah sudah memeriksa `apps/eva_mobile/lib/widgets/` untuk memastikan belum ada komponen yang melayani kebutuhan serupa (misal `AppBackButton`, `GlassCard`)? $\rightarrow$ *Wajib gunakan komponen yang sudah ada jika tersedia*
 - [ ] Apakah sub-widget ini memiliki `Timer` atau `AnimationController` sendiri yang bisa berjalan independen dari layarnya? $\rightarrow$ *Ekstraksi ke widgets/*
 - [ ] Apakah ada class `CustomPainter` yang ditulis di bawah screen? $\rightarrow$ *Ekstraksi ke widgets/*
 - [ ] Apakah modal bottom sheet ini cukup panjang dan memiliki alur interaksinya sendiri? $\rightarrow$ *Ekstraksi ke widgets/*
