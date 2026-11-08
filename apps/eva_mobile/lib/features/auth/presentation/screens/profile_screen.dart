@@ -8,6 +8,7 @@ import 'package:eva_mobile/widgets/app_back_button.dart';
 import 'package:eva_mobile/widgets/app_snack_bar.dart';
 import 'package:eva_mobile/widgets/custom_button.dart';
 import 'package:eva_mobile/widgets/glass_card.dart';
+import 'package:eva_mobile/features/coin/presentation/providers/coin_provider.dart';
 import '../providers/auth_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -540,9 +541,107 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                 ),
 
+                const SizedBox(height: 14),
+
+                // 2. Coin Balance Card (Interactive Top-Up Banner)
+                InkWell(
+                  onTap: () => Navigator.pushNamed(context, '/coin_purchase'),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF5358CB), Color(0xFF8B93FF)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF5358CB).withValues(alpha: 0.22),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.monetization_on_rounded,
+                            color: Color(0xFFFFD54F),
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Saldo Koin EVA',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white.withValues(alpha: 0.85),
+                                ),
+                              ),
+                              Text(
+                                '${ref.watch(coinBalanceProvider)} Koin',
+                                style: GoogleFonts.inter(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.add_circle_outline_rounded,
+                                size: 12,
+                                color: Color(0xFF5358CB),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Isi Koin',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF5358CB),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 11,
+                          color: Colors.white.withValues(alpha: 0.8),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 18),
 
-                // 2. Wellness Activity Summary Overview
+                // 3. Wellness Activity Summary Overview
                 Row(
                   children: [
                     _buildStatCard(

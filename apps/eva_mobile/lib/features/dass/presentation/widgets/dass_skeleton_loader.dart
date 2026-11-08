@@ -5,7 +5,13 @@ import '../../../../widgets/skeleton_shimmer.dart';
 
 /// Shimmer skeleton loader for the DASS-21 Assessment Screen.
 class DassSkeletonLoader extends StatelessWidget {
-  const DassSkeletonLoader({super.key});
+  final GlobalKey? subscalesCardKey;
+  final GlobalKey? firstItemKey;
+  const DassSkeletonLoader({
+    super.key,
+    this.subscalesCardKey,
+    this.firstItemKey,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -17,8 +23,10 @@ class DassSkeletonLoader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 1. Three Score Summary Cards (Depresi, Kecemasan, Stres)
-            Row(
-              children: List.generate(
+            Container(
+              key: subscalesCardKey,
+              child: Row(
+                children: List.generate(
                 3,
                 (index) => Expanded(
                   child: Container(
@@ -41,6 +49,7 @@ class DassSkeletonLoader extends StatelessWidget {
                   ),
                 ),
               ),
+            ),
             ),
             const SizedBox(height: 18),
 
@@ -82,6 +91,7 @@ class DassSkeletonLoader extends StatelessWidget {
               (index) => Padding(
                 padding: const EdgeInsets.only(bottom: 12.0),
                 child: GlassCard(
+                  key: index == 0 ? firstItemKey : null,
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   child: Row(

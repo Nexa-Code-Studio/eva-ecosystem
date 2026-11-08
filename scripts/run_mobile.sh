@@ -21,28 +21,81 @@ RED="\033[0;31m"
 CYAN="\033[0;36m"
 NC="\033[0m"
 
-MODE="${1:-}"
+RAW_MODE="${1:-}"
+TARGET_ENV="${ENV:-${TARGET:-local}}"
+FALLBACK_HYBRID="${FALLBACK_HYBRID:-false}"
+
+case "${RAW_MODE}" in
+    usb-cloud)
+        MODE="usb"
+        TARGET_ENV="cloud"
+        ;;
+    emu-cloud)
+        MODE="emu"
+        TARGET_ENV="cloud"
+        ;;
+    web-cloud)
+        MODE="web"
+        TARGET_ENV="cloud"
+        ;;
+    cloud)
+        MODE="usb"
+        TARGET_ENV="cloud"
+        ;;
+    usb-hybrid)
+        MODE="usb"
+        FALLBACK_HYBRID=true
+        ;;
+    emu-hybrid)
+        MODE="emu"
+        FALLBACK_HYBRID=true
+        ;;
+    web-hybrid)
+        MODE="web"
+        FALLBACK_HYBRID=true
+        ;;
+    hybrid)
+        MODE="usb"
+        FALLBACK_HYBRID=true
+        ;;
+    *)
+        MODE="${RAW_MODE}"
+        ;;
+esac
+
 PORT="${PORT:-8888}"
 MCP_PORT="${MCP_PORT:-8889}"
 
 usage() {
-    echo -e "${BOLD}Usage:${NC} $0 <usb|emu|mock|web> [extra_flutter_args...]"
+    echo -e "${BOLD}Usage:${NC} $0 <usb|emu|mock|web|hybrid|usb-hybrid|emu-hybrid|web-hybrid|usb-cloud|emu-cloud|web-cloud> [extra_flutter_args...]"
     echo ""
-    echo "Modes:"
-    echo "  usb       Jalankan Eva Mobile di HP Fisik via USB (otomatis adb reverse port ${PORT})"
-    echo "  emu       Jalankan Eva Mobile di Android Emulator (route 10.0.2.2:${PORT})"
-    echo "  mock      Jalankan Eva Mobile dengan data simulasi lokal (USE_MOCK_DATA=true)"
-    echo "  web       Jalankan Eva Mobile di Web Browser (Chrome)"
+    echo "Modes (DEFAULT: Nembak Local API port ${PORT}):"
+    echo "  usb         Jalankan di HP Fisik via USB (DEFAULT: API Lokal via reverse port ${PORT})"
+    echo "  emu         Jalankan di Android Emulator (DEFAULT: API Lokal via 10.0.2.2:${PORT})"
+    echo "  web         Jalankan di Web Browser Chrome (DEFAULT: API Lokal via 127.0.0.1:${PORT})"
+    echo "  mock        Jalankan dengan data simulasi lokal (USE_MOCK_DATA=true, offline)"
+    echo "  hybrid      Jalankan mode Hybrid (Remote API dengan fallback otomatis ke Mock)"
+    echo ""
+    echo "Hybrid Fallback Modes (Remote API + Auto Mock Fallback on 404/Offline):"
+    echo "  usb-hybrid  HP Fisik dengan Hybrid Fallback"
+    echo "  emu-hybrid  Android Emulator dengan Hybrid Fallback"
+    echo "  web-hybrid  Chrome Web dengan Hybrid Fallback"
+    echo ""
+    echo "Cloud Modes (Nembak Production Cloud eva.nexacode.dev):"
+    echo "  usb-cloud   Jalankan di HP Fisik nembak ke Cloud (eva.nexacode.dev)"
+    echo "  emu-cloud   Jalankan di Android Emulator nembak ke Cloud (eva.nexacode.dev)"
+    echo "  web-cloud   Jalankan di Web Browser nembak ke Cloud (eva.nexacode.dev)"
     echo ""
     echo "Examples:"
-    echo "  $0 usb                     # Eva Mobile di HP fisik dengan reverse port ${PORT}"
-    echo "  $0 emu                     # Eva Mobile di Android Emulator"
-    echo "  $0 mock                    # Eva Mobile dengan Mock Data"
-    echo "  $0 web                     # Eva Mobile di Chrome"
+    echo "  $0 usb                     # HP fisik nembak lokal port ${PORT}"
+    echo "  $0 hybrid                  # HP fisik dengan mode Hybrid Fallback"
+    echo "  $0 emu-hybrid              # Emulator dengan mode Hybrid Fallback"
+    echo "  $0 mock                    # Eva Mobile dengan Mock Data murni"
     echo ""
     echo "Environment Variables:"
-    echo "  DEVICE    Tentukan Device ID spesifik (misal: DEVICE=RR8Y900W1RB)"
-    echo "  PORT      Port backend FastAPI (default: 8888)"
+    echo "  DEVICE      Tentukan Device ID spesifik (misal: DEVICE=RR8Y900W1RB)"
+    echo "  PORT        Port backend FastAPI lokal (default: 8888)"
+    echo "  TARGET_ENV  Tentukan target server ('local' atau 'cloud')"
     exit 1
 }
 
@@ -88,12 +141,13 @@ fi
 shift 1 || true
 
 check_backend_health() {
+    echo -e "${CYAN}Memeriksa status backend lokal...${NC}"
     if command -v curl &>/dev/null; then
-        if ! curl -s --connect-timeout 2 "http://localhost:${PORT}/health" &>/dev/null; then
-            echo -e "${YELLOW}⚠️  Perhatian:${NC} Backend EVA di http://localhost:${PORT} belum merespons."
-            echo -e "   Pastikan backend sudah berjalan via ${BOLD}make dev${NC} atau ${BOLD}make dev-docker${NC}.\n"
+        if ! curl -s --connect-timeout 2 "http://127.0.0.1:${PORT}/health" &>/dev/null; then
+            echo -e "${YELLOW}⚠️  Perhatian:${NC} Backend EVA di http://127.0.0.1:${PORT} belum merespons."
+            echo -e "   Pastikan backend sudah berjalan via ${BOLD}make dev${NC} atau ${BOLD}make dev-d${NC}.\n"
         else
-            echo -e "${GREEN}✓ Backend EVA aktif di port ${PORT}.${NC}"
+            echo -e "${GREEN}✓ Backend EVA aktif di port ${PORT}.${NC}\n"
         fi
     fi
 }
@@ -102,11 +156,17 @@ check_backend_health() {
 # MODE: USB (Physical Device)
 # ==============================================================================
 if [ "${MODE}" = "usb" ]; then
-    echo -e "\n${BOLD}${CYAN}================================================================================${NC}"
-    echo -e "${BOLD}${CYAN}        EVA MOBILE RUNNER — HP FISIK (USB DEBUGGING)                            ${NC}"
-    echo -e "${BOLD}${CYAN}================================================================================${NC}\n"
-
-    check_backend_health
+    if [ "${TARGET_ENV}" = "cloud" ]; then
+        echo -e "\n${BOLD}${CYAN}================================================================================${NC}"
+        echo -e "${BOLD}${CYAN}        EVA MOBILE RUNNER — HP FISIK (CLOUD: eva.nexacode.dev)                  ${NC}"
+        echo -e "${BOLD}${CYAN}================================================================================${NC}\n"
+        echo -e "${GREEN}🌐 Menghubungkan ke Server Production Cloud...${NC}\n"
+    else
+        echo -e "\n${BOLD}${CYAN}================================================================================${NC}"
+        echo -e "${BOLD}${CYAN}        EVA MOBILE RUNNER — HP FISIK (LOCAL API: 127.0.0.1:${PORT})             ${NC}"
+        echo -e "${BOLD}${CYAN}================================================================================${NC}\n"
+        check_backend_health
+    fi
 
     # Check for unauthorized devices
     if "${ADB_BIN}" devices | grep -q "unauthorized"; then
@@ -138,30 +198,59 @@ if [ "${MODE}" = "usb" ]; then
     fi
 
     echo -e "${CYAN}Target Device:${NC} ${BOLD}${TARGET_DEVICE}${NC} (Eva Mobile)"
-    echo -e "${CYAN}Konfigurasi Port Forwarding:${NC} Menghubungkan port ${PORT} & ${MCP_PORT} HP -> PC..."
 
-    # Perform adb reverse for API & MCP
-    if "${ADB_BIN}" -s "${TARGET_DEVICE}" reverse "tcp:${PORT}" "tcp:${PORT}"; then
-        echo -e "${GREEN}✓ Berhasil reverse port API:${NC} tcp:${PORT} -> tcp:${PORT} pada ${TARGET_DEVICE}"
-    else
-        echo -e "${RED}[ERROR] Gagal melakukan adb reverse port ${PORT}.${NC}"
-        exit 1
+    if [ "${TARGET_ENV}" != "cloud" ]; then
+        echo -e "${CYAN}Konfigurasi Port Forwarding:${NC} Menghubungkan port ${PORT} & ${MCP_PORT} HP -> PC..."
+        # Perform adb reverse for API & MCP
+        if "${ADB_BIN}" -s "${TARGET_DEVICE}" reverse "tcp:${PORT}" "tcp:${PORT}"; then
+            echo -e "${GREEN}✓ Berhasil reverse port API:${NC} tcp:${PORT} -> tcp:${PORT} pada ${TARGET_DEVICE}"
+        else
+            echo -e "${RED}[ERROR] Gagal melakukan adb reverse port ${PORT}.${NC}"
+            exit 1
+        fi
+        "${ADB_BIN}" -s "${TARGET_DEVICE}" reverse "tcp:${MCP_PORT}" "tcp:${MCP_PORT}" 2>/dev/null || true
     fi
-    "${ADB_BIN}" -s "${TARGET_DEVICE}" reverse "tcp:${MCP_PORT}" "tcp:${MCP_PORT}" 2>/dev/null || true
 
-    echo -e "\n${BOLD}${GREEN}🚀 Menjalankan Eva Mobile di ${TARGET_DEVICE}...${NC}\n"
+    if [ "${FALLBACK_HYBRID}" = "true" ]; then
+        echo -e "${GREEN}✓ Hybrid Fallback diaktifkan (Auto-mock pada 404 / server offline).${NC}\n"
+    fi
+
+    echo -e "${BOLD}${GREEN}🚀 Menjalankan Eva Mobile di ${TARGET_DEVICE}...${NC}"
+    echo -e "${CYAN}Mengompilasi dan memulai aplikasi (Gradle assembleDebug), mohon tunggu...${NC}\n"
     cd "${APP_DIR}"
-    exec "${FLUTTER_BIN}" run -d "${TARGET_DEVICE}" --dart-define=USE_LOCALHOST=true "$@"
+    if [ "${TARGET_ENV}" = "cloud" ]; then
+        exec "${FLUTTER_BIN}" run -d "${TARGET_DEVICE}" \
+            --dart-define=USE_LOCAL_API=false \
+            --dart-define=USE_HYBRID_FALLBACK="${FALLBACK_HYBRID}" \
+            --dart-define=HYBRID="${FALLBACK_HYBRID}" \
+            "$@"
+    else
+        exec "${FLUTTER_BIN}" run -d "${TARGET_DEVICE}" \
+            --dart-define=USE_LOCAL_API=true \
+            --dart-define=LOCAL=true \
+            --dart-define=USE_LOCALHOST=true \
+            --dart-define=LOCAL_HOST="127.0.0.1:${PORT}" \
+            --dart-define=API_BASE_URL="http://127.0.0.1:${PORT}/api/v1" \
+            --dart-define=USE_HYBRID_FALLBACK="${FALLBACK_HYBRID}" \
+            --dart-define=HYBRID="${FALLBACK_HYBRID}" \
+            "$@"
+    fi
 
 # ==============================================================================
 # MODE: EMU (Android Emulator)
 # ==============================================================================
 elif [ "${MODE}" = "emu" ]; then
-    echo -e "\n${BOLD}${CYAN}================================================================================${NC}"
-    echo -e "${BOLD}${CYAN}        EVA MOBILE RUNNER — ANDROID EMULATOR                                    ${NC}"
-    echo -e "${BOLD}${CYAN}================================================================================${NC}\n"
-
-    check_backend_health
+    if [ "${TARGET_ENV}" = "cloud" ]; then
+        echo -e "\n${BOLD}${CYAN}================================================================================${NC}"
+        echo -e "${BOLD}${CYAN}        EVA MOBILE RUNNER — ANDROID EMULATOR (CLOUD: eva.nexacode.dev)          ${NC}"
+        echo -e "${BOLD}${CYAN}================================================================================${NC}\n"
+        echo -e "${GREEN}🌐 Menghubungkan ke Server Production Cloud...${NC}\n"
+    else
+        echo -e "\n${BOLD}${CYAN}================================================================================${NC}"
+        echo -e "${BOLD}${CYAN}        EVA MOBILE RUNNER — ANDROID EMULATOR (LOCAL API: 10.0.2.2:${PORT})      ${NC}"
+        echo -e "${BOLD}${CYAN}================================================================================${NC}\n"
+        check_backend_health
+    fi
 
     # Detect running emulators
     mapfile -t EMU_DEVICES < <("${ADB_BIN}" devices | awk '$2=="device" && $1~/^emulator-/ {print $1}')
@@ -186,13 +275,37 @@ elif [ "${MODE}" = "emu" ]; then
 
     echo -e "${CYAN}Target Emulator:${NC} ${BOLD}${TARGET_DEVICE}${NC} (Eva Mobile)"
     
-    # Also reverse port on emulator as safety measure
-    "${ADB_BIN}" -s "${TARGET_DEVICE}" reverse "tcp:${PORT}" "tcp:${PORT}" 2>/dev/null || true
-    echo -e "${GREEN}✓ Reverse port & bridge alias 10.0.2.2:${PORT} siap.${NC}"
+    if [ "${TARGET_ENV}" != "cloud" ]; then
+        # Also reverse port on emulator as safety measure
+        "${ADB_BIN}" -s "${TARGET_DEVICE}" reverse "tcp:${PORT}" "tcp:${PORT}" 2>/dev/null || true
+        echo -e "${GREEN}✓ Reverse port & bridge alias 10.0.2.2:${PORT} siap.${NC}"
+    fi
 
-    echo -e "\n${BOLD}${GREEN}🚀 Menjalankan Eva Mobile di emulator ${TARGET_DEVICE}...${NC}\n"
+    if [ "${FALLBACK_HYBRID}" = "true" ]; then
+        echo -e "${GREEN}✓ Hybrid Fallback diaktifkan (Auto-mock pada 404 / server offline).${NC}\n"
+    fi
+
+    echo -e "${BOLD}${GREEN}🚀 Menjalankan Eva Mobile di emulator ${TARGET_DEVICE}...${NC}"
+    echo -e "${CYAN}Mengompilasi dan memulai aplikasi (Gradle assembleDebug), mohon tunggu...${NC}\n"
     cd "${APP_DIR}"
-    exec "${FLUTTER_BIN}" run -d "${TARGET_DEVICE}" --dart-define=API_BASE_URL="http://10.0.2.2:${PORT}/api/v1" "$@"
+    if [ "${TARGET_ENV}" = "cloud" ]; then
+        exec "${FLUTTER_BIN}" run -d "${TARGET_DEVICE}" \
+            --dart-define=USE_LOCAL_API=false \
+            --dart-define=USE_HYBRID_FALLBACK="${FALLBACK_HYBRID}" \
+            --dart-define=HYBRID="${FALLBACK_HYBRID}" \
+            "$@"
+    else
+        exec "${FLUTTER_BIN}" run -d "${TARGET_DEVICE}" \
+            --dart-define=USE_LOCAL_API=true \
+            --dart-define=LOCAL=true \
+            --dart-define=IS_EMULATOR=true \
+            --dart-define=EMULATOR=true \
+            --dart-define=LOCAL_HOST="10.0.2.2:${PORT}" \
+            --dart-define=API_BASE_URL="http://10.0.2.2:${PORT}/api/v1" \
+            --dart-define=USE_HYBRID_FALLBACK="${FALLBACK_HYBRID}" \
+            --dart-define=HYBRID="${FALLBACK_HYBRID}" \
+            "$@"
+    fi
 
 # ==============================================================================
 # MODE: MOCK (Local Mock Data Mode)
@@ -211,14 +324,40 @@ elif [ "${MODE}" = "mock" ]; then
 # MODE: WEB (Chrome Browser Simulator)
 # ==============================================================================
 elif [ "${MODE}" = "web" ]; then
-    echo -e "\n${BOLD}${CYAN}================================================================================${NC}"
-    echo -e "${BOLD}${CYAN}        EVA MOBILE RUNNER — WEB SIMULATOR (CHROME)                             ${NC}"
-    echo -e "${BOLD}${CYAN}================================================================================${NC}\n"
+    if [ "${TARGET_ENV}" = "cloud" ]; then
+        echo -e "\n${BOLD}${CYAN}================================================================================${NC}"
+        echo -e "${BOLD}${CYAN}        EVA MOBILE RUNNER — WEB SIMULATOR (CLOUD: eva.nexacode.dev)             ${NC}"
+        echo -e "${BOLD}${CYAN}================================================================================${NC}\n"
+        echo -e "${GREEN}🌐 Menghubungkan ke Server Production Cloud...${NC}\n"
+    else
+        echo -e "\n${BOLD}${CYAN}================================================================================${NC}"
+        echo -e "${BOLD}${CYAN}        EVA MOBILE RUNNER — WEB SIMULATOR (LOCAL API: 127.0.0.1:${PORT})        ${NC}"
+        echo -e "${BOLD}${CYAN}================================================================================${NC}\n"
+        check_backend_health
+    fi
 
-    check_backend_health
-    echo -e "\n${BOLD}${GREEN}🚀 Menjalankan Eva Mobile di Chrome...${NC}\n"
+    if [ "${FALLBACK_HYBRID}" = "true" ]; then
+        echo -e "${GREEN}✓ Hybrid Fallback diaktifkan (Auto-mock pada 404 / server offline).${NC}\n"
+    fi
+
+    echo -e "${BOLD}${GREEN}🚀 Menjalankan Eva Mobile di Chrome...${NC}\n"
     cd "${APP_DIR}"
-    exec "${FLUTTER_BIN}" run -d chrome "$@"
+    if [ "${TARGET_ENV}" = "cloud" ]; then
+        exec "${FLUTTER_BIN}" run -d chrome \
+            --dart-define=USE_LOCAL_API=false \
+            --dart-define=USE_HYBRID_FALLBACK="${FALLBACK_HYBRID}" \
+            --dart-define=HYBRID="${FALLBACK_HYBRID}" \
+            "$@"
+    else
+        exec "${FLUTTER_BIN}" run -d chrome \
+            --dart-define=USE_LOCAL_API=true \
+            --dart-define=LOCAL=true \
+            --dart-define=LOCAL_HOST="127.0.0.1:${PORT}" \
+            --dart-define=API_BASE_URL="http://127.0.0.1:${PORT}/api/v1" \
+            --dart-define=USE_HYBRID_FALLBACK="${FALLBACK_HYBRID}" \
+            --dart-define=HYBRID="${FALLBACK_HYBRID}" \
+            "$@"
+    fi
 
 else
     usage

@@ -4,6 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:eva_mobile/features/chat/presentation/widgets/animated_session_card.dart';
 import 'package:eva_mobile/features/chat/presentation/widgets/session_list_skeleton.dart';
+import 'package:eva_mobile/features/coin/presentation/providers/coin_provider.dart';
+import 'package:eva_mobile/features/tutorial/domain/entities/tutorial_step.dart';
+import 'package:eva_mobile/features/tutorial/presentation/providers/tutorial_provider.dart';
+import 'package:eva_mobile/features/tutorial/presentation/widgets/interactive_spotlight_overlay.dart';
 import 'package:eva_mobile/theme/app_colors.dart';
 import 'package:eva_mobile/widgets/app_back_button.dart';
 import 'package:eva_mobile/widgets/custom_button.dart';
@@ -20,6 +24,8 @@ class AiConversationScreen extends ConsumerStatefulWidget {
 
 class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey _coinBadgeKey = GlobalKey(debugLabel: 'coinBadge');
+  final GlobalKey _startVoiceButtonKey = GlobalKey(debugLabel: 'startVoiceButton');
   List<Map<String, dynamic>> _conversations = [];
   bool _isLoading = true;
 
@@ -93,109 +99,166 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
     return (tag: 'netral (60%)', emoji: '😐');
   }
 
+  Future<void> _handleStartVoiceSession() async {
+    final tutorialState = ref.read(tutorialNotifierProvider);
+    if (tutorialState.isActive &&
+        tutorialState.currentStep == TutorialStep.voiceStart) {
+      ref
+          .read(tutorialNotifierProvider.notifier)
+          .onTargetTapped(TutorialStep.voiceStart);
+    }
+    await Navigator.pushNamed(context, '/voice_call');
+    if (mounted) {
+      _fetchConversations(isRefresh: true);
+    }
+  }
+
+  Widget _buildCoinBadge(int coinBalance) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: _coinBadgeKey,
+        borderRadius: BorderRadius.circular(20),
+        onTap: () {
+          final tutorialState = ref.read(tutorialNotifierProvider);
+          if (tutorialState.isActive &&
+              tutorialState.currentStep == TutorialStep.voiceCoins) {
+            ref
+                .read(tutorialNotifierProvider.notifier)
+                .onTargetTapped(TutorialStep.voiceCoins);
+            return;
+          }
+          // TODO: Navigasi ke page pembayaran setelah page pembayaran selesai dibangun
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.15),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Coin Icon with '+' badge
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(2.5),
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xFFFFD54F),
+                          Color(0xFFFFB300),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.monetization_on_rounded,
+                      color: Colors.white,
+                      size: 15,
+                    ),
+                  ),
+                  Positioned(
+                    right: -3,
+                    bottom: -3,
+                    child: Container(
+                      padding: const EdgeInsets.all(1),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.2),
+                      ),
+                      child: const Icon(
+                        Icons.add,
+                        size: 8,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '$coinBalance',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final tutorialState = ref.watch(tutorialNotifierProvider);
+    final coinBalance = ref.watch(coinBalanceProvider);
+
+    final bool showTutorialOverlay = tutorialState.isActive &&
+        (tutorialState.currentStep == TutorialStep.voiceCoins ||
+            tutorialState.currentStep == TutorialStep.voiceStart);
 
     return Scaffold(
-
-      body: Container(
-
-        width: double.infinity,
-
-        height: double.infinity,
-
-        decoration: const BoxDecoration(
-
-          gradient: LinearGradient(
-
-            colors: [
-
-              Color(0xFFF6F8FF),
-
-              Color(0xFFEFF2FE),
-
-              Color(0xFFF8F9FE),
-
-            ],
-
-            begin: Alignment.topCenter,
-
-            end: Alignment.bottomCenter,
-
-          ),
-
-        ),
-
-        child: SafeArea(
-
-          child: Column(
-
-            children: [
-
-              // Header Bar
-
-              Padding(
-
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-
-                child: Row(
-
-                  children: [
-
-                    const AppBackButton(),
-                    const SizedBox(width: 10),
-
-                    Image.asset(
-
-                      'assets/images/eva_logo.png',
-
-                      width: 32,
-
-                      height: 32,
-
-                      fit: BoxFit.contain,
-
-                      errorBuilder: (context, error, stackTrace) {
-
-                        return const Icon(
-
-                          Icons.nightlight_round,
-
-                          size: 28,
-
-                          color: AppColors.primary,
-
-                        );
-
-                      },
-
-                    ),
-
-                    const SizedBox(width: 8),
-
-                    Text(
-
-                      'Sesi Suara EVA',
-
-                      style: GoogleFonts.inter(
-
-                        fontSize: 16,
-
-                        fontWeight: FontWeight.w700,
-
-                        color: AppColors.primary,
-
-                      ),
-
-                    ),
-
-                  ],
-
-                ),
-
+      body: Stack(
+        children: [
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFFF6F8FF),
+                  Color(0xFFEFF2FE),
+                  Color(0xFFF8F9FE),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
-
-              const Divider(height: 1, color: Color(0xFFEBECEF)),
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  // Header Bar
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: Row(
+                      children: [
+                        const AppBackButton(),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Sesi Suara EVA',
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const Spacer(),
+                        _buildCoinBadge(coinBalance),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, color: Color(0xFFEBECEF)),
 
 
 
@@ -305,14 +368,10 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
                       StaggeredEntrance(
                         index: 2,
                         child: CustomPillButton(
+                          key: _startVoiceButtonKey,
                           text: 'Mulai Sesi Suara',
                           suffixIcon: Icons.mic,
-                          onPressed: () async {
-                            await Navigator.pushNamed(context, '/voice_call');
-                            if (mounted) {
-                              _fetchConversations(isRefresh: true);
-                            }
-                          },
+                          onPressed: () => _handleStartVoiceSession(),
                         ),
                       ),
                       const SizedBox(height: 36),
@@ -393,17 +452,41 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
                 ),
               ),
             ),
-
-            ],
-
-          ),
-
+          ],
         ),
-
       ),
-
+    ),
+    if (showTutorialOverlay)
+      InteractiveSpotlightOverlay(
+        key: ValueKey(tutorialState.currentStep),
+        targetKey: tutorialState.currentStep == TutorialStep.voiceCoins
+            ? _coinBadgeKey
+            : _startVoiceButtonKey,
+        content: TutorialContent.stepContents[tutorialState.currentStep!]!,
+        onSkip: () =>
+            ref.read(tutorialNotifierProvider.notifier).skipTutorial(),
+        onNext: () {
+          if (tutorialState.currentStep == TutorialStep.voiceCoins) {
+            ref
+                .read(tutorialNotifierProvider.notifier)
+                .onTargetTapped(TutorialStep.voiceCoins);
+          } else if (tutorialState.currentStep == TutorialStep.voiceStart) {
+            _handleStartVoiceSession();
+          }
+        },
+        onTargetTap: () {
+          if (tutorialState.currentStep == TutorialStep.voiceCoins) {
+            ref
+                .read(tutorialNotifierProvider.notifier)
+                .onTargetTapped(TutorialStep.voiceCoins);
+          } else if (tutorialState.currentStep == TutorialStep.voiceStart) {
+            _handleStartVoiceSession();
+          }
+        },
+      ),
+  ],
+),
     );
-
   }
 
   Widget _buildSessionCard(BuildContext context, Map<String, dynamic> conv) {

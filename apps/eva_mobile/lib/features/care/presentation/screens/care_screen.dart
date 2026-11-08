@@ -7,15 +7,18 @@ import '../../../../theme/app_colors.dart';
 import '../../../auth/presentation/screens/profile_screen.dart';
 import '../../../home/presentation/widgets/profile_dropdown_modal.dart';
 import '../providers/care_provider.dart';
-import '../widgets/community_banner_card.dart';
-import '../widgets/community_paywall_sheet.dart';
+import '../widgets/care_quick_actions.dart';
 import '../widgets/psychologist_card.dart';
-import '../widgets/clinic_card.dart';
-import '../widgets/consultation_history_card.dart';
 import '../widgets/booking_consultation_sheet.dart';
+import 'psychologist_detail_screen.dart';
 
 class CareScreen extends ConsumerStatefulWidget {
-  const CareScreen({super.key});
+  final GlobalKey? firstPsychologistCardKey;
+
+  const CareScreen({
+    super.key,
+    this.firstPsychologistCardKey,
+  });
 
   @override
   ConsumerState<CareScreen> createState() => CareScreenState();
@@ -106,11 +109,15 @@ class CareScreenState extends ConsumerState<CareScreen> {
                 },
                 onEmergencyContactsTap: () {
                   _removeProfileOverlay();
-                  Navigator.pushNamed(context, '/emergency-contacts');
+                  Navigator.pushNamed(context, '/emergency_contacts');
                 },
                 onSettingsTap: () {
                   _removeProfileOverlay();
                   Navigator.pushNamed(context, '/settings');
+                },
+                onCoinTap: () {
+                  _removeProfileOverlay();
+                  Navigator.pushNamed(context, '/coin_purchase');
                 },
                 onLogoutTap: () {
                   _removeProfileOverlay();
@@ -126,42 +133,10 @@ class CareScreenState extends ConsumerState<CareScreen> {
     Overlay.of(context).insert(_profileOverlayEntry!);
   }
 
-  void _handleOpenDiscord() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Row(
-          children: [
-            const Icon(Icons.forum, color: Color(0xFF5865F2)),
-            const SizedBox(width: 8),
-            Text(
-              'Discord Community',
-              style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
-        content: Text(
-          'Tautan invite server: https://discord.gg/evasafespace\n\nPastikan akun Discord Anda sudah masuk untuk menikmati channel obrolan & role VIP.',
-          style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.textPrimary, height: 1.4),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Tutup', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final activeFilter = ref.watch(careCategoryFilterProvider);
-    final communityStatusAsync = ref.watch(communityStatusProvider);
-    final sessionsAsync = ref.watch(consultationSessionsProvider);
     final psychologistsAsync = ref.watch(psychologistsListProvider);
-    final clinicsAsync = ref.watch(clinicsListProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -170,14 +145,12 @@ class CareScreenState extends ConsumerState<CareScreen> {
           color: AppColors.primary,
           onRefresh: () async {
             ref.invalidate(psychologistsListProvider);
-            ref.invalidate(clinicsListProvider);
-            ref.read(communityStatusProvider.notifier).loadStatus();
             ref.read(consultationSessionsProvider.notifier).loadSessions();
           },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              // 1. Custom Header & Profile Avatar
+              // 1. Header with Profile Dropdown
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
@@ -188,7 +161,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Layanan & Komunitas',
+                            'Layanan Konseling',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
@@ -197,7 +170,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Bantuan klinis profesional & safe space',
+                            'Konseling psikolog berlisensi & relawan sebaya',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12.5,
                               color: AppColors.textSecondary,
@@ -240,99 +213,24 @@ class CareScreenState extends ConsumerState<CareScreen> {
                 ),
               ),
 
-              // 2. Banner Komunitas Discord (Dynamic State)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: communityStatusAsync.when(
-                    data: (status) => CommunityBannerCard(
-                      status: status,
-                      onOpenPaywall: () => CommunityPaywallSheet.show(context),
-                      onOpenDiscord: _handleOpenDiscord,
-                    ),
-                    loading: () => Container(
-                      height: 140,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Center(
-                        child: CircularProgressIndicator(color: AppColors.primary),
-                      ),
-                    ),
-                    error: (error, stack) => const SizedBox(),
-                  ),
-                ),
+              // 2. Quick Action Hub (Jadwal, Riwayat, Koin, Panduan)
+              const SliverToBoxAdapter(
+                child: CareQuickActions(),
               ),
 
-              // 3. Section Sesi & Riwayat Konsultasi (Jika ada)
-              sessionsAsync.when(
-                data: (sessions) {
-                  if (sessions.isEmpty) return const SliverToBoxAdapter(child: SizedBox());
-                  return SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Jadwal & Riwayat Konsultasi',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                              Text(
-                                '${sessions.length} Sesi',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          ConsultationHistoryCard(
-                            session: sessions.first,
-                            onActionTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Membuka sesi: ${sessions.first.meetingUrl ?? "Klinik"}',
-                                  ),
-                                  backgroundColor: AppColors.primary,
-                                ),
-                              );
-                            },
-                            onRebookTap: () {
-                              BookingConsultationSheet.show(
-                                context,
-                                sessions.first.psychologist,
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-                loading: () => const SliverToBoxAdapter(child: SizedBox()),
-                error: (error, stack) => const SliverToBoxAdapter(child: SizedBox()),
+              const SliverToBoxAdapter(
+                child: SizedBox(height: 10),
               ),
 
-              // 4. Search Bar & Filter Chips
+              // 3. Search Bar & Filter Chips (Psikolog, Relawan)
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Temukan Tenaga Profesional & Faskes',
+                        'Temukan Psikolog & Relawan',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -348,7 +246,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
                           ref.read(careSearchQueryProvider.notifier).state = val;
                         },
                         decoration: InputDecoration(
-                          hintText: 'Cari nama psikolog, spesialisasi, atau klinik...',
+                          hintText: 'Cari nama konselor, ulasan pasien, atau isu...',
                           hintStyle: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             color: AppColors.textLight,
@@ -382,18 +280,17 @@ class CareScreenState extends ConsumerState<CareScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Filter Chips
+                      // Filter Chips: Semua, Psikolog, Relawan
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
                         child: Row(
                           children: [
                             _buildFilterChip('Semua', 'all', activeFilter),
                             const SizedBox(width: 8),
                             _buildFilterChip('Psikolog', 'psychologist', activeFilter),
                             const SizedBox(width: 8),
-                            _buildFilterChip('Psikiater', 'psychiatrist', activeFilter),
-                            const SizedBox(width: 8),
-                            _buildFilterChip('Klinik Mitra', 'clinic', activeFilter),
+                            _buildFilterChip('Relawan', 'volunteer', activeFilter),
                           ],
                         ),
                       ),
@@ -402,87 +299,55 @@ class CareScreenState extends ConsumerState<CareScreen> {
                 ),
               ),
 
-              // 5. Main Directory List (Psychologists or Clinics)
-              if (activeFilter == 'clinic') ...[
-                clinicsAsync.when(
-                  data: (clinics) {
-                    if (clinics.isEmpty) {
-                      return _buildEmptyState('Tidak ada klinik mitra yang cocok');
-                    }
-                    return SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final clinic = clinics[index];
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 14),
-                              child: ClinicCard(
-                                clinic: clinic,
-                                onDetailsTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Menghubungi ${clinic.name} (${clinic.phone})'),
-                                      backgroundColor: AppColors.primary,
+              // 4. Main Directory List of Psychologists / Volunteers
+              psychologistsAsync.when(
+                data: (psychologists) {
+                  if (psychologists.isEmpty) {
+                    return _buildEmptyState('Tidak ada psikolog atau relawan yang cocok');
+                  }
+                  return SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final psychologist = psychologists[index];
+                          return Padding(
+                            key: index == 0 ? widget.firstPsychologistCardKey : null,
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: PsychologistCard(
+                              psychologist: psychologist,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => PsychologistDetailScreen(
+                                      psychologist: psychologist,
                                     ),
-                                  );
-                                },
-                              ),
-                            );
-                          },
-                          childCount: clinics.length,
-                        ),
+                                  ),
+                                );
+                              },
+                              onBookTap: () {
+                                BookingConsultationSheet.show(context, psychologist);
+                              },
+                            ),
+                          );
+                        },
+                        childCount: psychologists.length,
                       ),
-                    );
-                  },
-                  loading: () => const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.all(32),
-                      child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
                     ),
-                  ),
-                  error: (err, _) => SliverToBoxAdapter(
-                    child: Center(child: Text('Gagal memuat klinik: $err')),
+                  );
+                },
+                loading: () => SliverToBoxAdapter(
+                  key: widget.firstPsychologistCardKey,
+                  child: const Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
                   ),
                 ),
-              ] else ...[
-                psychologistsAsync.when(
-                  data: (psychologists) {
-                    if (psychologists.isEmpty) {
-                      return _buildEmptyState('Tidak ada psikolog atau psikiater yang cocok');
-                    }
-                    return SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final psychologist = psychologists[index];
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 14),
-                              child: PsychologistCard(
-                                psychologist: psychologist,
-                                onBookTap: () {
-                                  BookingConsultationSheet.show(context, psychologist);
-                                },
-                              ),
-                            );
-                          },
-                          childCount: psychologists.length,
-                        ),
-                      ),
-                    );
-                  },
-                  loading: () => const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.all(32),
-                      child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
-                    ),
-                  ),
-                  error: (err, _) => SliverToBoxAdapter(
-                    child: Center(child: Text('Gagal memuat psikolog: $err')),
-                  ),
+                error: (err, _) => SliverToBoxAdapter(
+                  child: Center(child: Text('Gagal memuat konselor: $err')),
                 ),
-              ],
+              ),
             ],
           ),
         ),
@@ -495,13 +360,15 @@ class CareScreenState extends ConsumerState<CareScreen> {
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
-      onSelected: (_) {
-        ref.read(careCategoryFilterProvider.notifier).state = key;
+      onSelected: (selected) {
+        ref.read(careCategoryFilterProvider.notifier).state =
+            selected ? key : 'all';
       },
       selectedColor: AppColors.primary,
+      checkmarkColor: Colors.white,
       backgroundColor: Colors.white,
       labelStyle: GoogleFonts.plusJakartaSans(
-        fontSize: 12.5,
+        fontSize: 12,
         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
         color: isSelected ? Colors.white : AppColors.textPrimary,
       ),
@@ -517,21 +384,23 @@ class CareScreenState extends ConsumerState<CareScreen> {
   Widget _buildEmptyState(String message) {
     return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-        child: Column(
-          children: [
-            Icon(Icons.search_off_rounded, size: 48, color: Colors.grey.shade400),
-            const SizedBox(height: 12),
-            Text(
-              message,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w500,
+        padding: const EdgeInsets.all(32),
+        child: Center(
+          child: Column(
+            children: [
+              const Icon(Icons.search_off_rounded, size: 48, color: Color(0xFF94A3B8)),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

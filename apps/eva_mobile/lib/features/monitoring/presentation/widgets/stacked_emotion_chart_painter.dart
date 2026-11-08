@@ -37,11 +37,24 @@ class StackedEmotionChartPainter extends CustomPainter {
         continue;
       }
 
+      // Top position of the bar (leaving 4dp headroom)
+      const double barTop = 4.0;
+      final totalBarRect = Rect.fromLTRB(barLeft, barTop, barLeft + barWidth, size.height);
+      final double cornerRadius = min(6.0, barWidth / 2);
+      final totalBarRRect = RRect.fromRectAndRadius(
+        totalBarRect,
+        Radius.circular(cornerRadius),
+      );
+
+      // Clip canvas to smoothly round all 4 outer corners of the bar uniformly
+      canvas.save();
+      canvas.clipRRect(totalBarRRect);
+
       for (int j = 0; j < segments.length; j++) {
         final double ratio = segments[j];
         if (ratio <= 0) continue;
 
-        final double segHeight = (size.height - 4) * (ratio / totalRatio);
+        final double segHeight = (size.height - barTop) * (ratio / totalRatio);
         final double top = currentBottom - segHeight;
 
         final rect = Rect.fromLTRB(barLeft, top, barLeft + barWidth, currentBottom);
@@ -49,17 +62,11 @@ class StackedEmotionChartPainter extends CustomPainter {
           ..color = emotionColors[j % emotionColors.length]
           ..style = PaintingStyle.fill;
 
-        final RRect rrect = RRect.fromRectAndCorners(
-          rect,
-          topLeft: Radius.circular(j == 0 ? 6 : 0),
-          topRight: Radius.circular(j == 0 ? 6 : 0),
-          bottomLeft: Radius.circular(j == segments.length - 1 ? 6 : 0),
-          bottomRight: Radius.circular(j == segments.length - 1 ? 6 : 0),
-        );
-
-        canvas.drawRRect(rrect, paint);
+        canvas.drawRect(rect, paint);
         currentBottom = top;
       }
+
+      canvas.restore();
     }
   }
 

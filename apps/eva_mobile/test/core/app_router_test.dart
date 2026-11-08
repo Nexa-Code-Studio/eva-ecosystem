@@ -53,6 +53,21 @@ void main() {
       expect(route!.settings.name, '/diary_detail');
     });
 
+    test('Returns PageRouteBuilder for /coin_purchase and /coins', () {
+      final route1 = AppRouter.onGenerateRoute(
+        const RouteSettings(name: '/coin_purchase'),
+      );
+      expect(route1, isNotNull);
+      expect(route1, isA<PageRouteBuilder>());
+      expect(route1!.settings.name, '/coin_purchase');
+
+      final route2 = AppRouter.onGenerateRoute(
+        const RouteSettings(name: '/coins'),
+      );
+      expect(route2, isNotNull);
+      expect(route2, isA<PageRouteBuilder>());
+    });
+
     test('Returns null for unknown route to let MaterialApp handle it or 404', () {
       final route = AppRouter.onGenerateRoute(
         const RouteSettings(name: '/unknown_non_existent_route'),

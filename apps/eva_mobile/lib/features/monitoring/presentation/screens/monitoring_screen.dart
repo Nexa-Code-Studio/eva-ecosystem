@@ -13,7 +13,12 @@ import 'package:eva_mobile/widgets/glass_card.dart';
 import 'package:eva_mobile/widgets/skeleton_shimmer.dart';
 
 class MonitoringScreen extends ConsumerStatefulWidget {
-  const MonitoringScreen({super.key});
+  final GlobalKey? dassCardKey;
+
+  const MonitoringScreen({
+    super.key,
+    this.dassCardKey,
+  });
 
   @override
   ConsumerState<MonitoringScreen> createState() => MonitoringScreenState();
@@ -21,6 +26,8 @@ class MonitoringScreen extends ConsumerStatefulWidget {
 
 class MonitoringScreenState extends ConsumerState<MonitoringScreen>
     with WidgetsBindingObserver {
+  late final GlobalKey _defaultDassCardKey = GlobalKey(debugLabel: 'monitoringDassCard');
+  GlobalKey get dassCardKey => widget.dassCardKey ?? _defaultDassCardKey;
   @override
   void initState() {
     super.initState();
@@ -285,7 +292,204 @@ class MonitoringScreenState extends ConsumerState<MonitoringScreen>
         ),
         const SizedBox(height: 16),
 
-        // 2. STACKED BAR CHART RITEM SUASANA HATI (7 Emosi)
+        // 2. LEMBAR EVALUASI DASS-21
+        MonitoringDassCard(
+          key: dassCardKey,
+          selectedPeriod: ref.watch(selectedPeriodProvider),
+        ),
+        const SizedBox(height: 16),
+
+        // 3. PUSAT EMOSIONAL HARIAN
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: gradientColors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: gradientColors.last.withValues(alpha: 0.3),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.tune_rounded,
+                    size: 20,
+                    color: textColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'PUSAT EMOSIONAL',
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: textColor.withValues(alpha: 0.8),
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                emotionalCenter.status,
+                style: GoogleFonts.inter(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                emotionalCenter.description,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: textColor.withValues(alpha: 0.9),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 5-Segment Level Pills (Red to Green Spectrum)
+              Row(
+                children: List.generate(5, (index) {
+                  final segLevel = index + 1;
+                  final bool isSel = segLevel == level;
+                  final colors = const [
+                    Color(0xFFD32F2F), // 1: Sangat Buruk (Red)
+                    Color(0xFFE57373), // 2: Buruk
+                    Color(0xFFFFB74D), // 3: Cukup (Amber)
+                    Color(0xFF81C784), // 4: Baik (Light Green)
+                    Color(0xFF4CAF50), // 5: Sangat Baik (Green)
+                  ];
+
+                  return Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: colors[index].withValues(alpha: isSel ? 1.0 : 0.4),
+                        borderRadius: BorderRadius.circular(10),
+                        border: isSel ? Border.all(color: Colors.white, width: 2) : null,
+                      ),
+                      child: isSel
+                          ? const Icon(Icons.check, color: Colors.white, size: 16)
+                          : null,
+                    ),
+                  );
+                }),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // 4. TINGKAT RISIKO KESEHATAN MENTAL
+        GlassCard(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.health_and_safety_outlined,
+                    size: 20,
+                    color: Color(0xFFD32F2F),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'TINGKAT RISIKO KESEHATAN MENTAL',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textLight,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              ...data.risks.map((r) {
+                final double pct = r.percent;
+                final Color barColor = _parseHex(r.colorHex, const Color(0xFFFB8C00));
+                final Color badgeBg = _parseHex(r.badgeBgHex, const Color(0xFFFFF3E0));
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 14.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            r.name,
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: badgeBg,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              r.levelLabel,
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: barColor,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: LinearProgressIndicator(
+                          value: pct,
+                          minHeight: 8,
+                          backgroundColor: const Color(0xFFE2E4F0),
+                          valueColor: AlwaysStoppedAnimation<Color>(barColor),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              const SizedBox(height: 4),
+              Text(
+                'EVA merekomendasikan jeda istirahat teratur dan latihan pernapasan untuk menstabilkan kondisi psikologis.',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // 5. STACKED BAR CHART RITEM SUASANA HATI (7 Emosi)
         GlassCard(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
@@ -436,292 +640,103 @@ class MonitoringScreenState extends ConsumerState<MonitoringScreen>
             ],
           ),
         ),
-        const SizedBox(height: 16),
-
-        // 3. TINGKAT RISIKO KESEHATAN MENTAL
-        GlassCard(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.health_and_safety_outlined,
-                    size: 20,
-                    color: Color(0xFFD32F2F),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'TINGKAT RISIKO KESEHATAN MENTAL',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textLight,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              ...data.risks.map((r) {
-                final double pct = r.percent;
-                final Color barColor = _parseHex(r.colorHex, const Color(0xFFFB8C00));
-                final Color badgeBg = _parseHex(r.badgeBgHex, const Color(0xFFFFF3E0));
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 14.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            r.name,
-                            style: GoogleFonts.inter(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: badgeBg,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              r.levelLabel,
-                              style: GoogleFonts.inter(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: barColor,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(999),
-                        child: LinearProgressIndicator(
-                          value: pct,
-                          minHeight: 8,
-                          backgroundColor: const Color(0xFFE2E4F0),
-                          valueColor: AlwaysStoppedAnimation<Color>(barColor),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-              const SizedBox(height: 4),
-              Text(
-                'EVA merekomendasikan jeda istirahat teratur dan latihan pernapasan untuk menstabilkan kondisi psikologis.',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                  height: 1.4,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // 4. PUSAT EMOSIONAL HARIAN
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: gradientColors,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: gradientColors.last.withValues(alpha: 0.3),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.tune_rounded,
-                    size: 20,
-                    color: textColor,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'PUSAT EMOSIONAL',
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: textColor.withValues(alpha: 0.8),
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                emotionalCenter.status,
-                style: GoogleFonts.inter(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: textColor,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                emotionalCenter.description,
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: textColor.withValues(alpha: 0.9),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // 5-Segment Level Pills (Red to Green Spectrum)
-              Row(
-                children: List.generate(5, (index) {
-                  final segLevel = index + 1;
-                  final bool isSel = segLevel == level;
-                  final colors = const [
-                    Color(0xFFD32F2F), // 1: Sangat Buruk (Red)
-                    Color(0xFFE57373), // 2: Buruk
-                    Color(0xFFFFB74D), // 3: Cukup (Amber)
-                    Color(0xFF81C784), // 4: Baik (Light Green)
-                    Color(0xFF4CAF50), // 5: Sangat Baik (Green)
-                  ];
-
-                  return Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: colors[index].withValues(alpha: isSel ? 1.0 : 0.4),
-                        borderRadius: BorderRadius.circular(10),
-                        border: isSel ? Border.all(color: Colors.white, width: 2) : null,
-                      ),
-                      child: isSel
-                          ? const Icon(Icons.check, color: Colors.white, size: 16)
-                          : null,
-                    ),
-                  );
-                }),
-              ),
-            ],
-          ),
-        ),
-        // 5. KARTU RINGKASAN & AKSES LEMBAR DASS-21 (Hanya muncul jika ada asesmen DASS riil)
-        MonitoringDassCard(selectedPeriod: ref.watch(selectedPeriodProvider)),
       ],
     );
   }
 
 
   Widget _buildLoadingState() {
-    return SkeletonShimmerHost(
-      child: Column(
-        children: [
-          // 1. Clinical Status Header Skeleton
-          GlassCard(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 1. Ringkasan AI Skeleton
+        SkeletonShimmerHost(
+          child: GlassCard(
             width: double.infinity,
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const SkeletonCircle(size: 38),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        SkeletonLine(width: 130, height: 15),
-                        SizedBox(height: 6),
-                        SkeletonLine(width: 80, height: 12),
-                      ],
-                    ),
-                    const Spacer(),
-                    const SkeletonBox(width: 60, height: 24, borderRadius: 12),
+                    const SkeletonCircle(size: 32),
+                    const SizedBox(width: 10),
+                    const SkeletonLine(width: 120, height: 14),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 const SkeletonLine(width: double.infinity, height: 13),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 const SkeletonLine(width: 200, height: 13),
               ],
             ),
           ),
-          const SizedBox(height: 18),
+        ),
+        const SizedBox(height: 16),
 
-          // 2. Trend Chart Skeleton
-          GlassCard(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    SkeletonLine(width: 140, height: 16),
-                    SkeletonBox(width: 70, height: 26, borderRadius: 8),
+        // 2. Lembar Evaluasi DASS-21 (mounted immediately with key)
+        MonitoringDassCard(
+          key: dassCardKey,
+          selectedPeriod: ref.watch(selectedPeriodProvider),
+        ),
+        const SizedBox(height: 16),
+
+        // 3. Trend Chart & Metrics Skeleton
+        SkeletonShimmerHost(
+          child: Column(
+            children: [
+              GlassCard(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        SkeletonLine(width: 140, height: 16),
+                        SkeletonBox(width: 70, height: 26, borderRadius: 8),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    const SkeletonBox(width: double.infinity, height: 160, borderRadius: 12),
                   ],
                 ),
-                const SizedBox(height: 20),
-                const SkeletonBox(width: double.infinity, height: 160, borderRadius: 12),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-
-          // 3. Dual Metrics Skeleton
-          Row(
-            children: [
-              Expanded(
-                child: GlassCard(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: const [
-                      SkeletonLine(width: 60, height: 12),
-                      SizedBox(height: 8),
-                      SkeletonLine(width: 40, height: 18),
-                    ],
-                  ),
-                ),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: GlassCard(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: const [
-                      SkeletonLine(width: 60, height: 12),
-                      SizedBox(height: 8),
-                      SkeletonLine(width: 40, height: 18),
-                    ],
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: GlassCard(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: const [
+                          SkeletonLine(width: 60, height: 12),
+                          SizedBox(height: 8),
+                          SkeletonLine(width: 40, height: 18),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: GlassCard(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: const [
+                          SkeletonLine(width: 60, height: 12),
+                          SizedBox(height: 8),
+                          SkeletonLine(width: 40, height: 18),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

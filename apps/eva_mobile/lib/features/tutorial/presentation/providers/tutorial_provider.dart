@@ -89,11 +89,51 @@ class TutorialNotifier extends StateNotifier<TutorialState> {
   Future<void> onTargetTapped(TutorialStep step) async {
     if (state.currentStep == step) {
       if (step == TutorialStep.voiceSession) {
-        // Voice session launched; pause overlay so it does not interfere with voice screen
+        // Center button tapped -> navigate to /chat and highlight coin balance
+        state = state.copyWith(
+          isActive: true,
+          currentStep: TutorialStep.voiceCoins,
+        );
+      } else if (step == TutorialStep.voiceCoins) {
+        // Coin explanation acknowledged -> highlight Mulai Sesi Suara button
+        state = state.copyWith(
+          isActive: true,
+          currentStep: TutorialStep.voiceStart,
+        );
+      } else if (step == TutorialStep.voiceStart) {
+        // Voice call initiated -> pause spotlight overlay during active call
         state = state.copyWith(
           isActive: false,
+          currentStep: TutorialStep.voiceCompleted,
+        );
+      } else if (step == TutorialStep.voiceCompleted) {
+        // User tapped Lihat Detail Jurnal Refleksi -> proceed to journal tab
+        state = state.copyWith(
+          isActive: true,
           currentStep: TutorialStep.journal,
         );
+      } else if (step == TutorialStep.journal) {
+        state = state.copyWith(
+          isActive: true,
+          currentStep: TutorialStep.analytics,
+        );
+      } else if (step == TutorialStep.analytics) {
+        state = state.copyWith(
+          isActive: true,
+          currentStep: TutorialStep.dassDetail,
+        );
+      } else if (step == TutorialStep.dassDetail) {
+        state = state.copyWith(
+          isActive: true,
+          currentStep: TutorialStep.dassItem,
+        );
+      } else if (step == TutorialStep.dassItem) {
+        state = state.copyWith(
+          isActive: true,
+          currentStep: TutorialStep.care,
+        );
+      } else if (step == TutorialStep.care) {
+        completeTutorial();
       } else {
         nextStep();
       }

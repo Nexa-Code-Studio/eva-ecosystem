@@ -393,6 +393,10 @@ class HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObser
                     Navigator.pop(dialogContext);
                     Navigator.pushNamed(context, '/settings');
                   },
+                  onCoinTap: () {
+                    Navigator.pop(dialogContext);
+                    Navigator.pushNamed(context, '/coin_purchase');
+                  },
                   onLogoutTap: () async {
                     Navigator.pop(dialogContext);
                     await AppConfig.clearToken();

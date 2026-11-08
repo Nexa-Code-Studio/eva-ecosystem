@@ -40,7 +40,9 @@ class AppColors {
   static const Color divider = Color(0x0E5358CB); // Soft gentle divider (5.5% periwinkle)
 
 
-  static const Color success = Color(0xFF4CAF50);
+  static const Color success = Color(0xFF4CAF50); // Soft Material Green
+  static const Color successContainer = Color(0xFFE8F5E9); // Soft Green Container
+  static const Color successDark = Color(0xFF2E7D32); // Dark Green for text/icons on light container
 
   static const Color warning = Color(0xFFFF9800);
 

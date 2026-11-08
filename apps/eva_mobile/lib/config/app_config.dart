@@ -282,6 +282,18 @@ class AppConfig {
     await prefs.remove('user_email');
   }
 
+  /// Get cached coin balance
+  static Future<int> getCoinBalance() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('user_coin_balance') ?? 120;
+  }
+
+  /// Set cached coin balance
+  static Future<void> setCoinBalance(int coins) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('user_coin_balance', coins);
+  }
+
   /// Synchronous default headers
   static Map<String, String> get defaultHeaders => {
         'Content-Type': 'application/json',

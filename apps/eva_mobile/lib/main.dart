@@ -25,7 +25,7 @@ class EvaApp extends StatelessWidget {
         title: 'EVA AI - Mental Health Companion',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        initialRoute: '/',
+        initialRoute: '/home',
         onGenerateRoute: AppRouter.onGenerateRoute,
         builder: (context, child) {
           return WebPhoneFrameWrapper(

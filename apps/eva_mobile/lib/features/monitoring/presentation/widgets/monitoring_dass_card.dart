@@ -7,6 +7,8 @@ import "package:eva_mobile/theme/app_colors.dart";
 import "package:eva_mobile/widgets/app_snack_bar.dart";
 import "package:eva_mobile/widgets/glass_card.dart";
 import "../../../dass/presentation/providers/dass_provider.dart";
+import "../../../tutorial/domain/entities/tutorial_step.dart";
+import "../../../tutorial/presentation/providers/tutorial_provider.dart";
 
 class MonitoringDassCard extends ConsumerWidget {
   final String selectedPeriod;
@@ -98,10 +100,8 @@ class MonitoringDassCard extends ConsumerWidget {
     required int? depressionScore,
     required String depressionSeverity,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 16.0),
-      child: GlassCard(
-        width: double.infinity,
+    return GlassCard(
+      width: double.infinity,
         padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,6 +211,13 @@ class MonitoringDassCard extends ConsumerWidget {
               height: 44,
               child: ElevatedButton.icon(
                 onPressed: () async {
+                  final tutorialState = ref.read(tutorialNotifierProvider);
+                  if (tutorialState.isActive &&
+                      tutorialState.currentStep == TutorialStep.analytics) {
+                    ref
+                        .read(tutorialNotifierProvider.notifier)
+                        .onTargetTapped(TutorialStep.analytics);
+                  }
                   await Navigator.pushNamed(
                     context,
                     '/dass_assessment',
@@ -247,8 +254,7 @@ class MonitoringDassCard extends ConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   String _getIndonesianSeverity(String scaleType, int score, String rawSeverity) {

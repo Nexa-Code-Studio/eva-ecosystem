@@ -13,6 +13,9 @@ import '../widgets/dass_question_card.dart';
 import '../widgets/dass_skeleton_loader.dart';
 import '../widgets/dass_subscale_info_sheet.dart';
 import '../widgets/dass_subscales_card.dart';
+import 'package:eva_mobile/features/tutorial/domain/entities/tutorial_step.dart';
+import 'package:eva_mobile/features/tutorial/presentation/providers/tutorial_provider.dart';
+import 'package:eva_mobile/features/tutorial/presentation/widgets/interactive_spotlight_overlay.dart';
 
 /// Screen for displaying, reviewing, and verifying DASS-21 psychological self-assessments
 /// with period filtering, explainable AI accordion insights, and 3-subscale evaluations.
@@ -29,6 +32,9 @@ class DASSAssessmentScreen extends ConsumerStatefulWidget {
 }
 
 class _DASSAssessmentScreenState extends ConsumerState<DASSAssessmentScreen> {
+  final GlobalKey _subscalesCardKey = GlobalKey(debugLabel: 'dassSubscalesCard');
+  final GlobalKey _firstDassItemKey = GlobalKey(debugLabel: 'firstDassItemCard');
+  final ScrollController _dassScrollController = ScrollController();
   late String _currentPeriod;
   String _selectedFilter = 'all'; // 'all', 'stress', 'anxiety', 'depression'
   final Set<int> _expandedItemIds = {};
@@ -40,6 +46,46 @@ class _DASSAssessmentScreenState extends ConsumerState<DASSAssessmentScreen> {
   void initState() {
     super.initState();
     _currentPeriod = widget.initialPeriod;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final tutorialState = ref.read(tutorialNotifierProvider);
+      if (tutorialState.isActive &&
+          tutorialState.currentStep == TutorialStep.dassItem) {
+        _scrollToFirstDassItem();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _dassScrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToFirstDassItem() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_firstDassItemKey.currentContext != null) {
+        Scrollable.ensureVisible(
+          _firstDassItemKey.currentContext!,
+          alignment: 0.05,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+        );
+      } else {
+        Future.delayed(const Duration(milliseconds: 120), () {
+          if (!mounted) return;
+          if (_firstDassItemKey.currentContext != null) {
+            Scrollable.ensureVisible(
+              _firstDassItemKey.currentContext!,
+              alignment: 0.05,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
+            );
+          }
+        });
+      }
+    });
   }
 
   Future<void> _openWhatsappEmergency() async {
@@ -65,6 +111,12 @@ class _DASSAssessmentScreenState extends ConsumerState<DASSAssessmentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<TutorialState>(tutorialNotifierProvider, (previous, next) {
+      if (next.isActive && next.currentStep == TutorialStep.dassItem) {
+        _scrollToFirstDassItem();
+      }
+    });
+
     final dassState = ref.watch(dassAssessmentNotifierProvider);
     final notifier = ref.read(dassAssessmentNotifierProvider.notifier);
     final isEditable = _currentPeriod == 'today';
@@ -82,6 +134,16 @@ class _DASSAssessmentScreenState extends ConsumerState<DASSAssessmentScreen> {
     final bool isUnverified = currentAssessment != null && !currentAssessment.verifiedByUser;
     final bool showSaveBar =
         isEditable && currentAssessment != null && (hasChanges || isUnverified);
+
+    final tutorialState = ref.watch(tutorialNotifierProvider);
+    final bool isDassDetail = tutorialState.isActive &&
+        tutorialState.currentStep == TutorialStep.dassDetail;
+    final bool isDassItem = tutorialState.isActive &&
+        tutorialState.currentStep == TutorialStep.dassItem;
+    final bool showTutorial = isDassDetail || isDassItem;
+    final GlobalKey? activeTargetKey = isDassDetail
+        ? _subscalesCardKey
+        : (isDassItem ? _firstDassItemKey : null);
 
     return Scaffold(
       body: Stack(
@@ -113,7 +175,10 @@ class _DASSAssessmentScreenState extends ConsumerState<DASSAssessmentScreen> {
                   ),
                   Expanded(
                     child: dassState.assessment.when(
-                      loading: () => const DassSkeletonLoader(),
+                      loading: () => DassSkeletonLoader(
+                        subscalesCardKey: _subscalesCardKey,
+                        firstItemKey: _firstDassItemKey,
+                      ),
                       error: (err, _) => RefreshIndicator(
                         onRefresh: () => notifier.loadTodayAssessment(),
                         color: AppColors.primary,
@@ -175,6 +240,7 @@ class _DASSAssessmentScreenState extends ConsumerState<DASSAssessmentScreen> {
                           backgroundColor: Colors.white,
                           displacement: 24,
                           child: ListView(
+                            controller: _dassScrollController,
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                             children: [
@@ -186,6 +252,7 @@ class _DASSAssessmentScreenState extends ConsumerState<DASSAssessmentScreen> {
                               StaggeredEntrance(
                                 index: 3,
                                 child: DassSubscalesCard(
+                                  key: _subscalesCardKey,
                                   assessment: assessment,
                                   stagedScores: staged,
                                   onInfoTap: () => DassSubscaleInfoSheet.showGuideDialog(context),
@@ -227,6 +294,7 @@ class _DASSAssessmentScreenState extends ConsumerState<DASSAssessmentScreen> {
                                     final item = filteredItems[index];
                                     final currentScore = staged[item.itemId] ?? item.score;
                                     return DassQuestionCard(
+                                      key: index == 0 ? _firstDassItemKey : null,
                                       item: item,
                                       currentScore: currentScore,
                                       isEditable: isEditable,
@@ -247,7 +315,7 @@ class _DASSAssessmentScreenState extends ConsumerState<DASSAssessmentScreen> {
                                   },
                                 ),
                               ),
-                              const SizedBox(height: 80),
+                              const SizedBox(height: 320),
                             ],
                           ),
                         );
@@ -277,6 +345,44 @@ class _DASSAssessmentScreenState extends ConsumerState<DASSAssessmentScreen> {
               }
             },
           ),
+          if (showTutorial && activeTargetKey != null)
+            InteractiveSpotlightOverlay(
+              key: ValueKey(tutorialState.currentStep),
+              targetKey: activeTargetKey,
+              content: TutorialContent.stepContents[tutorialState.currentStep!]!,
+              onSkip: () {
+                ref.read(tutorialNotifierProvider.notifier).skipTutorial();
+                Navigator.pop(context);
+              },
+              onNext: () {
+                final current = tutorialState.currentStep;
+                if (current == TutorialStep.dassDetail) {
+                  ref
+                      .read(tutorialNotifierProvider.notifier)
+                      .onTargetTapped(TutorialStep.dassDetail);
+                  _scrollToFirstDassItem();
+                } else if (current == TutorialStep.dassItem) {
+                  ref
+                      .read(tutorialNotifierProvider.notifier)
+                      .onTargetTapped(TutorialStep.dassItem);
+                  Navigator.pop(context);
+                }
+              },
+              onTargetTap: () {
+                final current = tutorialState.currentStep;
+                if (current == TutorialStep.dassDetail) {
+                  ref
+                      .read(tutorialNotifierProvider.notifier)
+                      .onTargetTapped(TutorialStep.dassDetail);
+                  _scrollToFirstDassItem();
+                } else if (current == TutorialStep.dassItem) {
+                  ref
+                      .read(tutorialNotifierProvider.notifier)
+                      .onTargetTapped(TutorialStep.dassItem);
+                  Navigator.pop(context);
+                }
+              },
+            ),
         ],
       ),
     );

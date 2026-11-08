@@ -21,7 +21,7 @@ class AppSnackBar {
       case SnackBarVariant.primary:
         return AppColors.primary;
       case SnackBarVariant.success:
-        return const Color(0xFF10B981); // Emerald
+        return AppColors.success;
       case SnackBarVariant.warning:
         return const Color(0xFFF59E0B); // Amber
       case SnackBarVariant.danger:

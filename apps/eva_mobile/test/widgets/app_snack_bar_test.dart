@@ -66,7 +66,7 @@ void main() {
       expect(find.text('Sukses Simpan'), findsOneWidget);
       expect(find.byIcon(Icons.check_circle_outline_rounded), findsOneWidget);
       var snackBar = tester.widget<SnackBar>(find.byType(SnackBar));
-      expect(snackBar.backgroundColor, const Color(0xFF10B981));
+      expect(snackBar.backgroundColor, AppColors.success);
 
       // Test Warning (replaces previous snackbar immediately)
       await tester.tap(find.text('Warning'));

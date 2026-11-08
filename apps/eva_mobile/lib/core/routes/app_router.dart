@@ -12,6 +12,14 @@ import 'package:eva_mobile/features/diary/presentation/screens/ai_diary_screen.d
 import 'package:eva_mobile/features/diary/presentation/screens/ai_diary_detail_screen.dart';
 import 'package:eva_mobile/features/emergency/presentation/screens/emergency_contacts_screen.dart';
 import 'package:eva_mobile/features/emergency/presentation/screens/support_emergency_screen.dart';
+import 'package:eva_mobile/features/care/domain/entities/psychologist_entity.dart';
+import 'package:eva_mobile/features/care/domain/entities/consultation_session_entity.dart';
+import 'package:eva_mobile/features/care/presentation/screens/psychologist_detail_screen.dart';
+import 'package:eva_mobile/features/care/presentation/screens/consultation_schedule_screen.dart';
+import 'package:eva_mobile/features/care/presentation/screens/consultation_history_screen.dart';
+import 'package:eva_mobile/features/care/presentation/screens/consultation_session_logs_screen.dart';
+import 'package:eva_mobile/features/care/presentation/screens/psychologist_video_call_screen.dart';
+import 'package:eva_mobile/features/coin/presentation/screens/coin_purchase_screen.dart';
 import 'package:eva_mobile/features/home/presentation/screens/main_shell_screen.dart';
 import 'package:eva_mobile/features/monitoring/presentation/screens/monitoring_screen.dart';
 import 'package:eva_mobile/features/care/presentation/screens/care_screen.dart';
@@ -128,6 +136,65 @@ class AppRouter {
           page: const TermsDisclaimerScreen(),
           settings: settings,
         );
+      case '/coin_purchase':
+      case '/coins':
+      case '/buy_coins':
+        return AppRouteTransitions.horizontalDetailRoute(
+          page: const CoinPurchaseScreen(),
+          settings: settings,
+        );
+      case '/psychologist_detail':
+      case '/care/psychologist_detail':
+        final psychologist = args?['psychologist'] as PsychologistEntity?;
+        if (psychologist != null) {
+          return AppRouteTransitions.horizontalDetailRoute(
+            page: PsychologistDetailScreen(psychologist: psychologist),
+            settings: settings,
+          );
+        }
+        return null;
+
+      case '/care/schedule':
+      case '/consultation_schedule':
+      case '/schedule':
+        return AppRouteTransitions.horizontalDetailRoute(
+          page: const ConsultationScheduleScreen(),
+          settings: settings,
+        );
+
+      case '/care/history':
+      case '/consultation_history':
+      case '/history':
+        return AppRouteTransitions.horizontalDetailRoute(
+          page: const ConsultationHistoryScreen(),
+          settings: settings,
+        );
+
+      case '/care/session_logs':
+      case '/consultation_session_logs':
+        final psychologist = args?['psychologist'] as PsychologistEntity?;
+        final sessions = args?['sessions'] as List<ConsultationSessionEntity>? ?? [];
+        if (psychologist != null) {
+          return AppRouteTransitions.horizontalDetailRoute(
+            page: ConsultationSessionLogsScreen(
+              psychologist: psychologist,
+              sessions: sessions,
+            ),
+            settings: settings,
+          );
+        }
+        return null;
+
+      case '/care/video_call':
+      case '/psychologist_video_call':
+        final session = args?['session'] as ConsultationSessionEntity?;
+        if (session != null) {
+          return AppRouteTransitions.horizontalDetailRoute(
+            page: PsychologistVideoCallScreen(session: session),
+            settings: settings,
+          );
+        }
+        return null;
 
       default:
         return null;

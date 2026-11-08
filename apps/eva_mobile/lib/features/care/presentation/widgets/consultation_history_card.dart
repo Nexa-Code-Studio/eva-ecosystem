@@ -49,7 +49,7 @@ class ConsultationHistoryCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: isUpcoming ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+                  color: isUpcoming ? AppColors.successContainer : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(
@@ -58,7 +58,7 @@ class ConsultationHistoryCard extends StatelessWidget {
                     Icon(
                       isUpcoming ? Icons.event_available : Icons.history,
                       size: 13,
-                      color: isUpcoming ? const Color(0xFF166534) : const Color(0xFF475569),
+                      color: isUpcoming ? AppColors.successDark : const Color(0xFF475569),
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -66,7 +66,7 @@ class ConsultationHistoryCard extends StatelessWidget {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10.5,
                         fontWeight: FontWeight.w800,
-                        color: isUpcoming ? const Color(0xFF166534) : const Color(0xFF475569),
+                        color: isUpcoming ? AppColors.successDark : const Color(0xFF475569),
                       ),
                     ),
                   ],
@@ -140,7 +140,7 @@ class ConsultationHistoryCard extends StatelessWidget {
                 color: isUpcoming ? Colors.white : const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: isUpcoming ? const Color(0xFFDCFCE7) : const Color(0xFFE2E8F0),
+                  color: isUpcoming ? AppColors.successContainer : const Color(0xFFE2E8F0),
                 ),
               ),
               child: Row(
@@ -172,7 +172,7 @@ class ConsultationHistoryCard extends StatelessWidget {
               child: ElevatedButton.icon(
                 onPressed: onActionTap,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF16A34A),
+                  backgroundColor: AppColors.success,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   padding: const EdgeInsets.symmetric(vertical: 8),

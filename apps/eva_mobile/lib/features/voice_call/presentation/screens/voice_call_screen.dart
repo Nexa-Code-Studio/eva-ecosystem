@@ -13,6 +13,9 @@ import 'package:eva_mobile/widgets/app_back_button.dart';
 import 'package:eva_mobile/widgets/custom_button.dart';
 import 'package:eva_mobile/widgets/glass_card.dart';
 import 'package:eva_mobile/features/emergency/presentation/screens/support_emergency_screen.dart';
+import 'package:eva_mobile/features/tutorial/domain/entities/tutorial_step.dart';
+import 'package:eva_mobile/features/tutorial/presentation/providers/tutorial_provider.dart';
+import 'package:eva_mobile/features/tutorial/presentation/widgets/interactive_spotlight_overlay.dart';
 
 class VoiceCallScreen extends ConsumerStatefulWidget {
   const VoiceCallScreen({super.key});
@@ -285,12 +288,47 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
   }) {
     DailyProgressLocalService.recordConversationCheckin(hasConversation: true);
 
+    final tutorialState = ref.read(tutorialNotifierProvider);
+    final isTutorialActive = !tutorialState.isCompleted &&
+        (tutorialState.currentStep == TutorialStep.voiceCompleted ||
+            tutorialState.currentStep == TutorialStep.voiceStart ||
+            tutorialState.currentStep == TutorialStep.voiceCoins);
+
+    if (isTutorialActive) {
+      ref
+          .read(tutorialNotifierProvider.notifier)
+          .resumeAtStep(TutorialStep.voiceCompleted);
+    }
+
+    final GlobalKey journalButtonKey = GlobalKey(debugLabel: 'journalDetailButton');
+
+    void navigateToJournal(BuildContext bottomSheetContext) {
+      final currentTutorialState = ref.read(tutorialNotifierProvider);
+      if (!currentTutorialState.isCompleted &&
+          (currentTutorialState.currentStep == TutorialStep.voiceCompleted ||
+              currentTutorialState.currentStep == TutorialStep.voiceStart ||
+              currentTutorialState.currentStep == TutorialStep.voiceCoins)) {
+        ref
+            .read(tutorialNotifierProvider.notifier)
+            .onTargetTapped(TutorialStep.voiceCompleted);
+      }
+      Navigator.pop(bottomSheetContext); // Close Bottom Sheet
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/home',
+        (route) => false,
+        arguments: {'initialIndex': 1},
+      );
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
+      isDismissible: !isTutorialActive,
+      enableDrag: !isTutorialActive,
+      builder: (bottomSheetContext) {
+        final Widget sheetCard = Container(
           padding: const EdgeInsets.all(24),
           decoration: const BoxDecoration(
             color: Colors.white,
@@ -516,35 +554,32 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
                 const SizedBox(height: 20),
               ],
               CustomPillButton(
+                key: journalButtonKey,
                 text: 'Lihat Detail Jurnal Refleksi',
                 isOutline: hasDassTriggered,
-                onPressed: () {
-                  Navigator.pop(context); // Close Bottom Sheet
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    '/home',
-                    (route) => false,
-                    arguments: {'initialIndex': 1},
-                  );
-                },
+                onPressed: () => navigateToJournal(bottomSheetContext),
               ),
               const SizedBox(height: 6),
               Center(
                 child: TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      '/home',
-                      (route) => false,
-                    );
-                  },
+                  onPressed: isTutorialActive
+                      ? null
+                      : () {
+                          Navigator.pop(bottomSheetContext);
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            '/home',
+                            (route) => false,
+                          );
+                        },
                   child: Text(
                     'Kembali ke Beranda',
                     style: GoogleFonts.inter(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
+                      color: isTutorialActive
+                          ? AppColors.textLight.withValues(alpha: 0.35)
+                          : AppColors.textSecondary,
                     ),
                   ),
                 ),
@@ -552,6 +587,34 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
             ],
           ),
         );
+
+        if (isTutorialActive) {
+          return SizedBox(
+            height: MediaQuery.of(bottomSheetContext).size.height,
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: sheetCard,
+                ),
+                InteractiveSpotlightOverlay(
+                  targetKey: journalButtonKey,
+                  content: TutorialContent.stepContents[TutorialStep.voiceCompleted]!,
+                  onSkip: () {
+                    ref.read(tutorialNotifierProvider.notifier).skipTutorial();
+                    Navigator.pop(bottomSheetContext);
+                  },
+                  onNext: () => navigateToJournal(bottomSheetContext),
+                  onTargetTap: () => navigateToJournal(bottomSheetContext),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return sheetCard;
       },
     );
   }

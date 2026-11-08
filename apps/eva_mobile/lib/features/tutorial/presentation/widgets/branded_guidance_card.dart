@@ -14,6 +14,7 @@ class BrandedGuidanceCard extends StatelessWidget {
   final PointerDirection pointerDirection;
   final double pointerHorizontalOffset;
   final bool isInteractiveTarget;
+  final String nextButtonLabel;
   final VoidCallback onSkip;
   final VoidCallback? onNext;
 
@@ -26,6 +27,7 @@ class BrandedGuidanceCard extends StatelessWidget {
     this.pointerDirection = PointerDirection.down,
     this.pointerHorizontalOffset = 0.0,
     this.isInteractiveTarget = true,
+    this.nextButtonLabel = 'Lanjut',
     required this.onSkip,
     this.onNext,
   });
@@ -204,7 +206,7 @@ class BrandedGuidanceCard extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      'Lanjut',
+                      nextButtonLabel,
                       style: GoogleFonts.inter(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,

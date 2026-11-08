@@ -5,6 +5,8 @@ import '../../../../theme/app_colors.dart';
 import '../../domain/entities/psychologist_entity.dart';
 import '../../domain/entities/consultation_session_entity.dart';
 import '../providers/care_provider.dart';
+import '../../../coin/presentation/providers/coin_provider.dart';
+import 'clinic_location_map_card.dart';
 
 class BookingConsultationSheet extends ConsumerStatefulWidget {
   final PsychologistEntity psychologist;
@@ -48,6 +50,30 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
   }
 
   Future<void> _handleConfirmBooking() async {
+    final requiredCoins = widget.psychologist.coinsPerSession;
+    final currentCoins = ref.read(coinBalanceProvider);
+
+    if (requiredCoins > 0 && currentCoins < requiredCoins) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Saldo koin tidak mencukupi untuk konsultasi ini ($requiredCoins Koin).',
+            style: GoogleFonts.plusJakartaSans(fontSize: 12),
+          ),
+          backgroundColor: AppColors.error,
+          action: SnackBarAction(
+            label: 'Top Up',
+            textColor: Colors.white,
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/coin_purchase');
+            },
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     final targetDate = DateTime.now().add(Duration(days: _selectedDayOffset));
@@ -74,6 +100,11 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
     setState(() => _isLoading = false);
 
     if (success) {
+      // Deduct coins if required
+      if (requiredCoins > 0) {
+        await ref.read(coinBalanceProvider.notifier).spendCoins(requiredCoins);
+      }
+      if (!mounted) return;
       Navigator.pop(context);
       _showSuccessDialog();
     } else {
@@ -87,6 +118,11 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
   }
 
   void _showSuccessDialog() {
+    final coins = widget.psychologist.coinsPerSession;
+    final descriptionText = coins > 0
+        ? 'Sesi konsultasi Anda bersama ${widget.psychologist.name} telah berhasil dijadwalkan dengan transaksi $coins Koin EVA.'
+        : 'Sesi konsultasi Anda bersama ${widget.psychologist.name} telah berhasil dijadwalkan secara gratis.';
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -99,10 +135,10 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
               width: 58,
               height: 58,
               decoration: const BoxDecoration(
-                color: Color(0xFFDCFCE7),
+                color: AppColors.successContainer,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.event_available, color: Color(0xFF16A34A), size: 34),
+              child: const Icon(Icons.event_available, color: AppColors.success, size: 34),
             ),
             const SizedBox(height: 14),
             Text(
@@ -115,7 +151,7 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
             ),
             const SizedBox(height: 8),
             Text(
-              'Sesi konsultasi Anda bersama ${widget.psychologist.name} telah tercatat di Jadwal & Riwayat.',
+              descriptionText,
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12.5,
@@ -254,6 +290,16 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
                 ),
               ],
             ),
+
+            // Tunjukkan Maps Jika Moda Offline / Tatap Muka
+            if (_selectedType == ConsultationType.offlineClinic) ...[
+              const SizedBox(height: 12),
+              ClinicLocationMapCard(
+                clinicName: widget.psychologist.clinicAffiliation ?? 'Klinik Mitra Eva Care',
+                address: 'Jl. Kemanggisan Raya No. 45, Palmerah, Jakarta Barat',
+              ),
+            ],
+
             const SizedBox(height: 18),
 
             // Tanggal Sesi
@@ -297,6 +343,7 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
                   selected: isSelected,
                   onSelected: (_) => setState(() => _selectedTimeSlot = index),
                   selectedColor: AppColors.primary,
+                  checkmarkColor: Colors.white,
                   backgroundColor: const Color(0xFFF1F5F9),
                   labelStyle: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
@@ -339,7 +386,82 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+
+            // Alat Transaksi: Koin EVA
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F4FE),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.primaryContainer),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.monetization_on_rounded,
+                      size: 16,
+                      color: Color(0xFFFFB300),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Alat Transaksi: Koin EVA',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        Text(
+                          widget.psychologist.coinsPerSession > 0
+                              ? 'Biaya: ${widget.psychologist.coinsPerSession} Koin • Saldo koinmu: ${ref.watch(coinBalanceProvider)} Koin'
+                              : 'Bebas biaya koin (Gratis) • Saldo koinmu: ${ref.watch(coinBalanceProvider)} Koin',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (widget.psychologist.coinsPerSession > 0 &&
+                      ref.watch(coinBalanceProvider) < widget.psychologist.coinsPerSession)
+                    InkWell(
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.pushNamed(context, '/coin_purchase');
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Top Up',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
 
             // CTA Button
             SizedBox(
@@ -442,6 +564,7 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
       selected: isSelected,
       onSelected: (_) => setState(() => _selectedDayOffset = offset),
       selectedColor: AppColors.primary,
+      checkmarkColor: Colors.white,
       backgroundColor: const Color(0xFFF1F5F9),
       labelStyle: GoogleFonts.plusJakartaSans(
         fontSize: 12,

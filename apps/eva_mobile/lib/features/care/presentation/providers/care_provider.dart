@@ -130,6 +130,44 @@ class ConsultationSessionsNotifier
       return false;
     }
   }
+
+  Future<void> completeSession(
+    String sessionId, {
+    List<String>? adviceList,
+    List<String>? actionItems,
+    String? sessionSummary,
+    String? moodAfter,
+  }) async {
+    final current = state.value ?? [];
+    state = AsyncValue.data(
+      current.map((s) {
+        if (s.id == sessionId) {
+          return s.copyWith(
+            status: ConsultationStatus.completed,
+            adviceList: adviceList ??
+                (s.adviceList.isNotEmpty
+                    ? s.adviceList
+                    : const [
+                        'Lakukan teknik relaksasi napas dalam saat merasa cemas.',
+                        'Catat perubahan suasana hati di Jurnal Eva.',
+                        'Jadwalkan sesi follow-up dalam 2 minggu ke depan.',
+                      ]),
+            actionItems: actionItems ??
+                (s.actionItems.isNotEmpty
+                    ? s.actionItems
+                    : const [
+                        'Praktikkan latihan mindfulness 5 menit setiap pagi.',
+                      ]),
+            sessionSummary: sessionSummary ??
+                s.sessionSummary ??
+                'Sesi konsultasi tatap muka online selesai dilaksanakan dengan hasil positif.',
+            moodAfter: moodAfter ?? 'Tenang & Lebih Lega (Skala 4/10)',
+          );
+        }
+        return s;
+      }).toList(),
+    );
+  }
 }
 
 final consultationSessionsProvider = StateNotifierProvider<

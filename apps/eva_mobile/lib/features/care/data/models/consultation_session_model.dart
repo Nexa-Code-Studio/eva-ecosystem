@@ -12,6 +12,13 @@ class ConsultationSessionModel extends ConsultationSessionEntity {
     super.locationName,
     super.notes,
     super.diagnosisSummary,
+    super.sessionNumber = 1,
+    super.adviceList = const [],
+    super.actionItems = const [],
+    super.moodBefore,
+    super.moodAfter,
+    super.durationMinutes = 50,
+    super.sessionSummary,
   });
 
   factory ConsultationSessionModel.fromJson(Map<String, dynamic> json) {
@@ -28,6 +35,19 @@ class ConsultationSessionModel extends ConsultationSessionEntity {
       locationName: json['location_name'] as String?,
       notes: json['notes'] as String?,
       diagnosisSummary: json['diagnosis_summary'] as String?,
+      sessionNumber: (json['session_number'] as num?)?.toInt() ?? 1,
+      adviceList: (json['advice_list'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
+      actionItems: (json['action_items'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
+      moodBefore: json['mood_before'] as String?,
+      moodAfter: json['mood_after'] as String?,
+      durationMinutes: (json['duration_minutes'] as num?)?.toInt() ?? 50,
+      sessionSummary: json['session_summary'] as String?,
     );
   }
 
@@ -63,6 +83,13 @@ class ConsultationSessionModel extends ConsultationSessionEntity {
       'location_name': locationName,
       'notes': notes,
       'diagnosis_summary': diagnosisSummary,
+      'session_number': sessionNumber,
+      'advice_list': adviceList,
+      'action_items': actionItems,
+      'mood_before': moodBefore,
+      'mood_after': moodAfter,
+      'duration_minutes': durationMinutes,
+      'session_summary': sessionSummary,
     };
   }
 }

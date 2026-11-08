@@ -1,9 +1,20 @@
+import 'dart:io';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:eva_mobile/config/app_config.dart';
+import 'package:eva_mobile/core/network/api_client.dart';
 import 'package:eva_mobile/features/care/data/models/psychologist_model.dart';
 import 'package:eva_mobile/features/care/data/models/clinic_model.dart';
 import 'package:eva_mobile/features/care/data/models/community_status_model.dart';
 import 'package:eva_mobile/features/care/data/datasources/mock_care_datasource.dart';
+import 'package:eva_mobile/features/care/data/repositories/care_repository_impl.dart';
+import 'package:eva_mobile/features/care/data/repositories/fallback_care_repository.dart';
+import 'package:eva_mobile/features/care/domain/entities/clinic_entity.dart';
+import 'package:eva_mobile/features/care/domain/entities/community_status_entity.dart';
 import 'package:eva_mobile/features/care/domain/entities/consultation_session_entity.dart';
+import 'package:eva_mobile/features/care/domain/entities/psychologist_entity.dart';
+import 'package:eva_mobile/features/care/domain/repositories/care_repository.dart';
+import 'package:eva_mobile/features/care/presentation/providers/care_provider.dart';
 
 void main() {
   group('Care Domain & Model Unit Tests', () {
@@ -18,11 +29,35 @@ void main() {
         'review_count': 25,
         'experience_years': 4,
         'specialties': ['Kecemasan', 'Stres'],
-        'fee_per_session': 150000,
+        'coins_per_session': 50,
         'duration_minutes': 50,
         'available_online': true,
         'clinic_affiliation': 'Klinik Sehat',
         'bio': 'Test bio description',
+        'review_tags': [
+          {'label': 'Sangat Sabar & Empati', 'sentiment': 'positive'},
+          {'label': 'Slot Sesi Cepat Penuh', 'sentiment': 'negative'},
+        ],
+        'testimonials': [
+          {
+            'id': 'rev_test_1',
+            'patient_name': 'Pasien Terverifikasi (A.B.)',
+            'sentiment': 'positive',
+            'label': 'Sangat Sabar & Empati',
+            'description': 'Konselingnya sangat membantu meredakan overthinking.',
+            'rating': 5.0,
+            'time_ago': '2 hari lalu',
+          },
+        ],
+        'patient_stats': {
+          'total_patients_treated': 320,
+          'total_sessions_completed': 580,
+          'satisfaction_rate': 98.7,
+          'positive_review_rate': 96.0,
+          'recovery_rate': 94.0,
+          'avg_recovery_sessions': 3.7,
+          'recovery_description': '94% pasien merasakan perbaikan kecemasan signifikan',
+        },
       };
 
       final model = PsychologistModel.fromJson(json);
@@ -30,11 +65,22 @@ void main() {
       expect(model.name, 'Test Psychologist, M.Psi.');
       expect(model.isPsychiatrist, isFalse);
       expect(model.specialties.length, 2);
-      expect(model.feePerSession, 150000);
+      expect(model.coinsPerSession, 50);
+      expect(model.feePerSession, 50);
+      expect(model.effectiveReviewTags.length, 2);
+      expect(model.effectiveReviewTags[0].isPositive, isTrue);
+      expect(model.effectiveReviewTags[1].isNegative, isTrue);
+      expect(model.effectiveTestimonials.length, 1);
+      expect(model.effectiveTestimonials[0].label, 'Sangat Sabar & Empati');
+      expect(model.patientStats.totalPatientsTreated, 320);
+      expect(model.patientStats.positiveReviewRate, 96.0);
+      expect(model.patientStats.negativeReviewRate, 4.0);
 
       final outJson = model.toJson();
       expect(outJson['registration_number'], 'SIPP: 1234');
-      expect(outJson['fee_per_session'], 150000);
+      expect(outJson['coins_per_session'], 50);
+      expect(outJson['fee_per_session'], 50);
+      expect(outJson['patient_stats']['total_patients_treated'], 320);
     });
 
     test('Psychiatrist detection via title', () {
@@ -48,11 +94,12 @@ void main() {
         reviewCount: 10,
         experienceYears: 8,
         specialties: ['Bipolar'],
-        feePerSession: 250000,
+        coinsPerSession: 60,
         bio: 'Bio psikiater',
       );
 
       expect(psikiater.isPsychiatrist, isTrue);
+      expect(psikiater.coinsPerSession, 60);
     });
 
     test('ClinicModel correctly deserializes from JSON', () {
@@ -91,6 +138,74 @@ void main() {
       expect(upgraded.isVipActive, isTrue);
       expect(upgraded.vipRemainingDays, 30);
     });
+
+    test('Psychologist and Volunteer badges combination logic', () {
+      // 1. Volunteer without certificate (free)
+      const volunteer = PsychologistModel(
+        id: 'vol_1',
+        name: 'Bayu Aditya',
+        title: 'Relawan Sebaya',
+        registrationNumber: 'Cert PFA',
+        avatarUrl: '',
+        rating: 4.8,
+        reviewCount: 10,
+        experienceYears: 1,
+        specialties: ['Curhat'],
+        coinsPerSession: 0,
+        bio: 'Bio',
+        practitionerType: PractitionerType.volunteer,
+        hasPsychologistCertificate: false,
+        isVolunteerRole: true,
+      );
+      expect(volunteer.isVolunteer, isTrue);
+      expect(volunteer.hasPsychologistCertificate, isFalse);
+      expect(volunteer.hasBothBadges, isFalse);
+      expect(volunteer.badgeHeaderTitle, 'Relawan');
+
+      // 2. Psychologist with certificate only
+      const pro = PsychologistModel(
+        id: 'pro_1',
+        name: 'Dimas Wicaksono',
+        title: 'Psikolog Klinis',
+        registrationNumber: 'SIPP: 1234',
+        avatarUrl: '',
+        rating: 4.9,
+        reviewCount: 20,
+        experienceYears: 5,
+        specialties: ['Karir'],
+        coinsPerSession: 60,
+        bio: 'Bio',
+        practitionerType: PractitionerType.professional,
+        hasPsychologistCertificate: true,
+        isVolunteerRole: false,
+      );
+      expect(pro.isVolunteer, isFalse);
+      expect(pro.hasPsychologistCertificate, isTrue);
+      expect(pro.hasBothBadges, isFalse);
+      expect(pro.badgeHeaderTitle, 'Profesional');
+
+      // 3. User with BOTH badges: Psychologist AND Volunteer
+      const both = PsychologistModel(
+        id: 'both_1',
+        name: 'Amanda Zahra',
+        title: 'Psikolog & Relawan',
+        registrationNumber: 'SIPP: 5678',
+        avatarUrl: '',
+        rating: 5.0,
+        reviewCount: 50,
+        experienceYears: 6,
+        specialties: ['Kecemasan'],
+        coinsPerSession: 50,
+        bio: 'Bio',
+        practitionerType: PractitionerType.professional,
+        hasPsychologistCertificate: true,
+        isVolunteerRole: true,
+      );
+      expect(both.isVolunteer, isTrue);
+      expect(both.hasPsychologistCertificate, isTrue);
+      expect(both.hasBothBadges, isTrue);
+      expect(both.badgeHeaderTitle, 'Relawan & Profesional');
+    });
   });
 
   group('MockCareDataSource Functional Tests', () {
@@ -106,11 +221,17 @@ void main() {
       expect(list.length, greaterThanOrEqualTo(3));
     });
 
-    test('Filters psychologists by psychiatrist category', () async {
-      final psychiatrists = await dataSource.getPsychologists(category: 'psychiatrist');
-      expect(psychiatrists.isNotEmpty, isTrue);
-      for (final p in psychiatrists) {
-        expect(p.isPsychiatrist, isTrue);
+    test('Filters psychologists by practitioner category', () async {
+      final professionals = await dataSource.getPsychologists(category: 'professional');
+      expect(professionals.isNotEmpty, isTrue);
+      for (final p in professionals) {
+        expect(p.isProfessional, isTrue);
+      }
+
+      final volunteers = await dataSource.getPsychologists(category: 'volunteer');
+      expect(volunteers.isNotEmpty, isTrue);
+      for (final p in volunteers) {
+        expect(p.isVolunteer, isTrue);
       }
     });
 
@@ -162,4 +283,137 @@ void main() {
       expect(updatedSessions.first.id, newSession.id);
     });
   });
+
+  group('FallbackCareRepository & Mode API vs Fallback Dummy Tests', () {
+    late FakeRemoteCareRepository fakeRemote;
+    late MockCareDataSource mockDataSource;
+    late CareRepository mockRepo;
+    late FallbackCareRepository fallbackRepo;
+
+    setUp(() {
+      fakeRemote = FakeRemoteCareRepository();
+      mockDataSource = MockCareDataSource();
+      mockRepo = CareRepositoryImpl(mockDataSource);
+      fallbackRepo = FallbackCareRepository(remote: fakeRemote, mock: mockRepo);
+    });
+
+    test('Mode API: Returns remote data when remote API endpoint succeeds', () async {
+      fakeRemote.shouldThrow404 = false;
+      final results = await fallbackRepo.getPsychologists();
+      expect(results.length, 1);
+      expect(results.first.id, 'remote_psy_1');
+      expect(results.first.name, 'Remote Psychologist, M.Psi.');
+      expect(results.first.coinsPerSession, 45);
+    });
+
+    test('Fallback Dummy: Transparently falls back to mock data on 404 (Endpoint not yet implemented)', () async {
+      fakeRemote.shouldThrow404 = true;
+      final results = await fallbackRepo.getPsychologists();
+      expect(results.isNotEmpty, isTrue);
+      expect(results.any((p) => p.name.contains('Amanda')), isTrue);
+    });
+
+    test('Fallback Dummy: Transparently falls back to mock data on network error / connection refused (Offline)', () async {
+      fakeRemote.shouldThrowSocket = true;
+      final results = await fallbackRepo.getPsychologists();
+      expect(results.isNotEmpty, isTrue);
+      expect(results.any((p) => p.name.contains('Amanda')), isTrue);
+    });
+
+    test('Mode API: Propagates non-fallback server errors (HTTP 500) without masking backend bugs', () async {
+      fakeRemote.shouldThrow500 = true;
+      expect(
+        () async => fallbackRepo.getPsychologists(),
+        throwsA(isA<ApiException>().having((e) => e.statusCode, 'statusCode', 500)),
+      );
+    });
+
+    test('Fallback Dummy: Falls back to mock data for clinics on 404', () async {
+      fakeRemote.shouldThrow404 = true;
+      final clinics = await fallbackRepo.getClinics();
+      expect(clinics.isNotEmpty, isTrue);
+    });
+
+    test('Fallback Dummy: Falls back to mock data for community status on 404', () async {
+      fakeRemote.shouldThrow404 = true;
+      final status = await fallbackRepo.getCommunityStatus();
+      expect(status.isMember, isFalse);
+    });
+  });
+
+  group('careRepositoryProvider DI Switching Tests', () {
+    test('Resolves to CareRepositoryImpl when useMockData is true', () {
+      AppConfig.useMockData = true;
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final repo = container.read(careRepositoryProvider);
+      expect(repo, isA<CareRepositoryImpl>());
+    });
+  });
+}
+
+class FakeRemoteCareRepository implements CareRepository {
+  bool shouldThrow404 = false;
+  bool shouldThrow500 = false;
+  bool shouldThrowSocket = false;
+
+  final List<PsychologistEntity> remotePsychologists = [
+    const PsychologistModel(
+      id: 'remote_psy_1',
+      name: 'Remote Psychologist, M.Psi.',
+      title: 'Psikolog Klinis Remote',
+      registrationNumber: 'SIPP: 9999',
+      avatarUrl: '',
+      rating: 5.0,
+      reviewCount: 1,
+      experienceYears: 1,
+      specialties: ['Remote Test'],
+      bio: 'Remote bio test',
+      coinsPerSession: 45,
+    ),
+  ];
+
+  @override
+  Future<List<PsychologistEntity>> getPsychologists({String? category, String? query}) async {
+    if (shouldThrow404) throw ApiException('Not Found', statusCode: 404);
+    if (shouldThrow500) throw ApiException('Internal Error', statusCode: 500);
+    if (shouldThrowSocket) throw const SocketException('Connection refused');
+    return remotePsychologists;
+  }
+
+  @override
+  Future<List<ClinicEntity>> getClinics({String? query}) async {
+    if (shouldThrow404) throw ApiException('Not Found', statusCode: 404);
+    return [];
+  }
+
+  @override
+  Future<CommunityStatusEntity> getCommunityStatus() async {
+    if (shouldThrow404) throw ApiException('Not Found', statusCode: 404);
+    return const CommunityStatusModel(isMember: true, isVipActive: false);
+  }
+
+  @override
+  Future<CommunityStatusEntity> joinCommunityWithVipTrial() async {
+    if (shouldThrow404) throw ApiException('Not Found', statusCode: 404);
+    return const CommunityStatusModel(isMember: true, isVipActive: true, vipRemainingDays: 30);
+  }
+
+  @override
+  Future<List<ConsultationSessionEntity>> getConsultationSessions() async {
+    if (shouldThrow404) throw ApiException('Not Found', statusCode: 404);
+    return [];
+  }
+
+  @override
+  Future<ConsultationSessionEntity> bookConsultation({
+    required String psychologistId,
+    required DateTime preferredDateTime,
+    required ConsultationType sessionType,
+    String? complaints,
+  }) async {
+    if (shouldThrow404) throw ApiException('Not Found', statusCode: 404);
+    throw UnimplementedError();
+  }
 }

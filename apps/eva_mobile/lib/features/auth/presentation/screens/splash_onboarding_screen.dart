@@ -21,7 +21,12 @@ class _SplashOnboardingScreenState extends ConsumerState<SplashOnboardingScreen>
   @override
   void initState() {
     super.initState();
-    _checkExistingSession();
+    // Sementara dinonaktifkan agar langsung masuk ke /home tanpa mengganggu alur tutorial
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    });
   }
 
   @override

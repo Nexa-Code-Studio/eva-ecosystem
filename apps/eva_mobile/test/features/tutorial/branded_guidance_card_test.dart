@@ -66,5 +66,32 @@ void main() {
       await tester.tap(find.text('Lanjut'));
       expect(nextClicked, isTrue);
     });
+
+    testWidgets('renders custom Selesai button when nextButtonLabel is Selesai',
+        (tester) async {
+      bool finishClicked = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: BrandedGuidanceCard(
+                title: 'Layanan & Dukungan Sebaya',
+                description:
+                    'Jika butuh teman bicara manusia, temukan konseling profesional di sini.',
+                isInteractiveTarget: false,
+                nextButtonLabel: 'Selesai',
+                onSkip: () {},
+                onNext: () => finishClicked = true,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Selesai'), findsOneWidget);
+      await tester.tap(find.text('Selesai'));
+      expect(finishClicked, isTrue);
+    });
   });
 }

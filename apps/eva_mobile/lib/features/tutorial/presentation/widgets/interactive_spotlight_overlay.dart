@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../../theme/app_colors.dart';
@@ -15,6 +16,8 @@ import 'branded_guidance_card.dart';
 class InteractiveSpotlightOverlay extends StatefulWidget {
   final GlobalKey? targetKey;
   final Rect? targetRect;
+  final GlobalKey? secondaryTargetKey;
+  final Rect? secondaryTargetRect;
   final TutorialContent content;
   final VoidCallback onSkip;
   final VoidCallback? onTargetTap;
@@ -25,6 +28,8 @@ class InteractiveSpotlightOverlay extends StatefulWidget {
     super.key,
     this.targetKey,
     this.targetRect,
+    this.secondaryTargetKey,
+    this.secondaryTargetRect,
     required this.content,
     required this.onSkip,
     this.onTargetTap,
@@ -42,6 +47,8 @@ class _InteractiveSpotlightOverlayState extends State<InteractiveSpotlightOverla
   late final AnimationController _fadeController;
   late final AnimationController _haloController;
   Rect? _measuredTargetRect;
+  Rect? _measuredSecondaryTargetRect;
+  Timer? _pollingTimer;
 
   @override
   void initState() {
@@ -73,15 +80,32 @@ class _InteractiveSpotlightOverlayState extends State<InteractiveSpotlightOverla
   }
 
   void _scheduleMeasurement() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _pollingTimer?.cancel();
+
+    void measure() {
       if (!mounted) return;
       _updateTargetMeasurement();
-      // Retry in subsequent frame if target is still mounting or laying out or measured invalid
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      measure();
       if ((_measuredTargetRect == null || _measuredTargetRect!.top < 0) &&
           widget.targetKey != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _updateTargetMeasurement();
-        });
+        WidgetsBinding.instance.addPostFrameCallback((_) => measure());
+      }
+    });
+
+    int attempts = 0;
+    _pollingTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+      attempts++;
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      _updateTargetMeasurement();
+      // Keep tracking for up to 20 frames (1s) to accommodate page scroll and layout changes
+      if (attempts >= 20) {
+        timer.cancel();
       }
     });
   }
@@ -90,30 +114,26 @@ class _InteractiveSpotlightOverlayState extends State<InteractiveSpotlightOverla
   void didUpdateWidget(covariant InteractiveSpotlightOverlay oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.targetKey != widget.targetKey ||
-        oldWidget.targetRect != widget.targetRect) {
+        oldWidget.targetRect != widget.targetRect ||
+        oldWidget.secondaryTargetKey != widget.secondaryTargetKey ||
+        oldWidget.secondaryTargetRect != widget.secondaryTargetRect) {
+      _measuredTargetRect = null;
+      _measuredSecondaryTargetRect = null;
       _scheduleMeasurement();
     }
   }
 
-  void _updateTargetMeasurement() {
-    if (!mounted) return;
+  Rect? _measureKey(GlobalKey? key) {
+    if (key == null) return null;
 
-    if (widget.targetRect != null) {
-      if (_measuredTargetRect != widget.targetRect) {
-        setState(() {
-          _measuredTargetRect = widget.targetRect;
-        });
-      }
-      return;
-    }
-
-    if (widget.targetKey == null) return;
-
-    final targetContext = widget.targetKey!.currentContext;
-    if (targetContext == null) return;
+    final targetContext = key.currentContext;
+    if (targetContext == null) return null;
 
     final renderBox = targetContext.findRenderObject() as RenderBox?;
-    if (renderBox != null && renderBox.attached) {
+    if (renderBox != null && renderBox.attached && renderBox.hasSize) {
+      final size = renderBox.size;
+      if (size.width <= 0 || size.height <= 0) return null;
+
       final overlayBox = context.findRenderObject() as RenderBox?;
       final Offset offset;
       if (overlayBox != null && overlayBox.attached) {
@@ -122,18 +142,43 @@ class _InteractiveSpotlightOverlayState extends State<InteractiveSpotlightOverla
         offset = renderBox.localToGlobal(Offset.zero);
       }
 
-      final rect = offset & renderBox.size;
+      final mediaQuery = MediaQuery.of(context);
+      final screenSize = mediaQuery.size;
 
-      if (rect.top >= 0 && _measuredTargetRect != rect) {
-        setState(() {
-          _measuredTargetRect = rect;
-        });
+      final rect = offset & size;
+
+      // Validate that target widget has rendered dimensions and is within screen boundaries
+      if (rect.right <= 0 ||
+          rect.left >= screenSize.width ||
+          rect.bottom <= 0 ||
+          rect.top >= screenSize.height) {
+        return null;
       }
+
+      return rect;
+    }
+    return null;
+  }
+
+  void _updateTargetMeasurement() {
+    if (!mounted) return;
+
+    final primary = widget.targetRect ?? _measureKey(widget.targetKey);
+    final secondary =
+        widget.secondaryTargetRect ?? _measureKey(widget.secondaryTargetKey);
+
+    if (_measuredTargetRect != primary ||
+        _measuredSecondaryTargetRect != secondary) {
+      setState(() {
+        _measuredTargetRect = primary;
+        _measuredSecondaryTargetRect = secondary;
+      });
     }
   }
 
   @override
   void dispose() {
+    _pollingTimer?.cancel();
     _fadeController.dispose();
     _haloController.dispose();
     super.dispose();
@@ -161,6 +206,9 @@ class _InteractiveSpotlightOverlayState extends State<InteractiveSpotlightOverla
               )
             : null);
 
+    final effectiveSecondaryRect =
+        _measuredSecondaryTargetRect ?? widget.secondaryTargetRect;
+
     return AnimatedBuilder(
       animation: Listenable.merge([_fadeController, _haloController]),
       builder: (context, _) {
@@ -177,7 +225,7 @@ class _InteractiveSpotlightOverlayState extends State<InteractiveSpotlightOverla
               // 1. Fullscreen Dimmed Backdrop (Absorbs taps outside target hole)
               Positioned.fill(
                 child: GestureDetector(
-                  behavior: HitTestBehavior.deferToChild,
+                  behavior: HitTestBehavior.opaque,
                   onTap: () {
                     // Absorbs taps on dimmed area so background buttons cannot be accidentally clicked
                   },
@@ -185,6 +233,7 @@ class _InteractiveSpotlightOverlayState extends State<InteractiveSpotlightOverla
                     size: Size.infinite,
                     painter: _SpotlightCutoutPainter(
                       targetRect: effectiveTargetRect,
+                      secondaryTargetRect: effectiveSecondaryRect,
                       shape: widget.content.shape,
                       padding: widget.cutoutPadding,
                       haloOpacity: 0.35 + (0.30 * haloValue),
@@ -193,19 +242,28 @@ class _InteractiveSpotlightOverlayState extends State<InteractiveSpotlightOverla
                 ),
               ),
 
-              // 2. Direct Tap Target for the Highlighted Control (Optional explicit handler)
-              if (widget.onTargetTap != null && effectiveTargetRect != null)
-                Positioned.fromRect(
-                  rect: effectiveTargetRect.inflate(widget.cutoutPadding),
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onTap: widget.onTargetTap,
+              // 2. Direct Tap Target for the Highlighted Control(s)
+              if (widget.onTargetTap != null) ...[
+                if (effectiveTargetRect != null)
+                  Positioned.fromRect(
+                    rect: effectiveTargetRect.inflate(widget.cutoutPadding),
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: widget.onTargetTap,
+                    ),
                   ),
-                ),
+                if (effectiveSecondaryRect != null)
+                  Positioned.fromRect(
+                    rect: effectiveSecondaryRect.inflate(widget.cutoutPadding),
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: widget.onTargetTap,
+                    ),
+                  ),
+              ],
 
-              // 3. Dynamically Positioned Guidance Card
-              if (effectiveTargetRect != null)
-                _buildPositionedCard(effectiveTargetRect),
+              // 3. Dynamically Positioned Guidance Card (Always rendered!)
+              _buildPositionedCard(effectiveTargetRect),
             ],
           ),
         );
@@ -213,26 +271,53 @@ class _InteractiveSpotlightOverlayState extends State<InteractiveSpotlightOverla
     );
   }
 
-  Widget _buildPositionedCard(Rect targetRect) {
+  Widget _buildPositionedCard(Rect? targetRect) {
     final mediaQuery = MediaQuery.of(context);
     final screenSize = mediaQuery.size;
     final safePadding = mediaQuery.padding;
 
     const double cardMaxWidth = 360.0;
     final double cardWidth = math.min(screenSize.width - 32.0, cardMaxWidth);
+    final double minLeft = safePadding.left + 16.0;
+
+    if (targetRect == null) {
+      // Safe fallback when target is still mounting or asynchronous data is loading:
+      // Always render card safely at bottom so user is NEVER blocked by a black screen!
+      final double cardLeft = ((screenSize.width - cardWidth) / 2).clamp(minLeft, screenSize.width - cardWidth);
+      return Positioned(
+        left: cardLeft,
+        width: cardWidth,
+        bottom: math.max(safePadding.bottom + 80.0, 100.0),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            child: BrandedGuidanceCard(
+              title: widget.content.title,
+              description: widget.content.description,
+              actionHint: widget.content.actionHint,
+              badgeText: widget.content.badgeText,
+              pointerDirection: PointerDirection.none,
+              isInteractiveTarget: widget.content.isInteractiveTarget,
+              nextButtonLabel: widget.content.nextButtonLabel,
+              onSkip: widget.onSkip,
+              onNext: widget.onNext,
+            ),
+          ),
+        ),
+      );
+    }
 
     // Calculate vertical placement
     final double spaceAbove = targetRect.top - safePadding.top;
     final double spaceBelow =
         screenSize.height - safePadding.bottom - targetRect.bottom;
 
-    // Prefer placing card on the side with more space
-    final bool placeAbove = spaceAbove >= spaceBelow || spaceAbove >= 220;
+    // Prefer placing card below target; only place above if not enough space below AND more space above
+    final bool placeAbove = (spaceBelow < 280 && spaceAbove > spaceBelow);
 
     // Horizontal placement: Center card relative to target, clamped to screen safe bounds
     final double targetCenterX = targetRect.center.dx;
     double cardLeft = targetCenterX - (cardWidth / 2);
-    final double minLeft = safePadding.left + 16.0;
     final double maxLeft = screenSize.width - safePadding.right - 16.0 - cardWidth;
     cardLeft = cardLeft.clamp(minLeft, math.max(minLeft, maxLeft));
 
@@ -254,8 +339,8 @@ class _InteractiveSpotlightOverlayState extends State<InteractiveSpotlightOverla
           : null,
       child: SafeArea(
         top: !placeAbove,
-        bottom: placeAbove,
-        minimum: const EdgeInsets.symmetric(horizontal: 4),
+        bottom: true,
+        minimum: const EdgeInsets.only(left: 4, right: 4, bottom: 20),
         child: SingleChildScrollView(
           physics: const ClampingScrollPhysics(),
           child: BrandedGuidanceCard(
@@ -267,6 +352,7 @@ class _InteractiveSpotlightOverlayState extends State<InteractiveSpotlightOverla
                 placeAbove ? PointerDirection.down : PointerDirection.up,
             pointerHorizontalOffset: pointerOffset,
             isInteractiveTarget: widget.content.isInteractiveTarget,
+            nextButtonLabel: widget.content.nextButtonLabel,
             onSkip: widget.onSkip,
             onNext: widget.onNext,
           ),
@@ -279,12 +365,14 @@ class _InteractiveSpotlightOverlayState extends State<InteractiveSpotlightOverla
 /// Custom painter for the dimmed backdrop, cutout, and ambient halo glow ring.
 class _SpotlightCutoutPainter extends CustomPainter {
   final Rect? targetRect;
+  final Rect? secondaryTargetRect;
   final SpotlightShape shape;
   final double padding;
   final double haloOpacity;
 
   _SpotlightCutoutPainter({
     required this.targetRect,
+    this.secondaryTargetRect,
     required this.shape,
     required this.padding,
     required this.haloOpacity,
@@ -295,23 +383,34 @@ class _SpotlightCutoutPainter extends CustomPainter {
     final screenPath = Path()
       ..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
 
-    if (targetRect == null) {
-      // If no target, simply paint dim overlay
+    if (targetRect == null && secondaryTargetRect == null) {
+      // While measuring or waiting for target to mount, paint a subtle translucent dim
+      // instead of solid black, so the user clearly sees the screen loading underneath
       canvas.drawPath(
         screenPath,
-        Paint()..color = const Color(0xFF0F1123).withValues(alpha: 0.72),
+        Paint()..color = const Color(0xFF0F1123).withValues(alpha: 0.35),
       );
       return;
     }
 
     final Path holePath = Path();
-    if (shape == SpotlightShape.circle) {
-      final center = targetRect!.center;
-      final radius =
-          (math.max(targetRect!.width, targetRect!.height) / 2) + padding;
-      holePath.addOval(Rect.fromCircle(center: center, radius: radius));
-    } else {
-      final rect = targetRect!.inflate(padding);
+
+    if (targetRect != null) {
+      if (shape == SpotlightShape.circle) {
+        final center = targetRect!.center;
+        final radius =
+            (math.max(targetRect!.width, targetRect!.height) / 2) + padding;
+        holePath.addOval(Rect.fromCircle(center: center, radius: radius));
+      } else {
+        final rect = targetRect!.inflate(padding);
+        holePath.addRRect(
+          RRect.fromRectAndRadius(rect, const Radius.circular(16)),
+        );
+      }
+    }
+
+    if (secondaryTargetRect != null) {
+      final rect = secondaryTargetRect!.inflate(padding);
       holePath.addRRect(
         RRect.fromRectAndRadius(rect, const Radius.circular(16)),
       );
@@ -328,7 +427,7 @@ class _SpotlightCutoutPainter extends CustomPainter {
         ..style = PaintingStyle.fill,
     );
 
-    // 2. Draw subtle ambient halo ring around hole
+    // 2. Draw subtle ambient halo ring around hole(s)
     final haloGlowPaint = Paint()
       ..color = AppColors.primaryLight.withValues(alpha: haloOpacity * 0.45)
       ..style = PaintingStyle.stroke
@@ -336,7 +435,7 @@ class _SpotlightCutoutPainter extends CustomPainter {
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
     canvas.drawPath(holePath, haloGlowPaint);
 
-    // 3. Draw clean crisp highlight border on hole edge
+    // 3. Draw clean crisp highlight border on hole edge(s)
     final borderPaint = Paint()
       ..color = AppColors.primaryContainer.withValues(alpha: haloOpacity)
       ..style = PaintingStyle.stroke
@@ -346,23 +445,35 @@ class _SpotlightCutoutPainter extends CustomPainter {
 
   @override
   bool? hitTest(Offset position) {
-    if (targetRect == null) return true;
-    final holeRect = shape == SpotlightShape.circle
-        ? Rect.fromCircle(
-            center: targetRect!.center,
-            radius: (math.max(targetRect!.width, targetRect!.height) / 2) + padding,
-          )
-        : targetRect!.inflate(padding);
+    if (targetRect == null && secondaryTargetRect == null) return true;
 
-    if (holeRect.contains(position)) {
-      return false;
+    if (targetRect != null) {
+      final holeRect = shape == SpotlightShape.circle
+          ? Rect.fromCircle(
+              center: targetRect!.center,
+              radius: (math.max(targetRect!.width, targetRect!.height) / 2) + padding,
+            )
+          : targetRect!.inflate(padding);
+
+      if (holeRect.contains(position)) {
+        return false;
+      }
     }
+
+    if (secondaryTargetRect != null) {
+      final secondaryHoleRect = secondaryTargetRect!.inflate(padding);
+      if (secondaryHoleRect.contains(position)) {
+        return false;
+      }
+    }
+
     return true;
   }
 
   @override
   bool shouldRepaint(covariant _SpotlightCutoutPainter oldDelegate) {
     return oldDelegate.targetRect != targetRect ||
+        oldDelegate.secondaryTargetRect != secondaryTargetRect ||
         oldDelegate.shape != shape ||
         oldDelegate.padding != padding ||
         oldDelegate.haloOpacity != haloOpacity;

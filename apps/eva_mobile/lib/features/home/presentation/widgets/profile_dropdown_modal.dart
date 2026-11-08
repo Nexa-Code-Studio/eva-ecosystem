@@ -1,26 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:eva_mobile/theme/app_colors.dart';
+import 'package:eva_mobile/features/coin/presentation/providers/coin_provider.dart';
 
 /// Floating profile dropdown modal inspired by modern glass design,
-/// styled specifically to match Gambar 2 with Eva AI theme.
-class ProfileDropdownModal extends StatelessWidget {
+/// styled specifically with Eva AI purple theme and interactive coin balance banner.
+class ProfileDropdownModal extends ConsumerWidget {
   final String userName;
   final String userEmail;
+  final int? coinBalance;
   final VoidCallback onProfileTap;
   final VoidCallback onEmergencyContactsTap;
   final VoidCallback onSettingsTap;
   final VoidCallback onLogoutTap;
+  final VoidCallback? onCoinTap;
 
   const ProfileDropdownModal({
     super.key,
     required this.userName,
     required this.userEmail,
+    this.coinBalance,
     required this.onProfileTap,
     required this.onEmergencyContactsTap,
     required this.onSettingsTap,
     required this.onLogoutTap,
+    this.onCoinTap,
   });
 
   String get _userInitials {
@@ -33,8 +39,19 @@ class ProfileDropdownModal extends StatelessWidget {
     return 'SA';
   }
 
+  void _handleCoinTap(BuildContext context) {
+    if (onCoinTap != null) {
+      onCoinTap!();
+    } else {
+      Navigator.of(context, rootNavigator: true).pop();
+      Navigator.pushNamed(context, '/coin_purchase');
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final effectiveCoins = coinBalance ?? ref.watch(coinBalanceProvider);
+
     return Container(
       width: 295,
       decoration: BoxDecoration(
@@ -125,59 +142,115 @@ class ProfileDropdownModal extends StatelessWidget {
 
           const SizedBox(height: 14),
 
-          // 2. Pro Upgrade Gradient Banner (matching Gambar 2)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF2563EB), Color(0xFF06B6D4)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
+          // 2. Coin Balance Gradient Banner (Purple theme, interactive coin top up)
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _handleCoinTap(context),
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFF5358CB), // AppColors.primary
+                      Color(0xFF8B93FF), // AppColors.primaryLight
+                    ],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF5358CB).withValues(alpha: 0.28),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.monetization_on_rounded,
+                        color: Color(0xFFFFD54F),
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Saldo Koin',
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white.withValues(alpha: 0.85),
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            '$effectiveCoins Koin',
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(999),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.add_circle_outline_rounded,
+                            size: 13,
+                            color: Color(0xFF5358CB),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Beli',
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF5358CB),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 11,
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
+                  ],
+                ),
               ),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF2563EB).withValues(alpha: 0.25),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.workspace_premium_rounded,
-                  color: Color(0xFFFFD54F),
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Upgrade profile',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    'PRO',
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                      color: const Color(0xFF1E293B),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-              ],
             ),
           ),
 
@@ -212,7 +285,7 @@ class ProfileDropdownModal extends StatelessWidget {
           ),
           const SizedBox(height: 4),
 
-          // 6. Menu Item: Keluar Akun (Red accent matching bottom item in Gambar 2)
+          // 6. Menu Item: Keluar Akun
           InkWell(
             onTap: onLogoutTap,
             borderRadius: BorderRadius.circular(14),

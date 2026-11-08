@@ -51,6 +51,7 @@ class MainShellScreen extends ConsumerStatefulWidget {
 class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   late int _currentIndex;
   bool _isNavBarVisible = true;
+  bool _isPageAnimating = false;
   late final PageController _pageController;
 
   final GlobalKey<HomeScreenState> _homeKey = GlobalKey<HomeScreenState>();
@@ -59,6 +60,9 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   final GlobalKey<CareScreenState> _careKey = GlobalKey<CareScreenState>();
 
   final GlobalKey _centerButtonKey = GlobalKey(debugLabel: 'centerButton');
+  final GlobalKey _firstJournalCardKey = GlobalKey(debugLabel: 'firstJournalCard');
+  final GlobalKey _monitoringDassCardKey = GlobalKey(debugLabel: 'monitoringDassCard');
+  final GlobalKey _firstPsychologistCardKey = GlobalKey(debugLabel: 'firstPsychologistCard');
   final GlobalKey _journalTabKey = GlobalKey(debugLabel: 'journalTab');
   final GlobalKey _trenTabKey = GlobalKey(debugLabel: 'trenTab');
   final GlobalKey _careTabKey = GlobalKey(debugLabel: 'careTab');
@@ -78,13 +82,22 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
         ),
       ),
       _KeepAliveWrapper(
-        child: AiDiaryScreen(key: _diaryKey),
+        child: AiDiaryScreen(
+          key: _diaryKey,
+          firstCardKey: _firstJournalCardKey,
+        ),
       ),
       _KeepAliveWrapper(
-        child: MonitoringScreen(key: _monitoringKey),
+        child: MonitoringScreen(
+          key: _monitoringKey,
+          dassCardKey: _monitoringDassCardKey,
+        ),
       ),
       _KeepAliveWrapper(
-        child: CareScreen(key: _careKey),
+        child: CareScreen(
+          key: _careKey,
+          firstPsychologistCardKey: _firstPsychologistCardKey,
+        ),
       ),
     ];
 
@@ -111,12 +124,18 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
     switch (step) {
       case TutorialStep.voiceSession:
         return _centerButtonKey;
+      case TutorialStep.voiceCoins:
+      case TutorialStep.voiceStart:
+      case TutorialStep.voiceCompleted:
+      case TutorialStep.dassDetail:
+      case TutorialStep.dassItem:
+        return null;
       case TutorialStep.journal:
-        return _journalTabKey;
+        return _firstJournalCardKey;
       case TutorialStep.analytics:
-        return _trenTabKey;
+        return _monitoringDassCardKey;
       case TutorialStep.care:
-        return _careTabKey;
+        return _firstPsychologistCardKey;
     }
   }
 
@@ -141,16 +160,20 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
     setState(() {
       _currentIndex = index;
       _isNavBarVisible = true;
+      _isPageAnimating = true;
     });
 
     _pageController
         .animateToPage(
           index,
-          duration: const Duration(milliseconds: 250),
+          duration: const Duration(milliseconds: 280),
           curve: Curves.easeOutCubic,
         )
         .then((_) {
           if (mounted) {
+            setState(() {
+              _isPageAnimating = false;
+            });
             _triggerRefresh(index);
           }
         });
@@ -326,6 +349,21 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   Widget build(BuildContext context) {
     final tutorialState = ref.watch(tutorialNotifierProvider);
 
+    ref.listen<TutorialState>(tutorialNotifierProvider, (previous, next) {
+      if (next.isActive) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          if (next.currentStep == TutorialStep.journal && _currentIndex != 1) {
+            _onTabTapped(1);
+          } else if (next.currentStep == TutorialStep.analytics && _currentIndex != 2) {
+            _onTabTapped(2);
+          } else if (next.currentStep == TutorialStep.care && _currentIndex != 3) {
+            _onTabTapped(3);
+          }
+        });
+      }
+    });
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -397,28 +435,82 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
             ),
 
             // Branded Guidance Card + Interactive Spotlight Overlay
-            if (tutorialState.isActive && tutorialState.currentStep != null)
+            if (tutorialState.isActive &&
+                tutorialState.currentStep != null &&
+                !_isPageAnimating &&
+                _getTargetKeyForStep(tutorialState.currentStep!) != null)
               InteractiveSpotlightOverlay(
                 key: ValueKey(tutorialState.currentStep),
                 targetKey: _getTargetKeyForStep(tutorialState.currentStep!),
+                secondaryTargetKey: tutorialState.currentStep == TutorialStep.care
+                    ? _careTabKey
+                    : null,
                 content: TutorialContent.stepContents[tutorialState.currentStep!]!,
                 onSkip: () =>
                     ref.read(tutorialNotifierProvider.notifier).skipTutorial(),
                 onNext: () {
                   final current = tutorialState.currentStep;
+                  if (current == TutorialStep.voiceSession) {
+                    _handleCenterButtonTap();
+                    return;
+                  }
                   if (current == TutorialStep.journal) {
-                    _onTabTapped(2);
-                  } else if (current == TutorialStep.analytics) {
-                    _onTabTapped(3);
+                    ref
+                        .read(tutorialNotifierProvider.notifier)
+                        .onTargetTapped(TutorialStep.journal);
+                    return;
+                  }
+                  if (current == TutorialStep.analytics) {
+                    ref
+                        .read(tutorialNotifierProvider.notifier)
+                        .onTargetTapped(TutorialStep.analytics);
+                    Navigator.pushNamed(context, '/dass_assessment').then((_) {
+                      final tut = ref.read(tutorialNotifierProvider);
+                      if (!tut.isCompleted && tut.currentStep == TutorialStep.care) {
+                        _onTabTapped(3);
+                      }
+                    });
+                    return;
+                  }
+                  if (current == TutorialStep.care) {
+                    ref
+                        .read(tutorialNotifierProvider.notifier)
+                        .onTargetTapped(TutorialStep.care);
+                    return;
                   }
                   ref.read(tutorialNotifierProvider.notifier).nextStep();
                 },
                 onTargetTap: () {
-                  if (tutorialState.currentStep == TutorialStep.voiceSession) {
+                  final current = tutorialState.currentStep;
+                  if (current == TutorialStep.voiceSession) {
                     _handleCenterButtonTap();
-                  } else {
-                    ref.read(tutorialNotifierProvider.notifier).nextStep();
+                    return;
                   }
+                  if (current == TutorialStep.journal) {
+                    ref
+                        .read(tutorialNotifierProvider.notifier)
+                        .onTargetTapped(TutorialStep.journal);
+                    return;
+                  }
+                  if (current == TutorialStep.analytics) {
+                    ref
+                        .read(tutorialNotifierProvider.notifier)
+                        .onTargetTapped(TutorialStep.analytics);
+                    Navigator.pushNamed(context, '/dass_assessment').then((_) {
+                      final tut = ref.read(tutorialNotifierProvider);
+                      if (!tut.isCompleted && tut.currentStep == TutorialStep.care) {
+                        _onTabTapped(3);
+                      }
+                    });
+                    return;
+                  }
+                  if (current == TutorialStep.care) {
+                    ref
+                        .read(tutorialNotifierProvider.notifier)
+                        .onTargetTapped(TutorialStep.care);
+                    return;
+                  }
+                  ref.read(tutorialNotifierProvider.notifier).nextStep();
                 },
               ),
           ],

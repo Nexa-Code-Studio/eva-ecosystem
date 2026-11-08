@@ -10,14 +10,20 @@ import 'package:eva_mobile/widgets/glass_card.dart';
 import 'package:eva_mobile/widgets/skeleton_shimmer.dart';
 
 class AiDiaryScreen extends ConsumerStatefulWidget {
-  const AiDiaryScreen({super.key});
+  final GlobalKey? firstCardKey;
+
+  const AiDiaryScreen({
+    super.key,
+    this.firstCardKey,
+  });
 
   @override
   ConsumerState<AiDiaryScreen> createState() => AiDiaryScreenState();
 }
 
 class AiDiaryScreenState extends ConsumerState<AiDiaryScreen> {
-
+  late final GlobalKey _defaultFirstCardKey = GlobalKey(debugLabel: 'firstJournalCard');
+  GlobalKey get firstJournalCardKey => widget.firstCardKey ?? _defaultFirstCardKey;
   final TextEditingController _searchController = TextEditingController();
 
   String _selectedFilter = 'Semua';
@@ -352,7 +358,7 @@ class AiDiaryScreenState extends ConsumerState<AiDiaryScreen> {
 
                       // Journal History Cards List / Skeleton Loader
                       if (_isLoading && _entries.isEmpty)
-                        const _DiaryListSkeleton()
+                        _DiaryListSkeleton(firstCardKey: firstJournalCardKey)
                       else if (filteredList.isEmpty)
                         if (_entries.isEmpty && !_isLoading)
                           Center(
@@ -457,7 +463,7 @@ class AiDiaryScreenState extends ConsumerState<AiDiaryScreen> {
 
 
                             return GlassCard(
-
+                              key: index == 0 ? firstJournalCardKey : null,
                               width: double.infinity,
 
                               onTap: () {
@@ -678,7 +684,8 @@ class AiDiaryScreenState extends ConsumerState<AiDiaryScreen> {
 
 /// Shimmer skeleton loader for the AI Diary list.
 class _DiaryListSkeleton extends StatelessWidget {
-  const _DiaryListSkeleton();
+  final GlobalKey? firstCardKey;
+  const _DiaryListSkeleton({this.firstCardKey});
 
   @override
   Widget build(BuildContext context) {
@@ -689,6 +696,7 @@ class _DiaryListSkeleton extends StatelessWidget {
           (index) => Padding(
             padding: const EdgeInsets.only(bottom: 14.0),
             child: GlassCard(
+              key: index == 0 ? firstCardKey : null,
               width: double.infinity,
               padding: const EdgeInsets.all(18),
               child: Column(
