@@ -1,8 +1,5 @@
 import {
-  AlertCircle,
-  ArrowRight,
   Building2,
-  CheckCircle2,
   ClipboardList,
   Stethoscope,
 } from 'lucide-react'
@@ -35,22 +32,12 @@ export function PartnerDashboardPage() {
   if (!state.partner) return null
 
   const { partner, psychologists, referrals } = state
-  const activeCount = psychologists.filter((p) => p.status === 'active').length
-  const leaveCount = psychologists.filter((p) => p.status === 'on_leave').length
   const unassignedReferrals = referrals.filter((r) => r.status === 'unassigned').length
-  const severeReferrals = referrals.filter(
-    (r) =>
-      r.status === 'unassigned' &&
-      (r.dass21.severity === 'Severe' || r.dass21.severity === 'Extreme'),
-  ).length
-  const scheduledReferrals = referrals.filter((r) => r.status === 'scheduled').length
-  const totalActiveWeeklyQuota = psychologists
-    .filter((p) => p.status === 'active')
-    .reduce((sum, p) => sum + (p.weeklyQuota ?? 10), 0)
 
   return (
     <div className="min-h-[100dvh] bg-[#F8F9FE] text-ink">
       <PortalTopbar
+        maxWidthClass="max-w-[1440px]"
         badgeLabel="Portal Mitra Faskes"
         title={partner.facilityName}
         subtitle={`${partner.facilityType} · ${partner.city}`}
@@ -60,7 +47,7 @@ export function PartnerDashboardPage() {
         }}
       />
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         {/* 1. Header Faskes Ringkas & Switch Penerimaan Rujukan Cepat */}
         <div className="flex flex-col gap-3 rounded-[14px] border border-[#E2E8F0] bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5 shadow-2xs">
           <div>
@@ -101,106 +88,6 @@ export function PartnerDashboardPage() {
           </div>
         </div>
 
-        {/* 2. Triage Hero Action Bar (2 Kartu Aksi Prioritas) */}
-        <div className="mt-4 grid grid-cols-1 gap-3.5 sm:gap-4 md:grid-cols-2">
-          {/* Kartu Triage 1: Antrean Rujukan Pasien Butuh Penugasan */}
-          <div
-            className={cn(
-              'flex flex-col justify-between rounded-[14px] border p-4 sm:p-5 shadow-2xs transition-all',
-              unassignedReferrals > 0
-                ? 'border-amber-300/90 bg-amber-50/40'
-                : 'border-[#E2E8F0] bg-white',
-            )}
-          >
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
-                  <ClipboardList className="size-4 text-amber-700" />
-                  <span>Antrean Rujukan Masuk</span>
-                </span>
-                {severeReferrals > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-[6px] border border-red-300 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-800">
-                    <AlertCircle className="size-3 text-red-600" />
-                    {severeReferrals} Pasien Severe / Krisis
-                  </span>
-                )}
-              </div>
-
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-3xl font-extrabold tracking-tight text-ink">
-                  {unassignedReferrals}
-                </span>
-                <span className="text-xs font-semibold text-ink-muted">
-                  pasien butuh penugasan psikolog
-                </span>
-              </div>
-
-              <p className="mt-1 text-xs text-ink-muted leading-relaxed">
-                {unassignedReferrals > 0
-                  ? `Ada ${unassignedReferrals} rujukan intake DASS-21 baru yang menunggu penunjukan psikolog faskes penanggung jawab.`
-                  : 'Semua rujukan pasien telah ditugaskan ke psikolog penanggung jawab.'}
-              </p>
-            </div>
-
-            <div className="mt-4 flex items-center justify-between border-t border-amber-200/60 pt-3 text-xs">
-              <span className="text-[11px] font-medium text-ink-muted">
-                {scheduledReferrals} pasien terjadwal
-              </span>
-              <NavLink
-                to="/mitra/referrals"
-                className="inline-flex items-center gap-1 font-bold text-primary hover:underline"
-              >
-                <span>Tinjau &amp; Tugaskan Rujukan</span>
-                <ArrowRight className="size-3.5" />
-              </NavLink>
-            </div>
-          </div>
-
-          {/* Kartu Triage 2: Kesiapan & Kapasitas Psikolog Faskes */}
-          <div className="flex flex-col justify-between rounded-[14px] border border-[#E2E8F0] bg-white p-4 sm:p-5 shadow-2xs">
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="flex items-center gap-1.5 text-xs font-bold text-ink">
-                  <Stethoscope className="size-4 text-primary" />
-                  <span>Kesiapan Psikolog Mitra</span>
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-[6px] border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                  <CheckCircle2 className="size-3 text-emerald-600" />
-                  {activeCount} Siap Praktik
-                </span>
-              </div>
-
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-3xl font-extrabold tracking-tight text-ink">
-                  {activeCount}
-                </span>
-                <span className="text-xs font-semibold text-ink-muted">
-                  dari {psychologists.length} psikolog aktif
-                </span>
-              </div>
-
-              <p className="mt-1 text-xs text-ink-muted leading-relaxed">
-                {leaveCount > 0
-                  ? `${leaveCount} psikolog sedang cuti sementara. Kapasitas rujukan aktif faskes saat ini siap menerima konsultasi.`
-                  : 'Seluruh psikolog faskes dalam status aktif praktik dan siap menerima delegasi pasien rujukan.'}
-              </p>
-            </div>
-
-            <div className="mt-4 flex items-center justify-between border-t border-[#E2E8F0] pt-3 text-xs">
-              <span className="text-[11px] font-medium text-ink-muted">
-                Kapasitas: ~{totalActiveWeeklyQuota} sesi / minggu
-              </span>
-              <NavLink
-                to="/mitra/psychologists"
-                className="inline-flex items-center gap-1 font-bold text-primary hover:underline"
-              >
-                <span>Kelola Praktik Psikolog</span>
-                <ArrowRight className="size-3.5" />
-              </NavLink>
-            </div>
-          </div>
-        </div>
-
         <PortalFeedbackBanner
           message={state.banner}
           onClose={() => state.setBanner(null)}
@@ -211,21 +98,7 @@ export function PartnerDashboardPage() {
           className="mt-6 flex flex-wrap items-center gap-2 border-b border-[#E2E8F0] pb-3"
           role="tablist"
         >
-          <NavLink
-            to="/mitra/psychologists"
-            className={({ isActive }) =>
-              cn(
-                'inline-flex h-10 cursor-pointer items-center gap-2 rounded-[8px] px-4 text-xs font-semibold transition-colors',
-                isActive
-                  ? 'bg-primary text-white'
-                  : 'border border-[#E2E8F0] bg-white text-ink-soft hover:text-ink',
-              )
-            }
-          >
-            <Stethoscope className="size-4" />
-            <span>Manajemen Psikolog ({psychologists.length})</span>
-          </NavLink>
-
+          {/* 1. Tab Rujukan Pasien (Triage-First: Paling Kiri) */}
           <NavLink
             to="/mitra/referrals"
             className={({ isActive }) =>
@@ -255,6 +128,23 @@ export function PartnerDashboardPage() {
             )}
           </NavLink>
 
+          {/* 2. Tab Manajemen Psikolog */}
+          <NavLink
+            to="/mitra/psychologists"
+            className={({ isActive }) =>
+              cn(
+                'inline-flex h-10 cursor-pointer items-center gap-2 rounded-[8px] px-4 text-xs font-semibold transition-colors',
+                isActive
+                  ? 'bg-primary text-white'
+                  : 'border border-[#E2E8F0] bg-white text-ink-soft hover:text-ink',
+              )
+            }
+          >
+            <Stethoscope className="size-4" />
+            <span>Manajemen Psikolog ({psychologists.length})</span>
+          </NavLink>
+
+          {/* 3. Tab Profil Faskes */}
           <NavLink
             to="/mitra/profile"
             className={({ isActive }) =>

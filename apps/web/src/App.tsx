@@ -152,7 +152,7 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/mitra/psychologists" replace />,
+        element: <Navigate to="/mitra/referrals" replace />,
       },
       {
         path: 'psychologists',
