@@ -8,6 +8,7 @@ import '../../features/patients/presentation/screens/patient_list_screen.dart';
 import '../../features/video_call/presentation/screens/video_consultation_screen.dart';
 import '../../features/finances/presentation/screens/transaction_history_screen.dart';
 import '../../features/dashboard/presentation/screens/counselor_notification_screen.dart';
+import '../../features/profile/presentation/screens/counselor_schedule_settings_screen.dart';
 import 'app_route_transitions.dart';
 
 class AppRouter {
@@ -96,6 +97,12 @@ class AppRouter {
       case '/counselor-finances':
         return FadeThroughPageRoute(
           page: const TransactionHistoryScreen(),
+          settings: settings,
+        );
+
+      case '/counselor-schedule-settings':
+        return FadeThroughPageRoute(
+          page: const CounselorScheduleSettingsScreen(),
           settings: settings,
         );
 
