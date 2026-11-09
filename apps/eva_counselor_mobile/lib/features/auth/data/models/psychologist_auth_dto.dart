@@ -90,6 +90,20 @@ class PsychologistProfileResponseDto {
   final int coinsPerSession;
   final int coinBalance;
   final String? googleDriveEmail;
+  final String employeeNip;
+  final bool isOnlinePracticeEnabled;
+  final bool isOfflinePracticeEnabled;
+  final String? offlinePlaceName;
+  final String? offlineAddress;
+  final String? offlineCity;
+  final String? offlineNotes;
+  final List<String> offlineScheduleDays;
+  final String offlineStartTime;
+  final String offlineEndTime;
+  final String? externalApiKey;
+  final DateTime? externalApiKeyCreatedAt;
+  final DateTime? externalApiLastSyncAt;
+  final int externalSyncCount;
 
   const PsychologistProfileResponseDto({
     required this.id,
@@ -112,6 +126,20 @@ class PsychologistProfileResponseDto {
     this.coinsPerSession = 150,
     this.coinBalance = 1250,
     this.googleDriveEmail,
+    this.employeeNip = '198804122019032001',
+    this.isOnlinePracticeEnabled = true,
+    this.isOfflinePracticeEnabled = false,
+    this.offlinePlaceName,
+    this.offlineAddress,
+    this.offlineCity,
+    this.offlineNotes,
+    this.offlineScheduleDays = const ['Sel', 'Kam', 'Sab'],
+    this.offlineStartTime = '10:00',
+    this.offlineEndTime = '16:00',
+    this.externalApiKey,
+    this.externalApiKeyCreatedAt,
+    this.externalApiLastSyncAt,
+    this.externalSyncCount = 0,
   });
 
   factory PsychologistProfileResponseDto.fromJson(Map<String, dynamic> json) {
@@ -141,6 +169,27 @@ class PsychologistProfileResponseDto {
       coinsPerSession: json['coins_per_session'] as int? ?? 150,
       coinBalance: json['coin_balance'] as int? ?? 1250,
       googleDriveEmail: json['google_drive_email']?.toString(),
+      employeeNip: json['employee_nip']?.toString() ?? '198804122019032001',
+      isOnlinePracticeEnabled: json['is_online_practice_enabled'] as bool? ?? true,
+      isOfflinePracticeEnabled: json['is_offline_practice_enabled'] as bool? ?? false,
+      offlinePlaceName: json['offline_place_name']?.toString(),
+      offlineAddress: json['offline_address']?.toString(),
+      offlineCity: json['offline_city']?.toString(),
+      offlineNotes: json['offline_notes']?.toString(),
+      offlineScheduleDays: (json['offline_schedule_days'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const ['Sel', 'Kam', 'Sab'],
+      offlineStartTime: json['offline_start_time']?.toString() ?? '10:00',
+      offlineEndTime: json['offline_end_time']?.toString() ?? '16:00',
+      externalApiKey: json['external_api_key']?.toString(),
+      externalApiKeyCreatedAt: json['external_api_key_created_at'] != null
+          ? DateTime.tryParse(json['external_api_key_created_at'].toString())
+          : null,
+      externalApiLastSyncAt: json['external_api_last_sync_at'] != null
+          ? DateTime.tryParse(json['external_api_last_sync_at'].toString())
+          : null,
+      externalSyncCount: json['external_sync_count'] as int? ?? 0,
     );
   }
 
@@ -165,6 +214,22 @@ class PsychologistProfileResponseDto {
         'coins_per_session': coinsPerSession,
         'coin_balance': coinBalance,
         if (googleDriveEmail != null) 'google_drive_email': googleDriveEmail,
+        'employee_nip': employeeNip,
+        'is_online_practice_enabled': isOnlinePracticeEnabled,
+        'is_offline_practice_enabled': isOfflinePracticeEnabled,
+        if (offlinePlaceName != null) 'offline_place_name': offlinePlaceName,
+        if (offlineAddress != null) 'offline_address': offlineAddress,
+        if (offlineCity != null) 'offline_city': offlineCity,
+        if (offlineNotes != null) 'offline_notes': offlineNotes,
+        'offline_schedule_days': offlineScheduleDays,
+        'offline_start_time': offlineStartTime,
+        'offline_end_time': offlineEndTime,
+        if (externalApiKey != null) 'external_api_key': externalApiKey,
+        if (externalApiKeyCreatedAt != null)
+          'external_api_key_created_at': externalApiKeyCreatedAt!.toIso8601String(),
+        if (externalApiLastSyncAt != null)
+          'external_api_last_sync_at': externalApiLastSyncAt!.toIso8601String(),
+        'external_sync_count': externalSyncCount,
       };
 
   PsychologistProfileResponseDto copyWith({
@@ -188,6 +253,20 @@ class PsychologistProfileResponseDto {
     int? coinsPerSession,
     int? coinBalance,
     String? googleDriveEmail,
+    String? employeeNip,
+    bool? isOnlinePracticeEnabled,
+    bool? isOfflinePracticeEnabled,
+    String? offlinePlaceName,
+    String? offlineAddress,
+    String? offlineCity,
+    String? offlineNotes,
+    List<String>? offlineScheduleDays,
+    String? offlineStartTime,
+    String? offlineEndTime,
+    String? externalApiKey,
+    DateTime? externalApiKeyCreatedAt,
+    DateTime? externalApiLastSyncAt,
+    int? externalSyncCount,
   }) {
     return PsychologistProfileResponseDto(
       id: id ?? this.id,
@@ -212,6 +291,24 @@ class PsychologistProfileResponseDto {
       coinsPerSession: coinsPerSession ?? this.coinsPerSession,
       coinBalance: coinBalance ?? this.coinBalance,
       googleDriveEmail: googleDriveEmail ?? this.googleDriveEmail,
+      employeeNip: employeeNip ?? this.employeeNip,
+      isOnlinePracticeEnabled:
+          isOnlinePracticeEnabled ?? this.isOnlinePracticeEnabled,
+      isOfflinePracticeEnabled:
+          isOfflinePracticeEnabled ?? this.isOfflinePracticeEnabled,
+      offlinePlaceName: offlinePlaceName ?? this.offlinePlaceName,
+      offlineAddress: offlineAddress ?? this.offlineAddress,
+      offlineCity: offlineCity ?? this.offlineCity,
+      offlineNotes: offlineNotes ?? this.offlineNotes,
+      offlineScheduleDays: offlineScheduleDays ?? this.offlineScheduleDays,
+      offlineStartTime: offlineStartTime ?? this.offlineStartTime,
+      offlineEndTime: offlineEndTime ?? this.offlineEndTime,
+      externalApiKey: externalApiKey ?? this.externalApiKey,
+      externalApiKeyCreatedAt:
+          externalApiKeyCreatedAt ?? this.externalApiKeyCreatedAt,
+      externalApiLastSyncAt:
+          externalApiLastSyncAt ?? this.externalApiLastSyncAt,
+      externalSyncCount: externalSyncCount ?? this.externalSyncCount,
     );
   }
 
@@ -270,6 +367,22 @@ class PsychologistProfileResponseDto {
       coinsPerSession: coinsPerSession,
       coinBalance: coinBalance,
       googleDriveEmail: googleDriveEmail ?? 'sarah.anindya@gmail.com',
+      employeeNip: employeeNip,
+      isOnlinePracticeEnabled: isOnlinePracticeEnabled,
+      isOfflinePracticeEnabled: roleEnum == CounselorRole.peerVolunteer
+          ? false
+          : isOfflinePracticeEnabled,
+      offlinePlaceName: offlinePlaceName,
+      offlineAddress: offlineAddress,
+      offlineCity: offlineCity,
+      offlineNotes: offlineNotes,
+      offlineScheduleDays: offlineScheduleDays,
+      offlineStartTime: offlineStartTime,
+      offlineEndTime: offlineEndTime,
+      externalApiKey: roleEnum == CounselorRole.peerVolunteer ? null : externalApiKey,
+      externalApiKeyCreatedAt: externalApiKeyCreatedAt,
+      externalApiLastSyncAt: externalApiLastSyncAt,
+      externalSyncCount: externalSyncCount,
     );
   }
 }

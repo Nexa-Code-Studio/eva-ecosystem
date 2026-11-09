@@ -31,6 +31,24 @@ class PsychologistUserEntity {
   final DateTime? lastDriveBackup;
   final String autoBackupFrequency; // 'Harian', 'Mingguan', 'Manual'
 
+  // Schedule & Offline Practice fields
+  final String employeeNip; // NIP Pegawai Konselor (Identifier unik integrasi eksternal)
+  final bool isOnlinePracticeEnabled; // Melayani telekonseling daring
+  final bool isOfflinePracticeEnabled; // Melayani praktik tatap muka / offline (opsional)
+  final String? offlinePlaceName; // Nama Tempat / Klinik Praktik Offline
+  final String? offlineAddress; // Alamat Lengkap Praktik Offline
+  final String? offlineCity; // Kota / Wilayah Praktik Offline
+  final String? offlineNotes; // Petunjuk Ruang / Catatan Kedatangan
+  final List<String> offlineScheduleDays; // Hari praktik offline aktif (e.g. ['Sel', 'Kam', 'Sab'])
+  final String offlineStartTime; // Jam mulai offline (e.g. '10:00')
+  final String offlineEndTime; // Jam selesai offline (e.g. '16:00')
+
+  // External Offline Schedule Sync (GitHub-style Personal Access Token / API Key)
+  final String? externalApiKey; // API Key / PAT untuk integrasi kalender/SIMRS eksternal
+  final DateTime? externalApiKeyCreatedAt;
+  final DateTime? externalApiLastSyncAt;
+  final int externalSyncCount; // Jumlah slot jadwal eksternal yang diimpor
+
   const PsychologistUserEntity({
     required this.id,
     required this.fullName,
@@ -53,12 +71,32 @@ class PsychologistUserEntity {
     this.googleDriveEmail = 'sarah.anindya@gmail.com',
     this.lastDriveBackup,
     this.autoBackupFrequency = 'Harian',
+    this.employeeNip = '198804122019032001',
+    this.isOnlinePracticeEnabled = true,
+    this.isOfflinePracticeEnabled = false,
+    this.offlinePlaceName,
+    this.offlineAddress,
+    this.offlineCity,
+    this.offlineNotes,
+    this.offlineScheduleDays = const ['Sel', 'Kam', 'Sab'],
+    this.offlineStartTime = '10:00',
+    this.offlineEndTime = '16:00',
+    this.externalApiKey,
+    this.externalApiKeyCreatedAt,
+    this.externalApiLastSyncAt,
+    this.externalSyncCount = 0,
   });
 
   bool get isVolunteer => role == CounselorRole.peerVolunteer;
   bool get isPartner => role == CounselorRole.professionalPartner;
   bool get isIndependent => role == CounselorRole.professionalIndependent;
   bool get isProfessional => role != CounselorRole.peerVolunteer;
+
+  /// Relawan Teman Sebaya tidak diperkenankan mengatur atau membuka praktik offline/tatap muka.
+  bool get canConfigureOffline => role != CounselorRole.peerVolunteer;
+
+  /// Praktik offline psikolog mitra dikelola terpusat oleh mitra via Web Portal.
+  bool get isOfflineManagedByPartner => role == CounselorRole.professionalPartner;
 
   String get displayName =>
       isVolunteer ? fullName : '$fullName, $titleDegree';
@@ -96,6 +134,21 @@ class PsychologistUserEntity {
     String? googleDriveEmail,
     DateTime? lastDriveBackup,
     String? autoBackupFrequency,
+    String? employeeNip,
+    bool? isOnlinePracticeEnabled,
+    bool? isOfflinePracticeEnabled,
+    String? offlinePlaceName,
+    String? offlineAddress,
+    String? offlineCity,
+    String? offlineNotes,
+    List<String>? offlineScheduleDays,
+    String? offlineStartTime,
+    String? offlineEndTime,
+    String? externalApiKey,
+    DateTime? externalApiKeyCreatedAt,
+    DateTime? externalApiLastSyncAt,
+    int? externalSyncCount,
+    bool clearExternalApiKey = false,
   }) {
     return PsychologistUserEntity(
       id: id ?? this.id,
@@ -121,6 +174,26 @@ class PsychologistUserEntity {
       googleDriveEmail: googleDriveEmail ?? this.googleDriveEmail,
       lastDriveBackup: lastDriveBackup ?? this.lastDriveBackup,
       autoBackupFrequency: autoBackupFrequency ?? this.autoBackupFrequency,
+      employeeNip: employeeNip ?? this.employeeNip,
+      isOnlinePracticeEnabled:
+          isOnlinePracticeEnabled ?? this.isOnlinePracticeEnabled,
+      isOfflinePracticeEnabled:
+          isOfflinePracticeEnabled ?? this.isOfflinePracticeEnabled,
+      offlinePlaceName: offlinePlaceName ?? this.offlinePlaceName,
+      offlineAddress: offlineAddress ?? this.offlineAddress,
+      offlineCity: offlineCity ?? this.offlineCity,
+      offlineNotes: offlineNotes ?? this.offlineNotes,
+      offlineScheduleDays: offlineScheduleDays ?? this.offlineScheduleDays,
+      offlineStartTime: offlineStartTime ?? this.offlineStartTime,
+      offlineEndTime: offlineEndTime ?? this.offlineEndTime,
+      externalApiKey:
+          clearExternalApiKey ? null : (externalApiKey ?? this.externalApiKey),
+      externalApiKeyCreatedAt: clearExternalApiKey
+          ? null
+          : (externalApiKeyCreatedAt ?? this.externalApiKeyCreatedAt),
+      externalApiLastSyncAt:
+          externalApiLastSyncAt ?? this.externalApiLastSyncAt,
+      externalSyncCount: externalSyncCount ?? this.externalSyncCount,
     );
   }
 }

@@ -47,6 +47,38 @@ class MockAuthDataSource implements AuthDataSource {
       coinsPerSession: isVolunteer ? 0 : (isPartner ? 180 : 150),
       coinBalance: isVolunteer ? 0 : 1250,
       googleDriveEmail: request.email,
+      employeeNip: isVolunteer
+          ? 'VOL-PEER-2026-081'
+          : (isPartner ? '198507202015022003' : '198804122019032001'),
+      isOnlinePracticeEnabled: true,
+      isOfflinePracticeEnabled: isVolunteer ? false : true,
+      offlinePlaceName: isVolunteer
+          ? null
+          : (isPartner
+              ? 'RS Mitra Sehati - Unit Poliklinik Jiwa & Psikologi'
+              : 'Biro Konsultasi Psikologi Mandiri Anindya'),
+      offlineAddress: isVolunteer
+          ? null
+          : (isPartner
+              ? 'Jl. Gatot Subroto No. 128, Gedung Poliklinik Lt. 3'
+              : 'Jl. Menteng Raya No. 42, RT 02/RW 03'),
+      offlineCity: isVolunteer ? null : (isPartner ? 'Jakarta Selatan' : 'Jakarta Pusat'),
+      offlineNotes: isVolunteer
+          ? null
+          : (isPartner
+              ? 'Pasien lapor ke bagian pendaftaran poli psikologi sebelum masuk'
+              : 'Lantai 2, Ruang Konseling Melati 1'),
+      offlineScheduleDays: const ['Sel', 'Kam', 'Sab'],
+      offlineStartTime: '10:00',
+      offlineEndTime: '16:00',
+      externalApiKey: isVolunteer
+          ? null
+          : (isPartner
+              ? 'eva_pat_live_8f39b1a09d72e44189ac'
+              : 'eva_pat_live_9c82df09a12e557b4412'),
+      externalApiKeyCreatedAt: isVolunteer ? null : DateTime(2026, 11, 3, 14, 0),
+      externalApiLastSyncAt: isVolunteer ? null : DateTime(2026, 11, 9, 12, 15),
+      externalSyncCount: isVolunteer ? 0 : (isPartner ? 6 : 4),
     );
   }
 
@@ -109,6 +141,20 @@ class MockAuthDataSource implements AuthDataSource {
       coinsPerSession: 150,
       coinBalance: 1250,
       googleDriveEmail: 'sarah.anindya@gmail.com',
+      employeeNip: '198804122019032001',
+      isOnlinePracticeEnabled: true,
+      isOfflinePracticeEnabled: true,
+      offlinePlaceName: 'Biro Konsultasi Psikologi Mandiri Anindya',
+      offlineAddress: 'Jl. Menteng Raya No. 42, RT 02/RW 03',
+      offlineCity: 'Jakarta Pusat',
+      offlineNotes: 'Lantai 2, Ruang Konseling Melati 1',
+      offlineScheduleDays: const ['Sel', 'Kam', 'Sab'],
+      offlineStartTime: '10:00',
+      offlineEndTime: '16:00',
+      externalApiKey: 'eva_pat_live_9c82df09a12e557b4412',
+      externalApiKeyCreatedAt: DateTime(2026, 11, 3, 14, 0),
+      externalApiLastSyncAt: DateTime(2026, 11, 9, 12, 15),
+      externalSyncCount: 4,
     );
   }
 
