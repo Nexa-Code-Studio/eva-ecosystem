@@ -27,24 +27,39 @@ function hydrateAndBackfillMockDb(parsed: Partial<PortalDatabase>): {
     let role = p.role ?? seedPsy?.role
     if (!role) {
       if (p.partnerId || p.practiceType === 'faskes') {
-        role = 'professional_mitra'
+        role = 'relawan_profesional_mitra'
       } else if (p.practiceType === 'mandiri') {
-        role = 'relawan_profesional'
+        role = 'relawan_profesional_non_mitra'
       } else {
         role = 'relawan_biasa'
       }
     }
-    if ((role as string) === 'relawan_pro' || (role as string) === 'relawan_utama') {
+    if ((role as string) === 'professional_mitra') {
+      role = 'relawan_profesional_mitra'
+      needsSave = true
+    } else if ((role as string) === 'relawan_profesional') {
+      role = 'relawan_profesional_non_mitra'
+      needsSave = true
+    } else if ((role as string) === 'relawan_pro' || (role as string) === 'relawan_utama') {
       role = 'relawan_biasa'
+      needsSave = true
     }
 
     let upgradeRequest = p.upgradeRequest ?? seedPsy?.upgradeRequest
-    if (
-      upgradeRequest &&
-      ((upgradeRequest.targetRole as string) === 'relawan_pro' ||
-        (upgradeRequest.targetRole as string) === 'relawan_utama')
-    ) {
-      upgradeRequest = null
+    if (upgradeRequest) {
+      if ((upgradeRequest.targetRole as string) === 'relawan_profesional') {
+        upgradeRequest = {
+          ...upgradeRequest,
+          targetRole: 'relawan_profesional_non_mitra',
+        }
+        needsSave = true
+      } else if (
+        (upgradeRequest.targetRole as string) === 'relawan_pro' ||
+        (upgradeRequest.targetRole as string) === 'relawan_utama'
+      ) {
+        upgradeRequest = null
+        needsSave = true
+      }
     }
 
     const documents =

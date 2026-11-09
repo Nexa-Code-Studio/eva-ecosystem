@@ -7,12 +7,13 @@ import {
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '@/lib/cn'
-import type { PsychologistRole, UpgradeRequest } from '@/types/portal'
+import type { PsychologistRole, UpgradeRequest, VerificationStatus } from '@/types/portal'
 
 export interface PsychologistShieldBadgeProps {
   role?: PsychologistRole
   partnerName?: string | null
   upgradeRequest?: UpgradeRequest | null
+  verificationStatus?: VerificationStatus
   size?: 'sm' | 'md'
   className?: string
 }
@@ -29,9 +30,12 @@ export function PsychologistShieldBadge({
   role,
   partnerName,
   upgradeRequest,
+  verificationStatus,
   size = 'md',
   className,
 }: PsychologistShieldBadgeProps) {
+  const isMitra = role === 'relawan_profesional_mitra' || (!role && Boolean(partnerName))
+
   const [isOpen, setIsOpen] = useState(false)
   const [coords, setCoords] = useState<{ top: number; left: number; placeAbove: boolean } | null>(
     null,
@@ -39,24 +43,23 @@ export function PsychologistShieldBadge({
   const triggerRef = useRef<HTMLButtonElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
 
-  // Resolve role config with intelligent fallbacks
+  // Resolve role config
   let effectiveRole = role
   if (!effectiveRole) {
     if (partnerName) {
-      effectiveRole = 'professional_mitra'
+      effectiveRole = 'relawan_profesional_mitra'
     } else {
-      effectiveRole = 'relawan_profesional'
+      effectiveRole = 'relawan_biasa'
     }
   }
 
-  const isMitra = effectiveRole === 'professional_mitra'
-  const isRelawanProf = effectiveRole === 'relawan_profesional'
+  const isRelawanProf = effectiveRole === 'relawan_profesional_non_mitra'
 
   // Define Primary Base Medallion (Mitra or Relawan)
   const baseMedallion: MedallionInfo = isMitra
     ? {
         icon: Building2,
-        label: 'Profesional Mitra',
+        label: 'Relawan Profesional (Mitra)',
         bgClass: 'bg-emerald-600',
         borderClass: 'border-emerald-700',
         shadowClass: 'shadow-emerald-900/20',
@@ -142,6 +145,12 @@ export function PsychologistShieldBadge({
   const glyphSizeClass = size === 'sm' ? 'size-2.5' : 'size-3'
   const BaseIcon = baseMedallion.icon
   const TierIcon = tierMedallion?.icon
+
+  // Aturan: Akun pendaftaran baru yang masih pending verifikasi (bukan mitra faskes)
+  // TIDAK memiliki badge apapun sampai diverifikasi oleh admin.
+  if (verificationStatus === 'pending' && !isMitra) {
+    return null
+  }
 
   return (
     <span className={cn('relative inline-flex items-center align-middle', className)}>
@@ -237,9 +246,9 @@ export function PsychologistShieldBadge({
               <div className="min-w-0 flex-1">
                 <h4 className="text-xs font-bold text-ink">
                   {isMitra
-                    ? 'Profesional Mitra'
+                    ? 'Relawan Profesional (Mitra)'
                     : isRelawanProf
-                      ? 'Relawan • Tingkat Profesional'
+                      ? 'Relawan Profesional (Non Mitra)'
                       : 'Relawan Pendamping'}
                 </h4>
                 <div className="mt-1 flex flex-wrap items-center gap-1">
@@ -321,7 +330,7 @@ export function PsychologistShieldBadge({
             {upgradeRequest && (
               <div className="mt-2 rounded-[6px] border border-amber-300 bg-amber-50 p-2 text-[10.5px] text-amber-900">
                 <span className="font-bold">Pengajuan Upgrade:</span> Menunggu verifikasi ke{' '}
-                <strong>Relawan Profesional</strong> ({upgradeRequest.requestedAt}).
+                <strong>Relawan Profesional (Non Mitra)</strong> ({upgradeRequest.requestedAt}).
               </div>
             )}
           </div>,

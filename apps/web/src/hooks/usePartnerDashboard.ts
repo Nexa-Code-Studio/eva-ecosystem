@@ -63,6 +63,15 @@ export function usePartnerDashboard() {
     [db.psychologists, partner],
   )
 
+  const psyCounts = useMemo(() => {
+    return {
+      all: psychologists.length,
+      active: psychologists.filter((p) => p.status === 'active').length,
+      on_leave: psychologists.filter((p) => p.status === 'on_leave').length,
+      inactive: psychologists.filter((p) => p.status === 'inactive').length,
+    }
+  }, [psychologists])
+
   const filteredPsychologists = useMemo(() => {
     const q = psySearch.trim().toLowerCase()
     return psychologists.filter((p) => {
@@ -244,6 +253,7 @@ export function usePartnerDashboard() {
     profNotes,
     setProfNotes,
     psychologists,
+    psyCounts,
     filteredPsychologists,
     referrals,
     openAddModal,

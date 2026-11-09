@@ -1,8 +1,7 @@
-import { Eye, FileCheck2, ShieldCheck, Stethoscope } from 'lucide-react'
+import { Clock, Coins, Eye, FileCheck2, ShieldCheck, Stethoscope } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import type { PartnerAccount, Psychologist } from '@/types/portal'
 import {
-  PsychologistSessionFeeBadge,
   PsychologistShieldBadge,
   UpgradeRequestBadge,
   VerificationBadge,
@@ -42,18 +41,17 @@ export function PsychologistTable({
           <table className="w-full border-collapse text-left">
             <thead>
               <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC] text-[11px] font-bold tracking-wider text-ink-muted uppercase">
-                <th className="px-5 py-3.5">Psikolog / Relawan</th>
-                <th className="px-5 py-3.5">Spesialisasi Klinis</th>
+                <th className="px-5 py-3.5">Psikolog &amp; Afiliasi</th>
                 <th className="px-5 py-3.5">Nomor Legalitas</th>
-                <th className="px-5 py-3.5">Kelengkapan Berkas</th>
-                <th className="px-5 py-3.5">Status &amp; Antrean</th>
+                <th className="px-5 py-3.5">Layanan &amp; Sesi</th>
+                <th className="px-5 py-3.5">Status &amp; Verifikasi</th>
                 <th className="px-5 py-3.5 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E2E8F0] text-xs">
               {psychologists.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-ink-muted">
+                  <td colSpan={5} className="p-8 text-center text-ink-muted">
                     <div className="flex flex-col items-center justify-center">
                       <Stethoscope className="size-8 text-ink-muted/50" />
                       <p className="mt-2 text-xs font-semibold text-ink">
@@ -68,10 +66,14 @@ export function PsychologistTable({
               ) : (
                 psychologists.map((psy) => {
                   const partnerName = getPartnerName(psy.partnerId)
-                  const isMitra = psy.role === 'professional_mitra' || (!psy.role && psy.partnerId)
+                  const isMitra = psy.role === 'relawan_profesional_mitra' || (!psy.role && psy.partnerId)
                   const docCount = psy.documents?.length ?? 0
                   const verifiedDocCount = psy.documents?.filter((d) => d.verified).length ?? 0
                   const hasUpgrade = Boolean(psy.upgradeRequest)
+                  const feeCoins = psy.sessionFeeCoins ?? (psy.role === 'relawan_biasa' ? 0 : 100)
+                  const durationMinutes = psy.sessionDurationMinutes ?? 45
+                  const specPreview = psy.specializations.slice(0, 2).join(' · ')
+                  const extraSpecCount = Math.max(0, psy.specializations.length - 2)
 
                   return (
                     <tr
@@ -82,8 +84,8 @@ export function PsychologistTable({
                       )}
                       onClick={() => onSelectPsychologist(psy)}
                     >
-                      {/* Column 1: Psikolog, Shield Badge & Domisili */}
-                      <td className="max-w-[240px] px-5 py-4">
+                      {/* Column 1: Psikolog & Afiliasi */}
+                      <td className="max-w-[260px] px-5 py-4">
                         <div className="flex items-center gap-1.5">
                           <span className="truncate font-semibold text-ink" title={psy.fullName}>
                             {psy.fullName}
@@ -92,57 +94,39 @@ export function PsychologistTable({
                             role={psy.role}
                             partnerName={partnerName}
                             upgradeRequest={psy.upgradeRequest}
+                            verificationStatus={psy.verificationStatus}
                           />
                         </div>
-                        <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-ink-muted">
+                        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-ink-muted">
                           <span>{psy.city ?? 'Indonesia'}</span>
-                          {isMitra && partnerName && (
-                            <>
-                              <span>·</span>
-                              <span className="truncate font-medium text-emerald-700" title={partnerName}>
-                                {partnerName}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                        <div className="mt-1.5">
-                          <PsychologistSessionFeeBadge
-                            feeCoins={psy.sessionFeeCoins}
-                            durationMinutes={psy.sessionDurationMinutes}
-                          />
-                        </div>
-                      </td>
-
-                      {/* Column 2: Spesialisasi Klinis / Fokus */}
-                      <td className="px-5 py-4">
-                        <div className="flex flex-wrap gap-1 max-w-[220px]">
-                          {psy.specializations.slice(0, 2).map((spec) => (
-                            <span
-                              key={spec}
-                              className="inline-flex rounded-[4px] border border-[#E2E8F0] bg-[#F8FAFC] px-1.5 py-0.5 text-[10.5px] font-medium text-ink-muted"
-                            >
-                              {spec}
+                          <span>·</span>
+                          {isMitra && partnerName ? (
+                            <span className="truncate font-medium text-emerald-700" title={partnerName}>
+                              {partnerName}
                             </span>
-                          ))}
-                          {psy.specializations.length > 2 && (
-                            <span className="inline-flex rounded-[4px] bg-[#F1F5F9] px-1.5 py-0.5 text-[10px] font-semibold text-ink-muted">
-                              +{psy.specializations.length - 2}
+                          ) : psy.verificationStatus === 'pending' ? (
+                            <span className="font-medium text-amber-700">
+                              Pendaftaran Baru
+                            </span>
+                          ) : (
+                            <span>
+                              {psy.role === 'relawan_biasa' ? 'Relawan Komunitas' : 'Praktik Mandiri'}
                             </span>
                           )}
                         </div>
                       </td>
 
-                      {/* Column 3: Legalitas (SIPP & STR) */}
+                      {/* Column 2: Nomor Legalitas (SIPP & STR) */}
                       <td className="px-5 py-4">
                         <p className="font-mono text-xs font-semibold text-ink">
                           {psy.sippNumber}
                         </p>
                         {psy.strNumber ? (
-                          <p className="font-mono text-[11px] text-ink-muted">
+                          <p className="mt-0.5 font-mono text-[11px] text-ink-muted">
                             STR: {psy.strNumber}
                           </p>
                         ) : (
-                          <p className="text-[10px] text-ink-muted">
+                          <p className="mt-0.5 text-[11px] text-ink-muted">
                             {isMitra
                               ? 'STR via Faskes'
                               : psy.role === 'relawan_biasa'
@@ -152,63 +136,98 @@ export function PsychologistTable({
                         )}
                       </td>
 
-                      {/* Column 4: Kelengkapan Berkas */}
-                      <td className="px-5 py-4">
-                        {isMitra ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-800">
-                            <ShieldCheck className="size-3.5 text-emerald-600" /> Valid via Mitra Faskes
+                      {/* Column 3: Layanan & Sesi (Tarif + Spesialisasi Teks Bersih) */}
+                      <td className="max-w-[240px] px-5 py-4">
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <Coins
+                            className={cn(
+                              'size-3.5 shrink-0',
+                              feeCoins === 0 ? 'text-teal-600' : 'text-amber-600',
+                            )}
+                          />
+                          {feeCoins === 0 ? (
+                            <span className="font-semibold text-teal-700">Sesi Gratis</span>
+                          ) : (
+                            <span className="font-semibold text-ink">{feeCoins} Koin</span>
+                          )}
+                          <span className="text-ink-muted">·</span>
+                          <span className="inline-flex items-center gap-1 text-[11px] text-ink-muted">
+                            <Clock className="size-3 shrink-0 text-ink-muted/70" />
+                            {durationMinutes} menit
                           </span>
-                        ) : docCount > 0 ? (
-                          <div className="space-y-0.5">
+                        </div>
+                        <p
+                          className="mt-1 truncate text-[11px] text-ink-muted"
+                          title={psy.specializations.join(', ')}
+                        >
+                          {specPreview || 'Konseling Umum'}
+                          {extraSpecCount > 0 && (
+                            <span className="ml-1 font-medium text-ink">
+                              (+{extraSpecCount})
+                            </span>
+                          )}
+                        </p>
+                      </td>
+
+                      {/* Column 4: Status & Verifikasi (Badge Status + Sub-teks Berkas) */}
+                      <td className="px-5 py-4">
+                        <div>
+                          {hasUpgrade ? (
+                            <UpgradeRequestBadge request={psy.upgradeRequest} />
+                          ) : !isMitra ? (
+                            <VerificationBadge status={psy.verificationStatus ?? 'pending'} />
+                          ) : (
                             <span
                               className={cn(
-                                'inline-flex items-center gap-1 rounded-[5px] px-2.5 py-0.5 text-[10px] font-semibold',
-                                verifiedDocCount === docCount
-                                  ? 'border border-[#BBF7D0] bg-[#F0FDF4] text-[#166534]'
-                                  : 'border border-[#FDE68A] bg-[#FEF3C7] text-[#92400E]',
+                                'inline-flex rounded-[6px] px-2 py-0.5 text-[11px] font-semibold',
+                                psy.status === 'active'
+                                  ? 'bg-[#F0FDF4] text-[#166534]'
+                                  : psy.status === 'on_leave'
+                                    ? 'bg-[#FEF3C7] text-[#92400E]'
+                                    : 'bg-[#F1F5F9] text-ink-muted',
                               )}
                             >
-                              <FileCheck2 className="size-3" />
-                              {verifiedDocCount}/{docCount} Dokumen Valid
-                            </span>
-                            {psy.upgradeRequest?.documents && psy.upgradeRequest.documents.length > 0 && (
-                              <p className="text-[10px] text-amber-800 font-semibold">
-                                + {psy.upgradeRequest.documents.length} Berkas Permohonan
-                              </p>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-[11px] text-ink-muted">Belum ada berkas</span>
-                        )}
-                      </td>
-
-                      {/* Column 5: Status Verifikasi & Antrean */}
-                      <td className="px-5 py-4">
-                        {hasUpgrade ? (
-                          <UpgradeRequestBadge request={psy.upgradeRequest} />
-                        ) : !isMitra ? (
-                          <VerificationBadge status={psy.verificationStatus ?? 'pending'} />
-                        ) : (
-                          <span
-                            className={cn(
-                              'inline-flex rounded-[6px] px-2 py-0.5 text-[11px] font-semibold',
-                              psy.status === 'active'
-                                ? 'bg-[#F0FDF4] text-[#166534]'
+                              {psy.status === 'active'
+                                ? 'Aktif Praktik'
                                 : psy.status === 'on_leave'
-                                  ? 'bg-[#FEF3C7] text-[#92400E]'
-                                  : 'bg-[#F1F5F9] text-ink-muted',
-                            )}
-                          >
-                            {psy.status === 'active'
-                              ? 'Aktif Praktik'
-                              : psy.status === 'on_leave'
-                                ? 'Sedang Cuti'
-                                : 'Nonaktif'}
-                          </span>
-                        )}
+                                  ? 'Sedang Cuti'
+                                  : 'Nonaktif'}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-1 flex items-center gap-1 text-[11px] text-ink-muted">
+                          {isMitra ? (
+                            <>
+                              <ShieldCheck className="size-3 shrink-0 text-emerald-600" />
+                              <span>Terverifikasi via Mitra</span>
+                            </>
+                          ) : docCount > 0 ? (
+                            <>
+                              <FileCheck2
+                                className={cn(
+                                  'size-3 shrink-0',
+                                  verifiedDocCount === docCount
+                                    ? 'text-emerald-600'
+                                    : 'text-amber-600',
+                                )}
+                              />
+                              <span>
+                                {verifiedDocCount}/{docCount} dokumen valid
+                              </span>
+                              {psy.upgradeRequest?.documents &&
+                                psy.upgradeRequest.documents.length > 0 && (
+                                  <span className="font-medium text-amber-800">
+                                    · +{psy.upgradeRequest.documents.length} berkas upgrade
+                                  </span>
+                                )}
+                            </>
+                          ) : (
+                            <span>Belum ada berkas</span>
+                          )}
+                        </div>
                       </td>
 
-                      {/* Column 6: Aksi */}
+                      {/* Column 5: Aksi */}
                       <td className="px-5 py-4 text-right">
                         <button
                           type="button"

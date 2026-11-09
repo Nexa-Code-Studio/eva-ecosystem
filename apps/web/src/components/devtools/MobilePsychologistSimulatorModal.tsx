@@ -27,7 +27,7 @@ export function MobilePsychologistSimulatorModal({
   useBodyScrollLock(isOpen)
 
   const [simMode, setSimMode] = useState<'register' | 'upgrade'>('register')
-  const [selectedRole, setSelectedRole] = useState<'relawan_biasa' | 'relawan_profesional'>(
+  const [selectedRole, setSelectedRole] = useState<'relawan_biasa' | 'relawan_profesional_non_mitra'>(
     'relawan_biasa',
   )
   const [simFullName, setSimFullName] = useState('')
@@ -65,8 +65,8 @@ export function MobilePsychologistSimulatorModal({
       return
     }
 
-    if (selectedRole === 'relawan_profesional' && (!simSipp.trim() || !simStr.trim())) {
-      setSimError('Nomor SIPP dan STR wajib diisi untuk Relawan Profesional.')
+    if (selectedRole === 'relawan_profesional_non_mitra' && (!simSipp.trim() || !simStr.trim())) {
+      setSimError('Nomor SIPP dan STR wajib diisi untuk Relawan Profesional (Non Mitra).')
       return
     }
 
@@ -78,12 +78,12 @@ export function MobilePsychologistSimulatorModal({
       city: simCity.toUpperCase(),
       education:
         simEducation ||
-        (selectedRole === 'relawan_profesional'
+        (selectedRole === 'relawan_profesional_non_mitra'
           ? 'Magister Profesi Psikologi Klinis Universitas Gadjah Mada'
           : 'S1 Psikologi Universitas Padjadjaran (Semester 6)'),
       email:
         simEmail ||
-        (selectedRole === 'relawan_profesional'
+        (selectedRole === 'relawan_profesional_non_mitra'
           ? 'psikolog.prof@praktikmandiri.id'
           : 'relawan.sebaya@kampus.id'),
       phone: simPhone || '081299887766',
@@ -117,7 +117,7 @@ export function MobilePsychologistSimulatorModal({
 
     const updated = simulateVolunteerUpgradeSubmission(
       volId,
-      'relawan_profesional',
+      'relawan_profesional_non_mitra',
       upgradeNotes.trim(),
     )
     if (updated) {
@@ -225,20 +225,20 @@ export function MobilePsychologistSimulatorModal({
                 <button
                   type="button"
                   onClick={() => {
-                    setSelectedRole('relawan_profesional')
+                    setSelectedRole('relawan_profesional_non_mitra')
                     if (!simSipp) setSimSipp('20240812-2029-01-0992')
                     if (!simStr) setSimStr('STR-PK-2024-991023')
                   }}
                   className={cn(
                     'flex cursor-pointer flex-col rounded-[10px] border p-3 text-left transition-all',
-                    selectedRole === 'relawan_profesional'
+                    selectedRole === 'relawan_profesional_non_mitra'
                       ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-300'
                       : 'border-[#CBD5E1] bg-white hover:bg-[#F8FAFC]',
                   )}
                 >
                   <div className="flex items-center gap-1.5 font-bold text-indigo-800">
                     <GraduationCap className="size-4 text-indigo-600" />
-                    <span>Relawan Profesional</span>
+                    <span>Relawan Profesional (Non Mitra)</span>
                   </div>
                   <p className="mt-1 text-[11px] text-ink-muted">
                     Memiliki gelar profesi Psikolog (S2 Magister Profesi / Psi) dan izin praktik SIPP &amp; STR.
@@ -250,7 +250,7 @@ export function MobilePsychologistSimulatorModal({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <label className="block font-semibold text-ink">
-                  {selectedRole === 'relawan_profesional'
+                  {selectedRole === 'relawan_profesional_non_mitra'
                     ? 'Nama Lengkap & Gelar Profesi (Psi) *'
                     : 'Nama Lengkap (Tanpa Gelar Psi) *'}
                 </label>
@@ -259,7 +259,7 @@ export function MobilePsychologistSimulatorModal({
                   value={simFullName}
                   onChange={(e) => setSimFullName(e.target.value)}
                   placeholder={
-                    selectedRole === 'relawan_profesional'
+                    selectedRole === 'relawan_profesional_non_mitra'
                       ? 'Contoh: Rania Putri Maharani, M.Psi., Psikolog'
                       : 'Contoh: Dika Ardiansyah (Mahasiswa Psikologi)'
                   }
@@ -267,7 +267,7 @@ export function MobilePsychologistSimulatorModal({
                 />
               </div>
 
-              {selectedRole === 'relawan_profesional' ? (
+              {selectedRole === 'relawan_profesional_non_mitra' ? (
                 <>
                   <div>
                     <label className="block font-semibold text-ink">Nomor SIPP *</label>
@@ -309,7 +309,7 @@ export function MobilePsychologistSimulatorModal({
 
               <div>
                 <label className="block font-semibold text-ink">
-                  {selectedRole === 'relawan_profesional' ? 'Masa Berlaku SIPP' : 'Masa Aktif Relawan'}
+                  {selectedRole === 'relawan_profesional_non_mitra' ? 'Masa Berlaku SIPP' : 'Masa Aktif Relawan'}
                 </label>
                 <input
                   type="date"
@@ -326,7 +326,7 @@ export function MobilePsychologistSimulatorModal({
                   value={simEducation}
                   onChange={(e) => setSimEducation(e.target.value)}
                   placeholder={
-                    selectedRole === 'relawan_profesional'
+                    selectedRole === 'relawan_profesional_non_mitra'
                       ? 'Magister Profesi Psikologi Klinis Universitas Diponegoro'
                       : 'S1 Psikologi Universitas Diponegoro (Semester 6)'
                   }
@@ -444,10 +444,10 @@ export function MobilePsychologistSimulatorModal({
               <div className="mt-1.5 rounded-[10px] border border-indigo-400 bg-indigo-50/80 p-3.5 ring-1 ring-indigo-300">
                 <div className="flex items-center gap-1.5 font-bold text-indigo-900">
                   <GraduationCap className="size-4 text-indigo-600" />
-                  <span>Upgrade ke Relawan Profesional</span>
+                  <span>Upgrade ke Relawan Profesional (Non Mitra)</span>
                 </div>
                 <p className="mt-1 text-[11px] leading-relaxed text-ink-muted">
-                  Simulasi pengajuan upgrade dari Relawan Pendamping ke Psikolog Relawan Profesional. Otomatis menyertakan berkas verifikasi Ijazah Magister Profesi Psikolog, SIPP, dan STR Kemenkes.
+                  Simulasi pengajuan upgrade dari Relawan Pendamping ke Relawan Profesional (Non Mitra). Otomatis menyertakan berkas verifikasi Ijazah Magister Profesi Psikolog, SIPP, dan STR Kemenkes.
                 </p>
               </div>
             </div>
@@ -464,7 +464,7 @@ export function MobilePsychologistSimulatorModal({
                 className="mt-1 w-full rounded-[8px] border border-[#CBD5E1] bg-white p-3 text-ink focus:border-primary focus:outline-none"
               />
               <p className="mt-1 text-[11px] text-ink-muted">
-                Simulasi ini otomatis melampirkan berkas sertifikat pendukung (Laporan Kinerja untuk Relawan Utama, atau Ijazah &amp; SIPP untuk Relawan Profesional).
+                Simulasi ini otomatis melampirkan berkas sertifikat pendukung (Ijazah Magister Profesi &amp; SIPP untuk Relawan Profesional (Non Mitra)).
               </p>
             </div>
 

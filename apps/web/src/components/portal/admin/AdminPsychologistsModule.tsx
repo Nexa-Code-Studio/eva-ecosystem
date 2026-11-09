@@ -58,27 +58,35 @@ export function AdminPsychologistsModule({
 
   // Compute counts for KPI cards & tabs
   const counts: PsychologistKpiCounts = useMemo(() => {
-    const mitra = psychologists.filter(
-      (p) => p.role === 'professional_mitra' || (!p.role && p.partnerId),
-    ).length
+    const isMitra = (p: Psychologist) =>
+      p.role === 'relawan_profesional_mitra' || (!p.role && Boolean(p.partnerId))
+    const isApproved = (p: Psychologist) =>
+      p.verificationStatus === 'approved' || isMitra(p)
+    const isPending = (p: Psychologist) =>
+      p.verificationStatus === 'pending' && !isMitra(p)
+    const hasUpgrade = (p: Psychologist) => Boolean(p.upgradeRequest)
+
+    const mitra = psychologists.filter(isMitra).length
     const relawanProfesional = psychologists.filter(
-      (p) =>
-        p.role === 'relawan_profesional' ||
-        (!p.role && !p.partnerId && p.practiceType === 'mandiri'),
+      (p) => p.role === 'relawan_profesional_non_mitra' && isApproved(p),
     ).length
     const relawan = psychologists.filter(
-      (p) => p.role === 'relawan_biasa' || (p.role as string) === 'relawan',
+      (p) =>
+        (p.role === 'relawan_biasa' || (p.role as string) === 'relawan') &&
+        isApproved(p),
     ).length
-    const pendingVerifikasi = psychologists.filter(
-      (p) => p.verificationStatus === 'pending',
-    ).length
-    const pendingUpgrade = psychologists.filter((p) => Boolean(p.upgradeRequest)).length
+    const pendingVerifikasi = psychologists.filter(isPending).length
+    const pendingUpgrade = psychologists.filter(hasUpgrade).length
     const pendingAction = psychologists.filter(
-      (p) => p.verificationStatus === 'pending' || Boolean(p.upgradeRequest),
+      (p) => isPending(p) || hasUpgrade(p),
     ).length
 
+    // Tab "Semua" menampilkan semua akun terdaftar yang sudah terverifikasi/punya badge
+    // (akun baru yang masih pending eksklusif masuk ke Antrean Tindakan)
+    const total = psychologists.filter(isApproved).length
+
     return {
-      total: psychologists.length,
+      total,
       mitra,
       relawanProfesional,
       relawan,
@@ -93,19 +101,36 @@ export function AdminPsychologistsModule({
   const filteredPsychologists = useMemo(() => {
     const q = search.trim().toLowerCase()
     return psychologists.filter((p) => {
-      const isMitra = p.role === 'professional_mitra' || (!p.role && p.partnerId)
-      const isRelawanProf =
-        p.role === 'relawan_profesional' ||
-        (!p.role && !p.partnerId && p.practiceType === 'mandiri')
-      const isRelawan = p.role === 'relawan_biasa' || (p.role as string) === 'relawan'
+      const isMitra = p.role === 'relawan_profesional_mitra' || (!p.role && Boolean(p.partnerId))
+      const isApproved = p.verificationStatus === 'approved' || isMitra
+      const isPending = p.verificationStatus === 'pending' && !isMitra
       const hasUpgrade = Boolean(p.upgradeRequest)
-      const isPendingVerif = p.verificationStatus === 'pending'
 
+      // 1. Antrean Tindakan: pendaftaran baru yang pending ATAU permohonan upgrade
+      if (activeFilter === 'pending_action' && !isPending && !hasUpgrade) return false
+
+      // 2. Semua Terdaftar: akun terdaftar yang sudah diverifikasi (punya badge)
+      if (activeFilter === 'all' && !isApproved) return false
+
+      // 3. Relawan Profesional (Mitra)
       if (activeFilter === 'mitra' && !isMitra) return false
-      if (activeFilter === 'relawan_profesional' && !isRelawanProf) return false
-      if ((activeFilter === 'relawan' || activeFilter === 'relawan_biasa') && !isRelawan)
+
+      // 4. Relawan Profesional (Non Mitra): hanya yang sudah approved dan rolenya relawan_profesional_non_mitra
+      // (relawan pendamping yang sedang mengajukan upgrade tidak masuk ke sini sebelum di-ACC)
+      if (
+        activeFilter === 'relawan_profesional' &&
+        (p.role !== 'relawan_profesional_non_mitra' || !isApproved)
+      ) {
         return false
-      if (activeFilter === 'pending_action' && !isPendingVerif && !hasUpgrade) return false
+      }
+
+      // 5. Relawan Pendamping: hanya yang sudah approved dan rolenya relawan_biasa
+      if (
+        (activeFilter === 'relawan' || activeFilter === 'relawan_biasa') &&
+        (p.role !== 'relawan_biasa' || !isApproved)
+      ) {
+        return false
+      }
 
       if (!q) return true
       const partner = p.partnerId ? partners.find((pt) => pt.id === p.partnerId) : null
@@ -143,11 +168,11 @@ export function AdminPsychologistsModule({
   }, [partners, selectedPsy])
 
   const filterTabs: Array<{ id: PsyFilterTab; label: string }> = [
+    { id: 'pending_action', label: `Antrean Tindakan (${counts.pendingAction})` },
     { id: 'all', label: `Semua (${counts.total})` },
-    { id: 'mitra', label: `Profesional Mitra (${counts.mitra})` },
-    { id: 'relawan_profesional', label: `Relawan Profesional (${counts.relawanProfesional})` },
+    { id: 'mitra', label: `Relawan Profesional (Mitra) (${counts.mitra})` },
+    { id: 'relawan_profesional', label: `Relawan Profesional (Non Mitra) (${counts.relawanProfesional})` },
     { id: 'relawan', label: `Relawan Pendamping (${counts.relawan})` },
-    { id: 'pending_action', label: `Antrean Upgrade / Verifikasi (${counts.pendingAction})` },
   ]
 
   return (
