@@ -1,0 +1,181 @@
+{
+  "title": "Rencana Rekaman Demo Fitur Web EVA (12 Segmen)",
+  "resolution": {
+    "width": 1920,
+    "height": 1080
+  },
+  "countdownSeconds": 5,
+  "totalEstimatedDurationSeconds": 320,
+  "segments": [
+    {
+      "id": "01",
+      "filename": "01-publik-landing-page.mp4",
+      "title": "01. Public Landing Page & Mockup Interaktif",
+      "route": "/",
+      "targetDurationSeconds": 35,
+      "startSecondPlan": 5,
+      "endSecondPlan": 40,
+      "actions": [
+        "Menampilkan Hero Section & animasi Luna Orb / Breathing Widget",
+        "Scroll ke Features & klik pergantian tab layar aplikasi EVA Mobile",
+        "Scroll ke How It Works (Cara Kerja) & Unique Selling Proposition (USP)",
+        "Membuka item Accordion pada bagian FAQ",
+        "Menampilkan CTA Download APK & klik tombol menuju Portal Mitra"
+      ]
+    },
+    {
+      "id": "02",
+      "filename": "02-pengajuan-mitra-faskes.mp4",
+      "title": "02. Pendaftaran Mitra Fasilitas Kesehatan (Wizard 3 Tahap)",
+      "route": "/pengajuan-mitra",
+      "targetDurationSeconds": 30,
+      "startSecondPlan": 40,
+      "endSecondPlan": 70,
+      "actions": [
+        "Step 1 (Data Faskes): Mengisi nama faskes, jenis klinik, kota, nomor izin Kemenkes, dan alamat",
+        "Step 2 (PIC & Layanan): Mengisi nama lengkap PIC, jabatan, nomor WhatsApp, estimasi psikolog, dan jam layanan",
+        "Step 3 (Akun & Kirim): Mengisi email login instansi, kata sandi, catatan rujukan, dan mengirim pengajuan hingga tampil konfirmasi sukses"
+      ]
+    },
+    {
+      "id": "03",
+      "filename": "03-login-dan-cek-status-mitra.mp4",
+      "title": "03. Autentikasi Portal & Pengecekan Status Mitra (Pending/Ditolak/Admin)",
+      "route": "/login",
+      "targetDurationSeconds": 25,
+      "startSecondPlan": 70,
+      "endSecondPlan": 95,
+      "actions": [
+        "Membuka panel Akun Demo Cepat (QuickLoginDevTool)",
+        "Login menggunakan akun Mitra Faskes (Pending) dan menampilkan modal status Menunggu Verifikasi",
+        "Login menggunakan akun Mitra Faskes (Ditolak/Revisi) dan menampilkan modal catatan perbaikan Admin",
+        "Login menggunakan akun Administrator Pusat EVA (admin@eva.id)"
+      ]
+    },
+    {
+      "id": "04",
+      "filename": "04-admin-dashboard-overview.mp4",
+      "title": "04. Panel Admin EVA — Dashboard Eksekutif & Analitik DASS-21",
+      "route": "/admin/dashboard",
+      "targetDurationSeconds": 20,
+      "startSecondPlan": 95,
+      "endSecondPlan": 115,
+      "actions": [
+        "Meninjau kartu ringkasan KPI Eksekutif ekosistem EVA",
+        "Interaksi pada grafik Tren Konseling & Rujukan serta Distribusi Tingkat Keparahan DASS-21",
+        "Scroll ke Komposisi Psikolog/Relawan dan Antrean Verifikasi Terbaru"
+      ]
+    },
+    {
+      "id": "05",
+      "filename": "05-admin-verifikasi-mitra-faskes.mp4",
+      "title": "05. Panel Admin EVA — Verifikasi & Manajemen Mitra Faskes",
+      "route": "/admin/partners",
+      "targetDurationSeconds": 25,
+      "startSecondPlan": 115,
+      "endSecondPlan": 140,
+      "actions": [
+        "Memfilter daftar Mitra Fasilitas Kesehatan berstatus Pending",
+        "Memeriksa detail izin operasional, alamat, dan kontak PIC pada PartnerDetailPanel",
+        "Menyetujui & mengaktifkan akun Mitra Faskes baru"
+      ]
+    },
+    {
+      "id": "06",
+      "filename": "06-admin-verifikasi-dan-simulasi-psikolog.mp4",
+      "title": "06. Panel Admin EVA — Simulasi Pendaftaran Mobile & Verifikasi Psikolog",
+      "route": "/admin/psychologists",
+      "targetDurationSeconds": 35,
+      "startSecondPlan": 140,
+      "endSecondPlan": 175,
+      "actions": [
+        "Membuka modal Simulasi Pendaftaran & Upgrade dari aplikasi mobile konselor dan mengirim 1 pendaftaran baru",
+        "Memfilter tab Antrean Tindakan (Pending Verifikasi / Upgrade)",
+        "Membuka modal detail psikolog, meninjau sertifikat/dokumen STR & SIPP, lalu menyetujui verifikasi akun"
+      ]
+    },
+    {
+      "id": "07",
+      "filename": "07-admin-triage-rujukan-klinis.mp4",
+      "title": "07. Panel Admin EVA — Triage & Penugasan Rujukan Klinis (DASS-21)",
+      "route": "/admin/referrals",
+      "targetDurationSeconds": 25,
+      "startSecondPlan": 175,
+      "endSecondPlan": 200,
+      "actions": [
+        "Meninjau daftar pasien rujukan hasil skrining DASS-21 berstatus Belum Ditugaskan",
+        "Membuka ReferralAssignmentDrawer untuk melihat rekomendasi kecocokan spesialisasi psikolog",
+        "Menugaskan psikolog/mitra faskes untuk menangani rujukan pasien"
+      ]
+    },
+    {
+      "id": "08",
+      "filename": "08-admin-pengguna-dan-transaksi-koin.mp4",
+      "title": "08. Panel Admin EVA — Direktori Pengguna Mobile & Riwayat Transaksi Koin",
+      "route": "/admin/users-coins",
+      "targetDurationSeconds": 25,
+      "startSecondPlan": 200,
+      "endSecondPlan": 225,
+      "actions": [
+        "Sub-tab Pengguna Aplikasi: Mencari pengguna dan memeriksa status akun serta indikator protokol krisis",
+        "Sub-tab Riwayat Transaksi Koin (?tab=coins): Memfilter dan memverifikasi transaksi top-up Koin Suara EVA"
+      ]
+    },
+    {
+      "id": "09",
+      "filename": "09-admin-cms-konten-dan-katalog-koin.mp4",
+      "title": "09. Panel Admin EVA — CMS Misi Koping, Hotline Krisis, Paket Koin & FAQ",
+      "route": "/admin/content-config",
+      "targetDurationSeconds": 30,
+      "startSecondPlan": 225,
+      "endSecondPlan": 255,
+      "actions": [
+        "Sub-tab Misi Koping & Krisis (Mobile): Meninjau nomor Hotline Krisis SafetyNet dan daftar misi koping harian",
+        "Sub-tab Kurs & Paket Koin (?tab=coins_catalog): Meninjau konfigurasi harga dan bonus katalog paket koin",
+        "Sub-tab Waitlist & FAQ (?tab=website): Meninjau pendaftar waitlist & pengelolaan FAQ website, lalu Logout"
+      ]
+    },
+    {
+      "id": "10",
+      "filename": "10-mitra-triage-rujukan-pasien.mp4",
+      "title": "10. Portal Mitra Faskes — Triage Rujukan Pasien & Penugasan Psikolog Naungan",
+      "route": "/mitra/referrals",
+      "targetDurationSeconds": 30,
+      "startSecondPlan": 255,
+      "endSecondPlan": 285,
+      "actions": [
+        "Login otomatis sebagai Mitra Faskes Terverifikasi",
+        "Mengubah toggle status penerimaan rujukan pasien di header portal mitra",
+        "Membuka panel penugasan rujukan pasien dan memilih psikolog klinis naungan faskes"
+      ]
+    },
+    {
+      "id": "11",
+      "filename": "11-mitra-manajemen-psikolog.mp4",
+      "title": "11. Portal Mitra Faskes — Manajemen & Penambahan Psikolog Klinis",
+      "route": "/mitra/psychologists",
+      "targetDurationSeconds": 25,
+      "startSecondPlan": 285,
+      "endSecondPlan": 310,
+      "actions": [
+        "Meninjau daftar psikolog klinis yang bernaung di bawah fasilitas kesehatan",
+        "Membuka modal Tambah Psikolog Klinis Faskes, mengisi identitas SIPP, jadwal, spesialisasi, dan tarif koin sesi",
+        "Menyimpan data psikolog baru dan melihat detail profil psikolog mitra"
+      ]
+    },
+    {
+      "id": "12",
+      "filename": "12-mitra-profil-faskes.mp4",
+      "title": "12. Portal Mitra Faskes — Pengaturan Profil & Operasional Instansi",
+      "route": "/mitra/profile",
+      "targetDurationSeconds": 15,
+      "startSecondPlan": 310,
+      "endSecondPlan": 325,
+      "actions": [
+        "Meninjau dan memperbarui informasi profil operasional fasilitas kesehatan",
+        "Menyimpan perubahan profil dan melakukan Logout dari Portal Mitra"
+      ]
+    }
+  ]
+}
+
