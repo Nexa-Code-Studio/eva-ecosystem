@@ -176,6 +176,9 @@ counselor-mock:
 counselor-web:
 	@APP=eva_counselor_mobile ./scripts/run_mobile.sh web $(ARGS)
 
+counselor-build-web:
+	cd apps/eva_counselor_mobile && flutter build web --release
+
 test-counselor:
 	cd apps/eva_counselor_mobile && flutter test
 
