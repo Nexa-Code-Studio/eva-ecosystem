@@ -192,6 +192,20 @@ export function usePartnerDashboard() {
     setBanner('Profil dan status operasional fasilitas kesehatan berhasil disimpan.')
   }
 
+  const handleToggleAcceptingReferrals = () => {
+    if (!partner) return
+    const nextAccepting = !partner.acceptingReferrals
+    updatePartnerFacilityProfile(partner.id, {
+      acceptingReferrals: nextAccepting,
+    })
+    setProfAccepting(nextAccepting)
+    setBanner(
+      nextAccepting
+        ? 'Status faskes aktif: Menerima rujukan pasien baru dari EVA.'
+        : 'Status faskes dijeda: Penerimaan rujukan pasien baru sementara dihentikan.',
+    )
+  }
+
   return {
     partner,
     activeTab,
@@ -261,6 +275,7 @@ export function usePartnerDashboard() {
     toggleSpecialization,
     handleSavePsychologist,
     handleSaveProfile,
+    handleToggleAcceptingReferrals,
   }
 }
 
