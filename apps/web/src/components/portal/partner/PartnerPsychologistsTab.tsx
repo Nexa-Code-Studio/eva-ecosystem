@@ -1,7 +1,9 @@
-import { Calendar, Edit3, Plus, Search, Trash2, X } from 'lucide-react'
+import { Calendar, Eye, Plus, Search, Trash2, X } from 'lucide-react'
+import { useState } from 'react'
 import { PsychologistSessionFeeBadge } from '@/components/portal/PortalBadges'
 import { cn } from '@/lib/cn'
 import type { Psychologist, PsychologistStatus } from '@/types/portal'
+import { PartnerPsychologistDetailModal } from './PartnerPsychologistDetailModal'
 
 interface PartnerPsychologistsTabProps {
   psychologists: Psychologist[]
@@ -28,8 +30,11 @@ export function PartnerPsychologistsTab({
   onDeletePsychologist,
   onStatusChange,
 }: PartnerPsychologistsTabProps) {
+  const [selectedDetailPsy, setSelectedDetailPsy] = useState<Psychologist | null>(null)
+
   return (
     <section className="mt-6" aria-label="Manajemen Psikolog">
+      {/* 1. Filter Status & Search Bar */}
       <div className="flex flex-col justify-between gap-3 rounded-[12px] border border-[#E2E8F0] bg-white p-4 sm:flex-row sm:items-center">
         <div className="flex flex-wrap items-center gap-2">
           {(
@@ -127,12 +132,18 @@ export function PartnerPsychologistsTab({
                 key={psy.id}
                 className="rounded-[12px] border border-[#E2E8F0] bg-white p-4 shadow-2xs space-y-3"
               >
-                {/* Header: Nama, Pendidikan, Status select */}
+                {/* Header: Nama, SIPP, Status Select */}
                 <div className="flex items-start justify-between gap-2 border-b border-[#E2E8F0] pb-2.5">
                   <div className="min-w-0 flex-1">
-                    <p className="line-clamp-1 text-sm font-bold text-ink">{psy.fullName}</p>
-                    <p className="mt-0.5 text-[11px] text-ink-soft">
-                      {psy.education || 'Psikolog Klinis'}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDetailPsy(psy)}
+                      className="text-left font-bold text-sm text-ink hover:text-primary transition-colors cursor-pointer"
+                    >
+                      {psy.fullName}
+                    </button>
+                    <p className="mt-0.5 font-mono text-xs text-ink-muted">
+                      {psy.sippNumber}
                       {psy.yearsExperience ? ` · ${psy.yearsExperience} thn praktik` : ''}
                     </p>
                   </div>
@@ -145,9 +156,9 @@ export function PartnerPsychologistsTab({
                     className={cn(
                       'h-7 cursor-pointer rounded-[6px] border px-2 text-[11px] font-semibold outline-none shrink-0',
                       psy.status === 'active' &&
-                        'border-success/30 bg-success/10 text-success',
+                        'border-emerald-300 bg-emerald-50 text-emerald-800',
                       psy.status === 'on_leave' &&
-                        'border-warning/30 bg-warning/10 text-[#B45309]',
+                        'border-amber-300 bg-amber-50 text-amber-800',
                       psy.status === 'inactive' &&
                         'border-[#CBD5E1] bg-[#F1F5F9] text-ink-soft',
                     )}
@@ -158,54 +169,36 @@ export function PartnerPsychologistsTab({
                   </select>
                 </div>
 
-                {/* SIPP & Tarif */}
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-mono text-xs text-ink font-medium">
-                    {psy.sippNumber}
-                  </span>
+                {/* Spesialisasi Ringkas & Tarif */}
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <p className="truncate text-ink-soft">
+                    {psy.specializations.length > 0
+                      ? psy.specializations.slice(0, 2).join(' · ')
+                      : 'Psikologi Umum'}
+                  </p>
                   <PsychologistSessionFeeBadge
                     feeCoins={psy.sessionFeeCoins}
                     durationMinutes={psy.sessionDurationMinutes}
                   />
                 </div>
 
-                {/* Spesialisasi */}
-                {psy.specializations.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {psy.specializations.map((sp) => (
-                      <span
-                        key={sp}
-                        className="rounded-[5px] border border-[#E2E8F0] bg-[#F8FAFC] px-2 py-0.5 text-[10.5px] font-medium text-ink-soft"
-                      >
-                        {sp}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Jadwal & Kuota */}
-                <div className="space-y-0.5 text-xs text-ink">
+                {/* Jadwal Praktik */}
+                <div className="text-xs text-ink">
                   <p className="inline-flex items-center gap-1.5 font-medium">
-                    <Calendar className="size-3.5 text-ink-muted" />
+                    <Calendar className="size-3.5 text-primary shrink-0" />
                     <span>{psy.practiceSchedule}</span>
                   </p>
-                  {psy.weeklyQuota && (
-                    <p className="text-[11px] text-ink-muted">
-                      Kuota rujukan: {psy.weeklyQuota} pasien/minggu
-                    </p>
-                  )}
                 </div>
 
                 {/* Action Buttons */}
                 <div className="flex items-center justify-end gap-2 border-t border-[#E2E8F0] pt-2.5">
                   <button
                     type="button"
-                    onClick={() => onOpenEditModal(psy)}
-                    aria-label={`Edit ${psy.fullName}`}
-                    className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-[6px] border border-[#CBD5E1] bg-white px-3 text-xs font-semibold text-ink hover:bg-[#F8FAFC]"
+                    onClick={() => setSelectedDetailPsy(psy)}
+                    className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-[6px] border border-[#CBD5E1] bg-white px-2.5 text-xs font-semibold text-ink hover:bg-slate-50"
                   >
-                    <Edit3 className="size-3.5" />
-                    <span>Edit</span>
+                    <Eye className="size-3.5" />
+                    <span>Detail</span>
                   </button>
                   <button
                     type="button"
@@ -220,101 +213,104 @@ export function PartnerPsychologistsTab({
             ))}
           </div>
 
-          {/* Desktop Data Table (>= md) */}
+          {/* Desktop Data Table (>= md) - 4 Kolom Proporsional */}
           <div className="hidden overflow-hidden rounded-[12px] border border-[#E2E8F0] bg-white md:block">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left text-xs">
                 <thead>
                   <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC] text-[11px] font-semibold tracking-wider text-ink-muted uppercase">
-                    <th className="px-4 py-3.5">Nama &amp; Pendidikan</th>
-                    <th className="px-4 py-3.5">Nomor SIPP / STR</th>
-                    <th className="px-4 py-3.5">Spesialisasi Klinis</th>
-                    <th className="px-4 py-3.5">Jadwal &amp; Kuota</th>
-                    <th className="px-4 py-3.5">Durasi &amp; Tarif Sesi</th>
-                    <th className="px-4 py-3.5">Status Praktik</th>
-                    <th className="px-4 py-3.5 text-right">Aksi</th>
+                    <th className="px-5 py-3.5">Psikolog &amp; SIPP</th>
+                    <th className="px-5 py-3.5">Spesialisasi &amp; Tarif</th>
+                    <th className="px-5 py-3.5">Jadwal &amp; Status</th>
+                    <th className="px-5 py-3.5 text-right">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E2E8F0]">
                   {psychologists.map((psy) => (
                     <tr key={psy.id} className="transition-colors hover:bg-[#F8FAFC]/70">
-                      <td className="px-4 py-4 align-top">
-                        <p className="text-sm font-semibold text-ink">{psy.fullName}</p>
-                        <p className="mt-0.5 text-[11px] text-ink-soft">
-                          {psy.education || 'Psikolog Klinis'}
-                          {psy.yearsExperience ? ` · ${psy.yearsExperience} thn praktik` : ''}
-                        </p>
-                      </td>
-                      <td className="px-4 py-4 align-top font-mono text-xs text-ink font-medium">
-                        {psy.sippNumber}
-                      </td>
-                      <td className="px-4 py-4 align-top">
-                        <div className="flex max-w-xs flex-wrap gap-1">
-                          {psy.specializations.map((sp) => (
-                            <span
-                              key={sp}
-                              className="rounded-[5px] border border-[#E2E8F0] bg-[#F8FAFC] px-2 py-0.5 text-[11px] font-medium text-ink-soft"
-                            >
-                              {sp}
-                            </span>
-                          ))}
+                      {/* Kolom 1: Psikolog & SIPP */}
+                      <td className="px-5 py-4 align-top">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDetailPsy(psy)}
+                          className="text-left font-bold text-sm text-ink hover:text-primary transition-colors cursor-pointer"
+                        >
+                          {psy.fullName}
+                        </button>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-ink-muted">
+                          <span className="font-mono font-medium text-ink">
+                            {psy.sippNumber}
+                          </span>
+                          {psy.yearsExperience && (
+                            <span>· {psy.yearsExperience} thn praktik</span>
+                          )}
                         </div>
                       </td>
-                      <td className="px-4 py-4 align-top">
-                        <p className="inline-flex items-center gap-1 font-medium text-ink">
-                          <Calendar className="size-3.5 text-ink-muted" />
-                          {psy.practiceSchedule}
+
+                      {/* Kolom 2: Spesialisasi & Tarif */}
+                      <td className="px-5 py-4 align-top">
+                        <p className="text-xs font-medium text-ink">
+                          {psy.specializations.length > 0
+                            ? psy.specializations.slice(0, 2).join(' · ') +
+                              (psy.specializations.length > 2
+                                ? ` (+${psy.specializations.length - 2})`
+                                : '')
+                            : 'Psikologi Umum'}
                         </p>
-                        {psy.weeklyQuota && (
-                          <p className="mt-0.5 text-[11px] text-ink-muted">
-                            Kuota rujukan: {psy.weeklyQuota} pasien/minggu
-                          </p>
-                        )}
+                        <div className="mt-1.5">
+                          <PsychologistSessionFeeBadge
+                            feeCoins={psy.sessionFeeCoins}
+                            durationMinutes={psy.sessionDurationMinutes}
+                          />
+                        </div>
                       </td>
-                      <td className="px-4 py-4 align-top">
-                        <PsychologistSessionFeeBadge
-                          feeCoins={psy.sessionFeeCoins}
-                          durationMinutes={psy.sessionDurationMinutes}
-                        />
+
+                      {/* Kolom 3: Jadwal & Status Praktik */}
+                      <td className="px-5 py-4 align-top">
+                        <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink">
+                          <Calendar className="size-3.5 text-primary shrink-0" />
+                          <span>{psy.practiceSchedule}</span>
+                        </p>
+                        <div className="mt-1.5">
+                          <select
+                            aria-label={`Ubah status ${psy.fullName}`}
+                            value={psy.status}
+                            onChange={(e) =>
+                              onStatusChange(psy.id, e.target.value as PsychologistStatus)
+                            }
+                            className={cn(
+                              'h-7 cursor-pointer rounded-[6px] border px-2 text-[11px] font-semibold outline-none transition-colors',
+                              psy.status === 'active' &&
+                                'border-emerald-300 bg-emerald-50 text-emerald-800',
+                              psy.status === 'on_leave' &&
+                                'border-amber-300 bg-amber-50 text-amber-800',
+                              psy.status === 'inactive' &&
+                                'border-[#CBD5E1] bg-slate-100 text-slate-700',
+                            )}
+                          >
+                            <option value="active">Aktif Praktik</option>
+                            <option value="on_leave">Sedang Cuti</option>
+                            <option value="inactive">Nonaktif</option>
+                          </select>
+                        </div>
                       </td>
-                      <td className="px-4 py-4 align-top">
-                        <select
-                          aria-label={`Ubah status ${psy.fullName}`}
-                          value={psy.status}
-                          onChange={(e) =>
-                            onStatusChange(psy.id, e.target.value as PsychologistStatus)
-                          }
-                          className={cn(
-                            'h-8 cursor-pointer rounded-[6px] border px-2.5 text-xs font-semibold outline-none transition-colors',
-                            psy.status === 'active' &&
-                              'border-success/30 bg-success/10 text-success',
-                            psy.status === 'on_leave' &&
-                              'border-warning/30 bg-warning/10 text-[#B45309]',
-                            psy.status === 'inactive' &&
-                              'border-[#CBD5E1] bg-[#F1F5F9] text-ink-soft',
-                          )}
-                        >
-                          <option value="active">Aktif Praktik</option>
-                          <option value="on_leave">Sedang Cuti</option>
-                          <option value="inactive">Nonaktif</option>
-                        </select>
-                      </td>
-                      <td className="px-4 py-4 align-top text-right">
+
+                      {/* Kolom 4: Aksi */}
+                      <td className="px-5 py-4 align-top text-right">
                         <div className="inline-flex items-center gap-1.5">
                           <button
                             type="button"
-                            onClick={() => onOpenEditModal(psy)}
-                            aria-label={`Edit ${psy.fullName}`}
-                            className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-[6px] border border-[#CBD5E1] bg-white px-2.5 text-xs font-semibold text-ink hover:bg-[#F8FAFC]"
+                            onClick={() => setSelectedDetailPsy(psy)}
+                            className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-[6px] border border-[#CBD5E1] bg-white px-3 text-xs font-semibold text-ink transition-colors hover:border-primary hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                           >
-                            <Edit3 className="size-3.5" />
-                            <span>Edit</span>
+                            <Eye className="size-3.5" />
+                            <span>Lihat Detail</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => onDeletePsychologist(psy)}
                             aria-label={`Hapus ${psy.fullName}`}
-                            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-[6px] border border-[#CBD5E1] bg-white text-ink-soft transition-colors hover:border-crisis-border hover:bg-crisis-bg hover:text-crisis-text"
+                            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-[6px] border border-[#CBD5E1] bg-white text-ink-soft transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-300"
                           >
                             <Trash2 className="size-3.5" />
                           </button>
@@ -328,7 +324,22 @@ export function PartnerPsychologistsTab({
           </div>
         </div>
       )}
+
+      {/* 2. Modal Detail Profil Psikolog Faskes */}
+      <PartnerPsychologistDetailModal
+        psy={selectedDetailPsy}
+        onClose={() => setSelectedDetailPsy(null)}
+        onEdit={(targetPsy) => {
+          setSelectedDetailPsy(null)
+          onOpenEditModal(targetPsy)
+        }}
+        onStatusChange={(psyId, status) => {
+          onStatusChange(psyId, status)
+          if (selectedDetailPsy && selectedDetailPsy.id === psyId) {
+            setSelectedDetailPsy({ ...selectedDetailPsy, status })
+          }
+        }}
+      />
     </section>
   )
 }
-
