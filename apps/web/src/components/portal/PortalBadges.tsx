@@ -111,11 +111,17 @@ export function PracticeStatusBadge({ status }: { status: PsychologistStatus }) 
 
 export function PsychologistRoleBadge({
   role,
+  verificationStatus,
   className,
 }: {
   role?: PsychologistRole
+  verificationStatus?: VerificationStatus
   className?: string
 }) {
+  if (verificationStatus === 'pending' && role !== 'professional_mitra') {
+    return null
+  }
+
   if (role === 'professional_mitra') {
     return (
       <span
@@ -170,7 +176,7 @@ export function UpgradeRequestBadge({
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 animate-pulse items-center gap-1.5 rounded-[6px] border border-amber-400 bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-900 shadow-xs',
+        'inline-flex shrink-0 items-center gap-1.5 rounded-[6px] border border-amber-400 bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-900 shadow-xs',
         className,
       )}
     >

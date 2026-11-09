@@ -7,12 +7,13 @@ import {
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '@/lib/cn'
-import type { PsychologistRole, UpgradeRequest } from '@/types/portal'
+import type { PsychologistRole, UpgradeRequest, VerificationStatus } from '@/types/portal'
 
 export interface PsychologistShieldBadgeProps {
   role?: PsychologistRole
   partnerName?: string | null
   upgradeRequest?: UpgradeRequest | null
+  verificationStatus?: VerificationStatus
   size?: 'sm' | 'md'
   className?: string
 }
@@ -29,9 +30,12 @@ export function PsychologistShieldBadge({
   role,
   partnerName,
   upgradeRequest,
+  verificationStatus,
   size = 'md',
   className,
 }: PsychologistShieldBadgeProps) {
+  const isMitra = role === 'professional_mitra' || (!role && Boolean(partnerName))
+
   const [isOpen, setIsOpen] = useState(false)
   const [coords, setCoords] = useState<{ top: number; left: number; placeAbove: boolean } | null>(
     null,
@@ -39,17 +43,16 @@ export function PsychologistShieldBadge({
   const triggerRef = useRef<HTMLButtonElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
 
-  // Resolve role config with intelligent fallbacks
+  // Resolve role config
   let effectiveRole = role
   if (!effectiveRole) {
     if (partnerName) {
       effectiveRole = 'professional_mitra'
     } else {
-      effectiveRole = 'relawan_profesional'
+      effectiveRole = 'relawan_biasa'
     }
   }
 
-  const isMitra = effectiveRole === 'professional_mitra'
   const isRelawanProf = effectiveRole === 'relawan_profesional'
 
   // Define Primary Base Medallion (Mitra or Relawan)
@@ -142,6 +145,12 @@ export function PsychologistShieldBadge({
   const glyphSizeClass = size === 'sm' ? 'size-2.5' : 'size-3'
   const BaseIcon = baseMedallion.icon
   const TierIcon = tierMedallion?.icon
+
+  // Aturan: Akun pendaftaran baru yang masih pending verifikasi (bukan mitra faskes)
+  // TIDAK memiliki badge apapun sampai diverifikasi oleh admin.
+  if (verificationStatus === 'pending' && !isMitra) {
+    return null
+  }
 
   return (
     <span className={cn('relative inline-flex items-center align-middle', className)}>

@@ -62,6 +62,7 @@ export function PsychologistCardList({
                       role={psy.role}
                       partnerName={partnerName}
                       upgradeRequest={psy.upgradeRequest}
+                      verificationStatus={psy.verificationStatus}
                     />
                   </div>
                   <p className="mt-0.5 text-xs text-ink-muted">{psy.city ?? 'Indonesia'}</p>

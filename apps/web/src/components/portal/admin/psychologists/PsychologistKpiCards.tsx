@@ -42,6 +42,16 @@ export function PsychologistKpiCards({
 }: PsychologistKpiCardsProps) {
   const cards = [
     {
+      id: 'pending_action' as PsyFilterTab,
+      label: 'Antrean Tindakan',
+      value: counts.pendingAction,
+      sublabel: `${counts.pendingVerifikasi} baru · ${counts.pendingUpgrade} upgrade`,
+      icon: <ArrowUpCircle className="size-4 text-[#D97706]" />,
+      valueClass: counts.pendingAction > 0 ? 'text-[#B45309]' : 'text-ink',
+      accentBorder: 'hover:border-[#F59E0B]/50',
+      activeClass: 'border-[#F59E0B] ring-1 ring-[#F59E0B]/20 bg-[#FEF3C7]/40',
+    },
+    {
       id: 'all' as PsyFilterTab,
       label: 'Semua Terdaftar',
       value: counts.total,
@@ -76,16 +86,6 @@ export function PsychologistKpiCards({
       icon: <HeartHandshake className="size-4 text-sky-600" />,
       accentBorder: 'hover:border-sky-500/50',
       activeClass: 'border-sky-500 ring-1 ring-sky-500/20 bg-sky-50/40',
-    },
-    {
-      id: 'pending_action' as PsyFilterTab,
-      label: 'Antrean Tindakan',
-      value: counts.pendingAction,
-      sublabel: `${counts.pendingVerifikasi} baru · ${counts.pendingUpgrade} upgrade`,
-      icon: <ArrowUpCircle className="size-4 text-[#D97706]" />,
-      valueClass: counts.pendingAction > 0 ? 'text-[#B45309]' : 'text-ink',
-      accentBorder: 'hover:border-[#F59E0B]/50',
-      activeClass: 'border-[#F59E0B] ring-1 ring-[#F59E0B]/20 bg-[#FEF3C7]/40',
     },
   ]
 
