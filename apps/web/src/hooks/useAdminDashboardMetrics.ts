@@ -54,10 +54,10 @@ export function useAdminDashboardMetrics(db: PortalDatabase, range: DashboardRan
     const usersDelta = calcDelta(currNewUsers, prevNewUsers)
 
     const approvedRelawan = db.psychologists.filter(
-      (p) => (p.role !== 'professional_mitra' && p.practiceType === 'mandiri') && p.verificationStatus === 'approved',
+      (p) => (p.role !== 'relawan_profesional_mitra' && p.practiceType === 'mandiri') && p.verificationStatus === 'approved',
     ).length
     const approvedMitra = db.psychologists.filter(
-      (p) => (p.role === 'professional_mitra' || p.practiceType !== 'mandiri') && p.verificationStatus === 'approved',
+      (p) => (p.role === 'relawan_profesional_mitra' || p.practiceType !== 'mandiri') && p.verificationStatus === 'approved',
     ).length
     const verifiedPsyTotal = approvedRelawan + approvedMitra
     const pendingPsyAction = db.psychologists.filter(
@@ -158,11 +158,11 @@ export function useAdminDashboardMetrics(db: PortalDatabase, range: DashboardRan
       p.verificationStatus === 'pending' || Boolean(p.upgradeRequest)
 
     const mitraCount = db.psychologists.filter(
-      (p) => (p.role === 'professional_mitra' || (!p.role && p.partnerId)) && !isPending(p),
+      (p) => (p.role === 'relawan_profesional_mitra' || (!p.role && p.partnerId)) && !isPending(p),
     ).length
     const relawanProfCount = db.psychologists.filter(
       (p) =>
-        (p.role === 'relawan_profesional' ||
+        (p.role === 'relawan_profesional_non_mitra' ||
           (!p.role && !p.partnerId && p.practiceType === 'mandiri')) &&
         !isPending(p),
     ).length
@@ -171,8 +171,8 @@ export function useAdminDashboardMetrics(db: PortalDatabase, range: DashboardRan
     ).length
 
     const psychologistComposition: PsychologistCompositionItem[] = [
-      { name: 'Profesional Mitra', value: mitraCount, color: '#10b981' },
-      { name: 'Relawan Profesional', value: relawanProfCount, color: '#6366f1' },
+      { name: 'Relawan Profesional (Mitra)', value: mitraCount, color: '#10b981' },
+      { name: 'Relawan Profesional (Non Mitra)', value: relawanProfCount, color: '#6366f1' },
       { name: 'Relawan Pendamping', value: relawanCount, color: '#0ea5e9' },
       { name: 'Antrean Tindakan', value: pendingPsyAction, color: '#ef4444' },
     ].filter((item) => item.value > 0)
@@ -197,7 +197,7 @@ export function useAdminDashboardMetrics(db: PortalDatabase, range: DashboardRan
       .filter((p) => p.verificationStatus === 'pending' || Boolean(p.upgradeRequest))
       .forEach((p) => {
         const isUpgrade = Boolean(p.upgradeRequest)
-        const targetLabel = 'Relawan Profesional'
+        const targetLabel = 'Relawan Profesional (Non Mitra)'
         queue.push({
           id: `psy-${p.id}`,
           kind: 'mandiri',

@@ -28,7 +28,7 @@ export function PsychologistProfileSidebar({
   psy,
   partner,
 }: PsychologistProfileSidebarProps) {
-  const isMitra = psy.role === 'professional_mitra' || (!psy.role && psy.partnerId)
+  const isMitra = psy.role === 'relawan_profesional_mitra' || (!psy.role && psy.partnerId)
   const feeCoins = psy.sessionFeeCoins ?? (psy.role === 'relawan_biasa' ? 0 : 100)
   const durationMinutes =
     psy.sessionDurationMinutes ?? (psy.role === 'relawan_biasa' ? 30 : 45)

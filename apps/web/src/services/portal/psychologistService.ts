@@ -21,7 +21,7 @@ export function simulateMobilePsychologistSubmission(
 
 export function simulateVolunteerUpgradeSubmission(
   psychologistId: string,
-  targetRole: 'relawan_profesional',
+  targetRole: 'relawan_profesional_non_mitra',
   notes: string,
 ): Psychologist | null {
   const db = loadPortalDb()
@@ -51,8 +51,8 @@ export function upsertPsychologist(
   input: Omit<Psychologist, 'id'> & { id?: string },
 ): Psychologist {
   const db = loadPortalDb()
-  const role = input.role || (input.partnerId ? 'professional_mitra' : 'relawan_profesional')
-  const practiceType = role === 'professional_mitra' ? 'faskes' : 'mandiri'
+  const role = input.role || (input.partnerId ? 'relawan_profesional_mitra' : 'relawan_profesional_non_mitra')
+  const practiceType = role === 'relawan_profesional_mitra' ? 'faskes' : 'mandiri'
   const verificationStatus = input.verificationStatus ?? (input.partnerId ? 'approved' : 'pending')
 
   if (input.id) {
@@ -60,7 +60,7 @@ export function upsertPsychologist(
     if (idx !== -1) {
       const existing = db.psychologists[idx]
       const nextRole =
-        input.role || existing.role || (existing.partnerId ? 'professional_mitra' : 'relawan_profesional')
+        input.role || existing.role || (existing.partnerId ? 'relawan_profesional_mitra' : 'relawan_profesional_non_mitra')
       const isRelawanBiasa = nextRole === 'relawan_biasa'
       const updated: Psychologist = {
         ...existing,
@@ -189,11 +189,11 @@ export function approvePsychologistUpgrade(psychologistId: string) {
   const strDoc = upgradeDocs.find((d) => d.docType === 'STR HIMPSI')
 
   const nextSippNumber =
-    targetRole === 'relawan_profesional' && sippDoc?.documentNumber
+    targetRole === 'relawan_profesional_non_mitra' && sippDoc?.documentNumber
       ? sippDoc.documentNumber
       : psy.sippNumber
   const nextStrNumber =
-    targetRole === 'relawan_profesional' && strDoc?.documentNumber
+    targetRole === 'relawan_profesional_non_mitra' && strDoc?.documentNumber
       ? strDoc.documentNumber
       : psy.strNumber
 
@@ -227,7 +227,7 @@ export function rejectPsychologistUpgrade(psychologistId: string, reason?: strin
 export function requestPsychologistUpgrade(
   psychologistId: string,
   input: {
-    targetRole: 'relawan_profesional'
+    targetRole: 'relawan_profesional_non_mitra'
     notes?: string
     documents?: Psychologist['documents']
   },

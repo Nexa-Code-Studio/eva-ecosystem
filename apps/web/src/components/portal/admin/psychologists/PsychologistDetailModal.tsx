@@ -42,10 +42,10 @@ export function PsychologistDetailModal({
 
   if (!isOpen || !psy) return null
 
-  const isMitra = psy.role === 'professional_mitra' || (!psy.role && psy.partnerId)
+  const isMitra = psy.role === 'relawan_profesional_mitra' || (!psy.role && psy.partnerId)
   const isMandiri = !isMitra
   const hasUpgrade = Boolean(psy.upgradeRequest)
-  const targetUpgradeLabel = 'Relawan Profesional'
+  const targetUpgradeLabel = 'Relawan Profesional (Non Mitra)'
 
   // Combine regular documents and upgrade request documents
   const standardDocs: PsychologistCertificate[] = psy.documents ?? []
@@ -97,7 +97,7 @@ export function PsychologistDetailModal({
                   className="text-base font-bold text-ink sm:text-lg tracking-tight"
                 >
                   {isMitra
-                    ? 'Detail Profil Psikolog Mitra'
+                    ? 'Detail Profil Relawan Profesional (Mitra)'
                     : hasUpgrade
                       ? 'Tinjau Pengajuan Upgrade Relawan'
                       : psy.verificationStatus === 'pending'

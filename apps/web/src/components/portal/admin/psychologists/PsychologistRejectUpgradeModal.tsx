@@ -24,7 +24,7 @@ export function PsychologistRejectUpgradeModal({
 }: PsychologistRejectUpgradeModalProps) {
   useBodyScrollLock(isOpen)
 
-  const targetRoleLabel = 'Relawan Profesional'
+  const targetRoleLabel = 'Relawan Profesional (Non Mitra)'
 
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | null>(null)

@@ -118,11 +118,11 @@ export function PsychologistRoleBadge({
   verificationStatus?: VerificationStatus
   className?: string
 }) {
-  if (verificationStatus === 'pending' && role !== 'professional_mitra') {
+  if (verificationStatus === 'pending' && role !== 'relawan_profesional_mitra') {
     return null
   }
 
-  if (role === 'professional_mitra') {
+  if (role === 'relawan_profesional_mitra') {
     return (
       <span
         className={cn(
@@ -131,12 +131,12 @@ export function PsychologistRoleBadge({
         )}
       >
         <Building2 className="size-3 text-emerald-600" />
-        <span>Profesional Mitra</span>
+        <span>Relawan Profesional (Mitra)</span>
       </span>
     )
   }
 
-  if (role === 'relawan_profesional') {
+  if (role === 'relawan_profesional_non_mitra') {
     return (
       <span
         className={cn(
@@ -145,7 +145,7 @@ export function PsychologistRoleBadge({
         )}
       >
         <GraduationCap className="size-3 text-indigo-600" />
-        <span>Relawan Profesional</span>
+        <span>Relawan Profesional (Non Mitra)</span>
       </span>
     )
   }
@@ -181,7 +181,7 @@ export function UpgradeRequestBadge({
       )}
     >
       <ArrowUpCircle className="size-3 text-amber-700" />
-      <span>Menunggu Upgrade ke Relawan Profesional</span>
+      <span>Menunggu Upgrade ke Relawan Profesional (Non Mitra)</span>
     </span>
   )
 }

@@ -37,7 +37,7 @@ export function PsychologistCardList({
   return (
     <div className="space-y-3">
       {psychologists.map((psy) => {
-        const isMitra = psy.role === 'professional_mitra' || (!psy.role && psy.partnerId)
+        const isMitra = psy.role === 'relawan_profesional_mitra' || (!psy.role && psy.partnerId)
         const partnerName = getPartnerName(psy.partnerId)
         const docCount = psy.documents?.length ?? 0
         const verifiedDocCount = psy.documents?.filter((d) => d.verified).length ?? 0

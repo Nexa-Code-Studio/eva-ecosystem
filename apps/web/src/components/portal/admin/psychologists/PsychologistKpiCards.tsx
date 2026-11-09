@@ -62,7 +62,7 @@ export function PsychologistKpiCards({
     },
     {
       id: 'mitra' as PsyFilterTab,
-      label: 'Profesional Mitra',
+      label: 'Relawan Profesional (Mitra)',
       value: counts.mitra,
       sublabel: 'RS / Klinik Faskes Mitra',
       icon: <Building2 className="size-4 text-emerald-600" />,
@@ -71,7 +71,7 @@ export function PsychologistKpiCards({
     },
     {
       id: 'relawan_profesional' as PsyFilterTab,
-      label: 'Relawan Profesional',
+      label: 'Relawan Profesional (Non Mitra)',
       value: counts.relawanProfesional,
       sublabel: 'Profesi S2 Psikolog + SIPP',
       icon: <GraduationCap className="size-4 text-indigo-600" />,

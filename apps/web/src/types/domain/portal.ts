@@ -42,12 +42,12 @@ export type PsychologistPracticeType = 'faskes' | 'mandiri'
 export type VerificationStatus = 'pending' | 'approved' | 'rejected' | 'suspended'
 
 export type PsychologistRole =
-  | 'professional_mitra'
-  | 'relawan_profesional'
+  | 'relawan_profesional_mitra'
+  | 'relawan_profesional_non_mitra'
   | 'relawan_biasa'
 
 export interface UpgradeRequest {
-  targetRole: 'relawan_profesional'
+  targetRole: 'relawan_profesional_non_mitra'
   requestedAt: string
   notes?: string
   documents?: PsychologistCertificate[]

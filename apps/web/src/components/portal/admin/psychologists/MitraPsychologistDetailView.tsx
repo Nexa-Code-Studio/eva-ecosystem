@@ -38,7 +38,7 @@ export function MitraPsychologistDetailView({
 
   return (
     <div className="space-y-4 p-5 sm:p-6 text-xs">
-      {/* 1. Header Profil Psikolog Mitra */}
+      {/* 1. Header Profil Relawan Profesional (Mitra) */}
       <div className="rounded-[14px] border border-[#E2E8F0] bg-white p-4 shadow-2xs">
         <div className="flex items-start gap-3.5">
           <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-800 text-sm font-bold ring-2 ring-emerald-200">
@@ -244,13 +244,13 @@ export function MitraPsychologistDetailView({
         <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="max-w-md">
             <p className="text-xs text-ink-muted leading-relaxed">
-              Tentukan apakah psikolog mitra ini dapat menerima penugasan pasien rujukan skrining DASS-21 di portal admin.
+              Tentukan apakah relawan profesional mitra ini dapat menerima penugasan pasien rujukan skrining DASS-21 di portal admin.
             </p>
           </div>
 
           <div className="sm:w-60">
             <label htmlFor="mitra-status-select" className="sr-only">
-              Status Praktik Psikolog Mitra
+              Status Praktik Relawan Profesional (Mitra)
             </label>
             <select
               id="mitra-status-select"

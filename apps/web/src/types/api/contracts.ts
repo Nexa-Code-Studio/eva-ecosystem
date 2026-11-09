@@ -55,13 +55,13 @@ export interface UpdatePsychologistVerificationRequestDto {
 }
 
 export interface RequestPsychologistUpgradeDto {
-  targetRole: 'relawan_profesional'
+  targetRole: 'relawan_profesional_non_mitra'
   notes?: string
   documents?: PsychologistCertificate[]
 }
 
 export interface SimulateMobilePsychologistInput {
-  role?: 'relawan_biasa' | 'relawan_profesional'
+  role?: 'relawan_biasa' | 'relawan_profesional_non_mitra'
   fullName: string
   sippNumber?: string
   strNumber?: string

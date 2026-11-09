@@ -11,7 +11,7 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
     id: 'psy-mandiri-1',
     partnerId: null,
     practiceType: 'mandiri',
-    role: 'relawan_profesional',
+    role: 'relawan_profesional_non_mitra',
     verificationStatus: 'pending',
     fullName: 'Larasati Kusumawardhani, M.Psi., Psikolog',
     sippNumber: '20220618-2027-01-1402',
@@ -119,7 +119,7 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
     id: 'psy-mandiri-3',
     partnerId: null,
     practiceType: 'mandiri',
-    role: 'relawan_profesional',
+    role: 'relawan_profesional_non_mitra',
     verificationStatus: 'approved',
     fullName: 'Farhan Syahputra, M.Psi., Psikolog',
     sippNumber: '20180522-2028-01-0312',
@@ -180,7 +180,7 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
     id: 'psy-mandiri-4',
     partnerId: null,
     practiceType: 'mandiri',
-    role: 'relawan_profesional',
+    role: 'relawan_profesional_non_mitra',
     verificationStatus: 'rejected',
     fullName: 'Sinta Maharani, M.Psi.',
     sippNumber: '20190110-2024-02-0118',
@@ -350,7 +350,7 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
       },
     ],
   },
-  // Relawan yang sedang MENUNGGU UPGRADE ke Relawan Profesional
+  // Relawan yang sedang MENUNGGU UPGRADE ke Relawan Profesional (Non Mitra)
   {
     id: 'psy-relawan-upgrade-prof',
     partnerId: null,
@@ -374,10 +374,10 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
     submittedAt: '2026-06-10',
     reviewedAt: '2026-06-12',
     upgradeRequest: {
-      targetRole: 'relawan_profesional',
+      targetRole: 'relawan_profesional_non_mitra',
       requestedAt: '2026-10-31',
       notes:
-        'Telah resmi disumpah sebagai Psikolog Klinis setelah menyelesaikan Magister Profesi Psikologi Klinis UI. Telah terbit SIPP DKI Jakarta dan STR-PK Kemenkes RI. Mengajukan upgrade peran dari Relawan menjadi Relawan Profesional.',
+        'Telah resmi disumpah sebagai Psikolog Klinis setelah menyelesaikan Magister Profesi Psikologi Klinis UI. Telah terbit SIPP DKI Jakarta dan STR-PK Kemenkes RI. Mengajukan upgrade peran dari Relawan menjadi Relawan Profesional (Non Mitra).',
       documents: [
         {
           id: 'doc-annisa-ijz',
@@ -432,12 +432,12 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
       },
     ],
   },
-  // Profesional Mitra (Faskes)
+  // Relawan Profesional (Mitra) (Faskes)
   {
     id: 'psy-1',
     partnerId: 'partner-sardjito',
     practiceType: 'faskes',
-    role: 'professional_mitra',
+    role: 'relawan_profesional_mitra',
     verificationStatus: 'approved',
     fullName: 'Ayu Kartika Sari, M.Psi., Psikolog',
     sippNumber: '20190412-2024-02-0814',
@@ -455,7 +455,7 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
     id: 'psy-2',
     partnerId: 'partner-sardjito',
     practiceType: 'faskes',
-    role: 'professional_mitra',
+    role: 'relawan_profesional_mitra',
     verificationStatus: 'approved',
     fullName: 'Dimas Prasetyo, M.Psi., Psikolog',
     sippNumber: '20200819-2025-01-1142',
@@ -473,7 +473,7 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
     id: 'psy-3',
     partnerId: 'partner-sardjito',
     practiceType: 'faskes',
-    role: 'professional_mitra',
+    role: 'relawan_profesional_mitra',
     verificationStatus: 'approved',
     fullName: 'dr. Clara Shinta, M.Psi., Psikolog',
     sippNumber: '20171103-2023-03-0419',
@@ -491,7 +491,7 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
     id: 'psy-4',
     partnerId: 'partner-pulih',
     practiceType: 'faskes',
-    role: 'professional_mitra',
+    role: 'relawan_profesional_mitra',
     verificationStatus: 'approved',
     fullName: 'Nadia Pramesti, M.Psi., Psikolog',
     sippNumber: '20210214-2025-02-0931',
@@ -545,7 +545,7 @@ export function buildSimulatedMobilePsychologist(
     .replace(/[^a-zA-Z0-9]+/g, '_')
     .slice(0, 24)
 
-  const role: PsychologistRole = input.role || 'relawan_profesional'
+  const role: PsychologistRole = input.role || 'relawan_profesional_non_mitra'
   const isBiasa = role === 'relawan_biasa'
   const sippNumber = isBiasa
     ? (input.sippNumber?.trim().toUpperCase() || 'NON-SIPP (Relawan Sebaya)')

@@ -24,20 +24,20 @@ function getPsychologistCategoryLabel(
   psy: Psychologist,
   partners: PartnerAccount[],
 ): { badgeLabel: string; facilityOrRoleName: string; badgeClass: string } {
-  if (psy.role === 'professional_mitra' || psy.practiceType === 'faskes') {
+  if (psy.role === 'relawan_profesional_mitra' || psy.practiceType === 'faskes') {
     const partner = psy.partnerId
       ? partners.find((p) => p.id === psy.partnerId)
       : undefined
     return {
-      badgeLabel: 'Psikolog Mitra Faskes',
+      badgeLabel: 'Relawan Profesional (Mitra)',
       facilityOrRoleName: partner?.facilityName ?? 'Mitra Faskes EVA',
       badgeClass: 'border-[#BFDBFE] bg-[#EFF6FF] text-[#1E40AF]',
     }
   }
 
-  if (psy.role === 'relawan_profesional') {
+  if (psy.role === 'relawan_profesional_non_mitra') {
     return {
-      badgeLabel: 'Relawan Profesional',
+      badgeLabel: 'Relawan Profesional (Non Mitra)',
       facilityOrRoleName: 'Praktik Mandiri Terverifikasi',
       badgeClass: 'border-[#C7D2FE] bg-[#EEF0FF] text-primary',
     }
