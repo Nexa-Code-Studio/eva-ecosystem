@@ -19,6 +19,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Nilai default
+APP="eva_counselor_mobile"
 TARGET="all"
 CONFIG="release"
 MODE="auto"
@@ -50,8 +51,9 @@ Deskripsi:
   pada repositori ${REPO_SLUG}.
 
 Opsi:
-  -t, --target <all|android|ios|iphone>  Target platform yang akan di-build (default: all)
-  -c, --config <release|debug>          Konfigurasi build (default: release)
+  -a, --app <eva_counselor_mobile|eva_mobile|all> Target aplikasi (default: eva_counselor_mobile)
+  -t, --target <all|android|web|ios|iphone>      Target platform yang akan di-build (default: all)
+  -c, --config <release|debug>                  Konfigurasi build (default: release)
   -b, --branch <nama_branch>            Branch referensi pemicu (default: current branch '$BRANCH')
   -m, --mode <auto|api|tag>             Metode pemicu (default: auto)
                                         - auto: Pilih API jika token ada, atau Git Tag jika tidak ada
@@ -78,6 +80,10 @@ EOF
 # Parsing argumen
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    -a|--app)
+      APP="$2"
+      shift 2
+      ;;
     -t|--target)
       TARGET="$2"
       shift 2
@@ -116,8 +122,8 @@ if [[ "$TARGET" == "iphone" ]]; then
 fi
 
 # Validasi target dan config
-if [[ "$TARGET" != "all" && "$TARGET" != "android" && "$TARGET" != "ios" ]]; then
-  echo -e "${RED}Error: Target tidak valid '$TARGET'. Pilihan: all, android, ios (atau iphone)${NC}" >&2
+if [[ "$TARGET" != "all" && "$TARGET" != "android" && "$TARGET" != "ios" && "$TARGET" != "web" ]]; then
+  echo -e "${RED}Error: Target tidak valid '$TARGET'. Pilihan: all, android, web, ios (atau iphone)${NC}" >&2
   exit 1
 fi
 
@@ -142,6 +148,7 @@ echo -e "${CYAN}   EVA AI - Mobile Build Workflow Trigger            ${NC}"
 echo -e "${CYAN}======================================================${NC}"
 echo -e "Repositori : ${GREEN}${REPO_SLUG}${NC}"
 echo -e "Branch     : ${GREEN}${BRANCH}${NC}"
+echo -e "App        : ${YELLOW}${APP}${NC}"
 echo -e "Target     : ${YELLOW}${TARGET}${NC}"
 echo -e "Config     : ${YELLOW}${CONFIG}${NC}"
 echo -e "Mode       : ${BLUE}${MODE}${NC}"
@@ -163,7 +170,7 @@ fi
 # Eksekusi berdasarkan mode
 if [[ "$EXEC_MODE" == "gh" ]]; then
   echo -e "${BLUE}ℹ Menggunakan GitHub CLI (gh)...${NC}"
-  CMD="gh workflow run build-mobile.yml --repo \"${REPO_SLUG}\" --ref \"${BRANCH}\" -f target=\"${TARGET}\" -f build_type=\"${CONFIG}\""
+  CMD="gh workflow run build-mobile.yml --repo \"${REPO_SLUG}\" --ref \"${BRANCH}\" -f app=\"${APP}\" -f target=\"${TARGET}\" -f build_type=\"${CONFIG}\" -f create_release=\"true\""
   if $DRY_RUN; then
     echo -e "${YELLOW}[DRY-RUN] Perintah yang akan dieksekusi:${NC}"
     echo "  $CMD"
@@ -181,7 +188,7 @@ elif [[ "$EXEC_MODE" == "api" ]]; then
   fi
 
   API_URL="https://api.github.com/repos/${REPO_SLUG}/actions/workflows/build-mobile.yml/dispatches"
-  PAYLOAD="{\"ref\": \"${BRANCH}\", \"inputs\": {\"target\": \"${TARGET}\", \"build_type\": \"${CONFIG}\"}}"
+  PAYLOAD="{\"ref\": \"${BRANCH}\", \"inputs\": {\"app\": \"${APP}\", \"target\": \"${TARGET}\", \"build_type\": \"${CONFIG}\", \"create_release\": true}}"
 
   if $DRY_RUN; then
     echo -e "${YELLOW}[DRY-RUN] Request REST API:${NC}"
@@ -209,21 +216,21 @@ elif [[ "$EXEC_MODE" == "api" ]]; then
 
 elif [[ "$EXEC_MODE" == "tag" ]]; then
   TIMESTAMP="$(date +%Y%m%d%H%M%S)"
-  TAG_NAME="build-${TARGET}-${CONFIG}-${TIMESTAMP}"
+  TAG_NAME="release-${APP}-${CONFIG}-${TIMESTAMP}"
   echo -e "${BLUE}ℹ Menggunakan metode Git Tag Push (tidak memerlukan token API)...${NC}"
   echo -e "Tag yang dibuat : ${YELLOW}${TAG_NAME}${NC}"
 
   if $DRY_RUN; then
     echo -e "${YELLOW}[DRY-RUN] Perintah git yang akan dieksekusi:${NC}"
-    echo "  git -C \"$ROOT_DIR\" tag -a \"$TAG_NAME\" -m \"Trigger mobile build: target=${TARGET}, config=${CONFIG}\""
+    echo "  git -C \"$ROOT_DIR\" tag -a \"$TAG_NAME\" -m \"Trigger build & release: app=${APP}, target=${TARGET}, config=${CONFIG}\""
     echo "  git -C \"$ROOT_DIR\" push origin \"$TAG_NAME\""
   else
     echo -e "Membuat tag ${TAG_NAME}..."
-    git -C "$ROOT_DIR" tag -a "$TAG_NAME" -m "Trigger mobile build: target=${TARGET}, config=${CONFIG}"
+    git -C "$ROOT_DIR" tag -a "$TAG_NAME" -m "Trigger build & release: app=${APP}, target=${TARGET}, config=${CONFIG}"
     echo -e "Push tag ke origin..."
     git -C "$ROOT_DIR" push origin "$TAG_NAME"
     echo -e "${GREEN}✓ Tag ${TAG_NAME} berhasil di-push ke origin!${NC}"
-    echo -e "GitHub Actions akan secara otomatis mendeteksi tag ini dan memulai proses build."
+    echo -e "GitHub Actions akan secara otomatis mendeteksi tag ini, mengkompilasi APK dan Web, serta menerbitkan GitHub Release."
   fi
 fi
 
