@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Outlet, useNavigate } from 'react-router'
 import { ShieldCheck } from 'lucide-react'
 import { ResetPortalDataAction } from '@/components/devtools/PortalDevTools'
-import { cn } from '@/lib/cn'
 import { resetPortalDbToDefault, setPortalSession, usePortalDb } from '@/lib/portalStore'
 import {
   PortalFeedbackBanner,
@@ -13,21 +12,22 @@ import {
   type AdminModule,
   type AdminSummaryCounts,
 } from '@/components/portal/admin/AdminSidebarAndKpi'
+import {
+  useAdminOutletContext,
+  type AdminOutletContext,
+} from '@/components/portal/admin/adminPortalContext'
 import { AdminDashboardOverview } from '@/components/portal/admin/AdminDashboardOverview'
 import { AdminPsychologistsModule } from '@/components/portal/admin/AdminPsychologistsModule'
 import { AdminPartnersModule } from '@/components/portal/admin/AdminPartnersModule'
 import { AdminReferralsModule } from '@/components/portal/admin/AdminReferralsModule'
 import { AdminUsersCoinsModule } from '@/components/portal/admin/AdminUsersCoinsModule'
-import { AdminMobileContentTab } from '@/components/portal/admin/AdminMobileContentTab'
-import { AdminCoinPackagesConfigTab } from '@/components/portal/admin/AdminCoinPackagesConfigTab'
-import { AdminWebsiteContentTab } from '@/components/portal/admin/AdminWebsiteContentTab'
+import { AdminContentConfigModule } from '@/components/portal/admin/AdminContentConfigModule'
+
+export type { AdminOutletContext }
 
 export function AdminDashboardPage() {
   const navigate = useNavigate()
   const { db, session } = usePortalDb()
-
-  const [activeModule, setActiveModule] = useState<AdminModule>('dashboard')
-  const [cmsSubTab, setCmsSubTab] = useState<'mobile' | 'coins_catalog' | 'website'>('mobile')
   const [feedbackBanner, setFeedbackBanner] = useState<string | null>(null)
 
   useEffect(() => {
@@ -89,6 +89,18 @@ export function AdminDashboardPage() {
     }
   }
 
+  const handleSelectModule = (mod: AdminModule) => {
+    const pathMap: Record<AdminModule, string> = {
+      dashboard: '/admin/dashboard',
+      psychologists: '/admin/psychologists',
+      partners: '/admin/partners',
+      referrals: '/admin/referrals',
+      users_coins: '/admin/users-coins',
+      content_config: '/admin/content-config',
+    }
+    navigate(pathMap[mod])
+  }
+
   return (
     <div className="min-h-dvh bg-[#F8FAFC] text-ink">
       <PortalTopbar
@@ -107,9 +119,8 @@ export function AdminDashboardPage() {
 
       <div className="flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:items-start lg:px-8">
         <AdminSidebar
-          activeModule={activeModule}
           counts={counts}
-          onSelectModule={setActiveModule}
+          onSelectModule={handleSelectModule}
         />
 
         <main className="min-w-0 flex-1">
@@ -122,96 +133,54 @@ export function AdminDashboardPage() {
             </div>
           )}
 
-          {activeModule === 'dashboard' && (
-            <AdminDashboardOverview
-              db={db}
-              onSelectModule={setActiveModule}
-            />
-          )}
-
-          {activeModule === 'psychologists' && (
-            <AdminPsychologistsModule
-              psychologists={db.psychologists}
-              partners={db.partners}
-              onFeedback={setFeedbackBanner}
-            />
-          )}
-
-          {activeModule === 'partners' && (
-            <AdminPartnersModule db={db} onFeedback={setFeedbackBanner} />
-          )}
-
-          {activeModule === 'referrals' && (
-            <AdminReferralsModule db={db} onFeedback={setFeedbackBanner} />
-          )}
-
-          {activeModule === 'users_coins' && (
-            <AdminUsersCoinsModule db={db} onFeedback={setFeedbackBanner} />
-          )}
-
-          {activeModule === 'content_config' && (
-            <div>
-              <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                <div>
-                  <h1 className="text-xl font-bold tracking-[-0.02em] text-ink sm:text-2xl">
-                    Konten Aplikasi Mobile &amp; Operasional Website
-                  </h1>
-                  <p className="mt-0.5 text-xs text-ink-muted">
-                    Kelola Misi Koping Harian, Hotline Krisis SafetyNet, Kurs &amp; Katalog Paket Koin Suara, serta Waitlist &amp; FAQ Website.
-                  </p>
-                </div>
-
-                <div className="inline-flex flex-wrap rounded-[8px] border border-[#E2E8F0] bg-white p-1">
-                  <button
-                    type="button"
-                    onClick={() => setCmsSubTab('mobile')}
-                    className={cn(
-                      'cursor-pointer rounded-[6px] px-3 py-1.5 text-xs font-semibold transition-colors',
-                      cmsSubTab === 'mobile'
-                        ? 'bg-primary text-white'
-                        : 'text-ink-soft hover:text-ink',
-                    )}
-                  >
-                    Misi Koping &amp; Krisis (Mobile)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCmsSubTab('coins_catalog')}
-                    className={cn(
-                      'cursor-pointer rounded-[6px] px-3 py-1.5 text-xs font-semibold transition-colors',
-                      cmsSubTab === 'coins_catalog'
-                        ? 'bg-primary text-white'
-                        : 'text-ink-soft hover:text-ink',
-                    )}
-                  >
-                    Kurs &amp; Paket Koin ({db.coinPackages.filter((pkg) => pkg.isActive).length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCmsSubTab('website')}
-                    className={cn(
-                      'cursor-pointer rounded-[6px] px-3 py-1.5 text-xs font-semibold transition-colors',
-                      cmsSubTab === 'website'
-                        ? 'bg-primary text-white'
-                        : 'text-ink-soft hover:text-ink',
-                    )}
-                  >
-                    Waitlist &amp; FAQ (Website)
-                  </button>
-                </div>
-              </div>
-
-              {cmsSubTab === 'mobile' ? (
-                <AdminMobileContentTab db={db} onFeedback={setFeedbackBanner} />
-              ) : cmsSubTab === 'coins_catalog' ? (
-                <AdminCoinPackagesConfigTab db={db} onFeedback={setFeedbackBanner} />
-              ) : (
-                <AdminWebsiteContentTab db={db} onFeedback={setFeedbackBanner} />
-              )}
-            </div>
-          )}
+          <Outlet
+            context={{
+              db,
+              session,
+              counts,
+              onFeedback: setFeedbackBanner,
+              onSelectModule: handleSelectModule,
+            } satisfies AdminOutletContext}
+          />
         </main>
       </div>
     </div>
   )
+}
+
+// Child Route Components
+export function AdminDashboardRoute() {
+  const { db, onSelectModule } = useAdminOutletContext()
+  return <AdminDashboardOverview db={db} onSelectModule={onSelectModule} />
+}
+
+export function AdminPsychologistsRoute() {
+  const { db, onFeedback } = useAdminOutletContext()
+  return (
+    <AdminPsychologistsModule
+      psychologists={db.psychologists}
+      partners={db.partners}
+      onFeedback={onFeedback}
+    />
+  )
+}
+
+export function AdminPartnersRoute() {
+  const { db, onFeedback } = useAdminOutletContext()
+  return <AdminPartnersModule db={db} onFeedback={onFeedback} />
+}
+
+export function AdminReferralsRoute() {
+  const { db, onFeedback } = useAdminOutletContext()
+  return <AdminReferralsModule db={db} onFeedback={onFeedback} />
+}
+
+export function AdminUsersCoinsRoute() {
+  const { db, onFeedback } = useAdminOutletContext()
+  return <AdminUsersCoinsModule db={db} onFeedback={onFeedback} />
+}
+
+export function AdminContentConfigRoute() {
+  const { db, onFeedback } = useAdminOutletContext()
+  return <AdminContentConfigModule db={db} onFeedback={onFeedback} />
 }

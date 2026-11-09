@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { ChevronLeft, ChevronRight, RefreshCw, Search } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import type { PartnerStatus, PortalDatabase } from '@/types/portal'
@@ -14,7 +15,13 @@ interface AdminPartnersModuleProps {
 const ITEMS_PER_PAGE = 5
 
 export function AdminPartnersModule({ db, onFeedback }: AdminPartnersModuleProps) {
-  const [partnerFilter, setPartnerFilter] = useState<'all' | PartnerStatus>('all')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const statusParam = searchParams.get('status') as PartnerStatus | null
+  const partnerFilter: 'all' | PartnerStatus =
+    statusParam && ['pending', 'approved', 'rejected', 'suspended'].includes(statusParam)
+      ? statusParam
+      : 'all'
+
   const [partnerSearch, setPartnerSearch] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(
@@ -64,7 +71,15 @@ export function AdminPartnersModule({ db, onFeedback }: AdminPartnersModuleProps
   }, [db.psychologists, selectedPartner])
 
   const handleFilterChange = (tabId: 'all' | PartnerStatus) => {
-    setPartnerFilter(tabId)
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (tabId === 'all') {
+        next.delete('status')
+      } else {
+        next.set('status', tabId)
+      }
+      return next
+    })
     setCurrentPage(1)
   }
 

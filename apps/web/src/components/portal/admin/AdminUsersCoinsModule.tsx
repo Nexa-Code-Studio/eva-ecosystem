@@ -1,5 +1,6 @@
 import { Coins, Search, ShieldAlert } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { AdminCoinsTransactionsTab } from './AdminCoinsTransactionsTab'
 import { cn } from '@/lib/cn'
 import {
@@ -17,7 +18,22 @@ export function AdminUsersCoinsModule({
   db,
   onFeedback,
 }: AdminUsersCoinsModuleProps) {
-  const [activeSubTab, setActiveSubTab] = useState<'users' | 'coins'>('users')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabParam = searchParams.get('tab')
+  const activeSubTab: 'users' | 'coins' = tabParam === 'coins' ? 'coins' : 'users'
+
+  const handleSubTabChange = (tab: 'users' | 'coins') => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (tab === 'coins') {
+        next.set('tab', 'coins')
+      } else {
+        next.delete('tab')
+      }
+      return next
+    })
+  }
+
   const [userSearch, setUserSearch] = useState('')
 
   const filteredUsers = useMemo(() => {
@@ -52,7 +68,7 @@ export function AdminUsersCoinsModule({
         <div className="inline-flex rounded-[8px] border border-[#E2E8F0] bg-white p-1">
           <button
             type="button"
-            onClick={() => setActiveSubTab('users')}
+            onClick={() => handleSubTabChange('users')}
             className={cn(
               'cursor-pointer rounded-[6px] px-3 py-1.5 text-xs font-semibold transition-colors',
               activeSubTab === 'users'
@@ -64,7 +80,7 @@ export function AdminUsersCoinsModule({
           </button>
           <button
             type="button"
-            onClick={() => setActiveSubTab('coins')}
+            onClick={() => handleSubTabChange('coins')}
             className={cn(
               'inline-flex cursor-pointer items-center gap-1.5 rounded-[6px] px-3 py-1.5 text-xs font-semibold transition-colors',
               activeSubTab === 'coins'

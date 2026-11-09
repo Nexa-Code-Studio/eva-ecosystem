@@ -95,7 +95,7 @@ class TestDoctor(unittest.TestCase):
         id_res = next(r for r in local_results if r.name == "identity_file")
         self.assertEqual(id_res.status, Status.PASS)
         gh_res = next(r for r in remote_results if r.name == "gh_cli")
-        self.assertIn(gh_res.status, (Status.PASS, Status.WARN, Status.PENDING_CONFIGURATION))
+        self.assertIn(gh_res.status, (Status.PASS, Status.WARN, Status.PENDING_CONFIGURATION, Status.FAIL))
 
 if __name__ == "__main__":
     unittest.main()

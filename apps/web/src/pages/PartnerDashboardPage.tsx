@@ -1,12 +1,13 @@
 import { Building2, ClipboardList, Stethoscope } from 'lucide-react'
 import { useEffect } from 'react'
-import { useNavigate } from 'react-router'
+import { NavLink, Outlet, useNavigate } from 'react-router'
 import { PortalFeedbackBanner, PortalTopbar } from '@/components/portal/PortalTopbar'
 import { PartnerProfileTab } from '@/components/portal/partner/PartnerProfileTab'
 import { PartnerPsychologistsTab } from '@/components/portal/partner/PartnerPsychologistsTab'
 import { PartnerReferralsTab } from '@/components/portal/partner/PartnerReferralsTab'
 import { PsychologistFormModal } from '@/components/portal/partner/PsychologistFormModal'
 import { usePartnerDashboard } from '@/hooks/usePartnerDashboard'
+import { usePartnerOutletContext } from '@/hooks/usePartnerOutletContext'
 import { cn } from '@/lib/cn'
 import {
   assignReferral,
@@ -98,126 +99,60 @@ export function PartnerDashboardPage() {
           className="mt-6 flex flex-wrap items-center gap-2 border-b border-[#E2E8F0] pb-3"
           role="tablist"
         >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={state.activeTab === 'psychologists'}
-            onClick={() => state.setActiveTab('psychologists')}
-            className={cn(
-              'inline-flex h-10 cursor-pointer items-center gap-2 rounded-[8px] px-4 text-xs font-semibold transition-colors',
-              state.activeTab === 'psychologists'
-                ? 'bg-primary text-white'
-                : 'border border-[#E2E8F0] bg-white text-ink-soft hover:text-ink',
-            )}
+          <NavLink
+            to="/mitra/psychologists"
+            className={({ isActive }) =>
+              cn(
+                'inline-flex h-10 cursor-pointer items-center gap-2 rounded-[8px] px-4 text-xs font-semibold transition-colors',
+                isActive
+                  ? 'bg-primary text-white'
+                  : 'border border-[#E2E8F0] bg-white text-ink-soft hover:text-ink',
+              )
+            }
           >
             <Stethoscope className="size-4" />
             <span>Manajemen Psikolog ({psychologists.length})</span>
-          </button>
+          </NavLink>
 
-          <button
-            type="button"
-            role="tab"
-            aria-selected={state.activeTab === 'referrals'}
-            onClick={() => state.setActiveTab('referrals')}
-            className={cn(
-              'inline-flex h-10 cursor-pointer items-center gap-2 rounded-[8px] px-4 text-xs font-semibold transition-colors',
-              state.activeTab === 'referrals'
-                ? 'bg-primary text-white'
-                : 'border border-[#E2E8F0] bg-white text-ink-soft hover:text-ink',
-            )}
+          <NavLink
+            to="/mitra/referrals"
+            className={({ isActive }) =>
+              cn(
+                'inline-flex h-10 cursor-pointer items-center gap-2 rounded-[8px] px-4 text-xs font-semibold transition-colors',
+                isActive
+                  ? 'bg-primary text-white'
+                  : 'border border-[#E2E8F0] bg-white text-ink-soft hover:text-ink',
+              )
+            }
           >
             <ClipboardList className="size-4" />
             <span>Rujukan Pasien EVA ({referrals.length})</span>
             {unassignedReferrals > 0 && (
               <span
-                className={cn(
-                  'rounded-full px-1.5 py-0.5 text-[10px] font-bold',
-                  state.activeTab === 'referrals'
-                    ? 'bg-white text-primary'
-                    : 'bg-primary text-white',
-                )}
+                className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-bold text-white"
               >
                 {unassignedReferrals} baru
               </span>
             )}
-          </button>
+          </NavLink>
 
-          <button
-            type="button"
-            role="tab"
-            aria-selected={state.activeTab === 'profile'}
-            onClick={() => state.setActiveTab('profile')}
-            className={cn(
-              'inline-flex h-10 cursor-pointer items-center gap-2 rounded-[8px] px-4 text-xs font-semibold transition-colors',
-              state.activeTab === 'profile'
-                ? 'bg-primary text-white'
-                : 'border border-[#E2E8F0] bg-white text-ink-soft hover:text-ink',
-            )}
+          <NavLink
+            to="/mitra/profile"
+            className={({ isActive }) =>
+              cn(
+                'inline-flex h-10 cursor-pointer items-center gap-2 rounded-[8px] px-4 text-xs font-semibold transition-colors',
+                isActive
+                  ? 'bg-primary text-white'
+                  : 'border border-[#E2E8F0] bg-white text-ink-soft hover:text-ink',
+              )
+            }
           >
             <Building2 className="size-4" />
             <span>Profil &amp; Operasional Faskes</span>
-          </button>
+          </NavLink>
         </div>
 
-        {state.activeTab === 'psychologists' && (
-          <PartnerPsychologistsTab
-            psychologists={state.filteredPsychologists}
-            psySearch={state.psySearch}
-            psyStatusFilter={state.psyStatusFilter}
-            onSearchChange={state.setPsySearch}
-            onFilterChange={state.setPsyStatusFilter}
-            onOpenAddModal={state.openAddModal}
-            onOpenEditModal={state.openEditModal}
-            onDeletePsychologist={(psy) => {
-              deletePsychologist(psy.id)
-              state.setBanner(`Data psikolog "${psy.fullName}" telah dihapus dari daftar faskes.`)
-            }}
-            onStatusChange={updatePsychologistStatus}
-          />
-        )}
-
-        {state.activeTab === 'referrals' && (
-          <PartnerReferralsTab
-            referrals={referrals}
-            psychologists={psychologists}
-            onAssignReferral={(refId, psyId, status: ReferralStatus, patientCode) => {
-              assignReferral(refId, psyId, status)
-              state.setBanner(`Penugasan psikolog untuk rujukan ${patientCode} diperbarui.`)
-            }}
-          />
-        )}
-
-        {state.activeTab === 'profile' && (
-          <PartnerProfileTab
-            profFacilityName={state.profFacilityName}
-            profFacilityType={state.profFacilityType}
-            profLicense={state.profLicense}
-            profCity={state.profCity}
-            profPhone={state.profPhone}
-            profAddress={state.profAddress}
-            profPicName={state.profPicName}
-            profPicRole={state.profPicRole}
-            profOperatingHours={state.profOperatingHours}
-            profWebsite={state.profWebsite}
-            profAccepting={state.profAccepting}
-            profBpjs={state.profBpjs}
-            profNotes={state.profNotes}
-            onSaveProfile={state.handleSaveProfile}
-            onFacilityNameChange={state.setProfFacilityName}
-            onFacilityTypeChange={state.setProfFacilityType}
-            onLicenseChange={state.setProfLicense}
-            onCityChange={state.setProfCity}
-            onPhoneChange={state.setProfPhone}
-            onAddressChange={state.setProfAddress}
-            onPicNameChange={state.setProfPicName}
-            onPicRoleChange={state.setProfPicRole}
-            onOperatingHoursChange={state.setProfOperatingHours}
-            onWebsiteChange={state.setProfWebsite}
-            onAcceptingChange={state.setProfAccepting}
-            onBpjsChange={state.setProfBpjs}
-            onNotesChange={state.setProfNotes}
-          />
-        )}
+        <Outlet context={state} />
       </main>
 
       <PsychologistFormModal
@@ -254,5 +189,75 @@ export function PartnerDashboardPage() {
         onEducationChange={state.setEducation}
       />
     </div>
+  )
+}
+
+// Child Route Components for Mitra
+export function PartnerPsychologistsRoute() {
+  const state = usePartnerOutletContext()
+  return (
+    <PartnerPsychologistsTab
+      psychologists={state.filteredPsychologists}
+      psySearch={state.psySearch}
+      psyStatusFilter={state.psyStatusFilter}
+      onSearchChange={state.setPsySearch}
+      onFilterChange={state.setPsyStatusFilter}
+      onOpenAddModal={state.openAddModal}
+      onOpenEditModal={state.openEditModal}
+      onDeletePsychologist={(psy) => {
+        deletePsychologist(psy.id)
+        state.setBanner(`Data psikolog "${psy.fullName}" telah dihapus dari daftar faskes.`)
+      }}
+      onStatusChange={updatePsychologistStatus}
+    />
+  )
+}
+
+export function PartnerReferralsRoute() {
+  const state = usePartnerOutletContext()
+  return (
+    <PartnerReferralsTab
+      referrals={state.referrals}
+      psychologists={state.psychologists}
+      onAssignReferral={(refId, psyId, status: ReferralStatus, patientCode) => {
+        assignReferral(refId, psyId, status)
+        state.setBanner(`Penugasan psikolog untuk rujukan ${patientCode} diperbarui.`)
+      }}
+    />
+  )
+}
+
+export function PartnerProfileRoute() {
+  const state = usePartnerOutletContext()
+  return (
+    <PartnerProfileTab
+      profFacilityName={state.profFacilityName}
+      profFacilityType={state.profFacilityType}
+      profLicense={state.profLicense}
+      profCity={state.profCity}
+      profPhone={state.profPhone}
+      profAddress={state.profAddress}
+      profPicName={state.profPicName}
+      profPicRole={state.profPicRole}
+      profOperatingHours={state.profOperatingHours}
+      profWebsite={state.profWebsite}
+      profAccepting={state.profAccepting}
+      profBpjs={state.profBpjs}
+      profNotes={state.profNotes}
+      onSaveProfile={state.handleSaveProfile}
+      onFacilityNameChange={state.setProfFacilityName}
+      onFacilityTypeChange={state.setProfFacilityType}
+      onLicenseChange={state.setProfLicense}
+      onCityChange={state.setProfCity}
+      onPhoneChange={state.setProfPhone}
+      onAddressChange={state.setProfAddress}
+      onPicNameChange={state.setProfPicName}
+      onPicRoleChange={state.setProfPicRole}
+      onOperatingHoursChange={state.setProfOperatingHours}
+      onWebsiteChange={state.setProfWebsite}
+      onAcceptingChange={state.setProfAccepting}
+      onBpjsChange={state.setProfBpjs}
+      onNotesChange={state.setProfNotes}
+    />
   )
 }

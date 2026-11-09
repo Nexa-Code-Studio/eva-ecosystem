@@ -8,42 +8,28 @@ import {
   Stethoscope,
 } from 'lucide-react'
 import { useState } from 'react'
+import { NavLink, useLocation } from 'react-router'
 import { cn } from '@/lib/cn'
+import {
+  getActiveAdminModule,
+  type AdminModule,
+  type AdminSummaryCounts,
+} from './adminPortalContext'
 
-export type AdminModule =
-  | 'dashboard'
-  | 'psychologists'
-  | 'partners'
-  | 'referrals'
-  | 'users_coins'
-  | 'content_config'
-
-export interface AdminSummaryCounts {
-  pendingMandiri: number
-  approvedMandiri: number
-  faskesPsy: number
-  pendingPartners: number
-  approvedPartners: number
-  crisisUsers: number
-  unassignedRefs: number
-  newWaitlist: number
-  totalGeneralUsers: number
-  activeQuestsCount: number
-  totalWaitlistCount: number
-  hotlineNumber: string
-  pendingPsyAction?: number
-}
+export type { AdminModule, AdminSummaryCounts }
 
 export function AdminSidebar({
-  activeModule,
+  activeModule: propActiveModule,
   counts,
   onSelectModule,
 }: {
-  activeModule: AdminModule
+  activeModule?: AdminModule
   counts: AdminSummaryCounts
-  onSelectModule: (mod: AdminModule) => void
+  onSelectModule?: (mod: AdminModule) => void
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const location = useLocation()
+  const activeModule = propActiveModule ?? getActiveAdminModule(location.pathname)
 
   const psyBadge = counts.pendingPsyAction ?? counts.pendingMandiri
 
@@ -56,6 +42,7 @@ export function AdminSidebar({
   const navItems = [
     {
       id: 'dashboard' as const,
+      path: '/admin/dashboard',
       label: 'Dashboard Utama',
       icon: LayoutDashboard,
       badge: totalAttention,
@@ -63,6 +50,7 @@ export function AdminSidebar({
     },
     {
       id: 'psychologists' as const,
+      path: '/admin/psychologists',
       label: 'Psikolog & Relawan',
       icon: Stethoscope,
       badge: psyBadge,
@@ -70,6 +58,7 @@ export function AdminSidebar({
     },
     {
       id: 'partners' as const,
+      path: '/admin/partners',
       label: 'Mitra Faskes',
       icon: Building2,
       badge: counts.pendingPartners,
@@ -77,6 +66,7 @@ export function AdminSidebar({
     },
     {
       id: 'referrals' as const,
+      path: '/admin/referrals',
       label: 'Rujukan Pasien',
       icon: ClipboardList,
       badge: counts.unassignedRefs,
@@ -84,6 +74,7 @@ export function AdminSidebar({
     },
     {
       id: 'users_coins' as const,
+      path: '/admin/users-coins',
       label: 'Pengguna & Koin',
       icon: Smartphone,
       badge: counts.crisisUsers,
@@ -91,6 +82,7 @@ export function AdminSidebar({
     },
     {
       id: 'content_config' as const,
+      path: '/admin/content-config',
       label: 'Konten Mobile & Website',
       icon: Globe,
       badge: counts.newWaitlist,
@@ -137,11 +129,11 @@ export function AdminSidebar({
                 const Icon = item.icon
                 const isActive = item.id === activeModule
                 return (
-                  <button
+                  <NavLink
                     key={item.id}
-                    type="button"
+                    to={item.path}
                     onClick={() => {
-                      onSelectModule(item.id)
+                      onSelectModule?.(item.id)
                       setIsMobileMenuOpen(false)
                     }}
                     className={cn(
@@ -163,7 +155,7 @@ export function AdminSidebar({
                         {item.badge}
                       </span>
                     )}
-                  </button>
+                  </NavLink>
                 )
               })}
             </div>
@@ -181,10 +173,10 @@ export function AdminSidebar({
             const Icon = item.icon
             const isActive = item.id === activeModule
             return (
-              <button
+              <NavLink
                 key={item.id}
-                type="button"
-                onClick={() => onSelectModule(item.id)}
+                to={item.path}
+                onClick={() => onSelectModule?.(item.id)}
                 className={cn(
                   'flex w-full cursor-pointer items-center justify-between rounded-[8px] px-3 py-2.5 text-left text-xs font-semibold transition-colors',
                   isActive ? 'bg-primary text-white shadow-2xs' : 'text-ink-soft hover:bg-[#F8FAFC] hover:text-ink',
@@ -204,7 +196,7 @@ export function AdminSidebar({
                     {item.badge}
                   </span>
                 )}
-              </button>
+              </NavLink>
             )
           })}
         </nav>
@@ -212,3 +204,4 @@ export function AdminSidebar({
     </>
   )
 }
+

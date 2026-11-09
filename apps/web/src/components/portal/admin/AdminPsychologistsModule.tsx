@@ -1,5 +1,6 @@
 import { Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import {
   PsychologistKpiCards,
   type PsyFilterTab,
@@ -25,7 +26,31 @@ export function AdminPsychologistsModule({
   partners,
   onFeedback,
 }: AdminPsychologistsModuleProps) {
-  const [activeFilter, setActiveFilter] = useState<PsyFilterTab>('all')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filterParam = searchParams.get('filter') as PsyFilterTab | null
+  const validFilters: PsyFilterTab[] = [
+    'all',
+    'mitra',
+    'relawan_profesional',
+    'relawan',
+    'relawan_biasa',
+    'pending_action',
+  ]
+  const activeFilter: PsyFilterTab =
+    filterParam && validFilters.includes(filterParam) ? filterParam : 'all'
+
+  const setActiveFilter = (filter: PsyFilterTab) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (filter === 'all') {
+        next.delete('filter')
+      } else {
+        next.set('filter', filter)
+      }
+      return next
+    })
+  }
+
   const [search, setSearch] = useState('')
   const [selectedPsyId, setSelectedPsyId] = useState<string | null>(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)

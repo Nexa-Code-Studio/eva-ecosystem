@@ -5,5 +5,12 @@
     "state": "In Progress",
     "updated_at": 1793875471,
     "evidence_summary": "Evidence accepted: active task branch verified."
+  },
+  "35": {
+    "issue": 35,
+    "branch": "refactor/35-url-route-architecture-refactor",
+    "state": "In Progress",
+    "updated_at": 1794186435,
+    "evidence_summary": "Evidence accepted: active task branch verified."
   }
 }

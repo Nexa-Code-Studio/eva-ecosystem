@@ -237,3 +237,6 @@ export function usePartnerDashboard() {
   }
 }
 
+export type PartnerDashboardState = ReturnType<typeof usePartnerDashboard>
+
+
