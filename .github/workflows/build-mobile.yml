@@ -74,7 +74,7 @@ jobs:
         run: flutter doctor -v
 
       - name: Build APK - Eva Counselor Mobile (Psikolog)
-        if: ${{ github.event.inputs.app == 'eva_counselor_mobile' || github.event.inputs.app == 'all' || github.event.inputs.app == null }}
+        if: ${{ github.event.inputs.app == 'eva_counselor_mobile' || github.event.inputs.app == 'all' || (github.event.inputs.app == null && !contains(github.ref, 'eva_mobile')) }}
         run: |
           BUILD_TYPE="${{ github.event.inputs.build_type || 'release' }}"
           echo "Building Eva Counselor Mobile Android APK (${BUILD_TYPE})..."
@@ -89,7 +89,7 @@ jobs:
           fi
 
       - name: Build APK - Eva Mobile (Gen Z Curhat)
-        if: ${{ github.event.inputs.app == 'eva_mobile' || github.event.inputs.app == 'all' || github.event.inputs.app == null }}
+        if: ${{ github.event.inputs.app == 'eva_mobile' || github.event.inputs.app == 'all' || (github.event.inputs.app == null && !contains(github.ref, 'eva_counselor_mobile')) }}
         run: |
           BUILD_TYPE="${{ github.event.inputs.build_type || 'release' }}"
           echo "Building Eva Mobile Android APK (${BUILD_TYPE})..."
@@ -161,7 +161,8 @@ jobs:
   build-ios:
     name: Build iPhone iOS (.ipa Package)
     runs-on: macos-latest
-    if: ${{ github.event_name == 'push' || github.event.inputs.target == 'all' || github.event.inputs.target == 'ios' }}
+    if: ${{ github.event.inputs.target == 'ios' }}
+    continue-on-error: true
 
     steps:
       - name: Checkout repository
