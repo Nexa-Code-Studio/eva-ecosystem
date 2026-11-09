@@ -1,8 +1,18 @@
-import { Coins, X } from 'lucide-react'
+import {
+  AlertCircle,
+  Award,
+  Calendar,
+  Check,
+  Clock,
+  Coins,
+  ShieldCheck,
+  X,
+} from 'lucide-react'
 import type { FormEvent } from 'react'
 import {
   CLINICAL_SPECIALIZATIONS,
   FORMAL_INPUT_CLASS,
+  FORMAL_INPUT_ERR_CLASS,
   SESSION_DURATION_PRESETS,
 } from '@/constants/portal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
@@ -73,242 +83,329 @@ export function PsychologistFormModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="psy-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/50 p-3 sm:p-4"
     >
-      <div className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-[12px] border border-[#E2E8F0] bg-white p-6 shadow-xl">
-        <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-3.5">
-          <h2 id="psy-modal-title" className="text-base font-semibold text-ink">
-            {editingPsy ? 'Edit Data Psikolog Klinis' : 'Tambah Psikolog Klinis Baru'}
-          </h2>
+      <div className="flex max-h-[92dvh] w-full max-w-xl flex-col overflow-hidden rounded-[16px] border border-[#E2E8F0] bg-white shadow-2xl">
+        {/* Sticky Header */}
+        <div className="flex items-start justify-between border-b border-[#E2E8F0] bg-white px-5 py-4 sm:px-6">
+          <div>
+            <h2 id="psy-modal-title" className="text-base font-bold text-ink sm:text-lg">
+              {editingPsy ? 'Edit Data Psikolog Klinis' : 'Tambah Psikolog Klinis Faskes'}
+            </h2>
+            <p className="mt-0.5 text-xs text-ink-muted">
+              {editingPsy
+                ? 'Perbarui informasi profil praktik, jadwal, dan tarif sesi psikolog faskes.'
+                : 'Daftarkan psikolog klinis profesional yang berpraktik di fasilitas kesehatan Anda.'}
+            </p>
+          </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Tutup modal"
-            className="flex size-8 cursor-pointer items-center justify-center rounded-[6px] text-ink-soft hover:bg-[#F1F5F9] hover:text-ink"
+            className="flex size-8 cursor-pointer items-center justify-center rounded-[8px] text-ink-soft transition-colors hover:bg-[#F1F5F9] hover:text-ink"
           >
             <X className="size-4" />
           </button>
         </div>
 
-        <form onSubmit={onSubmit} noValidate className="mt-4 space-y-4">
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-ink">
-              Nama Lengkap &amp; Gelar Psikolog <span className="text-error">*</span>
-            </label>
-            <input
-              type="text"
-              placeholder="Contoh: Ayu Kartika Sari, M.Psi., Psikolog"
-              value={fullName}
-              onChange={(e) => onFullNameChange(e.target.value)}
-              className={FORMAL_INPUT_CLASS}
-            />
-            {errors.fullName && <p className="mt-1 text-xs text-error">{errors.fullName}</p>}
-          </div>
+        {/* Scrollable Form Body */}
+        <form onSubmit={onSubmit} noValidate className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex-1 space-y-4 overflow-y-auto p-5 sm:p-6">
+            {/* Seksi 1: Identitas & Legalitas Klinis */}
+            <div className="rounded-[12px] border border-[#E2E8F0] bg-[#F8FAFC]/60 p-4 space-y-3.5">
+              <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-ink uppercase">
+                <ShieldCheck className="size-4 text-primary" />
+                <span>Identitas &amp; Legalitas Klinis</span>
+              </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-ink">
-                Nomor SIPP / STR (HIMPSI) <span className="text-error">*</span>
-              </label>
-              <input
-                type="text"
-                placeholder="Contoh: 20190412-2024-02-0814"
-                value={sippNumber}
-                onChange={(e) => onSippNumberChange(e.target.value.toUpperCase())}
-                className={cn(FORMAL_INPUT_CLASS, 'uppercase placeholder:normal-case')}
-              />
-              {errors.sippNumber && (
-                <p className="mt-1 text-xs text-error">{errors.sippNumber}</p>
-              )}
-            </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-ink">
+                  Nama Lengkap &amp; Gelar Psikolog <span className="text-error">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Ayu Kartika Sari, M.Psi., Psikolog"
+                  value={fullName}
+                  onChange={(e) => onFullNameChange(e.target.value)}
+                  className={cn(FORMAL_INPUT_CLASS, errors.fullName && FORMAL_INPUT_ERR_CLASS)}
+                />
+                {errors.fullName && (
+                  <p className="mt-1.5 flex items-center gap-1 text-xs text-error">
+                    <AlertCircle className="size-3.5 shrink-0" />
+                    <span>{errors.fullName}</span>
+                  </p>
+                )}
+              </div>
 
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-ink">
-                Status Praktik <span className="text-error">*</span>
-              </label>
-              <select
-                value={psyStatus}
-                onChange={(e) => onStatusChange(e.target.value as PsychologistStatus)}
-                className={FORMAL_INPUT_CLASS}
-              >
-                <option value="active">Aktif Praktik</option>
-                <option value="on_leave">Sedang Cuti</option>
-                <option value="inactive">Nonaktif</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-ink">
-              Spesialisasi Klinis <span className="text-error">*</span>
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {CLINICAL_SPECIALIZATIONS.map((spec) => {
-                const active = selectedSpecs.includes(spec)
-                return (
-                  <button
-                    key={spec}
-                    type="button"
-                    onClick={() => onToggleSpec(spec)}
-                    className={cn(
-                      'cursor-pointer rounded-[6px] border px-2.5 py-1 text-xs font-medium transition-colors',
-                      active
-                        ? 'border-primary bg-primary text-white'
-                        : 'border-[#CBD5E1] bg-white text-ink-soft hover:text-ink',
-                    )}
-                  >
-                    {spec}
-                  </button>
-                )
-              })}
-            </div>
-            {errors.specializations && (
-              <p className="mt-1 text-xs text-error">{errors.specializations}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-ink">
-              Hari &amp; Jam Praktik <span className="text-error">*</span>
-            </label>
-            <input
-              type="text"
-              placeholder="Contoh: Senin, Rabu, Jumat (08.30 – 15.00 WIB)"
-              value={practiceSchedule}
-              onChange={(e) => onPracticeScheduleChange(e.target.value)}
-              className={FORMAL_INPUT_CLASS}
-            />
-            {errors.practiceSchedule && (
-              <p className="mt-1 text-xs text-error">{errors.practiceSchedule}</p>
-            )}
-          </div>
-
-          {/* Durasi & Tarif Sesi Konseling */}
-          <div className="grid gap-4 border-t border-[#E2E8F0] pt-3 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-ink">
-                Durasi per Sesi Konseling <span className="text-error">*</span>
-              </label>
-              <select
-                aria-label="Durasi per Sesi Konseling"
-                value={sessionDurationMinutes}
-                onChange={(e) => onDurationChange(Number.parseInt(e.target.value, 10))}
-                className={FORMAL_INPUT_CLASS}
-              >
-                {SESSION_DURATION_PRESETS.map((dur) => (
-                  <option key={dur} value={dur}>
-                    {dur} Menit / Sesi
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-ink">
-                Tarif Sesi (Koin Suara EVA) <span className="text-error">*</span>
-              </label>
-              {editingPsy?.role === 'relawan_biasa' ? (
+              <div className="grid gap-3.5 sm:grid-cols-2">
                 <div>
+                  <label className="mb-1.5 block text-xs font-medium text-ink">
+                    Nomor SIPP / STR (HIMPSI) <span className="text-error">*</span>
+                  </label>
                   <input
                     type="text"
-                    disabled
-                    value="0 Koin (Gratis)"
-                    className={cn(FORMAL_INPUT_CLASS, 'cursor-not-allowed bg-[#F1F5F9] text-ink-muted')}
+                    placeholder="Contoh: 20190412-2024-02-0814"
+                    value={sippNumber}
+                    onChange={(e) => onSippNumberChange(e.target.value.toUpperCase())}
+                    className={cn(
+                      FORMAL_INPUT_CLASS,
+                      'uppercase placeholder:normal-case font-mono text-xs',
+                      errors.sippNumber && FORMAL_INPUT_ERR_CLASS,
+                    )}
                   />
-                  <p className="mt-1 text-[11px] text-ink-muted">
-                    Terkunci 0 Koin untuk Relawan Biasa (layanan sukarela bebas biaya).
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min={0}
-                      step={5}
-                      placeholder="Contoh: 50"
-                      value={sessionFeeCoins}
-                      onChange={(e) => onFeeCoinsChange(e.target.value)}
-                      className={cn(FORMAL_INPUT_CLASS, 'pr-16')}
-                    />
-                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center gap-1 text-xs font-semibold text-amber-700">
-                      <Coins className="size-3.5 text-amber-600" />
-                      <span>Koin</span>
-                    </span>
-                  </div>
-                  {errors.sessionFeeCoins && (
-                    <p className="mt-1 text-xs text-error">{errors.sessionFeeCoins}</p>
+                  {errors.sippNumber && (
+                    <p className="mt-1.5 flex items-center gap-1 text-xs text-error">
+                      <AlertCircle className="size-3.5 shrink-0" />
+                      <span>{errors.sippNumber}</span>
+                    </p>
                   )}
-                  <p className="mt-1 text-[11px] text-ink-muted">
-                    1 Koin = 1 Menit sesi konseling suara bersama EVA &amp; psikolog.
-                  </p>
                 </div>
-              )}
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-ink">
+                    Status Praktik <span className="text-error">*</span>
+                  </label>
+                  <select
+                    value={psyStatus}
+                    onChange={(e) => onStatusChange(e.target.value as PsychologistStatus)}
+                    className={FORMAL_INPUT_CLASS}
+                  >
+                    <option value="active">Aktif Praktik</option>
+                    <option value="on_leave">Sedang Cuti</option>
+                    <option value="inactive">Nonaktif</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 flex items-center justify-between text-xs font-medium text-ink">
+                  <span>Pendidikan Profesi</span>
+                  <span className="font-normal text-ink-muted">(Opsional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Magister Profesi Psikologi Klinis UGM"
+                  value={education}
+                  onChange={(e) => onEducationChange(e.target.value)}
+                  className={FORMAL_INPUT_CLASS}
+                />
+              </div>
+            </div>
+
+            {/* Seksi 2: Layanan & Jadwal Praktik */}
+            <div className="rounded-[12px] border border-[#E2E8F0] bg-[#F8FAFC]/60 p-4 space-y-3.5">
+              <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-ink uppercase">
+                <Calendar className="size-4 text-primary" />
+                <span>Layanan &amp; Jadwal Praktik</span>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-ink">
+                  Hari &amp; Jam Praktik <span className="text-error">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Senin, Rabu, Jumat (08.30 – 15.00 WIB)"
+                  value={practiceSchedule}
+                  onChange={(e) => onPracticeScheduleChange(e.target.value)}
+                  className={cn(FORMAL_INPUT_CLASS, errors.practiceSchedule && FORMAL_INPUT_ERR_CLASS)}
+                />
+                {errors.practiceSchedule && (
+                  <p className="mt-1.5 flex items-center gap-1 text-xs text-error">
+                    <AlertCircle className="size-3.5 shrink-0" />
+                    <span>{errors.practiceSchedule}</span>
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label className="text-xs font-medium text-ink">
+                    Spesialisasi Klinis <span className="text-error">*</span>
+                  </label>
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                    {selectedSpecs.length} Terpilih
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {CLINICAL_SPECIALIZATIONS.map((spec) => {
+                    const active = selectedSpecs.includes(spec)
+                    return (
+                      <button
+                        key={spec}
+                        type="button"
+                        onClick={() => onToggleSpec(spec)}
+                        className={cn(
+                          'inline-flex items-center gap-1.5 cursor-pointer rounded-[6px] border px-2.5 py-1 text-xs font-medium transition-colors',
+                          active
+                            ? 'border-primary bg-primary text-white shadow-2xs'
+                            : 'border-[#CBD5E1] bg-white text-ink-soft hover:border-primary/40 hover:text-ink',
+                        )}
+                      >
+                        {active && <Check className="size-3 stroke-[3]" />}
+                        <span>{spec}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+                {errors.specializations && (
+                  <p className="mt-1.5 flex items-center gap-1 text-xs text-error">
+                    <AlertCircle className="size-3.5 shrink-0" />
+                    <span>{errors.specializations}</span>
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Seksi 3: Tarif Koin & Durasi Sesi Konseling */}
+            <div className="rounded-[12px] border border-amber-200/80 bg-amber-50/20 p-4 space-y-3.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-amber-900 uppercase">
+                  <Coins className="size-4 text-amber-600" />
+                  <span>Tarif Koin &amp; Durasi Sesi</span>
+                </div>
+                <span className="text-[10.5px] font-semibold text-amber-800/80">Koin Suara EVA</span>
+              </div>
+
+              <div className="grid gap-3.5 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-ink">
+                    Durasi per Sesi Konseling <span className="text-error">*</span>
+                  </label>
+                  <select
+                    aria-label="Durasi per Sesi Konseling"
+                    value={sessionDurationMinutes}
+                    onChange={(e) => onDurationChange(Number.parseInt(e.target.value, 10))}
+                    className={FORMAL_INPUT_CLASS}
+                  >
+                    {SESSION_DURATION_PRESETS.map((dur) => (
+                      <option key={dur} value={dur}>
+                        {dur} Menit / Sesi
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-ink">
+                    Tarif Sesi (Koin Suara EVA) <span className="text-error">*</span>
+                  </label>
+                  {editingPsy?.role === 'relawan_biasa' ? (
+                    <div>
+                      <input
+                        type="text"
+                        disabled
+                        value="0 Koin (Gratis)"
+                        className={cn(
+                          FORMAL_INPUT_CLASS,
+                          'cursor-not-allowed bg-[#F1F5F9] text-ink-muted',
+                        )}
+                      />
+                      <p className="mt-1 text-[11px] text-ink-muted">
+                        Terkunci 0 Koin untuk Relawan Biasa (layanan sukarela bebas biaya).
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min={0}
+                          step={5}
+                          placeholder="Contoh: 50"
+                          value={sessionFeeCoins}
+                          onChange={(e) => onFeeCoinsChange(e.target.value)}
+                          className={cn(
+                            FORMAL_INPUT_CLASS,
+                            'pr-16',
+                            errors.sessionFeeCoins && FORMAL_INPUT_ERR_CLASS,
+                          )}
+                        />
+                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center gap-1 text-xs font-semibold text-amber-700">
+                          <Coins className="size-3.5 text-amber-600" />
+                          <span>Koin</span>
+                        </span>
+                      </div>
+                      {errors.sessionFeeCoins && (
+                        <p className="mt-1.5 flex items-center gap-1 text-xs text-error">
+                          <AlertCircle className="size-3.5 shrink-0" />
+                          <span>{errors.sessionFeeCoins}</span>
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 text-[11px] text-amber-900/80">
+                <Clock className="size-3.5 shrink-0 text-amber-600" />
+                <span>1 Koin bernilai setara 1 menit sesi konseling suara AI &amp; psikolog klinis.</span>
+              </div>
+            </div>
+
+            {/* Seksi 4: Kapasitas Rujukan & Pengalaman */}
+            <div className="rounded-[12px] border border-[#E2E8F0] bg-[#F8FAFC]/60 p-4 space-y-3.5">
+              <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-ink uppercase">
+                <Award className="size-4 text-primary" />
+                <span>Kapasitas Rujukan &amp; Pengalaman</span>
+              </div>
+
+              <div className="grid gap-3.5 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 flex items-center justify-between text-xs font-medium text-ink">
+                    <span>Kuota Rujukan / Minggu</span>
+                    <span className="font-normal text-ink-muted">(Opsional)</span>
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    placeholder="Contoh: 10"
+                    value={weeklyQuota}
+                    onChange={(e) => onWeeklyQuotaChange(e.target.value)}
+                    className={FORMAL_INPUT_CLASS}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 flex items-center justify-between text-xs font-medium text-ink">
+                    <span>Pengalaman Praktik (Tahun)</span>
+                    <span className="font-normal text-ink-muted">(Opsional)</span>
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={50}
+                    placeholder="Contoh: 6"
+                    value={yearsExperience}
+                    onChange={(e) => onYearsExperienceChange(e.target.value)}
+                    className={FORMAL_INPUT_CLASS}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="grid gap-4 border-t border-[#E2E8F0] pt-3 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 flex items-center justify-between text-xs font-medium text-ink">
-                <span>Kuota Rujukan / Minggu</span>
-                <span className="font-normal text-ink-muted">(Opsional)</span>
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={100}
-                placeholder="Contoh: 10"
-                value={weeklyQuota}
-                onChange={(e) => onWeeklyQuotaChange(e.target.value)}
-                className={FORMAL_INPUT_CLASS}
-              />
+          {/* Sticky Footer */}
+          <div className="flex items-center justify-between border-t border-[#E2E8F0] bg-[#F8FAFC] px-5 py-3.5 sm:px-6">
+            <span className="text-[11px] text-ink-muted">
+              <span className="text-error font-bold">*</span> Wajib diisi
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex h-9 cursor-pointer items-center justify-center rounded-[8px] border border-[#CBD5E1] bg-white px-4 text-xs font-semibold text-ink hover:bg-[#F8FAFC]"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="inline-flex h-9 cursor-pointer items-center justify-center rounded-[8px] bg-primary px-5 text-xs font-semibold text-white transition-colors hover:bg-[#464BB8]"
+              >
+                {editingPsy ? 'Simpan Perubahan' : 'Simpan Data Psikolog'}
+              </button>
             </div>
-
-            <div>
-              <label className="mb-1.5 flex items-center justify-between text-xs font-medium text-ink">
-                <span>Pengalaman Praktik (Tahun)</span>
-                <span className="font-normal text-ink-muted">(Opsional)</span>
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={50}
-                placeholder="Contoh: 6"
-                value={yearsExperience}
-                onChange={(e) => onYearsExperienceChange(e.target.value)}
-                className={FORMAL_INPUT_CLASS}
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="mb-1.5 flex items-center justify-between text-xs font-medium text-ink">
-                <span>Pendidikan Profesi</span>
-                <span className="font-normal text-ink-muted">(Opsional)</span>
-              </label>
-              <input
-                type="text"
-                placeholder="Contoh: Magister Profesi Psikologi Klinis UGM"
-                value={education}
-                onChange={(e) => onEducationChange(e.target.value)}
-                className={FORMAL_INPUT_CLASS}
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-2.5 border-t border-[#E2E8F0] pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex h-10 cursor-pointer items-center justify-center rounded-[8px] border border-[#CBD5E1] bg-white px-4 text-xs font-semibold text-ink hover:bg-[#F8FAFC]"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="inline-flex h-10 cursor-pointer items-center justify-center rounded-[8px] bg-primary px-5 text-xs font-semibold text-white hover:bg-[#464BB8]"
-            >
-              {editingPsy ? 'Simpan Perubahan' : 'Simpan Data Psikolog'}
-            </button>
           </div>
         </form>
       </div>

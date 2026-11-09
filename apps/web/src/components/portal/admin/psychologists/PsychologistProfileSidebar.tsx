@@ -134,19 +134,22 @@ export function PsychologistProfileSidebar({
         </div>
       </div>
 
-      {/* Jadwal & Kontak Praktik */}
-      <div className="rounded-[12px] border border-[#E2E8F0] bg-[#F8FAFC] p-3.5">
-        <span className="text-[10px] font-bold tracking-wider text-ink-muted uppercase">
-          Tarif &amp; Durasi Layanan Sesi
-        </span>
-        <div className="mt-2 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 font-semibold text-ink">
-            <Coins className="size-4 text-amber-500" />
+      {/* Tarif & Durasi Layanan Sesi */}
+      <div className="rounded-[12px] border border-amber-200/80 bg-amber-50/25 p-3.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold tracking-wider text-amber-900 uppercase">
+            Tarif &amp; Durasi Layanan Sesi
+          </span>
+          <span className="text-[10px] font-semibold text-amber-800/80">Koin EVA</span>
+        </div>
+        <div className="mt-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 font-bold text-amber-950">
+            <Coins className="size-4 text-amber-600" />
             <span>{psy.sessionFeeCoins ? `${psy.sessionFeeCoins} Koin` : 'Gratis (0 Koin)'}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs font-medium text-ink-muted">
-            <Clock className="size-3.5" />
-            <span>{psy.sessionDurationMinutes ?? (psy.role === 'relawan_biasa' ? 30 : 45)} Menit</span>
+          <div className="inline-flex items-center gap-1 rounded-[6px] border border-amber-200/60 bg-white/80 px-2 py-0.5 text-[11px] font-medium text-amber-900 shadow-2xs">
+            <Clock className="size-3 text-amber-600" />
+            <span>{psy.sessionDurationMinutes ?? (psy.role === 'relawan_biasa' ? 30 : 45)} Menit / Sesi</span>
           </div>
         </div>
       </div>

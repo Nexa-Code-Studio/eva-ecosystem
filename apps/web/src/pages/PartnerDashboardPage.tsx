@@ -208,6 +208,7 @@ export function PartnerPsychologistsRoute() {
       psychologists={state.filteredPsychologists}
       psySearch={state.psySearch}
       psyStatusFilter={state.psyStatusFilter}
+      psyCounts={state.psyCounts}
       onSearchChange={state.setPsySearch}
       onFilterChange={state.setPsyStatusFilter}
       onOpenAddModal={state.openAddModal}

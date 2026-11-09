@@ -12,5 +12,12 @@
     "state": "In Progress",
     "updated_at": 1794186435,
     "evidence_summary": "Evidence accepted: active task branch verified."
+  },
+  "40": {
+    "issue": 40,
+    "branch": "feat/40-psychologist-volunteer-modal-ux",
+    "state": "In Progress",
+    "updated_at": 1794198995,
+    "evidence_summary": "Evidence accepted: active task branch verified."
   }
 }
