@@ -16,6 +16,9 @@ export const FACILITY_TYPES: FacilityType[] = [
   'Biro Psikologi',
 ]
 
+export const SESSION_DURATION_PRESETS = [30, 45, 60] as const
+export const DEFAULT_SESSION_DURATION_MINUTES = 45
+
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export const PHONE_RE = /^(\+62|62|0)[0-9]{8,13}$/
 

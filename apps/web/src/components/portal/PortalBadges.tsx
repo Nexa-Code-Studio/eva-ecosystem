@@ -3,6 +3,7 @@ import {
   Building2,
   CheckCircle2,
   Clock,
+  Coins,
   GraduationCap,
   HeartHandshake,
   XCircle,
@@ -178,4 +179,45 @@ export function UpgradeRequestBadge({
     </span>
   )
 }
+
+export function PsychologistSessionFeeBadge({
+  feeCoins,
+  durationMinutes,
+  className,
+}: {
+  feeCoins?: number
+  durationMinutes?: number
+  className?: string
+}) {
+  const isFree = !feeCoins || feeCoins === 0
+  const duration = durationMinutes ?? (isFree ? 30 : 45)
+
+  if (isFree) {
+    return (
+      <span
+        className={cn(
+          'inline-flex shrink-0 items-center gap-1 rounded-[6px] border border-[#CBD5E1] bg-[#F8FAFC] px-2 py-0.5 text-[11px] font-semibold text-ink-soft',
+          className,
+        )}
+      >
+        <span>Gratis / {duration} mnt</span>
+      </span>
+    )
+  }
+
+  return (
+    <span
+      className={cn(
+        'inline-flex shrink-0 items-center gap-1 rounded-[6px] border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-900',
+        className,
+      )}
+    >
+      <Coins className="size-3 text-amber-600" />
+      <span>
+        {feeCoins} Koin / {duration} mnt
+      </span>
+    </span>
+  )
+}
+
 

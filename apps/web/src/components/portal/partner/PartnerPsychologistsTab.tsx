@@ -1,4 +1,5 @@
 import { Calendar, Edit3, Plus, Search, Trash2 } from 'lucide-react'
+import { PsychologistSessionFeeBadge } from '@/components/portal/PortalBadges'
 import { cn } from '@/lib/cn'
 import type { Psychologist, PsychologistStatus } from '@/types/portal'
 
@@ -99,6 +100,7 @@ export function PartnerPsychologistsTab({
                   <th className="px-4 py-3.5">Nomor SIPP / STR</th>
                   <th className="px-4 py-3.5">Spesialisasi Klinis</th>
                   <th className="px-4 py-3.5">Jadwal &amp; Kuota</th>
+                  <th className="px-4 py-3.5">Durasi &amp; Tarif Sesi</th>
                   <th className="px-4 py-3.5">Status Praktik</th>
                   <th className="px-4 py-3.5 text-right">Aksi</th>
                 </tr>
@@ -138,6 +140,12 @@ export function PartnerPsychologistsTab({
                           Kuota rujukan: {psy.weeklyQuota} pasien/minggu
                         </p>
                       )}
+                    </td>
+                    <td className="px-4 py-4 align-top">
+                      <PsychologistSessionFeeBadge
+                        feeCoins={psy.sessionFeeCoins}
+                        durationMinutes={psy.sessionDurationMinutes}
+                      />
                     </td>
                     <td className="px-4 py-4 align-top">
                       <select

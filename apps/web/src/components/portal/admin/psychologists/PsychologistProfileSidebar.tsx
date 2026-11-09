@@ -3,6 +3,7 @@ import {
   ArrowUpCircle,
   BookOpen,
   Clock,
+  Coins,
   Mail,
   MapPin,
   Phone,
@@ -134,6 +135,22 @@ export function PsychologistProfileSidebar({
       </div>
 
       {/* Jadwal & Kontak Praktik */}
+      <div className="rounded-[12px] border border-[#E2E8F0] bg-[#F8FAFC] p-3.5">
+        <span className="text-[10px] font-bold tracking-wider text-ink-muted uppercase">
+          Tarif &amp; Durasi Layanan Sesi
+        </span>
+        <div className="mt-2 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 font-semibold text-ink">
+            <Coins className="size-4 text-amber-500" />
+            <span>{psy.sessionFeeCoins ? `${psy.sessionFeeCoins} Koin` : 'Gratis (0 Koin)'}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs font-medium text-ink-muted">
+            <Clock className="size-3.5" />
+            <span>{psy.sessionDurationMinutes ?? (psy.role === 'relawan_biasa' ? 30 : 45)} Menit</span>
+          </div>
+        </div>
+      </div>
+
       <div className="rounded-[12px] border border-[#E2E8F0] bg-[#F8FAFC] p-3.5">
         <span className="text-[10px] font-bold tracking-wider text-ink-muted uppercase">
           Jadwal &amp; Kontak Praktik

@@ -1,6 +1,10 @@
-import { X } from 'lucide-react'
+import { Coins, X } from 'lucide-react'
 import type { FormEvent } from 'react'
-import { CLINICAL_SPECIALIZATIONS, FORMAL_INPUT_CLASS } from '@/constants/portal'
+import {
+  CLINICAL_SPECIALIZATIONS,
+  FORMAL_INPUT_CLASS,
+  SESSION_DURATION_PRESETS,
+} from '@/constants/portal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { cn } from '@/lib/cn'
 import type { Psychologist, PsychologistStatus } from '@/types/portal'
@@ -16,6 +20,8 @@ interface PsychologistFormModalProps {
   weeklyQuota: string
   yearsExperience: string
   education: string
+  sessionDurationMinutes: number
+  sessionFeeCoins: string
   errors: Record<string, string>
   onClose: () => void
   onSubmit: (e: FormEvent<HTMLFormElement>) => void
@@ -27,6 +33,8 @@ interface PsychologistFormModalProps {
   onWeeklyQuotaChange: (val: string) => void
   onYearsExperienceChange: (val: string) => void
   onEducationChange: (val: string) => void
+  onDurationChange: (minutes: number) => void
+  onFeeCoinsChange: (val: string) => void
 }
 
 export function PsychologistFormModal({
@@ -40,6 +48,8 @@ export function PsychologistFormModal({
   weeklyQuota,
   yearsExperience,
   education,
+  sessionDurationMinutes,
+  sessionFeeCoins,
   errors,
   onClose,
   onSubmit,
@@ -51,6 +61,8 @@ export function PsychologistFormModal({
   onWeeklyQuotaChange,
   onYearsExperienceChange,
   onEducationChange,
+  onDurationChange,
+  onFeeCoinsChange,
 }: PsychologistFormModalProps) {
   useBodyScrollLock(isOpen)
 
@@ -169,6 +181,70 @@ export function PsychologistFormModal({
             {errors.practiceSchedule && (
               <p className="mt-1 text-xs text-error">{errors.practiceSchedule}</p>
             )}
+          </div>
+
+          {/* Durasi & Tarif Sesi Konseling */}
+          <div className="grid gap-4 border-t border-[#E2E8F0] pt-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-ink">
+                Durasi per Sesi Konseling <span className="text-error">*</span>
+              </label>
+              <select
+                aria-label="Durasi per Sesi Konseling"
+                value={sessionDurationMinutes}
+                onChange={(e) => onDurationChange(Number.parseInt(e.target.value, 10))}
+                className={FORMAL_INPUT_CLASS}
+              >
+                {SESSION_DURATION_PRESETS.map((dur) => (
+                  <option key={dur} value={dur}>
+                    {dur} Menit / Sesi
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-ink">
+                Tarif Sesi (Koin Suara EVA) <span className="text-error">*</span>
+              </label>
+              {editingPsy?.role === 'relawan_biasa' ? (
+                <div>
+                  <input
+                    type="text"
+                    disabled
+                    value="0 Koin (Gratis)"
+                    className={cn(FORMAL_INPUT_CLASS, 'cursor-not-allowed bg-[#F1F5F9] text-ink-muted')}
+                  />
+                  <p className="mt-1 text-[11px] text-ink-muted">
+                    Terkunci 0 Koin untuk Relawan Biasa (layanan sukarela bebas biaya).
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min={0}
+                      step={5}
+                      placeholder="Contoh: 50"
+                      value={sessionFeeCoins}
+                      onChange={(e) => onFeeCoinsChange(e.target.value)}
+                      className={cn(FORMAL_INPUT_CLASS, 'pr-16')}
+                    />
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center gap-1 text-xs font-semibold text-amber-700">
+                      <Coins className="size-3.5 text-amber-600" />
+                      <span>Koin</span>
+                    </span>
+                  </div>
+                  {errors.sessionFeeCoins && (
+                    <p className="mt-1 text-xs text-error">{errors.sessionFeeCoins}</p>
+                  )}
+                  <p className="mt-1 text-[11px] text-ink-muted">
+                    1 Koin = 1 Menit sesi konseling suara bersama EVA &amp; psikolog.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="grid gap-4 border-t border-[#E2E8F0] pt-3 sm:grid-cols-2">

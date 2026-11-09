@@ -2,6 +2,7 @@ import { ArrowUpCircle, Eye, FileCheck2, ShieldCheck, Stethoscope } from 'lucide
 import { cn } from '@/lib/cn'
 import type { PartnerAccount, Psychologist } from '@/types/portal'
 import {
+  PsychologistSessionFeeBadge,
   PsychologistShieldBadge,
   UpgradeRequestBadge,
   VerificationBadge,
@@ -95,6 +96,14 @@ export function PsychologistCardList({
                   <span className="font-medium text-emerald-700 line-clamp-1 text-right">{partnerName}</span>
                 </div>
               )}
+
+              <div className="flex items-center justify-between">
+                <span className="text-ink-muted">Tarif &amp; Durasi Sesi:</span>
+                <PsychologistSessionFeeBadge
+                  feeCoins={psy.sessionFeeCoins}
+                  durationMinutes={psy.sessionDurationMinutes}
+                />
+              </div>
 
               <div className="flex items-center justify-between">
                 <span className="text-ink-muted">Kelengkapan Berkas:</span>

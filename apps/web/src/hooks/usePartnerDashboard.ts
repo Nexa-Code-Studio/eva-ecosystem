@@ -38,6 +38,8 @@ export function usePartnerDashboard() {
   const [weeklyQuota, setWeeklyQuota] = useState('')
   const [yearsExperience, setYearsExperience] = useState('')
   const [education, setEducation] = useState('')
+  const [sessionDurationMinutes, setSessionDurationMinutes] = useState<number>(45)
+  const [sessionFeeCoins, setSessionFeeCoins] = useState('50')
   const [psyErrors, setPsyErrors] = useState<Record<string, string>>({})
 
   const [profFacilityName, setProfFacilityName] = useState(partner?.facilityName ?? '')
@@ -89,6 +91,8 @@ export function usePartnerDashboard() {
     setWeeklyQuota('')
     setYearsExperience('')
     setEducation('')
+    setSessionDurationMinutes(45)
+    setSessionFeeCoins('50')
     setPsyErrors({})
     setModalOpen(true)
   }
@@ -103,6 +107,8 @@ export function usePartnerDashboard() {
     setWeeklyQuota(psy.weeklyQuota !== undefined ? String(psy.weeklyQuota) : '')
     setYearsExperience(psy.yearsExperience !== undefined ? String(psy.yearsExperience) : '')
     setEducation(psy.education ?? '')
+    setSessionDurationMinutes(psy.sessionDurationMinutes ?? 45)
+    setSessionFeeCoins(psy.sessionFeeCoins !== undefined ? String(psy.sessionFeeCoins) : '50')
     setPsyErrors({})
     setModalOpen(true)
   }
@@ -124,6 +130,11 @@ export function usePartnerDashboard() {
     if (selectedSpecs.length === 0) errs.specializations = 'Pilih minimal 1 spesialisasi klinis.'
     if (!practiceSchedule.trim()) errs.practiceSchedule = 'Hari & jam praktik wajib diisi.'
 
+    const feeNumber = Number.parseInt(sessionFeeCoins, 10)
+    if (Number.isNaN(feeNumber) || feeNumber < 0) {
+      errs.sessionFeeCoins = 'Tarif koin harus berupa angka non-negatif.'
+    }
+
     setPsyErrors(errs)
     if (Object.keys(errs).length > 0) return
 
@@ -138,6 +149,8 @@ export function usePartnerDashboard() {
       weeklyQuota: weeklyQuota ? Number.parseInt(weeklyQuota, 10) : undefined,
       yearsExperience: yearsExperience ? Number.parseInt(yearsExperience, 10) : undefined,
       education: education.trim() || undefined,
+      sessionDurationMinutes,
+      sessionFeeCoins: Number.isNaN(feeNumber) ? 50 : Math.max(0, feeNumber),
     })
 
     setModalOpen(false)
@@ -198,6 +211,10 @@ export function usePartnerDashboard() {
     setYearsExperience,
     education,
     setEducation,
+    sessionDurationMinutes,
+    setSessionDurationMinutes,
+    sessionFeeCoins,
+    setSessionFeeCoins,
     psyErrors,
     setPsyErrors,
     profFacilityName,

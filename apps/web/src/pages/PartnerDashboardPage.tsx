@@ -166,6 +166,8 @@ export function PartnerDashboardPage() {
         weeklyQuota={state.weeklyQuota}
         yearsExperience={state.yearsExperience}
         education={state.education}
+        sessionDurationMinutes={state.sessionDurationMinutes}
+        sessionFeeCoins={state.sessionFeeCoins}
         errors={state.psyErrors}
         onClose={() => state.setModalOpen(false)}
         onSubmit={state.handleSavePsychologist}
@@ -187,6 +189,12 @@ export function PartnerDashboardPage() {
         onWeeklyQuotaChange={state.setWeeklyQuota}
         onYearsExperienceChange={state.setYearsExperience}
         onEducationChange={state.setEducation}
+        onDurationChange={state.setSessionDurationMinutes}
+        onFeeCoinsChange={(val) => {
+          state.setSessionFeeCoins(val)
+          if (state.psyErrors.sessionFeeCoins)
+            state.setPsyErrors((p) => ({ ...p, sessionFeeCoins: '' }))
+        }}
       />
     </div>
   )

@@ -2,6 +2,7 @@ import { Eye, FileCheck2, ShieldCheck, Stethoscope } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import type { PartnerAccount, Psychologist } from '@/types/portal'
 import {
+  PsychologistSessionFeeBadge,
   PsychologistShieldBadge,
   UpgradeRequestBadge,
   VerificationBadge,
@@ -103,6 +104,12 @@ export function PsychologistTable({
                               </span>
                             </>
                           )}
+                        </div>
+                        <div className="mt-1.5">
+                          <PsychologistSessionFeeBadge
+                            feeCoins={psy.sessionFeeCoins}
+                            durationMinutes={psy.sessionDurationMinutes}
+                          />
                         </div>
                       </td>
 

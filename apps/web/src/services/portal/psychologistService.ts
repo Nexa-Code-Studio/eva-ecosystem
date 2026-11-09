@@ -61,10 +61,16 @@ export function upsertPsychologist(
       const existing = db.psychologists[idx]
       const nextRole =
         input.role || existing.role || (existing.partnerId ? 'professional_mitra' : 'relawan_profesional')
+      const isRelawanBiasa = nextRole === 'relawan_biasa'
       const updated: Psychologist = {
         ...existing,
         ...input,
         role: nextRole,
+        sessionDurationMinutes:
+          input.sessionDurationMinutes ?? existing.sessionDurationMinutes ?? (isRelawanBiasa ? 30 : 45),
+        sessionFeeCoins: isRelawanBiasa
+          ? 0
+          : (input.sessionFeeCoins ?? existing.sessionFeeCoins ?? 50),
         id: input.id,
       }
       db.psychologists[idx] = updated
@@ -73,10 +79,13 @@ export function upsertPsychologist(
     }
   }
 
+  const isRelawanBiasa = role === 'relawan_biasa'
   const created: Psychologist = {
     practiceType,
     verificationStatus,
     role,
+    sessionDurationMinutes: input.sessionDurationMinutes ?? (isRelawanBiasa ? 30 : 45),
+    sessionFeeCoins: isRelawanBiasa ? 0 : (input.sessionFeeCoins ?? 50),
     ...input,
     id: `psy-${Date.now()}`,
   }

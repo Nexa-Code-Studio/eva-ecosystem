@@ -1,5 +1,10 @@
 export * from '@/types/portal'
-export { CLINICAL_SPECIALIZATIONS, FACILITY_TYPES } from '@/constants/portal'
+export {
+  CLINICAL_SPECIALIZATIONS,
+  FACILITY_TYPES,
+  SESSION_DURATION_PRESETS,
+  DEFAULT_SESSION_DURATION_MINUTES,
+} from '@/constants/portal'
 export {
   getAdminAccountConfig,
   getDashboardAnalyticsBaseline,

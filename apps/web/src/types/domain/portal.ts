@@ -87,6 +87,9 @@ export interface Psychologist {
   specializations: string[]
   practiceSchedule: string
   status: PsychologistStatus
+  // Tarif & Durasi Sesi Konseling
+  sessionDurationMinutes?: number
+  sessionFeeCoins?: number
   // Optional fields & mobile app registration details
   weeklyQuota?: number
   yearsExperience?: number

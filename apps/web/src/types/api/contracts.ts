@@ -72,6 +72,8 @@ export interface SimulateMobilePsychologistInput {
   practiceSchedule: string
   specializations: string[]
   sippValidUntil?: string
+  sessionDurationMinutes?: number
+  sessionFeeCoins?: number
 }
 
 export interface AssignReferralRequestDto {
