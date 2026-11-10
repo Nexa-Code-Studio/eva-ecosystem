@@ -92,7 +92,7 @@ jobs:
           echo "  - Hybrid Fallback : $USE_HYBRID"
           echo "========================================================"
 
-      - name: Build 1/2: Eva Mobile (Flutter Web Hybrid)
+      - name: Build Eva Mobile Web Hybrid
         run: |
           echo "==> Building Eva Mobile Web for ${BASE_HREF}app/ ..."
           cd apps/eva_mobile
@@ -104,7 +104,7 @@ jobs:
             --dart-define=HYBRID="${USE_HYBRID}" \
             --dart-define=API_BASE_URL="${API_URL}"
 
-      - name: Build 2/2: Eva Counselor (Flutter Web Cloud)
+      - name: Build Eva Counselor Web Cloud
         run: |
           echo "==> Building Eva Counselor Web for ${BASE_HREF}counselor/ ..."
           cd apps/eva_counselor_mobile
