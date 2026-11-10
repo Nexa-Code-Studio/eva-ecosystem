@@ -34,6 +34,7 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
   int _selectedDayOffset = 1; // 1 = Besok, 2 = Lusa
   int _selectedTimeSlot = 0; // Index in slots
   final TextEditingController _notesController = TextEditingController();
+  bool _shareAiChatHistory = true;
   bool _isLoading = false;
 
   final List<String> _timeSlots = [
@@ -94,6 +95,7 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
           preferredDateTime: finalDateTime,
           sessionType: _selectedType,
           complaints: _notesController.text.trim(),
+          shareAiChatHistory: _shareAiChatHistory,
         );
 
     if (!mounted) return;
@@ -159,6 +161,33 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
                 height: 1.4,
               ),
             ),
+            if (_shareAiChatHistory) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryContainer.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.check_circle, size: 14, color: AppColors.primary),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        'Riwayat percakapan AI dilampirkan untuk analisis psikolog',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
@@ -384,6 +413,93 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
                   borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Persetujuan Berbagi Riwayat Chat AI (Consent)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: _shareAiChatHistory
+                    ? AppColors.primaryContainer.withValues(alpha: 0.35)
+                    : const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: _shareAiChatHistory
+                      ? AppColors.primary.withValues(alpha: 0.5)
+                      : const Color(0xFFE2E8F0),
+                  width: _shareAiChatHistory ? 1.5 : 1,
+                ),
+              ),
+              child: InkWell(
+                onTap: () {
+                  setState(() {
+                    _shareAiChatHistory = !_shareAiChatHistory;
+                  });
+                },
+                borderRadius: BorderRadius.circular(10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: Checkbox(
+                        key: const Key('consent_share_chat_history_checkbox'),
+                        value: _shareAiChatHistory,
+                        activeColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        side: const BorderSide(
+                          color: Color(0xFF94A3B8),
+                          width: 1.5,
+                        ),
+                        onChanged: (val) {
+                          setState(() {
+                            _shareAiChatHistory = val ?? false;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.auto_awesome,
+                                size: 14,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                'Bagikan Riwayat Chat AI ke Psikolog',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Saya bersedia mengirimkan riwayat percakapan dengan AI sebagai bahan analisis untuk psikolog.',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11.5,
+                              color: AppColors.textSecondary,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 16),

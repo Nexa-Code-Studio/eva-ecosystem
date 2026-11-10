@@ -245,6 +245,14 @@ class DiaryService:
         res = await self.db.execute(query)
         entries = res.scalars().all()
 
+        if not entries:
+            try:
+                today_entry = await DiaryGeneratorService.generate_today_diary(user_id, self.db)
+                if today_entry:
+                    entries = [today_entry]
+            except Exception as ex:
+                logger.warning(f"Failed to auto-synthesize today diary on empty diary list: {ex}")
+
         formatted_list: list[DiaryEntryResponse] = []
         for e in entries:
             if e is not None:

@@ -1,4 +1,4 @@
-.PHONY: help dev dev-d dev-build dev-api dev-mcp dev-worker prod prod-down logs logs-api logs-worker logs-prod ps down db-shell migrate migration-gen db-reset seed mobile-usb mobile-emu mobile-mock mobile-hybrid mobile-emu-hybrid mobile-web-hybrid mobile-web mobile-usb-cloud mobile-emu-cloud mobile-web-cloud mobile-cloud counselor-mock counselor-web test-counselor web-dev web-build web-lint test test-backend test-mobile lint format doctor tasks bootstrap test-agentic link-project view-project check-server
+.PHONY: help dev dev-d dev-build dev-api dev-mcp dev-worker prod prod-down logs logs-api logs-worker logs-prod ps down db-shell migrate migration-gen db-reset seed mobile-usb mobile-emu mobile-mock mobile-hybrid mobile-emu-hybrid mobile-web-hybrid mobile-web-build mobile-vercel mobile-web mobile-usb-cloud mobile-emu-cloud mobile-web-cloud mobile-cloud counselor-mock counselor-web test-counselor web-dev web-build web-lint test test-backend test-mobile lint format doctor tasks bootstrap test-agentic link-project view-project check-server
 
 help:
 	@echo "EVA Ecosystem Management Commands (Full Docker Environment):"
@@ -36,6 +36,8 @@ help:
 	@echo "    make mobile-hybrid     - Jalankan mode Hybrid di HP Fisik (Remote API + Auto Fallback Mock)"
 	@echo "    make mobile-emu-hybrid - Jalankan mode Hybrid di Android Emulator"
 	@echo "    make mobile-web-hybrid - Jalankan mode Hybrid di Chrome Web"
+	@echo "    make mobile-web-build  - Build Flutter Web Eva Mobile (Release, Hybrid API, GitHub Pages ready)"
+	@echo "    make mobile-vercel     - Deploy Flutter Web Eva Mobile ke Vercel via CLI"
 	@echo "    make mobile-usb-cloud  - Jalankan di HP Fisik nembak ke Cloud (eva.nexacode.dev)"
 	@echo "    make mobile-emu-cloud  - Jalankan di Android Emulator nembak ke Cloud (eva.nexacode.dev)"
 	@echo "    make mobile-web-cloud  - Jalankan di Chrome Web nembak ke Cloud (eva.nexacode.dev)"
@@ -158,6 +160,12 @@ mobile-emu-hybrid:
 
 mobile-web-hybrid:
 	@./scripts/run_mobile.sh web-hybrid $(ARGS)
+
+mobile-web-build:
+	@./scripts/build_mobile_web.sh $(ARGS)
+
+mobile-vercel:
+	@./scripts/deploy_mobile_vercel.sh $(ARGS)
 
 mobile-usb-cloud:
 	@./scripts/run_mobile.sh usb-cloud $(ARGS)

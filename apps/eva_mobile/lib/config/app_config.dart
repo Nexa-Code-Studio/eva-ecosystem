@@ -174,12 +174,13 @@ class AppConfig {
   }
 
   /// Refresh access token using stored refresh token
-  static Future<bool> refreshAccessToken() async {
+  static Future<bool> refreshAccessToken({http.Client? client}) async {
     try {
       final rfToken = await getRefreshToken();
       if (rfToken == null || rfToken.isEmpty) return false;
 
-      final res = await http.post(
+      final httpClient = client ?? http.Client();
+      final res = await httpClient.post(
         Uri.parse('$baseUrl/auth/refresh'),
         headers: {
           'Content-Type': 'application/json',

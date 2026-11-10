@@ -1,10 +1,11 @@
 import asyncio
-from datetime import date, datetime, UTC
+from datetime import date, datetime, timedelta, UTC
 import logging
 from sqlalchemy import select
 
 from app.db.session import AsyncSessionLocal, engine
 from app.core.security import hash_password
+from app.core.tz import get_wib_today
 from app.models.base import BaseModel
 from app.models.conversation import Conversation, Message
 from app.models.diary import DiaryEntry
@@ -62,11 +63,93 @@ async def seed_master_data() -> User:
             await session.commit()
             logger.info(f"Existing Master User updated: {user.email}")
 
-        # 2. Emergency Contacts (Skipped: Start with 0 contacts for clean real user experience)
-        logger.info("Skipping emergency contacts seeding for 100% clean user state.")
+        # 2. Seed Emergency Contacts (for Demo User)
+        query_contacts = select(EmergencyContact).where(EmergencyContact.user_id == user.id)
+        res_contacts = await session.execute(query_contacts)
+        existing_contacts = res_contacts.scalars().all()
 
-        # 3. Diary Entries (Skipped: Start with 0 entries for clean real user experience)
-        logger.info("Skipping diary entry seeding for 100% clean user diary state.")
+        if not existing_contacts:
+            c1 = EmergencyContact(
+                user_id=user.id,
+                name="Ibu (Siti Rahma)",
+                relationship="Ibu",
+                phone_number="0812-3456-7890",
+                is_primary=True,
+            )
+            c2 = EmergencyContact(
+                user_id=user.id,
+                name="Dr. Handoko (Psikiater)",
+                relationship="Dokter",
+                phone_number="0811-9876-5432",
+                is_primary=False,
+            )
+            session.add_all([c1, c2])
+            await session.commit()
+            logger.info("Seeded Emergency Contacts for master user.")
+
+        # 3. Seed Full Diary Entries History (for Demo User)
+        today = get_wib_today()
+        yesterday = today - timedelta(days=1)
+        two_days_ago = today - timedelta(days=2)
+
+        target_entries = [
+            {
+                "entry_date": today,
+                "title": "Jurnal Refleksi Hari Ini",
+                "summary": "Samsul merasa lebih semangat dan positif setelah berdiskusi mengenai target pribadi dan afirmasi pagi bersama EVA.",
+                "content": "Catatan harian mengenai target positif dan meditasi.",
+                "mood_tag": "Bahagia 😃",
+                "mood_emoji": "😃",
+                "emotional_level": 5,
+                "ai_insight": "Progres emosional Samsul menunjukkan peningkatan kebahagiaan dan motivasi positif.",
+                "emotional_reflection": "Merasa optimis menghadapi tantangan hari ini.",
+                "important_events": ["[Sesi #1] Afirmasi positif pagi dan perencanaan aktivitas produktif."],
+                "mental_health_scores": {"depression": 0.15, "anxiety": 0.20, "stress": 0.10},
+            },
+            {
+                "entry_date": yesterday,
+                "title": "Catatan Refleksi Emosi Harian",
+                "summary": "Samsul merasakan ketenangan setelah menyelesaikan sesi konsultasi mengenai manajemen waktu dan relaksasi pikiran.",
+                "content": "Diskusi relaksasi emosional.",
+                "mood_tag": "Tenang 😌",
+                "mood_emoji": "😌",
+                "emotional_level": 4,
+                "ai_insight": "Kondisi emosional Samsul tergolong stabil dan terjaga.",
+                "emotional_reflection": "Merasa lebih lega dan siap melanjutkan aktivitas esok hari.",
+                "important_events": ["[Sesi #1] Refleksi mengenai rutinitas harian dan teknik olah napas."],
+                "mental_health_scores": {"depression": 0.25, "anxiety": 0.35, "stress": 0.20},
+            },
+            {
+                "entry_date": two_days_ago,
+                "title": "Diskusi Beban Kerja & Stres",
+                "summary": "Samsul mengutarakan rasa kecemasan dan kelelahan mental terkait beban kerja dan tenggat waktu tugas.",
+                "content": "Sesi konseling mengindikasikan kecemasan mendalam terhadap evaluasi pekerjaan.",
+                "mood_tag": "Cemas 😰",
+                "mood_emoji": "😰",
+                "emotional_level": 2,
+                "ai_insight": "Teridentifikasi stres situasional akibat beban kognitif kerja. Disarankan istirahat teratur.",
+                "emotional_reflection": "Merasa lebih tenang setelah mencurahkan kekhawatiran.",
+                "important_events": [
+                    "[Sesi #1] Samsul menyampaikan keluhan kelelahan fisik dan kecemasan pekerjaan.",
+                    "[Sesi #2] Diskusi teknik grounding 5-4-3-2-1 bersama EVA.",
+                ],
+                "mental_health_scores": {"depression": 0.35, "anxiety": 0.65, "stress": 0.55},
+            },
+        ]
+
+        for entry_data in target_entries:
+            query_d = select(DiaryEntry).where(
+                DiaryEntry.user_id == user.id,
+                DiaryEntry.entry_date == entry_data["entry_date"],
+            )
+            res_d = await session.execute(query_d)
+            existing_d = res_d.scalar_one_or_none()
+
+            if not existing_d:
+                new_d = DiaryEntry(user_id=user.id, **entry_data)
+                session.add(new_d)
+                await session.commit()
+                logger.info(f"Seeded Diary Entry for date {entry_data['entry_date']}: {entry_data['title']}")
 
         # 4. Seed Recommendations
         query_recs = select(RecommendationItem)

@@ -95,6 +95,10 @@ void main() {
     expect(find.text('Semua Tanggal (1)'), findsOneWidget);
     expect(find.text('10 Mei 2026'), findsOneWidget);
 
+    // Verify Rating Prompt Card is present
+    expect(find.text('Beri Penilaian Sesi'), findsOneWidget);
+    expect(find.text('Beri Rating'), findsOneWidget);
+
     // Verify Session Details
     expect(find.text('Sesi #1'), findsOneWidget);
     expect(find.text('50 Menit'), findsOneWidget);
@@ -175,5 +179,55 @@ void main() {
 
     // Verify items are restored
     expect(find.text('Tidak Ditemukan'), findsNothing);
+  });
+
+  testWidgets('ConsultationSessionLogsScreen rating flow: open rating page, submit, and display preview card', (tester) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          onGenerateRoute: AppRouter.onGenerateRoute,
+          home: ConsultationSessionLogsScreen(
+            psychologist: testPsychologist,
+            sessions: testSessions,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify rating prompt is visible
+    expect(find.text('Beri Rating'), findsOneWidget);
+
+    // Tap "Beri Rating"
+    await tester.tap(find.text('Beri Rating'));
+    await tester.pumpAndSettle();
+
+    // Verify on ConsultationRatingScreen with Star, Ulasan Singkat, & Deskripsi (no Baik/Tidak)
+    expect(find.text('Beri Penilaian Sesi'), findsOneWidget);
+    expect(find.text('1. Nilai Pengalaman Sesi (Star)'), findsOneWidget);
+    expect(find.text('2. Ulasan Singkat'), findsOneWidget);
+    expect(find.text('3. Deskripsi Ulasan'), findsOneWidget);
+    expect(find.text('2. Kesan Sesi (Baik / Tidak)'), findsNothing);
+    expect(find.text('Kirim Penilaian & Ulasan'), findsOneWidget);
+
+    // Enter short review form input (within character limit)
+    await tester.enterText(find.byType(TextField).first, 'Sangat Sabar & Empati');
+    await tester.pumpAndSettle();
+
+    // Submit rating
+    await tester.tap(find.text('Kirim Penilaian & Ulasan'));
+    await tester.pumpAndSettle();
+
+    // Verify back on ConsultationSessionLogsScreen and preview card is visible (without Baik/Tidak badge)
+    expect(find.text('Ulasan Anda'), findsOneWidget);
+    expect(find.text('Baik'), findsNothing);
+    expect(find.text('Sangat Sabar & Empati'), findsOneWidget);
+    expect(find.text('Ubah'), findsOneWidget);
+    expect(find.text('Beri Rating'), findsNothing);
   });
 }

@@ -64,7 +64,7 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
 
   bool _isHighDistressSession(AiCallViewState state) {
     if (state.crisisHotline != null) return true;
-    final text = '${state.currentTranscript} ${state.aiTranscript}'.toLowerCase();
+    final text = '${state.accumulatedTranscript} ${state.currentTranscript} ${state.aiTranscript}'.toLowerCase();
     final highDistressKeywords = [
       'krisis',
       'panik',
@@ -85,7 +85,7 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
 
   bool _isDassTriggeredSession(AiCallViewState state) {
     if (state.crisisHotline != null) return true;
-    final text = '${state.currentTranscript} ${state.aiTranscript}'.toLowerCase();
+    final text = '${state.accumulatedTranscript} ${state.currentTranscript} ${state.aiTranscript}'.toLowerCase();
     final dassKeywords = [
       'dass',
       'skala 0',

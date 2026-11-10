@@ -98,7 +98,9 @@ class _DiaryTranscriptSectionState extends State<DiaryTranscriptSection> {
               itemCount: displayCount,
               itemBuilder: (context, index) {
                 final item = transcripts[index];
-                final bool isUser = item['isUser'] as bool;
+                final bool isUser = item['isUser'] == true ||
+                    item['sender'] == 'user' ||
+                    item['role'] == 'user';
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(16),

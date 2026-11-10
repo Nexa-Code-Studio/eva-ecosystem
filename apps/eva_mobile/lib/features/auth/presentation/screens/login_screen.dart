@@ -56,15 +56,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       final authRepo = ref.read(authRepositoryProvider);
-      final user = await authRepo.login(email, password);
+      await authRepo.login(email, password);
 
       if (!mounted) return;
-      AppSnackBar.showPrimary(
-        context,
-        'Selamat datang kembali, ${user.name}!',
-        icon: Icons.check_circle_outline,
-        duration: const Duration(seconds: 2),
-      );
+      // Welcome snackbar is temporarily disabled upon initial login per user request
       Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
       if (!mounted) return;

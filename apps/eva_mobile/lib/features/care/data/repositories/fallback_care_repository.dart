@@ -66,6 +66,7 @@ class FallbackCareRepository implements CareRepository {
     required DateTime preferredDateTime,
     required ConsultationType sessionType,
     String? complaints,
+    bool shareAiChatHistory = true,
   }) {
     return FallbackExecutor.execute(
       remoteCall: () => _remote.bookConsultation(
@@ -73,12 +74,14 @@ class FallbackCareRepository implements CareRepository {
         preferredDateTime: preferredDateTime,
         sessionType: sessionType,
         complaints: complaints,
+        shareAiChatHistory: shareAiChatHistory,
       ),
       mockCall: () => _mock.bookConsultation(
         psychologistId: psychologistId,
         preferredDateTime: preferredDateTime,
         sessionType: sessionType,
         complaints: complaints,
+        shareAiChatHistory: shareAiChatHistory,
       ),
       operationName: 'bookConsultation',
     );

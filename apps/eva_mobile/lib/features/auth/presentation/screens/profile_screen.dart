@@ -337,7 +337,7 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
             borderRadius: BorderRadius.circular(20),
           ),
           title: Text(
-            'Hapus Memori AI?',
+            'Hapus Memori Lokal AI?',
             style: GoogleFonts.inter(
               fontWeight: FontWeight.w800,
               fontSize: 18,
@@ -345,7 +345,7 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ),
           content: Text(
-            'Apakah Anda yakin ingin menghapus seluruh catatan memori AI? EVA akan menghapus riwayat konteks emosional yang telah dipelajari.',
+            'Apakah Anda yakin ingin menghapus seluruh catatan memori AI? EVA akan menghapus riwayat konteks emosional yang tersimpan secara lokal di perangkat ini.',
             style: GoogleFonts.inter(
               fontSize: 14,
               color: AppColors.textSecondary,
@@ -374,7 +374,7 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Navigator.pop(context);
                 AppSnackBar.showSuccess(
                   context,
-                  'Seluruh catatan memori AI berhasil dihapus.',
+                  'Seluruh catatan memori lokal AI berhasil dihapus.',
                 );
               },
               child: Text(
@@ -811,7 +811,7 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   ),
                                 ),
                                 Text(
-                                  'EVA menyimpan konteks emosional harianmu.',
+                                  'EVA menyimpan konteks emosional harianmu secara lokal.',
                                   style: GoogleFonts.inter(
                                     fontSize: 12,
                                     color: AppColors.textSecondary,
@@ -824,7 +824,7 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                       const SizedBox(height: 14),
                       CustomPillButton(
-                        text: 'Hapus Catatan Memori AI',
+                        text: 'Hapus Catatan Memori Lokal AI',
                         isOutline: true,
                         height: 44,
                         onPressed: _showDeleteMemoryConfirmationDialog,

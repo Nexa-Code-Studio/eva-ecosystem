@@ -3,7 +3,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import desc, select
+from sqlalchemy import desc, func, select
 from sqlalchemy.orm import selectinload
 
 from app.core.security import decode_access_token
@@ -139,13 +139,17 @@ class CallPersistenceService:
             async with AsyncSessionLocal() as db:
                 query = (
                     select(Conversation)
-                    .options(selectinload(Conversation.messages))
                     .where(Conversation.id == session.db_conversation_id)
                 )
                 res = await db.execute(query)
                 conv = res.scalar_one_or_none()
                 if conv:
-                    next_seq = len(conv.messages) + 1
+                    max_seq_res = await db.execute(
+                        select(func.coalesce(func.max(Message.sequence_number), 0))
+                        .where(Message.conversation_id == conv.id)
+                    )
+                    next_seq = (max_seq_res.scalar() or 0) + 1
+
                     msg = Message(
                         conversation_id=conv.id,
                         role=role,
@@ -157,7 +161,7 @@ class CallPersistenceService:
                     db.add(msg)
                     await db.commit()
                     await db.refresh(msg)
-                    logger.info(f"💾 [SAVED TO DB] Session {session.session_id}: Saved {role} voice message to DB")
+                    logger.info(f"💾 [SAVED TO DB] Session {session.session_id}: Saved {role} voice message (seq: {next_seq}) to DB")
 
                     if role == "user" and content and content.strip():
                         try:
@@ -168,8 +172,9 @@ class CallPersistenceService:
                                 analysis_result = await MLEmotionDetectorService.predict_message_emotion(
                                     content, audio_bytes=turn_audio_bytes
                                 )
-                            await MLEmotionDetectorService.save_emotion_to_db(msg.id, analysis_result, db)
-                            logger.info(f"🧠 [VOICE EMOTION PERSISTED]: Saved emotion for voice turn message {msg.id}")
+                            if analysis_result:
+                                await MLEmotionDetectorService.save_emotion_to_db(msg.id, analysis_result, db)
+                                logger.info(f"🧠 [VOICE EMOTION PERSISTED]: Saved emotion for voice turn message {msg.id}")
                         except Exception as emo_err:
                             logger.warning(f"⚠️ [VOICE EMOTION EXCEPTION]: Failed to save emotion analysis: {emo_err}")
         except Exception as e:
@@ -207,6 +212,48 @@ class CallPersistenceService:
             if not user_texts:
                 return
 
+            # 1. Guarantee all in-memory dialogue turns from session.conversation_history are persisted to DB
+            if session.db_conversation_id:
+                async with AsyncSessionLocal() as db_sync:
+                    q_existing = (
+                        select(Message)
+                        .where(Message.conversation_id == session.db_conversation_id)
+                        .order_by(Message.sequence_number.asc())
+                    )
+                    r_existing = await db_sync.execute(q_existing)
+                    existing_msgs = r_existing.scalars().all()
+                    existing_count = len(existing_msgs)
+
+                    dialogue_turns = [
+                        m for m in session.conversation_history
+                        if m.role in ("user", "assistant") and m.content and m.content.strip()
+                    ]
+
+                    if existing_count < len(dialogue_turns):
+                        next_seq = existing_count + 1
+                        # Track already persisted content to avoid duplicates
+                        persisted_pairs = {(m.role, m.content.strip()) for m in existing_msgs}
+                        for turn in dialogue_turns:
+                            clean_text = turn.content.strip()
+                            pair = (turn.role, clean_text)
+                            if pair not in persisted_pairs:
+                                new_msg = Message(
+                                    conversation_id=session.db_conversation_id,
+                                    role=turn.role,
+                                    content=clean_text,
+                                    message_type=MessageType.VOICE,
+                                    sequence_number=next_seq,
+                                )
+                                db_sync.add(new_msg)
+                                next_seq += 1
+                                persisted_pairs.add(pair)
+                        await db_sync.commit()
+                        logger.info(
+                            f"💾 [RECONCILED SESSION MESSAGES] Session {session.session_id}: "
+                            f"Ensured all {len(dialogue_turns)} conversation turns are persisted in DB"
+                        )
+
+            # 2. Extract emotion analysis and title/summary
             analysis = await EmotionAnalyzerService.analyze_transcript(session.conversation_history)
 
             session_title = analysis.get("session_title")
@@ -233,9 +280,14 @@ class CallPersistenceService:
 
             async with AsyncSessionLocal() as db:
                 diary_entry = await DiaryGeneratorService.generate_today_diary(session.user_id, db)
-                logger.info(
-                    f"📖 [DISCONNECT DIARY SYNC SUCCESS] Session {session.session_id}: Synced cumulative DiaryEntry '{diary_entry.title}' for {diary_entry.entry_date}"
-                )
+                if diary_entry:
+                    logger.info(
+                        f"📖 [DISCONNECT DIARY SYNC SUCCESS] Session {session.session_id}: Synced cumulative DiaryEntry '{diary_entry.title}' for {diary_entry.entry_date}"
+                    )
+                else:
+                    logger.info(
+                        f"ℹ️ [DISCONNECT DIARY SYNC] Session {session.session_id}: No cumulative diary generated."
+                    )
         except Exception as e:
             logger.error(f"⚠️ [SYNC DIARY EXCEPTION] Session {session.session_id}: {e}")
 
@@ -261,12 +313,12 @@ class CallPersistenceService:
 
             async with AsyncSessionLocal() as db:
                 today_wib = get_wib_today()
-                saved_record = await DASSService.save_or_update_extracted(
+                dass_svc = DASSService(db)
+                saved_record = await dass_svc.save_or_update_extracted(
                     user_id=session.user_id,
                     assessed_date=today_wib,
                     extracted_items=extracted_items,
                     conversation_id=session.db_conversation_id,
-                    db=db,
                 )
                 logger.info(
                     f"📊 [DISCONNECT DASS SYNC SUCCESS] Session {session.session_id}: "

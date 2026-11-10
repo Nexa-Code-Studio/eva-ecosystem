@@ -1,0 +1,117 @@
+name: Deploy Eva Mobile Web to GitHub Pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: 'Backend API Base URL (HTTPS required in browser)'
+        required: true
+        default: 'https://eva.nexacode.dev/api/v1'
+      use_hybrid:
+        description: 'Enable Hybrid Fallback (Auto-mock on API failure/offline)'
+        required: true
+        type: boolean
+        default: true
+      base_href:
+        description: 'Base href (e.g. /eva-ecosystem/ for GitHub Pages or / for custom domain)'
+        required: false
+        default: '/eva-ecosystem/'
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/eva_mobile/**'
+      - '.github/workflows/deploy-mobile-web.yml'
+
+# Permissions required to deploy to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: 'pages'
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/eva_mobile
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Verify Flutter & Environment
+        run: flutter doctor -v
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Build Flutter Web (Hybrid Mode)
+        run: |
+          API_URL="${{ github.event.inputs.api_base_url || 'https://eva.nexacode.dev/api/v1' }}"
+          USE_HYBRID="${{ github.event.inputs.use_hybrid != 'false' && 'true' || 'false' }}"
+
+          # Compute Base Href: use manual input if provided, otherwise derive from repo name
+          INPUT_BASE_HREF="${{ github.event.inputs.base_href }}"
+          REPO_NAME="${{ github.event.repository.name }}"
+
+          if [ -n "$INPUT_BASE_HREF" ]; then
+            BASE_HREF="$INPUT_BASE_HREF"
+          elif [ -n "$REPO_NAME" ]; then
+            BASE_HREF="/${REPO_NAME}/"
+          else
+            BASE_HREF="/"
+          fi
+
+          echo "========================================================"
+          echo "Building Eva Mobile Web (Hybrid Mode):"
+          echo "  - API Base URL   : $API_URL"
+          echo "  - Hybrid Fallback: $USE_HYBRID"
+          echo "  - Base Href      : $BASE_HREF"
+          echo "========================================================"
+
+          flutter build web --release \
+            --base-href "$BASE_HREF" \
+            --dart-define=USE_LOCAL_API=false \
+            --dart-define=USE_HYBRID_FALLBACK="$USE_HYBRID" \
+            --dart-define=HYBRID="$USE_HYBRID" \
+            --dart-define=API_BASE_URL="$API_URL"
+
+      - name: Configure Web Artifacts for GitHub Pages
+        run: |
+          # Disable Jekyll processing on GitHub Pages
+          touch build/web/.nojekyll
+          # GitHub Pages SPA support: copy index.html to 404.html for routing fallback
+          cp build/web/index.html build/web/404.html
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload GitHub Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/eva_mobile/build/web
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

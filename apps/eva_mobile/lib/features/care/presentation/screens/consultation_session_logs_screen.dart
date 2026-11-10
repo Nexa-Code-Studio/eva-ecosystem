@@ -6,8 +6,10 @@ import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_back_button.dart';
 import '../../domain/entities/consultation_session_entity.dart';
 import '../../domain/entities/psychologist_entity.dart';
+import '../../domain/entities/psychologist_rating_review.dart';
 import '../providers/care_provider.dart';
 import '../widgets/booking_consultation_sheet.dart';
+import 'consultation_rating_screen.dart';
 import 'psychologist_detail_screen.dart';
 
 /// Dedicated screen for displaying detailed clinical session logs, evaluations,
@@ -76,6 +78,8 @@ class _ConsultationSessionLogsScreenState
             .where((s) => _isSameDay(s.sessionDateTime, _selectedDate!))
             .toList();
 
+    final userRating = ref.watch(psychologistRatingsProvider)[widget.psychologist.id];
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -124,8 +128,8 @@ class _ConsultationSessionLogsScreenState
                   _buildPsychologistHeaderCard(activeSessions.length),
                   const SizedBox(height: 14),
 
-                  // Confidentiality Note Banner
-                  _buildConfidentialityBanner(),
+                  // Rating Section (Prompt to rate or Preview of submitted rating)
+                  _buildRatingSection(userRating),
                   const SizedBox(height: 14),
 
                   // Date Filter Bar
@@ -271,34 +275,283 @@ class _ConsultationSessionLogsScreenState
     );
   }
 
-  /// Informative banner emphasizing privacy and medical ethics
-  Widget _buildConfidentialityBanner() {
+  /// Rating section: switches between Rating Prompt Card and Rating Preview Card
+  Widget _buildRatingSection(PsychologistRatingReview? userRating) {
+    if (userRating != null) {
+      return _buildRatingPreviewCard(userRating);
+    }
+    return _buildRatingPromptCard();
+  }
+
+  /// Interactive card prompting the user to submit a rating and review
+  Widget _buildRatingPromptCard() {
+    final counselorFirstName = widget.psychologist.name.split(',')[0];
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.primaryContainer.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primaryContainer),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.lock_outline_rounded,
-            size: 18,
-            color: AppColors.primary,
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF3C7),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.star_rounded,
+              color: Color(0xFFF59E0B),
+              size: 24,
+            ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Beri Penilaian Sesi',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Bagikan pengalamanmu bersama $counselorFirstName',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ConsultationRatingScreen(
+                    psychologist: widget.psychologist,
+                  ),
+                ),
+              );
+            },
             child: Text(
-              'Catatan & ringkasan evaluasi ini dilindungi kerahasiaan medis psikolog untuk memantau progres kesehatan mental Anda.',
+              'Beri Rating',
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 11,
-                color: AppColors.primary,
-                fontWeight: FontWeight.w600,
-                height: 1.35,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  /// Preview card of the rating & review submitted by the user
+  /// Strictly follows the format: Star, Baik/Tidak (Sentiment), Label, & Deskripsi
+  Widget _buildRatingPreviewCard(PsychologistRatingReview userRating) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Header: Avatar + Star + Numeric Score + 'Ubah' Button
+          Row(
+            children: [
+              const CircleAvatar(
+                radius: 13,
+                backgroundColor: AppColors.primaryContainer,
+                child: Icon(
+                  Icons.person_rounded,
+                  size: 15,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Ulasan Anda',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    // Star Rating Display
+                    Row(
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: List.generate(5, (index) {
+                            final isFilled = (index + 1) <= userRating.rating.floor();
+                            return Icon(
+                              isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
+                              color: isFilled ? const Color(0xFFF59E0B) : const Color(0xFFCBD5E1),
+                              size: 13,
+                            );
+                          }),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          userRating.rating.toStringAsFixed(1),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFFD97706),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // 'Ubah' Button
+              InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ConsultationRatingScreen(
+                        psychologist: widget.psychologist,
+                        initialRating: userRating,
+                      ),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.edit_outlined,
+                        size: 13,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        'Ubah',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // 2. Label (Ulasan Singkat)
+          if (userRating.label.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.primaryContainer.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.rate_review_outlined,
+                    size: 13,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 5),
+                  Flexible(
+                    child: Text(
+                      userRating.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // 3. Deskripsi (Ulasan Lengkap)
+          if (userRating.description.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.format_quote_rounded,
+                  size: 16,
+                  color: Color(0xFF94A3B8),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    userRating.description,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                      color: AppColors.textPrimary,
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

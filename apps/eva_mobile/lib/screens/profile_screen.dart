@@ -154,7 +154,7 @@ class ProfileScreenState extends State<ProfileScreen> {
 
                 child: Text(
 
-                  'Hapus Memori AI?',
+                  'Hapus Memori Lokal AI?',
 
                   style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700),
 
@@ -168,7 +168,7 @@ class ProfileScreenState extends State<ProfileScreen> {
 
           content: Text(
 
-            'Apakah Anda yakin ingin menghapus seluruh catatan memori AI? EVA akan menghapus riwayat konteks emosional yang telah dipelajari.',
+            'Apakah Anda yakin ingin menghapus seluruh catatan memori AI? EVA akan menghapus riwayat konteks emosional yang tersimpan secara lokal di perangkat ini.',
 
             style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
 
@@ -595,7 +595,7 @@ class ProfileScreenState extends State<ProfileScreen> {
 
                             CustomPillButton(
 
-                              text: 'Hapus Catatan Memori AI',
+                              text: 'Hapus Catatan Memori Lokal AI',
 
                               isOutline: true,
 

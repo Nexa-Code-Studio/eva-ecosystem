@@ -6,6 +6,7 @@ import 'package:eva_mobile/core/network/api_client.dart';
 import 'package:eva_mobile/features/care/data/models/psychologist_model.dart';
 import 'package:eva_mobile/features/care/data/models/clinic_model.dart';
 import 'package:eva_mobile/features/care/data/models/community_status_model.dart';
+import 'package:eva_mobile/features/care/data/models/consultation_session_model.dart';
 import 'package:eva_mobile/features/care/data/datasources/mock_care_datasource.dart';
 import 'package:eva_mobile/features/care/data/repositories/care_repository_impl.dart';
 import 'package:eva_mobile/features/care/data/repositories/fallback_care_repository.dart';
@@ -270,6 +271,7 @@ void main() {
         preferredDateTime: DateTime.now().add(const Duration(days: 2)),
         sessionType: ConsultationType.onlineVideo,
         complaints: 'Merasa overthinking saat malam hari',
+        shareAiChatHistory: true,
       );
 
       expect(newSession.id, startsWith('sess_'));
@@ -277,10 +279,45 @@ void main() {
       expect(newSession.status, ConsultationStatus.upcoming);
       expect(newSession.type, ConsultationType.onlineVideo);
       expect(newSession.meetingUrl, isNotNull);
+      expect(newSession.shareAiChatHistory, isTrue);
 
       final updatedSessions = await dataSource.getConsultationSessions();
       expect(updatedSessions.length, initialCount + 1);
       expect(updatedSessions.first.id, newSession.id);
+      expect(updatedSessions.first.shareAiChatHistory, isTrue);
+    });
+
+    test('Serializes and deserializes ConsultationSessionModel with shareAiChatHistory consent', () {
+      final json = {
+        'id': 'sess_test_consent',
+        'psychologist': {
+          'id': 'psy_1',
+          'name': 'Amanda Zahra',
+          'title': 'Psikolog Klinis Dewasa',
+          'registration_number': 'SIPP: 1234',
+          'avatar_url': 'https://example.com/avatar.jpg',
+          'rating': 4.9,
+          'review_count': 100,
+          'experience_years': 6,
+          'specialties': ['Kecemasan'],
+          'coins_per_session': 50,
+          'bio': 'Test bio',
+        },
+        'session_datetime': DateTime.now().toIso8601String(),
+        'status': 'upcoming',
+        'type': 'onlineVideo',
+        'notes': 'Test notes',
+        'share_ai_chat_history': true,
+      };
+
+      final model = ConsultationSessionModel.fromJson(json);
+      expect(model.shareAiChatHistory, isTrue);
+
+      final serialized = model.toJson();
+      expect(serialized['share_ai_chat_history'], isTrue);
+
+      final copy = model.copyWith(shareAiChatHistory: false);
+      expect(copy.shareAiChatHistory, isFalse);
     });
   });
 
@@ -412,6 +449,7 @@ class FakeRemoteCareRepository implements CareRepository {
     required DateTime preferredDateTime,
     required ConsultationType sessionType,
     String? complaints,
+    bool shareAiChatHistory = true,
   }) async {
     if (shouldThrow404) throw ApiException('Not Found', statusCode: 404);
     throw UnimplementedError();

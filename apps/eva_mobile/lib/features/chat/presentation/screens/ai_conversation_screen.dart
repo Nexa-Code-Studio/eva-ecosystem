@@ -58,9 +58,12 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
         'summary': c.summary,
         'messages': c.messages.map((m) => <String, dynamic>{
           'id': m.id,
+          'isUser': m.isUser,
           'sender': m.isUser ? 'user' : 'ai',
+          'role': m.isUser ? 'user' : 'assistant',
           'text': m.text,
           'time': m.time,
+          'emotionTag': m.emotionTag,
           'emotionEmoji': m.emotionEmoji,
         }).toList(),
       }).toList();
@@ -569,7 +572,9 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
                 ],
                 'transcripts': msgs
                     .map((m) {
-                      final isUser = m['sender'] == 'user';
+                      final isUser = m['isUser'] == true ||
+                          m['sender'] == 'user' ||
+                          m['role'] == 'user';
                       final text = (m['text'] ?? '').toString();
                       final tag = (m['emotionTag'] ?? m['emotion_tag'])?.toString();
                       final emoji = (m['emotionEmoji'] ?? m['emotion_emoji'])?.toString();

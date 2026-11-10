@@ -3,7 +3,7 @@ from datetime import date
 from typing import Any
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.attributes import flag_modified
@@ -223,8 +223,10 @@ class DASSService:
             select(Conversation)
             .where(
                 Conversation.user_id == user_id,
-                Conversation.created_at >= start_utc,
-                Conversation.created_at <= end_utc,
+                or_(
+                    and_(Conversation.started_at >= start_utc, Conversation.started_at <= end_utc),
+                    and_(Conversation.created_at >= start_utc, Conversation.created_at <= end_utc),
+                ),
             )
             .options(selectinload(Conversation.messages))
         )
@@ -235,7 +237,14 @@ class DASSService:
         latest_conv_id = None
         for c in conversations:
             latest_conv_id = c.id
-            for m in sorted(c.messages, key=lambda x: x.created_at):
+            sorted_msgs = sorted(
+                c.messages,
+                key=lambda x: (
+                    getattr(x, "sequence_number", 0) or 0,
+                    getattr(x, "created_at", None) or 0,
+                ),
+            )
+            for m in sorted_msgs:
                 if m.content and m.content.strip():
                     formatted_msgs.append(f"{m.role.upper()}: {m.content}")
 

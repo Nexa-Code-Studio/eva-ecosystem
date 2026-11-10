@@ -818,6 +818,7 @@ class MockCareDataSource implements CareDataSource {
     required DateTime preferredDateTime,
     required ConsultationType sessionType,
     String? complaints,
+    bool shareAiChatHistory = true,
   }) async {
     await Future.delayed(const Duration(milliseconds: 400));
     final targetPsy = _psychologists.firstWhere(
@@ -838,6 +839,7 @@ class MockCareDataSource implements CareDataSource {
           ? (targetPsy.clinicAffiliation ?? 'Klinik Mitra Eva')
           : null,
       notes: complaints,
+      shareAiChatHistory: shareAiChatHistory,
     );
 
     _sessions.insert(0, newSession);

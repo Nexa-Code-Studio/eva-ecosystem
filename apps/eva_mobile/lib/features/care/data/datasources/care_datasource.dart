@@ -15,5 +15,6 @@ abstract class CareDataSource {
     required DateTime preferredDateTime,
     required ConsultationType sessionType,
     String? complaints,
+    bool shareAiChatHistory = true,
   });
 }

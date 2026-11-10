@@ -123,6 +123,20 @@ class _VoiceSessionDetailScreenState extends ConsumerState<VoiceSessionDetailScr
           if (match.summary.isNotEmpty) {
             _sessionData?['summary'] = match.summary;
           }
+          if (match.messages.isNotEmpty) {
+            final raw = _sessionData?['transcript'];
+            if (raw == null || (raw is List && raw.isEmpty)) {
+              _sessionData?['transcript'] = match.messages
+                  .map((m) => {
+                        'role': m.isUser ? 'user' : 'assistant',
+                        'content': m.text,
+                        'time': m.time,
+                        'emotionTag': m.emotionTag,
+                        'emotionEmoji': m.emotionEmoji,
+                      })
+                  .toList();
+            }
+          }
         });
         if (!_isTitleLoading(newTitle)) {
           _pollingTimer?.cancel();

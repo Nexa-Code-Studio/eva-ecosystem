@@ -17,7 +17,9 @@ import 'package:eva_mobile/features/care/domain/entities/consultation_session_en
 import 'package:eva_mobile/features/care/presentation/screens/psychologist_detail_screen.dart';
 import 'package:eva_mobile/features/care/presentation/screens/consultation_schedule_screen.dart';
 import 'package:eva_mobile/features/care/presentation/screens/consultation_history_screen.dart';
+import 'package:eva_mobile/features/care/domain/entities/psychologist_rating_review.dart';
 import 'package:eva_mobile/features/care/presentation/screens/consultation_session_logs_screen.dart';
+import 'package:eva_mobile/features/care/presentation/screens/consultation_rating_screen.dart';
 import 'package:eva_mobile/features/care/presentation/screens/psychologist_video_call_screen.dart';
 import 'package:eva_mobile/features/coin/presentation/screens/coin_purchase_screen.dart';
 import 'package:eva_mobile/features/home/presentation/screens/main_shell_screen.dart';
@@ -30,6 +32,13 @@ import 'app_route_transitions.dart';
 
 /// Centralized route generator applying custom transitions to all Eva Mobile pages.
 class AppRouter {
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+  /// Safely redirect to /login when a session expires or refresh token fails
+  static void forceLogoutToLogin() {
+    navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
+  }
+
   static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
     final name = settings.name;
     final args = settings.arguments as Map<String, dynamic>?;
@@ -179,6 +188,21 @@ class AppRouter {
             page: ConsultationSessionLogsScreen(
               psychologist: psychologist,
               sessions: sessions,
+            ),
+            settings: settings,
+          );
+        }
+        return null;
+
+      case '/care/rating':
+      case '/consultation_rating':
+        final psychologist = args?['psychologist'] as PsychologistEntity?;
+        final initialRating = args?['initialRating'] as PsychologistRatingReview?;
+        if (psychologist != null) {
+          return AppRouteTransitions.horizontalDetailRoute(
+            page: ConsultationRatingScreen(
+              psychologist: psychologist,
+              initialRating: initialRating,
             ),
             settings: settings,
           );

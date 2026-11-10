@@ -6,6 +6,8 @@ class DiarySessionSummaryEntity {
   final String time;
   final String moodTag;
   final String moodEmoji;
+  final List<Map<String, dynamic>> transcripts;
+  final List<Map<String, dynamic>> emotionsBreakdown;
 
   const DiarySessionSummaryEntity({
     required this.id,
@@ -13,6 +15,8 @@ class DiarySessionSummaryEntity {
     required this.time,
     required this.moodTag,
     required this.moodEmoji,
+    this.transcripts = const [],
+    this.emotionsBreakdown = const [],
   });
 }
 

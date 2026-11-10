@@ -8,15 +8,22 @@ class DiarySessionSummaryModel extends DiarySessionSummaryEntity {
     required super.time,
     required super.moodTag,
     required super.moodEmoji,
+    super.transcripts = const [],
+    super.emotionsBreakdown = const [],
   });
 
   factory DiarySessionSummaryModel.fromJson(Map<String, dynamic> json) {
+    final rawTranscripts = (json['transcripts'] as List?) ?? [];
+    final rawBreakdown = (json['emotionsBreakdown'] ?? json['emotions_breakdown'] as List?) ?? [];
+
     return DiarySessionSummaryModel(
       id: json['id']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
       time: json['time']?.toString() ?? '',
       moodTag: json['moodTag']?.toString() ?? json['mood_tag']?.toString() ?? '',
       moodEmoji: json['moodEmoji']?.toString() ?? json['mood_emoji']?.toString() ?? '',
+      transcripts: rawTranscripts.map((t) => Map<String, dynamic>.from(t as Map)).toList(),
+      emotionsBreakdown: rawBreakdown.map((b) => Map<String, dynamic>.from(b as Map)).toList(),
     );
   }
 
@@ -27,6 +34,8 @@ class DiarySessionSummaryModel extends DiarySessionSummaryEntity {
       'time': time,
       'moodTag': moodTag,
       'moodEmoji': moodEmoji,
+      'transcripts': transcripts,
+      'emotionsBreakdown': emotionsBreakdown,
     };
   }
 }

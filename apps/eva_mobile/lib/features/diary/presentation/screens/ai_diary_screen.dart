@@ -87,6 +87,8 @@ class AiDiaryScreenState extends ConsumerState<AiDiaryScreen> {
                 'time': s.time,
                 'moodTag': s.moodTag,
                 'moodEmoji': s.moodEmoji,
+                'transcripts': s.transcripts,
+                'emotionsBreakdown': s.emotionsBreakdown,
               }).toList(),
             };
           }).toList();

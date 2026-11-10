@@ -593,7 +593,9 @@ class _AiConversationScreenState extends State<AiConversationScreen> {
                 ],
                 'transcripts': msgs
                     .map((m) {
-                      final isUser = m['sender'] == 'user';
+                      final isUser = m['isUser'] == true ||
+                          m['sender'] == 'user' ||
+                          m['role'] == 'user';
                       final text = (m['text'] ?? '').toString();
                       final tag = (m['emotionTag'] ?? m['emotion_tag'])?.toString();
                       final emoji = (m['emotionEmoji'] ?? m['emotion_emoji'])?.toString();

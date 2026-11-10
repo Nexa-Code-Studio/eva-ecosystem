@@ -30,6 +30,7 @@ class ConsultationSessionEntity {
   final String? moodAfter;
   final int durationMinutes;
   final String? sessionSummary;
+  final bool shareAiChatHistory;
 
   const ConsultationSessionEntity({
     required this.id,
@@ -48,6 +49,7 @@ class ConsultationSessionEntity {
     this.moodAfter,
     this.durationMinutes = 50,
     this.sessionSummary,
+    this.shareAiChatHistory = true,
   });
 
   bool get isUpcoming => status == ConsultationStatus.upcoming;
@@ -73,6 +75,7 @@ class ConsultationSessionEntity {
     String? moodAfter,
     int? durationMinutes,
     String? sessionSummary,
+    bool? shareAiChatHistory,
   }) {
     return ConsultationSessionEntity(
       id: id ?? this.id,
@@ -91,6 +94,7 @@ class ConsultationSessionEntity {
       moodAfter: moodAfter ?? this.moodAfter,
       durationMinutes: durationMinutes ?? this.durationMinutes,
       sessionSummary: sessionSummary ?? this.sessionSummary,
+      shareAiChatHistory: shareAiChatHistory ?? this.shareAiChatHistory,
     );
   }
 }

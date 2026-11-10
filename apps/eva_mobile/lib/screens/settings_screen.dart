@@ -125,14 +125,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Hapus Memori AI?',
+                  'Hapus Memori Lokal AI?',
                   style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
               ),
             ],
           ),
           content: Text(
-            'Apakah Anda yakin ingin menghapus seluruh konteks percakapan emosional yang telah dipelajari EVA? Tindakan ini tidak dapat dibatalkan.',
+            'Apakah Anda yakin ingin menghapus seluruh konteks percakapan emosional yang tersimpan secara lokal di perangkat ini? Tindakan ini tidak dapat dibatalkan.',
             style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
           ),
           actions: [
@@ -149,7 +149,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Memori percakapan AI berhasil dibersihkan.'),
+                    content: Text('Memori lokal percakapan AI berhasil dibersihkan.'),
                     backgroundColor: Color(0xFFD32F2F),
                     behavior: SnackBarBehavior.floating,
                   ),
@@ -509,8 +509,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         _buildActionTile(
                                           icon: Icons.delete_outline_rounded,
                                           iconColor: const Color(0xFFD32F2F),
-                                          title: 'Hapus Memori AI Eva',
-                                          subtitle: 'Bersihkan seluruh riwayat konteks emosional yang tersimpan',
+                                          title: 'Hapus Memori Lokal AI Eva',
+                                          subtitle: 'Bersihkan seluruh riwayat konteks emosional yang tersimpan secara lokal',
                                           onTap: _showResetMemoryDialog,
                                         ),
                                         const Divider(height: 20, thickness: 0.5, color: AppColors.divider),

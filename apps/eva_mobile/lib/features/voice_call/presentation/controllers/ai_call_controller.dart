@@ -215,7 +215,11 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       }
     } else if (type == 'turn.committed') {
       final finalTranscript = event['final_transcript'] as String? ?? '';
-      state = state.copyWith(currentTranscript: finalTranscript);
+      final updatedAcc = '${state.accumulatedTranscript} $finalTranscript'.trim();
+      state = state.copyWith(
+        currentTranscript: finalTranscript,
+        accumulatedTranscript: updatedAcc,
+      );
       enterThinking();
     } else if (type == 'ai.thinking' || type == 'ai_thinking') {
       final turnId = (event['assistant_turn_id'] as num?)?.toInt();
@@ -291,6 +295,22 @@ class AiCallController extends StateNotifier<AiCallViewState> {
         crisisHotlineUrl: hotlineUrl,
         isCrisisSession: true,
       );
+    } else if (type == 'voice_session_summary') {
+      final transcriptList = event['transcript'] as List<dynamic>?;
+      if (transcriptList != null && transcriptList.isNotEmpty) {
+        final buffer = StringBuffer();
+        for (final item in transcriptList) {
+          if (item is Map && item['content'] != null) {
+            buffer.write(' ${item['content']}');
+          }
+        }
+        final summaryText = buffer.toString().trim();
+        if (summaryText.isNotEmpty) {
+          state = state.copyWith(
+            accumulatedTranscript: '${state.accumulatedTranscript} $summaryText'.trim(),
+          );
+        }
+      }
     } else if (type == 'error') {
       state = state.copyWith(errorMessage: event['message'] as String? ?? 'Terjadi kesalahan sistem');
       if (state.callState == CallState.thinking || state.callState == CallState.aiSpeaking) {
@@ -310,6 +330,10 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     final nextSessionId = state.activeSttSessionId + 1;
     _restartAttempts = 0;
 
+    final updatedAcc = state.aiTranscript.isNotEmpty
+        ? '${state.accumulatedTranscript} ${state.aiTranscript}'.trim()
+        : state.accumulatedTranscript;
+
     state = state.copyWith(
       callState: CallState.listening,
       activeSttSessionId: nextSessionId,
@@ -317,6 +341,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       currentTranscript: '',
       latestPartial: '',
       aiTranscript: '',
+      accumulatedTranscript: updatedAcc,
     );
 
     if (state.conversationMode == ConversationMode.hybridAuto && !state.isMuted) {

@@ -4,6 +4,7 @@ import '../../domain/entities/psychologist_entity.dart';
 import '../../domain/entities/clinic_entity.dart';
 import '../../domain/entities/community_status_entity.dart';
 import '../../domain/entities/consultation_session_entity.dart';
+import '../../domain/entities/psychologist_rating_review.dart';
 import '../../domain/repositories/care_repository.dart';
 import '../../data/datasources/mock_care_datasource.dart';
 import '../../data/datasources/remote_care_datasource.dart';
@@ -114,6 +115,7 @@ class ConsultationSessionsNotifier
     required DateTime preferredDateTime,
     required ConsultationType sessionType,
     String? complaints,
+    bool shareAiChatHistory = true,
   }) async {
     try {
       final newSession = await _repo.bookConsultation(
@@ -121,6 +123,7 @@ class ConsultationSessionsNotifier
         preferredDateTime: preferredDateTime,
         sessionType: sessionType,
         complaints: complaints,
+        shareAiChatHistory: shareAiChatHistory,
       );
 
       final current = state.value ?? [];
@@ -175,4 +178,44 @@ final consultationSessionsProvider = StateNotifierProvider<
     AsyncValue<List<ConsultationSessionEntity>>>((ref) {
   final repo = ref.watch(careRepositoryProvider);
   return ConsultationSessionsNotifier(repo);
+});
+
+/// Manages user-submitted ratings and reviews for psychologists & volunteers
+class PsychologistRatingsNotifier
+    extends StateNotifier<Map<String, PsychologistRatingReview>> {
+  PsychologistRatingsNotifier() : super({});
+
+  void submitRating({
+    required String psychologistId,
+    required double rating,
+    bool isPositive = true,
+    required String label,
+    required String description,
+    List<String> tags = const [],
+    bool isAnonymous = true,
+  }) {
+    state = {
+      ...state,
+      psychologistId: PsychologistRatingReview(
+        psychologistId: psychologistId,
+        rating: rating,
+        isPositive: isPositive,
+        label: label,
+        description: description,
+        tags: tags,
+        createdAt: DateTime.now(),
+        isAnonymous: isAnonymous,
+      ),
+    };
+  }
+
+  PsychologistRatingReview? getRatingFor(String psychologistId) {
+    return state[psychologistId];
+  }
+}
+
+final psychologistRatingsProvider = StateNotifierProvider<
+    PsychologistRatingsNotifier,
+    Map<String, PsychologistRatingReview>>((ref) {
+  return PsychologistRatingsNotifier();
 });

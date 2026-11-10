@@ -71,6 +71,7 @@ class RemoteCareDataSource implements CareDataSource {
     required DateTime preferredDateTime,
     required ConsultationType sessionType,
     String? complaints,
+    bool shareAiChatHistory = true,
   }) async {
     final response = await _apiClient.post(
       '/care/book',
@@ -79,6 +80,7 @@ class RemoteCareDataSource implements CareDataSource {
         'preferred_datetime': preferredDateTime.toIso8601String(),
         'session_type': sessionType.name,
         'complaints': complaints,
+        'share_ai_chat_history': shareAiChatHistory,
       },
     );
 

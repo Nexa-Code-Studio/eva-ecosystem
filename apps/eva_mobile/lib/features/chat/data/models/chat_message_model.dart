@@ -15,7 +15,11 @@ class ChatMessageModel extends ChatMessageEntity {
     return ChatMessageModel(
       id: json['id']?.toString() ?? '',
       conversationId: json['conversation_id']?.toString() ?? json['conversationId']?.toString() ?? '',
-      isUser: json['is_user'] ?? json['isUser'] ?? (json['sender_role'] == 'user'),
+      isUser: json['is_user'] == true ||
+          json['isUser'] == true ||
+          json['sender_role'] == 'user' ||
+          json['sender'] == 'user' ||
+          json['role'] == 'user',
       time: json['time']?.toString() ?? json['timestamp']?.toString() ?? '',
       text: json['text']?.toString() ?? json['content']?.toString() ?? '',
       emotionTag: json['emotion_tag'] ?? json['emotionTag'],

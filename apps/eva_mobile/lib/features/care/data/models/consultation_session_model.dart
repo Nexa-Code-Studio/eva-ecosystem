@@ -19,6 +19,7 @@ class ConsultationSessionModel extends ConsultationSessionEntity {
     super.moodAfter,
     super.durationMinutes = 50,
     super.sessionSummary,
+    super.shareAiChatHistory = true,
   });
 
   factory ConsultationSessionModel.fromJson(Map<String, dynamic> json) {
@@ -48,6 +49,7 @@ class ConsultationSessionModel extends ConsultationSessionEntity {
       moodAfter: json['mood_after'] as String?,
       durationMinutes: (json['duration_minutes'] as num?)?.toInt() ?? 50,
       sessionSummary: json['session_summary'] as String?,
+      shareAiChatHistory: json['share_ai_chat_history'] as bool? ?? true,
     );
   }
 
@@ -90,6 +92,7 @@ class ConsultationSessionModel extends ConsultationSessionEntity {
       'mood_after': moodAfter,
       'duration_minutes': durationMinutes,
       'session_summary': sessionSummary,
+      'share_ai_chat_history': shareAiChatHistory,
     };
   }
 }

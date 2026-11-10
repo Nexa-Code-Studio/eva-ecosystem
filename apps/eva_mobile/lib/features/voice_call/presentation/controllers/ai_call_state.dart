@@ -10,6 +10,7 @@ class AiCallViewState {
   final String currentTranscript;
   final String latestPartial;
   final String aiTranscript;
+  final String accumulatedTranscript;
   final double soundLevel;
   final int callDurationSeconds;
   final bool isMuted;
@@ -31,6 +32,7 @@ class AiCallViewState {
     this.currentTranscript = '',
     this.latestPartial = '',
     this.aiTranscript = '',
+    this.accumulatedTranscript = '',
     this.soundLevel = 0.05,
     this.callDurationSeconds = 0,
     this.isMuted = false,
@@ -53,6 +55,7 @@ class AiCallViewState {
     String? currentTranscript,
     String? latestPartial,
     String? aiTranscript,
+    String? accumulatedTranscript,
     double? soundLevel,
     int? callDurationSeconds,
     bool? isMuted,
@@ -76,6 +79,7 @@ class AiCallViewState {
       currentTranscript: currentTranscript ?? this.currentTranscript,
       latestPartial: latestPartial ?? this.latestPartial,
       aiTranscript: aiTranscript ?? this.aiTranscript,
+      accumulatedTranscript: accumulatedTranscript ?? this.accumulatedTranscript,
       soundLevel: soundLevel ?? this.soundLevel,
       callDurationSeconds: callDurationSeconds ?? this.callDurationSeconds,
       isMuted: isMuted ?? this.isMuted,

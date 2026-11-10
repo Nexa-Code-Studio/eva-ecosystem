@@ -22,6 +22,7 @@ make mobile-usb-cloud  # HP fisik nembak production cloud
 make mobile-emu-cloud  # Android Emulator nembak production cloud
 make mobile-web-cloud  # Chrome Web nembak production cloud
 make mobile-cloud      # Shortcut alias ke mobile-usb-cloud
+make mobile-web-build  # Build Flutter Web Release (Hybrid API + GitHub Pages ready)
 ```
 
 ## 2. Manual Profile Execution
@@ -52,6 +53,18 @@ Connects to local FastAPI backend on host via `10.0.2.2:8888`:
 ```bash
 flutter run --dart-define=API_BASE_URL="http://10.0.2.2:8888/api/v1"
 ```
+
+### Profile D: Hybrid Web Deployment (GitHub Pages)
+Builds release Flutter Web targeting live API with automatic mock fallback on failure:
+```bash
+flutter build web --release \
+  --base-href "/eva-ecosystem/" \
+  --dart-define=USE_LOCAL_API=false \
+  --dart-define=USE_HYBRID_FALLBACK=true \
+  --dart-define=HYBRID=true \
+  --dart-define=API_BASE_URL="https://eva.nexacode.dev/api/v1"
+```
+Or automated via GitHub Actions workflow `.github/workflows/deploy-mobile-web.yml`.
 
 ## 3. Code Analysis & Tests
 
