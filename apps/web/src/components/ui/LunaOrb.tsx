@@ -22,36 +22,34 @@ export function LunaOrb({ className, still }: { className?: string; still?: bool
   )
 }
 
-/** Brand icon mark: solid primary squircle with soundwave vitality vector. */
+/** Brand icon mark: official EVA mobile brand logo icon. */
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <span
-      aria-hidden
-      className={cn(
-        'flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary text-white shadow-btn',
-        className,
-      )}
-    >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="size-4.5"
-      >
-        <path d="M3 12h3l2-4 4 8 3-6 2 3h4" />
-      </svg>
-    </span>
+    <img
+      src="/eva_logo.png"
+      alt="EVA Logo"
+      className={cn('size-8 shrink-0 object-contain', className)}
+    />
   )
 }
 
-/** Brand mark: rotating rainbow orb + wordmark. */
-export function Logo({ inverted, className }: { inverted?: boolean; className?: string }) {
+/** Brand mark: official EVA mobile brand logo + wordmark. */
+export function Logo({
+  inverted,
+  className,
+  iconClassName,
+}: {
+  inverted?: boolean
+  className?: string
+  iconClassName?: string
+}) {
   return (
     <span className={cn('inline-flex items-center gap-2.5', className)}>
-      <LunaOrb className="size-8" />
+      <img
+        src="/eva_logo.png"
+        alt="EVA Logo"
+        className={cn('size-8 shrink-0 object-contain', iconClassName)}
+      />
       <span
         className={cn(
           'text-[22px] font-extrabold tracking-[-0.02em]',

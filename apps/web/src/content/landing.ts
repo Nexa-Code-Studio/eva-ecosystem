@@ -54,6 +54,15 @@ export const hero = {
 /* ------------------------------------------------------------------ */
 export type FeatureId = 'voice' | 'quest' | 'avatar' | 'diary' | 'screening' | 'safety'
 
+export const FEATURE_SCREENSHOTS: Record<FeatureId, string> = {
+  voice: '/images/mockups/voice.webp',
+  quest: '/images/mockups/quest.webp',
+  avatar: '/images/mockups/avatar.webp',
+  diary: '/images/mockups/diary.webp',
+  screening: '/images/mockups/screening.webp',
+  safety: '/images/mockups/safety.webp',
+}
+
 export interface Feature {
   id: FeatureId
   icon: LucideIcon

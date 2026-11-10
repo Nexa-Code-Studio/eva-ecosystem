@@ -4,7 +4,6 @@ import { Link, useSearchParams } from 'react-router'
 import { ApplyStep1Facility } from '@/components/portal/apply/ApplyStep1Facility'
 import { ApplyStep2PicOperational } from '@/components/portal/apply/ApplyStep2PicOperational'
 import { ApplyStep3AccountConfirm } from '@/components/portal/apply/ApplyStep3AccountConfirm'
-import { LunaOrb } from '@/components/ui'
 import { usePartnerApplyForm, type WizardStep } from '@/hooks/usePartnerApplyForm'
 import { cn } from '@/lib/cn'
 
@@ -42,7 +41,7 @@ export function PartnerApplyPage() {
       <main id="main-content" className="mx-auto my-6 w-full max-w-xl">
         <div className="mb-5 flex flex-col items-center text-center">
           <Link to="/" className="inline-flex flex-col items-center gap-2">
-            <LunaOrb className="size-10" />
+            <img src="/eva_logo.png" alt="EVA" className="size-10 object-contain" />
             <span className="text-lg font-bold tracking-[-0.02em] text-ink">EVA</span>
           </Link>
           <h1 className="mt-2.5 text-[20px] font-semibold tracking-[-0.015em] text-ink">

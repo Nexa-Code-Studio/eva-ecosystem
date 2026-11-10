@@ -1,0 +1,66 @@
+{
+  "generatedAt": "2026-11-10T01:35:42.646Z",
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "scale": 2
+  },
+  "screens": [
+    {
+      "id": "home",
+      "title": "Beranda Eva Mobile (Dashboard)",
+      "route": "/#/home",
+      "webp": "home.webp",
+      "png": "home.png",
+      "fileSizeKb": 69.8
+    },
+    {
+      "id": "voice",
+      "title": "Curhat Suara Interaktif (Voice Call)",
+      "route": "/#/voice_call",
+      "webp": "voice.webp",
+      "png": "voice.png",
+      "fileSizeKb": 18.2
+    },
+    {
+      "id": "diary",
+      "title": "Diari Emosi AI & Pola Pikir",
+      "route": "/#/diary",
+      "webp": "diary.webp",
+      "png": "diary.png",
+      "fileSizeKb": 72.2
+    },
+    {
+      "id": "screening",
+      "title": "Skrining Mandiri DASS-21 Klinis",
+      "route": "/#/dass",
+      "webp": "screening.webp",
+      "png": "screening.png",
+      "fileSizeKb": 72.2
+    },
+    {
+      "id": "safety",
+      "title": "Protokol SafetyNet 24/7 (Bantuan Krisis)",
+      "route": "/#/support",
+      "webp": "safety.webp",
+      "png": "safety.png",
+      "fileSizeKb": 49.3
+    },
+    {
+      "id": "quest",
+      "title": "Misi Ketahanan Emosi & Pemantauan (Quest)",
+      "route": "/#/monitoring",
+      "webp": "quest.webp",
+      "png": "quest.png",
+      "fileSizeKb": 66.2
+    },
+    {
+      "id": "avatar",
+      "title": "Personalisasi & Pengaturan Sahabat AI",
+      "route": "/#/settings",
+      "webp": "avatar.webp",
+      "png": "avatar.png",
+      "fileSizeKb": 69.6
+    }
+  ]
+}

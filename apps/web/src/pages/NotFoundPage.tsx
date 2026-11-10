@@ -1,12 +1,12 @@
 import { ArrowLeft, Home } from 'lucide-react'
 import { Link } from 'react-router'
-import { Button, Container, LunaOrb } from '@/components/ui'
+import { Button, Container } from '@/components/ui'
 
 export function NotFoundPage() {
   return (
     <section className="relative flex min-h-[70vh] items-center justify-center py-20">
       <Container className="flex max-w-md flex-col items-center text-center">
-        <LunaOrb className="size-20" still />
+        <img src="/eva_logo.png" alt="EVA" className="size-20 object-contain drop-shadow-md" />
         <span className="mt-8 rounded-pill bg-primary-container px-3.5 py-1.5 text-overline uppercase text-primary">
           404: Halaman Tidak Ditemukan
         </span>

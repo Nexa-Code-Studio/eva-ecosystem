@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { FeatureScreen } from '@/components/mockups/AppScreens'
 import { PhoneFrame } from '@/components/mockups/PhoneFrame'
 import { Container, IconTile, SectionHeading } from '@/components/ui'
-import { features, type FeatureId } from '@/content/landing'
+import { features, FEATURE_SCREENSHOTS, type FeatureId } from '@/content/landing'
 import { usePrefersReducedMotion } from '@/hooks/useScroll'
 import { cn } from '@/lib/cn'
 
@@ -165,10 +165,14 @@ export function Features() {
           {/* Sticky preview */}
           <div className="order-1 lg:sticky lg:top-28 lg:order-2">
             <div className="relative mx-auto flex w-fit flex-col items-center">
-              <PhoneFrame className="w-[300px] sm:w-[330px] lg:w-[350px] xl:w-[370px]">
+              <PhoneFrame
+                key={activeId}
+                screenshot={FEATURE_SCREENSHOTS[activeId]}
+                screenshotAlt={`Pratinjau layar: ${active.title}`}
+                className="w-[300px] sm:w-[330px] lg:w-[350px] xl:w-[370px]"
+              >
                 <div
                   id="feature-preview"
-                  key={activeId}
                   role="img"
                   aria-label={`Pratinjau layar: ${active.title}`}
                   className="h-full animate-enter"

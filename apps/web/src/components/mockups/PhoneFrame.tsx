@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 
 export interface PhoneFrameProps {
@@ -9,13 +9,26 @@ export interface PhoneFrameProps {
   className?: string
   /** Hide status bar (e.g. when screenshot already contains one). */
   bare?: boolean
+  /** Hide top notch/dynamic island (automatically hidden when screenshot is present). */
+  hideNotch?: boolean
 }
 
 /**
  * Device frame for showcasing the EVA mobile app.
- * Drop a screenshot via `screenshot="/screens/home.png"` (put files in /public/screens).
+ * Drop a screenshot via `screenshot="/images/mockups/home.webp"`.
  */
-export function PhoneFrame({ screenshot, screenshotAlt = '', children, className, bare }: PhoneFrameProps) {
+export function PhoneFrame({
+  screenshot,
+  screenshotAlt = '',
+  children,
+  className,
+  bare,
+  hideNotch,
+}: PhoneFrameProps) {
+  const [hasError, setHasError] = useState(false)
+  const showScreenshot = Boolean(screenshot && !hasError)
+  const shouldShowNotch = !showScreenshot && !bare && !hideNotch
+
   return (
     <div
       className={cn(
@@ -30,18 +43,21 @@ export function PhoneFrame({ screenshot, screenshotAlt = '', children, className
       <span aria-hidden className="absolute top-36 -right-[3px] h-16 w-[3px] rounded-r bg-obsidian" />
 
       <div className="relative h-full w-full overflow-hidden rounded-[37px] bg-luna-screen">
-        {/* dynamic island */}
-        <span
-          aria-hidden
-          className="absolute top-2.5 left-1/2 z-30 h-[26px] w-[92px] -translate-x-1/2 rounded-pill bg-obsidian"
-        />
-        {screenshot ? (
+        {/* dynamic island - hidden for real screenshots to prevent obstructing app bar headers */}
+        {shouldShowNotch && (
+          <span
+            aria-hidden
+            className="absolute top-2.5 left-1/2 z-30 h-[26px] w-[92px] -translate-x-1/2 rounded-pill bg-obsidian"
+          />
+        )}
+        {showScreenshot ? (
           <img
             src={screenshot}
             alt={screenshotAlt}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition-opacity duration-300"
             loading="lazy"
             decoding="async"
+            onError={() => setHasError(true)}
           />
         ) : (
           <div className="flex h-full flex-col">

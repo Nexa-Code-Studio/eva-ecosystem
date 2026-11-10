@@ -134,7 +134,11 @@ export function Hero() {
             style={stagger(3)}
           >
             <div className="relative flex justify-center">
-              <PhoneFrame className="w-[300px] sm:w-[330px] lg:w-[350px] xl:w-[380px]">
+              <PhoneFrame
+                screenshot="/images/mockups/home.webp"
+                screenshotAlt="Tangkapan layar asli beranda aplikasi Eva Mobile"
+                className="w-[300px] sm:w-[330px] lg:w-[350px] xl:w-[380px]"
+              >
                 <HomeScreen />
               </PhoneFrame>
             </div>
