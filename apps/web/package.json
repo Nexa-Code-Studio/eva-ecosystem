@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "demo:record": "node scripts/demo/run-eva-demo.mjs",
     "demo:record:fast": "node scripts/demo/run-eva-demo.mjs --fast",
-    "demo:slice": "node scripts/demo/slice-recordings.mjs"
+    "demo:slice": "node scripts/demo/slice-recordings.mjs",
+    "update:mockups": "node scripts/mockups/capture-mobile-mockups.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
