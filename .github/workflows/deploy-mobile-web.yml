@@ -1,35 +1,35 @@
-name: Deploy Eva Mobile Web to GitHub Pages
+name: Deploy EVA Ecosystem Web (Mobile & Counselor) to GitHub Pages
 
 on:
   workflow_dispatch:
     inputs:
       api_base_url:
-        description: 'Backend API Base URL (HTTPS required in browser)'
+        description: 'Backend API Base URL (HTTPS required)'
         required: true
         default: 'https://eva.nexacode.dev/api/v1'
       use_hybrid:
-        description: 'Enable Hybrid Fallback (Auto-mock on API failure/offline)'
+        description: 'Enable Hybrid Fallback for Eva Mobile'
         required: true
         type: boolean
         default: true
       base_href:
-        description: 'Base href (e.g. /eva-ecosystem/ for GitHub Pages or / for custom domain)'
+        description: 'Custom base href (Leave empty or "/" for auto repo name detection)'
         required: false
-        default: '/eva-ecosystem/'
+        default: ''
   push:
     branches:
       - main
     paths:
       - 'apps/eva_mobile/**'
+      - 'apps/eva_counselor_mobile/**'
+      - 'scripts/web-hub/**'
       - '.github/workflows/deploy-mobile-web.yml'
 
-# Permissions required to deploy to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment
 concurrency:
   group: 'pages'
   cancel-in-progress: false
@@ -40,9 +40,6 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/eva_mobile
 
     steps:
       - name: Checkout repository
@@ -63,46 +60,83 @@ jobs:
       - name: Verify Flutter & Environment
         run: flutter doctor -v
 
-      - name: Get Flutter dependencies
-        run: flutter pub get
-
-      - name: Build Flutter Web (Hybrid Mode)
+      - name: Resolve Environment & Base Href
+        id: env_setup
         run: |
           API_URL="${{ github.event.inputs.api_base_url || 'https://eva.nexacode.dev/api/v1' }}"
           USE_HYBRID="${{ github.event.inputs.use_hybrid != 'false' && 'true' || 'false' }}"
-
-          # Compute Base Href: use manual input if provided, otherwise derive from repo name
-          INPUT_BASE_HREF="${{ github.event.inputs.base_href }}"
+          INPUT_BASE="${{ github.event.inputs.base_href }}"
           REPO_NAME="${{ github.event.repository.name }}"
 
-          if [ -n "$INPUT_BASE_HREF" ]; then
-            BASE_HREF="$INPUT_BASE_HREF"
+          if [ -n "$INPUT_BASE" ] && [ "$INPUT_BASE" != "auto" ]; then
+            BASE_HREF="$INPUT_BASE"
           elif [ -n "$REPO_NAME" ]; then
             BASE_HREF="/${REPO_NAME}/"
           else
             BASE_HREF="/"
           fi
 
+          # Ensure BASE_HREF ends with /
+          [[ "$BASE_HREF" != */ ]] && BASE_HREF="${BASE_HREF}/"
+
+          echo "BASE_HREF=${BASE_HREF}" >> $GITHUB_ENV
+          echo "API_URL=${API_URL}" >> $GITHUB_ENV
+          echo "USE_HYBRID=${USE_HYBRID}" >> $GITHUB_ENV
+
           echo "========================================================"
-          echo "Building Eva Mobile Web (Hybrid Mode):"
-          echo "  - API Base URL   : $API_URL"
-          echo "  - Hybrid Fallback: $USE_HYBRID"
-          echo "  - Base Href      : $BASE_HREF"
+          echo "Build Matrix Configuration:"
+          echo "  - Root Base Href  : $BASE_HREF"
+          echo "  - Eva Mobile Href : ${BASE_HREF}app/"
+          echo "  - Counselor Href  : ${BASE_HREF}counselor/"
+          echo "  - Backend API URL : $API_URL"
+          echo "  - Hybrid Fallback : $USE_HYBRID"
           echo "========================================================"
 
-          flutter build web --release \
-            --base-href "$BASE_HREF" \
-            --dart-define=USE_LOCAL_API=false \
-            --dart-define=USE_HYBRID_FALLBACK="$USE_HYBRID" \
-            --dart-define=HYBRID="$USE_HYBRID" \
-            --dart-define=API_BASE_URL="$API_URL"
-
-      - name: Configure Web Artifacts for GitHub Pages
+      - name: Build 1/2: Eva Mobile (Flutter Web Hybrid)
         run: |
-          # Disable Jekyll processing on GitHub Pages
-          touch build/web/.nojekyll
-          # GitHub Pages SPA support: copy index.html to 404.html for routing fallback
-          cp build/web/index.html build/web/404.html
+          echo "==> Building Eva Mobile Web for ${BASE_HREF}app/ ..."
+          cd apps/eva_mobile
+          flutter pub get
+          flutter build web --release \
+            --base-href "${BASE_HREF}app/" \
+            --dart-define=USE_LOCAL_API=false \
+            --dart-define=USE_HYBRID_FALLBACK="${USE_HYBRID}" \
+            --dart-define=HYBRID="${USE_HYBRID}" \
+            --dart-define=API_BASE_URL="${API_URL}"
+
+      - name: Build 2/2: Eva Counselor (Flutter Web Cloud)
+        run: |
+          echo "==> Building Eva Counselor Web for ${BASE_HREF}counselor/ ..."
+          cd apps/eva_counselor_mobile
+          flutter pub get
+          flutter build web --release \
+            --base-href "${BASE_HREF}counselor/" \
+            --dart-define=USE_LOCAL_API=false \
+            --dart-define=USE_MOCK_DATA=false
+
+      - name: Assemble GitHub Pages Multi-App Distribution
+        run: |
+          echo "==> Assembling final distribution bundle in dist/ ..."
+          rm -rf dist
+          mkdir -p dist/app dist/counselor
+
+          # Copy compiled apps into their subdirectories
+          cp -r apps/eva_mobile/build/web/* dist/app/
+          cp -r apps/eva_counselor_mobile/build/web/* dist/counselor/
+
+          # Copy Portal Hub & Smart SPA 404 handler
+          cp scripts/web-hub/index.html dist/index.html
+          cp scripts/web-hub/404.html dist/404.html
+
+          # Disable Jekyll engine for full asset support
+          touch dist/.nojekyll
+
+          echo "Distribution bundle contents:"
+          ls -la dist/
+          echo "dist/app contents:"
+          ls -la dist/app/ | head -n 10
+          echo "dist/counselor contents:"
+          ls -la dist/counselor/ | head -n 10
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
@@ -110,7 +144,7 @@ jobs:
       - name: Upload GitHub Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: apps/eva_mobile/build/web
+          path: dist
 
       - name: Deploy to GitHub Pages
         id: deployment

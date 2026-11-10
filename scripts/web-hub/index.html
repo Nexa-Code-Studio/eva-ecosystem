@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EVA AI Ecosystem — Portal Aplikasi Web</title>
+  <meta name="description" content="EVA AI Ecosystem - Sahabat Kesehatan Mental & Telekonsultasi Psikologi Klinis Terpadu.">
+  <link rel="icon" type="image/png" href="app/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --card-bg: rgba(22, 27, 46, 0.7);
+      --card-border: rgba(108, 99, 255, 0.25);
+      --card-hover-border: rgba(108, 99, 255, 0.6);
+      --primary: #6c63ff;
+      --primary-gradient: linear-gradient(135deg, #6c63ff 0%, #3b82f6 100%);
+      --counselor-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem 1.5rem;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Ambient Glowing Orbs */
+    .glow-orb-1 {
+      position: absolute;
+      top: 10%;
+      left: 15%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(108, 99, 255, 0.15) 0%, transparent 70%);
+      border-radius: 50%;
+      filter: blur(60px);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .glow-orb-2 {
+      position: absolute;
+      bottom: 10%;
+      right: 15%;
+      width: 450px;
+      height: 450px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, transparent 70%);
+      border-radius: 50%;
+      filter: blur(70px);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .container {
+      max-width: 1080px;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .logo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(108, 99, 255, 0.12);
+      border: 1px solid rgba(108, 99, 255, 0.3);
+      padding: 0.4rem 1rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #a5b4fc;
+      margin-bottom: 1.25rem;
+      backdrop-filter: blur(10px);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    h1 {
+      font-size: 2.75rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.75rem;
+      background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 1.125rem;
+      color: var(--text-muted);
+      max-width: 620px;
+      line-height: 1.6;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 2rem;
+      width: 100%;
+      margin-bottom: 3rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 1.5rem;
+      padding: 2.25rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+      border-color: var(--card-hover-border);
+      box-shadow: 0 25px 50px rgba(108, 99, 255, 0.15);
+    }
+
+    .card-top {
+      margin-bottom: 2rem;
+    }
+
+    .card-icon-wrapper {
+      width: 56px;
+      height: 56px;
+      border-radius: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card.mobile .card-icon-wrapper {
+      background: rgba(108, 99, 255, 0.15);
+      border: 1px solid rgba(108, 99, 255, 0.3);
+    }
+
+    .card.counselor .card-icon-wrapper {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .card-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.25rem 0.65rem;
+      border-radius: 6px;
+      margin-bottom: 0.75rem;
+    }
+
+    .card.mobile .card-badge {
+      background: rgba(108, 99, 255, 0.2);
+      color: #c7d2fe;
+    }
+
+    .card.counselor .card-badge {
+      background: rgba(16, 185, 129, 0.2);
+      color: #a7f3d0;
+    }
+
+    .card-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      color: #ffffff;
+    }
+
+    .card-desc {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin-bottom: 1.25rem;
+    }
+
+    .feature-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: #cbd5e1;
+    }
+
+    .feature-list li {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .feature-list li::before {
+      content: "✓";
+      color: #6c63ff;
+      font-weight: bold;
+    }
+
+    .card.counselor .feature-list li::before {
+      color: #10b981;
+    }
+
+    .card-bottom {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 1.5rem;
+    }
+
+    .demo-info {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 0.6rem 0.85rem;
+      border-radius: 8px;
+    }
+
+    .demo-info code {
+      color: #93c5fd;
+      font-family: monospace;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.875rem 1.25rem;
+      border-radius: 0.85rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+    }
+
+    .card.mobile .btn {
+      background: var(--primary-gradient);
+      color: #ffffff;
+      box-shadow: 0 4px 15px rgba(108, 99, 255, 0.35);
+    }
+
+    .card.mobile .btn:hover {
+      box-shadow: 0 6px 20px rgba(108, 99, 255, 0.55);
+      filter: brightness(1.1);
+    }
+
+    .card.counselor .btn {
+      background: var(--counselor-gradient);
+      color: #ffffff;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);
+    }
+
+    .card.counselor .btn:hover {
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.55);
+      filter: brightness(1.1);
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #64748b;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 1.25rem;
+    }
+
+    .footer-links a {
+      color: #94a3b8;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: #ffffff;
+    }
+
+    @media (max-width: 768px) {
+      h1 { font-size: 2.15rem; }
+      .cards-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="glow-orb-1"></div>
+  <div class="glow-orb-2"></div>
+
+  <div class="container">
+    <header class="header">
+      <div class="logo-badge">
+        <span class="status-dot"></span>
+        EVA AI ECOSYSTEM — LIVE HYBRID API
+      </div>
+      <h1>Pilih Portal Aplikasi</h1>
+      <p class="subtitle">
+        Platform kesehatan mental holistik berbasis kecerdasan buatan, telekonsultasi psikologi klinis, dan refleksi emosional terpadu.
+      </p>
+    </header>
+
+    <div class="cards-grid">
+      <!-- Card 1: Eva Mobile (User / Pasien) -->
+      <div class="card mobile">
+        <div class="card-top">
+          <div class="card-icon-wrapper">🌱</div>
+          <span class="card-badge">Untuk Pengguna & Pasien</span>
+          <h2 class="card-title">Eva Mobile</h2>
+          <p class="card-desc">
+            Pendamping refleksi emosional, curhat suara AI, tes evaluasi DASS-21, dan telekonsultasi dengan psikolog berizin.
+          </p>
+          <ul class="feature-list">
+            <li>Curhat Suara AI Interaktif</li>
+            <li>DASS-21 Mental Health Screening</li>
+            <li>AI Diary & Emotion Mood Tracker</li>
+            <li>Jadwalkan Konsultasi dengan Psikolog</li>
+          </ul>
+        </div>
+        <div class="card-bottom">
+          <div class="demo-info">
+            Demo: <code>samsul@gmail.com</code> / <code>password123</code>
+          </div>
+          <a href="./app/" class="btn">
+            Buka Eva Mobile ➔
+          </a>
+        </div>
+      </div>
+
+      <!-- Card 2: Eva Counselor (Psikolog Mitra) -->
+      <div class="card counselor">
+        <div class="card-top">
+          <div class="card-icon-wrapper">🩺</div>
+          <span class="card-badge">Untuk Psikolog Klinis</span>
+          <h2 class="card-title">Eva Counselor</h2>
+          <p class="card-desc">
+            Portal profesional bagi psikolog klinis untuk mengelola jadwal telekonsultasi, rekam psikologis pasien berizin, dan sesi video call.
+          </p>
+          <ul class="feature-list">
+            <li>Manajemen Jadwal & Praktik Konsultasi</li>
+            <li>Akses Catatan Sesi & Rekam Klinis Pasien</li>
+            <li>Telekonsultasi & Video Call Terenkripsi</li>
+            <li>Integrasi Sinkronisasi Kunci API Eksternal</li>
+          </ul>
+        </div>
+        <div class="card-bottom">
+          <div class="demo-info">
+            Demo: <code>dr.indah@eva.ai</code> / <code>password123</code>
+          </div>
+          <a href="./counselor/" class="btn">
+            Buka Eva Counselor ➔
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="https://eva.nexacode.dev/health" target="_blank" rel="noopener">Status API (:8888)</a>
+        <span>•</span>
+        <a href="https://eva.nexacode.dev" target="_blank" rel="noopener">Eva Web Portal</a>
+        <span>•</span>
+        <a href="https://github.com/Nexa-Code-Studio/eva-ecosystem" target="_blank" rel="noopener">GitHub Repository</a>
+      </div>
+      <p>&copy; 2026 Nexa Code Studio. Hak Cipta Dilindungi.</p>
+    </footer>
+  </div>
+</body>
+</html>
