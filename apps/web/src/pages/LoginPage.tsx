@@ -8,7 +8,6 @@ import {
 } from '@/components/portal/login/LoginFormView'
 import { PartnerStatusModal } from '@/components/portal/login/PartnerStatusModal'
 import { QuickLoginDevTool } from '@/components/devtools/PortalDevTools'
-import { LunaOrb } from '@/components/ui'
 import { EMAIL_RE } from '@/constants/portal'
 import { authenticateUser, usePortalDb, type PartnerAccount } from '@/lib/portalStore'
 
@@ -146,7 +145,7 @@ export function LoginPage() {
       <main id="main-content" className="mx-auto my-8 w-full max-w-[400px]">
         <div className="mb-6 flex flex-col items-center text-center">
           <Link to="/" aria-label="EVA: Beranda" className="inline-flex flex-col items-center gap-3">
-            <LunaOrb className="size-12" />
+            <img src="/eva_logo.png" alt="EVA" className="size-12 object-contain" />
             <span className="text-xl font-bold tracking-[-0.02em] text-ink">EVA</span>
           </Link>
         </div>

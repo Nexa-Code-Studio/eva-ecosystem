@@ -1,7 +1,6 @@
 import { CheckCircle2, LogOut } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
-import { LunaOrb } from '@/components/ui'
 import { cn } from '@/lib/cn'
 
 interface PortalTopbarProps {
@@ -31,7 +30,7 @@ export function PortalTopbar({
       >
         <div className="flex items-center gap-3">
           <Link to="/" className="inline-flex items-center gap-2.5">
-            <LunaOrb className="size-8" />
+            <img src="/eva_logo.png" alt="EVA" className="size-8 object-contain" />
             <span className="text-lg font-bold tracking-[-0.02em] text-ink">EVA</span>
           </Link>
           <span className="h-4 w-[1px] bg-[#CBD5E1]" />
