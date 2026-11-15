@@ -1,35 +1,19 @@
 import { Download, ShieldCheck, Sparkles, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button, Container, LunaOrb } from '@/components/ui'
-import { DOWNLOAD_APK_URL, waitlist } from '@/content/landing'
+import { waitlist } from '@/content/landing'
+import { useLatestRelease } from '@/hooks/useLatestRelease'
 
 export function CTA() {
   const [partnerTopic, setPartnerTopic] = useState<string | null>(null)
-  const [apkSize, setApkSize] = useState(() => waitlist.specs[1] || '~59 MB')
+  const { version, sizeFormatted, downloadUrl } = useLatestRelease()
 
-  useEffect(() => {
-    // Dynamic runtime check: in case APK file on server was replaced without rebuilding frontend
-    if (!DOWNLOAD_APK_URL.startsWith('http') && !DOWNLOAD_APK_URL.startsWith('/')) return
-    let active = true
-
-    fetch(DOWNLOAD_APK_URL, { method: 'HEAD' })
-      .then((res) => {
-        if (!res.ok) return
-        const len = res.headers.get('content-length')
-        if (len && active) {
-          const bytes = parseInt(len, 10)
-          if (!isNaN(bytes) && bytes > 0) {
-            const mb = Math.round(bytes / (1024 * 1024))
-            setApkSize(`~${mb} MB`)
-          }
-        }
-      })
-      .catch(() => {})
-
-    return () => {
-      active = false
-    }
-  }, [])
+  const specs = [
+    { id: 'os', label: waitlist.specs[0] },
+    { id: 'version', label: `Rilis ${version}` },
+    { id: 'size', label: sizeFormatted },
+    { id: 'price', label: waitlist.specs[3] },
+  ]
 
   useEffect(() => {
     const onPartnerInquiry = (e: Event) => {
@@ -101,8 +85,7 @@ export function CTA() {
             <div className="mt-10 flex w-full max-w-xl flex-col items-center">
               <Button
                 id="early-access-download-btn"
-                href={DOWNLOAD_APK_URL}
-                download="EVA-Beta.apk"
+                href={downloadUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 data-cursor="UNDUH"
@@ -115,13 +98,13 @@ export function CTA() {
               </Button>
 
               {/* Version & Device Specs */}
-              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                {waitlist.specs.map((spec, i) => (
+              <div id="early-access-specs" className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                {specs.map((spec) => (
                   <span
-                    key={spec}
+                    key={spec.id}
                     className="rounded-pill border border-white/15 bg-white/10 px-3.5 py-1 text-xs font-semibold text-white/90 backdrop-blur-sm"
                   >
-                    {i === 1 ? apkSize : spec}
+                    {spec.label}
                   </span>
                 ))}
               </div>

@@ -27,7 +27,8 @@ export const navLinks = [
 
 export type NavId = (typeof navLinks)[number]['id']
 
-export const DOWNLOAD_APK_URL = '/downloads/eva-beta.apk'
+export const DOWNLOAD_APK_URL =
+  'https://github.com/Nexa-Code-Studio/eva-ecosystem/releases/latest/download/eva-mobile-release.apk'
 
 /* ------------------------------------------------------------------ */
 /* ------------------------------------------------------------------ */
@@ -299,7 +300,7 @@ export const waitlist = {
   description:
     'Unduh versi beta sekarang untuk mencoba fitur curhat suara dan latihan koping terpandu langsung di ponsel Android kamu.',
   button: 'Unduh Versi Beta (APK)',
-  specs: ['Android 8.0+', apkMetadata.sizeFormatted, 'Bebas Biaya Langganan'],
+  specs: ['Android 8.0+', `Rilis ${apkMetadata.version}`, apkMetadata.sizeFormatted, 'Bebas Biaya Langganan'],
   note: '100% Aman • Privasi tersimpan di ponsel • Bebas biaya',
 }
 
