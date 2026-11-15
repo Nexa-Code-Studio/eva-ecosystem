@@ -1,4 +1,6 @@
 export { Badge, type BadgeProps } from './Badge'
+export { BarVisualizer, type AgentState, type BarVisualizerProps } from './bar-visualizer'
+export { BlurText, type BlurTextProps, type BlurTextSegment } from './BlurText'
 export { BreathingWidget } from './BreathingWidget'
 export { Button, type ButtonProps } from './Button'
 export { Card, type CardProps } from './Card'
@@ -10,4 +12,5 @@ export { Logo, LogoMark, LunaOrb } from './LunaOrb'
 export { ScrollToTop } from './ScrollToTop'
 export { SectionHeading, type SectionHeadingProps } from './SectionHeading'
 export { SmoothScroll } from './SmoothScroll'
+export { WelcomeSplash } from './WelcomeSplash'
 

@@ -11,6 +11,8 @@ export interface PhoneFrameProps {
   bare?: boolean
   /** Hide top notch/dynamic island (automatically hidden when screenshot is present). */
   hideNotch?: boolean
+  /** Mark image as above-the-fold Hero priority (`eager`, `fetchPriority="high"`). */
+  priority?: boolean
 }
 
 /**
@@ -24,6 +26,7 @@ export function PhoneFrame({
   className,
   bare,
   hideNotch,
+  priority = false,
 }: PhoneFrameProps) {
   const [hasError, setHasError] = useState(false)
   const showScreenshot = Boolean(screenshot && !hasError)
@@ -54,9 +57,12 @@ export function PhoneFrame({
           <img
             src={screenshot}
             alt={screenshotAlt}
+            width={380}
+            height={810}
             className="h-full w-full object-cover transition-opacity duration-300"
-            loading="lazy"
-            decoding="async"
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : 'auto'}
+            decoding={priority ? 'sync' : 'async'}
             onError={() => setHasError(true)}
           />
         ) : (

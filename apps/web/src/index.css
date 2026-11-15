@@ -28,10 +28,10 @@
   --color-surface: #ffffff;
   --color-obsidian: #0c0a14;
 
-  /* Text */
+  /* Text (WCAG AA compliant on canvas #f8f9fe and white surfaces) */
   --color-ink: #191c1f;
-  --color-ink-soft: #767684;
-  --color-ink-muted: #9ea0ab;
+  --color-ink-soft: #5b5d6b;
+  --color-ink-muted: #686b7a;
 
   /* Lines & glass */
   --color-divider: rgba(83, 88, 203, 0.055);

@@ -11,12 +11,14 @@
     "demo:record": "node scripts/demo/run-eva-demo.mjs",
     "demo:record:fast": "node scripts/demo/run-eva-demo.mjs --fast",
     "demo:slice": "node scripts/demo/slice-recordings.mjs",
-    "update:mockups": "node scripts/mockups/capture-mobile-mockups.mjs"
+    "update:mockups": "node scripts/mockups/capture-mobile-mockups.mjs",
+    "audio:welcome": "node scripts/audio/generate-welcome-audio.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
     "lenis": "^1.3.27",
     "lucide-react": "^1.61.0",
+    "motion": "^14.14.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-is": "^19.3.1",
