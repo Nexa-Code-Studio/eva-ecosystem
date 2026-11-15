@@ -13,7 +13,7 @@ import { LunaOrb } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { FloatingNav, glassMini, ScreenHeader, Waveform } from './MockupPrimitives'
 
-export function HomeScreen() {
+export function HomeScreen({ speaking = false }: { speaking?: boolean } = {}) {
   const moods = ['😌 Tenang', '😮‍💨 Lelah', '😟 Cemas', '🙂 Baik']
   return (
     <div className="h-full">
@@ -28,7 +28,7 @@ export function HomeScreen() {
       </div>
 
       <div className="mt-4 flex flex-col items-center">
-        <LunaOrb className="size-[104px]" />
+        <LunaOrb className="size-[104px]" speaking={speaking} />
         <p className="mt-5 text-[13px] font-semibold text-ink">Bagaimana perasaanmu hari ini?</p>
         <div className="mt-3 flex flex-wrap justify-center gap-1.5 px-4">
           {moods.map((m, i) => (

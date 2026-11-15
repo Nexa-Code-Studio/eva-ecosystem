@@ -3,18 +3,31 @@ import {
   ChevronDown,
   Download,
   Lock,
-  Mic,
+  Pause,
   ShieldCheck,
+  Volume2,
+  X,
 } from 'lucide-react'
 import type { CSSProperties } from 'react'
-import { HomeScreen, Waveform } from '@/components/mockups/AppScreens'
+import { HomeScreen } from '@/components/mockups/AppScreens'
 import { PhoneFrame } from '@/components/mockups/PhoneFrame'
-import { Button, Container } from '@/components/ui'
+import { BarVisualizer, Button, Container } from '@/components/ui'
 import { DOWNLOAD_APK_URL, hero } from '@/content/landing'
+import { useWelcomeAudio } from '@/hooks/useWelcomeAudio'
+import { cn } from '@/lib/cn'
 
 const stagger = (i: number) => ({ '--i': i }) as CSSProperties
 
 export function Hero() {
+  const {
+    splashPhase,
+    isPlaying,
+    isAutoplayBlocked,
+    hasAudioError,
+    analyserNode,
+    toggleAudio,
+    dismissAutoplayPrompt,
+  } = useWelcomeAudio()
   return (
     <section
       id="top"
@@ -99,6 +112,32 @@ export function Hero() {
                   </li>
                 ))}
               </ul>
+
+              {splashPhase === 'hidden' && isAutoplayBlocked && !isPlaying && !hasAudioError && (
+                <div
+                  id="hero-audio-unlock-pill"
+                  className="mt-4 inline-flex items-center gap-1 rounded-pill border border-primary/25 bg-primary-container/90 p-1 pl-3.5 text-primary-deep shadow-subtle backdrop-blur-sm animate-enter"
+                >
+                  <button
+                    type="button"
+                    onClick={toggleAudio}
+                    data-cursor="PUTAR"
+                    className="inline-flex min-h-9 cursor-pointer items-center gap-2 pr-2 text-xs font-bold text-primary-deep transition-colors hover:text-primary"
+                  >
+                    <Volume2 className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                    <span>Sapaan suara EVA siap, ketuk untuk dengar</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={dismissAutoplayPrompt}
+                    data-cursor="TUTUP"
+                    aria-label="Tutup pengingat sapaan suara"
+                    className="flex size-8 cursor-pointer items-center justify-center rounded-full text-primary-deep/70 transition-colors hover:bg-primary/10 hover:text-primary-deep"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Social Proof (Card 3 Kolom) & Scroll Cue: Kurangi mt menjadi proporsional */}
@@ -137,25 +176,75 @@ export function Hero() {
               <PhoneFrame
                 screenshot="/images/mockups/home.webp"
                 screenshotAlt="Tangkapan layar asli beranda aplikasi Eva Mobile"
+                priority
                 className="w-[300px] sm:w-[330px] lg:w-[350px] xl:w-[380px]"
               >
-                <HomeScreen />
+                <HomeScreen speaking={isPlaying} />
               </PhoneFrame>
             </div>
 
-            {/* Contextual Chip 1: Voice Companion Active (Top-Left) */}
-            <div className="absolute top-12 -left-4 hidden w-[220px] rounded-[18px] border border-border-subtle/80 bg-white/95 p-3.5 shadow-nav backdrop-blur-md sm:block lg:-left-8 xl:-left-12">
-              <div className="flex items-center gap-2">
-                <span className="flex size-8 items-center justify-center rounded-[10px] bg-primary text-white shadow-btn">
-                  <Mic className="size-4" />
+            {/* Contextual Chip 1: Interactive Welcome Greeting Replay & Speaking Card (Top-Left) */}
+            <button
+              id="hero-welcome-audio-chip"
+              type="button"
+              onClick={toggleAudio}
+              aria-pressed={isPlaying}
+              aria-label={isPlaying ? 'Jeda sapaan suara EVA' : 'Putar sapaan suara EVA'}
+              data-cursor={isPlaying ? 'JEDA' : 'PUTAR'}
+              className={cn(
+                'group absolute top-10 -left-4 hidden cursor-pointer rounded-[18px] border bg-white/95 text-left backdrop-blur-md transition-[width,padding,transform,box-shadow,border-color] duration-500 ease-luna hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-fab sm:block lg:-left-10 xl:-left-14',
+                isPlaying
+                  ? 'w-[296px] border-primary/45 p-4 shadow-fab motion-reduce:w-[228px]'
+                  : 'w-[228px] border-border-subtle/80 p-3.5 shadow-nav',
+              )}
+            >
+              <div className="flex items-center gap-2.5">
+                <span
+                  className={cn(
+                    'flex shrink-0 items-center justify-center rounded-[10px] text-white shadow-btn transition-[width,height,background-color] duration-300',
+                    isPlaying
+                      ? 'size-9 bg-primary-deep motion-reduce:size-8'
+                      : 'size-8 bg-primary group-hover:brightness-110',
+                  )}
+                >
+                  {isPlaying ? <Pause className="size-4" /> : <Volume2 className="size-4" />}
                 </span>
-                <div>
-                  <p className="text-caption !tracking-normal font-bold text-ink">Curhat suara aktif</p>
-                  <p className="text-[10px] text-ink-muted">Mendeteksi intonasi emosi…</p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-caption !tracking-normal font-bold text-ink">
+                      Curhat suara aktif
+                    </p>
+                    {isPlaying && (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-pill bg-primary-container px-2 py-0.5 text-[10px] font-bold text-primary-deep">
+                        <span className="size-1.5 rounded-full bg-primary" aria-hidden />
+                        Berbicara
+                      </span>
+                    )}
+                  </div>
+                  <p className="truncate text-[11px] font-medium text-ink-soft">
+                    {hasAudioError
+                      ? 'Audio belum tersedia'
+                      : isPlaying
+                        ? 'Memutar sapaan EVA…'
+                        : isAutoplayBlocked
+                          ? 'Ketuk untuk putar sapaan'
+                          : 'Putar sapaan EVA'}
+                  </p>
                 </div>
               </div>
-              <Waveform bars={24} className="mt-2.5 h-7" />
-            </div>
+              <BarVisualizer
+                analyserNode={analyserNode}
+                state={isPlaying ? 'speaking' : 'idle'}
+                barCount={24}
+                centerAlign
+                prominent={isPlaying}
+                minHeight={24}
+                className={cn(
+                  'w-full transition-[height,margin] duration-500 ease-luna',
+                  isPlaying ? 'mt-3 h-14 motion-reduce:h-7' : 'mt-2.5 h-7',
+                )}
+              />
+            </button>
 
             {/* Contextual Chip 2: On-Device Encryption (Bottom-Right) */}
             <div className="absolute bottom-6 -right-2 hidden items-center gap-2 rounded-pill border border-border-subtle/80 bg-white/95 py-2 pr-4 pl-2 shadow-nav backdrop-blur-md sm:flex lg:-right-6 xl:-right-8">

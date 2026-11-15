@@ -1,10 +1,27 @@
-import { Outlet } from 'react-router'
+import { motion } from 'motion/react'
+import { Outlet, useLocation } from 'react-router'
 import { Footer, Navbar } from '@/components/sections'
-import { BreathingWidget, CustomCursor, ScrollToTop, SmoothScroll } from '@/components/ui'
+import { BreathingWidget, CustomCursor, ScrollToTop, SmoothScroll, WelcomeSplash } from '@/components/ui'
+import { WelcomeAudioProvider } from '@/contexts/WelcomeAudioProvider'
+import { usePrefersReducedMotion } from '@/hooks/useScroll'
+import { useWelcomeAudio } from '@/hooks/useWelcomeAudio'
+import { cn } from '@/lib/cn'
 
-export function RootLayout() {
+const SLIDE_UP_EASE = [0.22, 1, 0.36, 1] as const
+
+function RootShell() {
+  const { splashPhase, slideDurationMs, completeSlideUp } = useWelcomeAudio()
+  const reducedMotion = usePrefersReducedMotion()
+  const isSheetMode = splashPhase !== 'hidden'
+  const isSlidingUp = splashPhase === 'sliding-up'
+
   return (
-    <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-canvas">
+    <div
+      className={cn(
+        'relative flex min-h-screen flex-col bg-canvas',
+        isSheetMode ? 'h-dvh overflow-clip' : 'overflow-x-clip',
+      )}
+    >
       <SmoothScroll />
       <CustomCursor />
 
@@ -16,14 +33,59 @@ export function RootLayout() {
         Lewati ke konten utama
       </a>
 
-      <Navbar />
-      <main id="main-content" className="flex-1">
-        <Outlet />
-      </main>
-      <Footer />
+      <WelcomeSplash />
 
-      <BreathingWidget />
-      <ScrollToTop />
+      {/* Landing sheet keeps natural width and glides smoothly from 100dvh -> 0 over obsidian */}
+      <motion.div
+        id="eva-page-sheet"
+        aria-hidden={isSheetMode}
+        initial={false}
+        animate={
+          isSheetMode
+            ? isSlidingUp
+              ? { y: 0, opacity: 1 }
+              : reducedMotion
+                ? { y: 0, opacity: 0 }
+                : { y: '100dvh', opacity: 1 }
+            : { y: 0, opacity: 1 }
+        }
+        transition={
+          isSlidingUp
+            ? { duration: slideDurationMs / 1000, ease: SLIDE_UP_EASE }
+            : { duration: 0 }
+        }
+        onAnimationComplete={() => {
+          if (isSlidingUp) completeSlideUp()
+        }}
+        className={cn(
+          'relative flex min-h-screen flex-1 flex-col bg-canvas',
+          isSheetMode && 'z-70 pointer-events-none select-none',
+        )}
+        style={isSheetMode ? { willChange: 'transform, opacity' } : undefined}
+      >
+        <Navbar />
+        <main id="main-content" className="flex-1">
+          <Outlet />
+        </main>
+        <Footer />
+      </motion.div>
+
+      {/* Keep viewport-bottom controls outside transformed sheet to prevent re-parenting jitter */}
+      {!isSheetMode && (
+        <>
+          <BreathingWidget />
+          <ScrollToTop />
+        </>
+      )}
     </div>
+  )
+}
+
+export function RootLayout() {
+  const { pathname } = useLocation()
+  return (
+    <WelcomeAudioProvider enabled={pathname === '/'}>
+      <RootShell />
+    </WelcomeAudioProvider>
   )
 }
