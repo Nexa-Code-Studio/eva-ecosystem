@@ -12,7 +12,8 @@ import type { CSSProperties } from 'react'
 import { HomeScreen } from '@/components/mockups/AppScreens'
 import { PhoneFrame } from '@/components/mockups/PhoneFrame'
 import { BarVisualizer, Button, Container } from '@/components/ui'
-import { DOWNLOAD_APK_URL, hero } from '@/content/landing'
+import { hero } from '@/content/landing'
+import { useLatestRelease } from '@/hooks/useLatestRelease'
 import { useWelcomeAudio } from '@/hooks/useWelcomeAudio'
 import { cn } from '@/lib/cn'
 
@@ -28,6 +29,7 @@ export function Hero() {
     toggleAudio,
     dismissAutoplayPrompt,
   } = useWelcomeAudio()
+  const { version, sizeFormatted, downloadUrl } = useLatestRelease()
   return (
     <section
       id="top"
@@ -84,8 +86,7 @@ export function Hero() {
                 </Button>
                 <Button
                   id="hero-cta-apk"
-                  href={DOWNLOAD_APK_URL}
-                  download="EVA-Beta.apk"
+                  href={downloadUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   data-cursor="UNDUH"
@@ -97,8 +98,26 @@ export function Hero() {
                 </Button>
               </div>
 
+              <div
+                id="hero-apk-specs"
+                className="mt-3 flex animate-enter flex-wrap items-center justify-center gap-x-2 gap-y-1 text-caption font-medium text-ink-soft lg:justify-start"
+                style={stagger(4)}
+              >
+                <span className="rounded-pill border border-border-subtle bg-white px-2.5 py-0.5 text-[11px] font-bold text-primary shadow-subtle">
+                  Rilis {version}
+                </span>
+                <span aria-hidden className="text-ink-muted">
+                  ·
+                </span>
+                <span>Android 8.0+</span>
+                <span aria-hidden className="text-ink-muted">
+                  ·
+                </span>
+                <span>{sizeFormatted}</span>
+              </div>
+
               <ul
-                className="mt-3.5 flex animate-enter flex-wrap justify-center gap-x-4 gap-y-2 text-caption text-ink-muted sm:mt-4 lg:justify-start"
+                className="mt-2.5 flex animate-enter flex-wrap justify-center gap-x-4 gap-y-2 text-caption text-ink-muted sm:mt-3 lg:justify-start"
                 style={stagger(4)}
               >
                 {hero.microcopy.map((m, i) => (

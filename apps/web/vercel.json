@@ -1,9 +1,15 @@
 {
+  "redirects": [
+    {
+      "source": "/downloads/eva-beta.apk",
+      "destination": "https://github.com/Nexa-Code-Studio/eva-ecosystem/releases/latest/download/eva-mobile-release.apk",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!downloads/|audio/|images/|assets/).*)",
       "destination": "/index.html"
     }
   ]
 }
-
