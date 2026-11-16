@@ -39,6 +39,7 @@ function RootShell() {
       <motion.div
         id="eva-page-sheet"
         aria-hidden={isSheetMode}
+        inert={isSheetMode}
         initial={false}
         animate={
           isSheetMode

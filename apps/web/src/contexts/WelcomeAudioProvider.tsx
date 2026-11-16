@@ -1,6 +1,7 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePrefersReducedMotion } from '@/hooks/useScroll'
 import {
+  type AudioPermissionState,
   type SplashPhase,
   WelcomeAudioContext,
   type WelcomeAudioContextValue,
@@ -84,8 +85,9 @@ export function WelcomeAudioProvider({
   const slideDurationMs = reducedMotion ? REDUCED_SLIDE_MS : SLIDE_UP_MS
 
   const [splashPhase, setSplashPhase] = useState<SplashPhase>(() =>
-    shouldShowSplashOnEntry(enabled) ? 'showcase' : 'hidden',
+    shouldShowSplashOnEntry(enabled) ? 'awaiting-permission' : 'hidden',
   )
+  const [audioPermission, setAudioPermission] = useState<AudioPermissionState>('prompt')
   const [isPlaying, setIsPlaying] = useState(false)
   const [isWaitingBeforePlay, setIsWaitingBeforePlay] = useState(false)
   const [isAutoplayBlocked, setIsAutoplayBlocked] = useState(false)
@@ -93,6 +95,7 @@ export function WelcomeAudioProvider({
   const [analyserNode, setAnalyserNode] = useState<AnalyserNode | null>(null)
 
   const splashPhaseRef = useRef<SplashPhase>(splashPhase)
+  const audioPermissionRef = useRef<AudioPermissionState>(audioPermission)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const audioCtxRef = useRef<AudioContext | null>(null)
   const mediaSourceRef = useRef<MediaElementAudioSourceNode | null>(null)
@@ -111,6 +114,11 @@ export function WelcomeAudioProvider({
   const updateSplashPhase = useCallback((next: SplashPhase) => {
     splashPhaseRef.current = next
     setSplashPhase(next)
+  }, [])
+
+  const updateAudioPermission = useCallback((next: AudioPermissionState) => {
+    audioPermissionRef.current = next
+    setAudioPermission(next)
   }, [])
 
   const clearPlayDelayTimer = useCallback(() => {
@@ -363,8 +371,88 @@ export function WelcomeAudioProvider({
     clearSplashTimers()
     isPrimingRef.current = false
     updateSplashPhase('hidden')
-    startPlayback(true, false)
-  }, [clearSplashTimers, startPlayback, updateSplashPhase])
+    if (audioPermissionRef.current === 'denied') return
+    ensureAnalyserGraph()
+    startPlayback(true, hasPrimedRef.current)
+  }, [clearSplashTimers, ensureAnalyserGraph, startPlayback, updateSplashPhase])
+
+  const primeAudioElement = useCallback(
+    (fromPermissionGate = false) => {
+      const audio = audioRef.current
+      if (!audio || hasPrimedRef.current || primeInFlightRef.current) return
+      if (audio.error) {
+        audio.load()
+      }
+
+      primeInFlightRef.current = true
+      isPrimingRef.current = true
+      const seqAtPrime = playSequenceRef.current
+      audio.muted = true
+      audio.volume = 1
+
+      const playPromise = audio.play()
+      if (playPromise) {
+        playPromise
+          .then(() => {
+            hasPrimedRef.current = true
+            // Complete slide-up already started a newer playback sequence; leave it untouched
+            if (playSequenceRef.current !== seqAtPrime) return
+
+            const shouldAutoplayNow =
+              splashPhaseRef.current === 'hidden' &&
+              audioPermissionRef.current !== 'denied' &&
+              !fromPermissionGate
+            const alreadyPaused = audio.paused
+            audio.pause()
+            if (alreadyPaused) isPrimingRef.current = false
+            if (audio.readyState >= 1) {
+              audio.currentTime = 0
+            }
+            audio.muted = false
+            audio.volume = 1
+            if (shouldAutoplayNow) {
+              startPlayback(true, true)
+            }
+          })
+          .catch(() => {
+            if (playSequenceRef.current === seqAtPrime) {
+              audio.muted = false
+              audio.volume = 1
+              isPrimingRef.current = false
+            }
+          })
+          .finally(() => {
+            primeInFlightRef.current = false
+          })
+      } else {
+        hasPrimedRef.current = true
+        audio.pause()
+        audio.muted = false
+        isPrimingRef.current = false
+        primeInFlightRef.current = false
+      }
+    },
+    [startPlayback],
+  )
+
+  const grantAudioPermission = useCallback(() => {
+    if (splashPhaseRef.current !== 'awaiting-permission') return
+    updateAudioPermission('granted')
+    userDismissedPromptRef.current = false
+    setIsAutoplayBlocked(false)
+    setHasAudioError(false)
+    ensureAnalyserGraph()
+    primeAudioElement(true)
+    updateSplashPhase('showcase')
+  }, [ensureAnalyserGraph, primeAudioElement, updateAudioPermission, updateSplashPhase])
+
+  const declineAudioPermission = useCallback(() => {
+    if (splashPhaseRef.current !== 'awaiting-permission') return
+    updateAudioPermission('denied')
+    userDismissedPromptRef.current = true
+    setIsAutoplayBlocked(false)
+    updateSplashPhase('showcase')
+  }, [updateAudioPermission, updateSplashPhase])
 
   const requestSlideUp = useCallback(() => {
     if (splashPhaseRef.current !== 'showcase') return
@@ -465,7 +553,7 @@ export function WelcomeAudioProvider({
       return undefined
     }
 
-    if (splashPhaseRef.current !== 'showcase' || typeof window === 'undefined') return undefined
+    if (splashPhase !== 'showcase' || typeof window === 'undefined') return undefined
 
     const fallbackMs = reducedMotion ? REDUCED_SHOWCASE_MS : SHOWCASE_FALLBACK_MS
     showcaseTimerRef.current = window.setTimeout(() => {
@@ -474,7 +562,7 @@ export function WelcomeAudioProvider({
     }, fallbackMs)
 
     return clearSplashTimers
-  }, [clearSplashTimers, enabled, reducedMotion, requestSlideUp, updateSplashPhase])
+  }, [clearSplashTimers, enabled, reducedMotion, requestSlideUp, splashPhase, updateSplashPhase])
 
   const toggleAudio = useCallback(() => {
     const audio = audioRef.current
@@ -493,87 +581,44 @@ export function WelcomeAudioProvider({
       setIsPlaying(false)
       return
     }
+    updateAudioPermission('granted')
     userDismissedPromptRef.current = false
     startPlayback(audio.ended, true)
-  }, [clearPlayDelayTimer, startPlayback])
+  }, [clearPlayDelayTimer, startPlayback, updateAudioPermission])
 
   const dismissAutoplayPrompt = useCallback(() => {
     userDismissedPromptRef.current = true
     setIsAutoplayBlocked(false)
   }, [])
 
-  // Prime audio silently on any click/tap/key during splash so Safari & Firefox keep unlock permission until slide-up completes
+  // Prime audio silently on any click/tap/key during splash showcase if still unprimed (and not declined)
   useEffect(() => {
-    if (splashPhase === 'hidden' || hasPrimedRef.current || typeof window === 'undefined') {
+    if (
+      splashPhase === 'hidden' ||
+      splashPhase === 'awaiting-permission' ||
+      audioPermission === 'denied' ||
+      hasPrimedRef.current ||
+      typeof window === 'undefined'
+    ) {
       return undefined
     }
 
     const primeOnSplashGesture = (e: Event) => {
-      const audio = audioRef.current
       if (
-        !audio ||
         splashPhaseRef.current === 'hidden' ||
-        hasPrimedRef.current ||
-        primeInFlightRef.current
+        splashPhaseRef.current === 'awaiting-permission' ||
+        audioPermissionRef.current === 'denied'
       ) {
         return
       }
       if (e instanceof KeyboardEvent && !UNLOCK_TRIGGER_KEYS.has(e.key)) {
         return
       }
-
-      primeInFlightRef.current = true
-      isPrimingRef.current = true
-      const seqAtPrime = playSequenceRef.current
-      audio.muted = true
-      const playPromise = audio.play()
-      if (playPromise) {
-        playPromise
-          .then(() => {
-            hasPrimedRef.current = true
-            // Complete slide-up already started a newer playback sequence; leave it untouched
-            if (playSequenceRef.current !== seqAtPrime) {
-              audio.muted = false
-              audio.volume = 1
-              isPrimingRef.current = false
-              return
-            }
-            if (splashPhaseRef.current === 'hidden') {
-              const alreadyPaused = audio.paused
-              audio.pause()
-              if (alreadyPaused) isPrimingRef.current = false
-              if (audio.readyState >= 1) {
-                audio.currentTime = 0
-              }
-              audio.muted = false
-              audio.volume = 1
-              startPlayback(true, true)
-              return
-            }
-            const alreadyPaused = audio.paused
-            audio.pause()
-            if (alreadyPaused) isPrimingRef.current = false
-            if (audio.readyState >= 1) {
-              audio.currentTime = 0
-            }
-            audio.muted = false
-          })
-          .catch(() => {
-            audio.muted = false
-            isPrimingRef.current = false
-          })
-          .finally(() => {
-            primeInFlightRef.current = false
-          })
-      } else {
-        audio.muted = false
-        isPrimingRef.current = false
-        primeInFlightRef.current = false
-      }
+      primeAudioElement(false)
     }
 
     return addCaptureGestureListeners(primeOnSplashGesture)
-  }, [splashPhase, startPlayback])
+  }, [audioPermission, primeAudioElement, splashPhase])
 
   // Auto-unlock playback on first intentional gesture anywhere outside Hero audio controls if browser blocked autoplay
   useEffect(() => {
@@ -616,11 +661,14 @@ export function WelcomeAudioProvider({
   const value = useMemo<WelcomeAudioContextValue>(
     () => ({
       splashPhase,
+      audioPermission,
       slideDurationMs,
       isPlaying,
       isAutoplayBlocked,
       hasAudioError,
       analyserNode: isWaitingBeforePlay ? null : analyserNode,
+      grantAudioPermission,
+      declineAudioPermission,
       requestSlideUp,
       completeSlideUp,
       toggleAudio,
@@ -628,8 +676,11 @@ export function WelcomeAudioProvider({
     }),
     [
       analyserNode,
+      audioPermission,
       completeSlideUp,
+      declineAudioPermission,
       dismissAutoplayPrompt,
+      grantAudioPermission,
       hasAudioError,
       isAutoplayBlocked,
       isPlaying,

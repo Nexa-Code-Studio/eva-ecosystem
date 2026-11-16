@@ -1,10 +1,13 @@
 import { createContext, useContext } from 'react'
 
-export type SplashPhase = 'hidden' | 'showcase' | 'sliding-up'
+export type SplashPhase = 'hidden' | 'awaiting-permission' | 'showcase' | 'sliding-up'
+export type AudioPermissionState = 'prompt' | 'granted' | 'denied'
 
 export interface WelcomeAudioContextValue {
   /** Current lifecycle phase of the entrance splash curtain. */
   splashPhase: SplashPhase
+  /** User's audio autoplay permission choice from the pre-splash gate. */
+  audioPermission: AudioPermissionState
   /** Landing page slide-up transition duration in ms. */
   slideDurationMs: number
   /** True while `/audio/eva-welcome.mp3` is actively playing. */
@@ -15,6 +18,10 @@ export interface WelcomeAudioContextValue {
   hasAudioError: boolean
   /** Live Web Audio API AnalyserNode wired to `/audio/eva-welcome.mp3` once active. */
   analyserNode: AnalyserNode | null
+  /** Unlocks audio and AudioContext inside a user gesture and starts the splash showcase. */
+  grantAudioPermission: () => void
+  /** Skips automatic greeting audio for this session and starts the silent splash showcase. */
+  declineAudioPermission: () => void
   /** Starts the bottom-to-top landing page slide-up transition once typography choreography finishes. */
   requestSlideUp: () => void
   /** Finalizes slide-up at resting `top: 0`, reveals normal scroll flow, and starts EVA voice greeting. */

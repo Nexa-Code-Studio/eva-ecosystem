@@ -58,6 +58,8 @@ export function LogoMark({ className }: { className?: string }) {
     <img
       src="/eva_logo.png"
       alt="EVA Logo"
+      width={500}
+      height={500}
       className={cn('size-8 shrink-0 object-contain', className)}
     />
   )

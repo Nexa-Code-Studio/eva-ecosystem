@@ -362,6 +362,12 @@ async function main() {
     // SEGMEN 01: Public Landing Page (/)
     // =========================================================================
     await runSegment('01', async () => {
+      const audioAllowBtn = page.locator('#welcome-audio-allow-btn')
+      if (await audioAllowBtn.isVisible().catch(() => false)) {
+        await moveAndClick(audioAllowBtn, 400)
+        await page.locator('#welcome-splash').waitFor({ state: 'hidden', timeout: 12000 }).catch(() => {})
+      }
+
       await page.mouse.move(960, 380, { steps: 15 })
       await waitMs(2500)
 
