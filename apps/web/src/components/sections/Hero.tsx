@@ -22,9 +22,9 @@ const stagger = (i: number) => ({ '--i': i }) as CSSProperties
 export function Hero() {
   const {
     splashPhase,
-    audioPermission,
     isPlaying,
     isAutoplayBlocked,
+    audioDeclined,
     hasAudioError,
     analyserNode,
     toggleAudio,
@@ -134,7 +134,7 @@ export function Hero() {
               </ul>
 
               {splashPhase === 'hidden' &&
-                audioPermission !== 'denied' &&
+                !audioDeclined &&
                 isAutoplayBlocked &&
                 !isPlaying &&
                 !hasAudioError && (

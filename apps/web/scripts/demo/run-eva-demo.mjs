@@ -362,11 +362,16 @@ async function main() {
     // SEGMEN 01: Public Landing Page (/)
     // =========================================================================
     await runSegment('01', async () => {
-      const audioAllowBtn = page.locator('#welcome-audio-allow-btn')
-      if (await audioAllowBtn.isVisible().catch(() => false)) {
-        await moveAndClick(audioAllowBtn, 400)
-        await page.locator('#welcome-splash').waitFor({ state: 'hidden', timeout: 12000 }).catch(() => {})
+      const splash = page.locator('#welcome-splash')
+      const enterBtn = page.locator('#welcome-enter-btn')
+      await Promise.race([
+        splash.waitFor({ state: 'hidden', timeout: 8500 }).catch(() => {}),
+        enterBtn.waitFor({ state: 'visible', timeout: 8500 }).catch(() => {}),
+      ])
+      if (await enterBtn.isVisible().catch(() => false)) {
+        await moveAndClick(enterBtn, 400)
       }
+      await splash.waitFor({ state: 'hidden', timeout: 8000 }).catch(() => {})
 
       await page.mouse.move(960, 380, { steps: 15 })
       await waitMs(2500)

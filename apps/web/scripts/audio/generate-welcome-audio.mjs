@@ -13,12 +13,42 @@ const REPO_ROOT = path.resolve(WEB_ROOT, '../..')
 const OUTPUT_PATH = path.join(WEB_ROOT, 'public/audio/eva-welcome.mp3')
 
 const VOICE_ID = 'cgSgspJ2msm6clMCkdW9' // Jessica (consistent with Eva Mobile default)
-const PRIMARY_MODEL = 'eleven_v4_turbo'
-const FALLBACK_MODEL = 'eleven_multilingual_v2'
+const PRIMARY_MODEL = 'eleven_v4'
+const EXPRESSIVE_FALLBACK_MODEL = 'eleven_v3'
+const LEGACY_FALLBACK_MODEL = 'eleven_multilingual_v2'
 const OUTPUT_FORMAT = 'mp3_44100_128'
 
 const WELCOME_SCRIPT =
-  'Kadang, memberi diri sendiri waktu adalah langkah yang berarti. Aku EVA. Jelajahi ruang ini dengan tenang, dan mulai saat kamu merasa siap.'
+  '[warm, calm] Tarik napas pelan dulu, ya... hari ini mungkin terasa penuh. [gentle] Aku EVA. [warmly] Jelajahi ruang ini dengan tenang... dan mulai saat kamu merasa siap.'
+
+function stripAudioTags(text) {
+  return text.replace(/\[[^\]]+\]\s*/g, '').replace(/\s+/g, ' ').trim()
+}
+
+function buildVoiceSettingsForModel(modelId) {
+  if (modelId.startsWith('eleven_v4')) {
+    // ElevenLabs v4 strictly accepts stability, similarity_boost, and use_speaker_boost (no style/speed)
+    return {
+      stability: 0.45,
+      similarity_boost: 0.8,
+      use_speaker_boost: true,
+    }
+  }
+  if (modelId.startsWith('eleven_v3')) {
+    // ElevenLabs v3 requires discrete stability presets (0.0 Creative, 0.5 Natural, 1.0 Robust)
+    return {
+      stability: 0.5,
+      similarity_boost: 0.8,
+      use_speaker_boost: true,
+    }
+  }
+  return {
+    stability: 0.45,
+    similarity_boost: 0.8,
+    style: 0.15,
+    use_speaker_boost: true,
+  }
+}
 
 function parseEnvFile(filePath, targetKey) {
   if (!existsSync(filePath)) return null
@@ -70,15 +100,11 @@ function resolveApiKeys() {
 
 async function synthesize({ apiKey, modelId, includeLanguageCode }) {
   const endpoint = `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}?output_format=${OUTPUT_FORMAT}`
+  const supportsAudioTags = modelId.startsWith('eleven_v4') || modelId.startsWith('eleven_v3')
   const payload = {
-    text: WELCOME_SCRIPT,
+    text: supportsAudioTags ? WELCOME_SCRIPT : stripAudioTags(WELCOME_SCRIPT),
     model_id: modelId,
-    voice_settings: {
-      stability: 0.65,
-      similarity_boost: 0.78,
-      style: 0.15,
-      use_speaker_boost: true,
-    },
+    voice_settings: buildVoiceSettingsForModel(modelId),
     ...(includeLanguageCode ? { language_code: 'id' } : {}),
   }
 
@@ -105,8 +131,9 @@ async function main() {
   const attempts = [
     { modelId: PRIMARY_MODEL, includeLanguageCode: true },
     { modelId: PRIMARY_MODEL, includeLanguageCode: false },
-    { modelId: FALLBACK_MODEL, includeLanguageCode: true },
-    { modelId: FALLBACK_MODEL, includeLanguageCode: false },
+    { modelId: EXPRESSIVE_FALLBACK_MODEL, includeLanguageCode: true },
+    { modelId: EXPRESSIVE_FALLBACK_MODEL, includeLanguageCode: false },
+    { modelId: LEGACY_FALLBACK_MODEL, includeLanguageCode: false },
   ]
 
   let successResponse = null
