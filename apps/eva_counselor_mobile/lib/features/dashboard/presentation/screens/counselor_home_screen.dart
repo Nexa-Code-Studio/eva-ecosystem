@@ -139,7 +139,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. TOP BAR: Logo Resmi Luna & Notifikasi Halaman
+              // 1. TOP BAR: Logo Resmi EVA & Notifikasi Halaman
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -162,7 +162,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                         ),
                         padding: const EdgeInsets.all(5),
                         child: Image.asset(
-                          'assets/images/luna_logo_square.png',
+                          'assets/images/eva_logo_square.png',
                           fit: BoxFit.contain,
                           errorBuilder: (_, __, ___) => const Icon(
                             Icons.psychology_rounded,
@@ -178,7 +178,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                           Row(
                             children: const [
                               Text(
-                                'LUNA',
+                                'EVA',
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w800,

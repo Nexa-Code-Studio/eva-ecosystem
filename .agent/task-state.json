@@ -35,5 +35,13 @@
     "updated_at": 1794974515,
     "evidence_summary": "Evidence accepted: PR and test verification documented.",
     "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/63"
+  },
+  "57": {
+    "issue": 57,
+    "branch": "feat/57-counselor-auth-verification-gate",
+    "state": "In Review",
+    "updated_at": 1794972685,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/61"
   }
 }

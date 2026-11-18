@@ -64,7 +64,7 @@ class _PatientDetailConsentScreenState
   final _planCtrl = TextEditingController();
   bool _isSavingNote = false;
 
-  void _populateLunaTranscriptDraft(dynamic patient) {
+  void _populateEvaTranscriptDraft(dynamic patient) {
     setState(() {
       _sessionUnlocked = true;
       _subjCtrl.text =
@@ -74,12 +74,12 @@ class _PatientDetailConsentScreenState
       _assessCtrl.text =
           'Kecemasan situasional tingkat sedang (DASS-21 selaras). Belum ditemukan indikasi risiko melukai diri, responsif terhadap psikoedukasi.';
       _planCtrl.text =
-          '1. Praktik teknik pernapasan diafragma 4-7-8 setiap malam.\n2. CBT Thought Record di jurnal Luna.\n3. Evaluasi sesi lanjutan 1 minggu ke depan.';
+          '1. Praktik teknik pernapasan diafragma 4-7-8 setiap malam.\n2. CBT Thought Record di jurnal Eva AI.\n3. Evaluasi sesi lanjutan 1 minggu ke depan.';
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('✨ Draf SOAP dari transkrip percakapan AI Luna berhasil dimuat. Anda dapat mengeditnya.'),
+        content: Text('✨ Draf SOAP dari transkrip percakapan Eva AI berhasil dimuat. Anda dapat mengeditnya.'),
         backgroundColor: AppColors.primary,
       ),
     );
@@ -473,7 +473,7 @@ class _PatientDetailConsentScreenState
           ),
           const SizedBox(height: 8),
           const Text(
-            'Berdasarkan regulasi privasi kesehatan mental, riwayat skrining DASS-21 dan ringkasan jurnal emosional harian Luna AI hanya dapat diakses setelah pasien memberikan persetujuan (Consent).',
+            'Berdasarkan regulasi privasi kesehatan mental, riwayat skrining DASS-21 dan ringkasan jurnal emosional harian Eva AI hanya dapat diakses setelah pasien memberikan persetujuan (Consent).',
             style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.5),
             textAlign: TextAlign.center,
           ),
@@ -565,7 +565,7 @@ class _PatientDetailConsentScreenState
           }).toList(),
 
         const SizedBox(height: 16),
-        const Text('Ringkasan Jurnal Emosi Luna AI (Dibagikan Pasien)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        const Text('Ringkasan Jurnal Emosi Eva AI (Dibagikan Pasien)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
         const SizedBox(height: 10),
         if (patient.sharedDiarySummaries != null)
           ...patient.sharedDiarySummaries!.map((s) {
@@ -677,7 +677,7 @@ class _PatientDetailConsentScreenState
         if (!_sessionUnlocked) ...[
           _buildScheduleGatedSoapCard(patient, schedule),
         ] else ...[
-          // UNLOCKED: LUNA DRAFT BANNER
+          // UNLOCKED: EVA AI DRAFT BANNER
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -695,7 +695,7 @@ class _PatientDetailConsentScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Draf Transkripsi Otomatis AI Luna',
+                        'Draf Transkripsi Otomatis Eva AI',
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary),
                       ),
                       SizedBox(height: 2),
@@ -1025,7 +1025,7 @@ class _PatientDetailConsentScreenState
             ),
             const SizedBox(height: 8),
             const Text(
-              'Waktu jadwal telekonsultasi telah aktif. Anda dapat langsung membuka ruang video call sekarang. AI Luna akan mentranskripsikan audio percakapan menjadi draf catatan SOAP secara otomatis.',
+              'Waktu jadwal telekonsultasi telah aktif. Anda dapat langsung membuka ruang video call sekarang. Eva AI akan mentranskripsikan audio percakapan menjadi draf catatan SOAP secara otomatis.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.5),
             ),
@@ -1045,7 +1045,7 @@ class _PatientDetailConsentScreenState
                   },
                 );
                 if (finished == true && mounted) {
-                  _populateLunaTranscriptDraft(patient);
+                  _populateEvaTranscriptDraft(patient);
                 }
               },
             ),
@@ -1058,10 +1058,10 @@ class _PatientDetailConsentScreenState
               ),
               icon: const Icon(Icons.auto_awesome, color: AppColors.primary, size: 16),
               label: const Text(
-                'Simulasikan Draf Transkrip AI Luna',
+                'Simulasikan Draf Transkrip Eva AI',
                 style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
               ),
-              onPressed: () => _populateLunaTranscriptDraft(patient),
+              onPressed: () => _populateEvaTranscriptDraft(patient),
             ),
           ],
         ),
@@ -1156,7 +1156,7 @@ class _PatientDetailConsentScreenState
                   },
                 );
                 if (finished == true && mounted) {
-                  _populateLunaTranscriptDraft(patient);
+                  _populateEvaTranscriptDraft(patient);
                 }
               },
             ),
@@ -1169,10 +1169,10 @@ class _PatientDetailConsentScreenState
               ),
               icon: const Icon(Icons.auto_awesome, color: AppColors.primary, size: 16),
               label: const Text(
-                'Simulasikan Draf Transkrip AI Luna',
+                'Simulasikan Draf Transkrip Eva AI',
                 style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
               ),
-              onPressed: () => _populateLunaTranscriptDraft(patient),
+              onPressed: () => _populateEvaTranscriptDraft(patient),
             ),
           ],
         ),
@@ -1242,10 +1242,10 @@ class _PatientDetailConsentScreenState
               ),
               icon: const Icon(Icons.auto_awesome, color: AppColors.primary, size: 16),
               label: const Text(
-                'Simulasikan Draf Transkrip AI Luna (Demo)',
+                'Simulasikan Draf Transkrip Eva AI (Demo)',
                 style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
               ),
-              onPressed: () => _populateLunaTranscriptDraft(patient),
+              onPressed: () => _populateEvaTranscriptDraft(patient),
             ),
           ],
         ),

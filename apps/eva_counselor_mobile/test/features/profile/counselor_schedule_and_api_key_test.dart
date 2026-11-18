@@ -323,17 +323,12 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Jadwal & Lokasi Praktik'), findsOneWidget);
-      expect(find.text('Pilih Mode Layanan Konseling'), findsOneWidget);
-      expect(find.text('Telekonseling Online'), findsOneWidget);
-      expect(find.text('Praktik Tatap Muka'), findsOneWidget);
-      expect(find.text('Opsional'), findsOneWidget);
+      expect(find.text('Jadwal Praktik Telekonseling'), findsOneWidget);
+      expect(find.text('Layanan 100% Telekonseling Online'), findsOneWidget);
+      expect(find.text('Hari & Jam Praktik Online'), findsOneWidget);
       expect(find.text('Hari Praktik Daring Aktif:'), findsOneWidget);
-      expect(find.text('Hari Praktik Offline Aktif:'), findsOneWidget);
-      // Day chips do not use checkmark icons in both online & offline
+      // Day chips do not use checkmark icons in online schedule
       expect(find.byIcon(Icons.check_rounded), findsNothing);
-      expect(find.text('Alamat & Lokasi Praktik Offline'), findsOneWidget);
-      expect(find.text('Nama Tempat / Fasilitas Praktik'), findsOneWidget);
       expect(find.text('Simpan Perubahan Jadwal'), findsOneWidget);
     });
 
@@ -351,7 +346,7 @@ void main() {
         verificationStatus: VerificationStatus.verified,
         role: CounselorRole.professionalIndependent,
         isOnlinePracticeEnabled: true,
-        isOfflinePracticeEnabled: true,
+        isOfflinePracticeEnabled: false,
       );
 
       await tester.pumpWidget(
@@ -367,7 +362,8 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Jadwal & Lokasi Praktik'), findsNWidgets(2)); // section header + menu title
+      expect(find.text('Jadwal Praktik Telekonseling'), findsOneWidget); // section header
+      expect(find.text('Jadwal Telekonseling Online'), findsOneWidget); // menu title
       expect(find.byIcon(Icons.calendar_month_rounded), findsNWidgets(2)); // section header + card icon
       // Inner arrow in badge is removed; only menu card trailing chevron remains
       expect(find.byIcon(Icons.arrow_forward_ios_rounded), findsNothing);
@@ -519,6 +515,15 @@ class _MockAuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEn
 
   @override
   Future<void> toggleAvailability(bool isOnline) async {}
+
+  @override
+  Future<void> loadProfile() async {}
+
+  @override
+  Future<void> uploadCertificate(String newCertificateFileName) async {}
+
+  @override
+  Future<void> updateAvailability(bool isOnline) async {}
 
   @override
   Future<void> logout() async {}
