@@ -277,6 +277,23 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
     state = AsyncValue.data(current.copyWith(coinBalance: newBalance));
   }
 
+  Future<void> loadProfile() async {
+    await checkAuthSession();
+  }
+
+  Future<void> uploadCertificate(String newCertificateFileName) async {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncValue.data(current.copyWith(
+      certificateDocUrl: newCertificateFileName,
+      verificationStatus: VerificationStatus.pending,
+    ));
+  }
+
+  Future<void> updateAvailability(bool isOnline) async {
+    await toggleAvailability(isOnline);
+  }
+
   Future<void> toggleAvailability(bool isOnline) async {
     final current = state.value;
     if (current == null) return;

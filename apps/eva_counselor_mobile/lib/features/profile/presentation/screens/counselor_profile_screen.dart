@@ -7,12 +7,10 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../dashboard/presentation/screens/counselor_main_shell_screen.dart';
 import '../widgets/counselor_bank_account_modal.dart';
 import '../widgets/counselor_certificates_modal.dart';
-import '../widgets/counselor_external_api_key_modal.dart';
 import '../widgets/counselor_guidelines_modal.dart';
 import '../widgets/counselor_profile_drive_card.dart';
 import '../widgets/counselor_profile_header_card.dart';
 import '../widgets/counselor_profile_menu_card.dart';
-import '../widgets/counselor_profile_upgrade_card.dart';
 import '../widgets/counselor_rate_modal.dart';
 import '../widgets/counselor_security_modal.dart';
 import '../widgets/counselor_str_credentials_modal.dart';
@@ -31,13 +29,6 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
   bool _isBackingUp = false;
   String _backupFrequency = 'Harian';
   bool _backupWifiOnly = true;
-
-  String _formatNumber(int n) {
-    return n.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]}.',
-    );
-  }
 
   void _handleBackupNow(PsychologistUserEntity? user) async {
     setState(() => _isBackingUp = true);
@@ -64,37 +55,6 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
       title: 'Memeriksa Cadangan Google Drive...',
       message: 'Data lokal terverifikasi sinkron dengan cadangan cloud terakhir (Hari ini, 10:15 WIB).',
       type: ToastType.info,
-    );
-  }
-
-  Widget _buildRoleSwitcherChip(String label, CounselorRole role, CounselorRole? currentRole) {
-    final isSelected = currentRole == role;
-    return GestureDetector(
-      onTap: () {
-        ref.read(authStateProvider.notifier).switchRole(role);
-        TopToast.show(
-          context,
-          title: 'Pratinjau Peran: $label',
-          message: 'Tampilan disesuaikan dengan fitur akun $label.',
-          type: ToastType.info,
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isSelected ? AppColors.primary : const Color(0xFFD6D9E4)),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? Colors.white : AppColors.textPrimary,
-          ),
-        ),
-      ),
     );
   }
 
@@ -134,74 +94,25 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
             children: [
               // 1. Profile Banner Card
               CounselorProfileHeaderCard(user: user),
-
-              // 1.B. Upgrade Card khusus Relawan Sebaya
-              if (user?.isVolunteer == true) ...[
-                const SizedBox(height: 12),
-                CounselorProfileUpgradeCard(ref: ref),
-              ],
-
-              // Role Switcher Preview
-              Container(
-                margin: const EdgeInsets.only(top: 10, bottom: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F3FA),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.tune_rounded, size: 13, color: AppColors.textSecondary),
-                    const SizedBox(width: 6),
-                    const Text('Pratinjau Peran:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _buildRoleSwitcherChip('Teman Sebaya', CounselorRole.peerVolunteer, user?.role),
-                            const SizedBox(width: 6),
-                            _buildRoleSwitcherChip('Mandiri', CounselorRole.professionalIndependent, user?.role),
-                            const SizedBox(width: 6),
-                            _buildRoleSwitcherChip('Mitra', CounselorRole.professionalPartner, user?.role),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
               const SizedBox(height: 16),
 
-              // 2. Jadwal Praktik
-              _buildSectionHeader(
-                user?.isVolunteer == true ? 'Hari & Jam Praktik Online' : 'Jadwal & Lokasi Praktik',
-                Icons.calendar_month_rounded,
-              ),
+              // 2. Jadwal Praktik Telekonseling
+              _buildSectionHeader('Jadwal Praktik Telekonseling', Icons.calendar_month_rounded),
               CounselorProfileMenuCard(
                 icon: Icons.calendar_month_rounded,
                 iconColor: AppColors.primary,
                 iconBg: AppColors.primaryContainer,
-                title: user?.isVolunteer == true
-                    ? 'Hari & Jam Praktik Online'
-                    : 'Jadwal & Lokasi Praktik',
-                subtitle: user?.isVolunteer == true
-                    ? '${_activeDays.join(", ")} • $_workingHours (Khusus Daring)'
-                    : (user?.isOfflinePracticeEnabled == true
-                        ? 'Online & Tatap Muka • ${user?.offlinePlaceName ?? "Atur Lokasi"}'
-                        : 'Telekonseling Online • $_workingHours'),
+                title: 'Jadwal Telekonseling Online',
+                subtitle: '${_activeDays.join(", ")} • $_workingHours (Sesi Paten 30 Mnt)',
                 trailingBadge: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppColors.primaryContainer,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(
-                    user?.isVolunteer == true
-                        ? 'Daring 💻'
-                        : (user?.isOfflinePracticeEnabled == true ? 'Online & Offline' : 'Online Saja'),
-                    style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 10),
+                  child: const Text(
+                    'Online 100% 💻',
+                    style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 10),
                   ),
                 ),
                 onTap: () {
@@ -214,119 +125,57 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
               ),
               const SizedBox(height: 16),
 
-              // 3. Integrasi Jadwal Eksternal via API Key (Khusus Profesional / Mitra)
-              if (user?.isVolunteer != true) ...[
-                _buildSectionHeader('Integrasi Jadwal Eksternal (API Key)', Icons.integration_instructions_rounded),
-                CounselorProfileMenuCard(
-                  icon: Icons.vpn_key_rounded,
-                  iconColor: const Color(0xFF0284C7),
-                  iconBg: const Color(0xFFE0F2FE),
-                  title: 'Kunci API Integrasi Jadwal Eksternal',
-                  subtitle: 'NIP: ${user?.employeeNip ?? "198804122019032001"} • Sinkronkan slot offline dari SIMRS/EHR',
-                  trailingBadge: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: user?.externalApiKey != null ? AppColors.verifiedBg : const Color(0xFFE0F2FE),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      user?.externalApiKey != null ? 'API Key Aktif 🔑' : 'Atur Token ⚙️',
-                      style: TextStyle(
-                        color: user?.externalApiKey != null ? AppColors.verifiedGreen : const Color(0xFF0369A1),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 10,
-                      ),
-                    ),
+              // 3. Honorarium & Keuangan Praktik
+              _buildSectionHeader('Honorarium & Keuangan Praktik', Icons.account_balance_wallet_outlined),
+              CounselorProfileMenuCard(
+                icon: Icons.monetization_on_rounded,
+                iconColor: const Color(0xFFC2410C),
+                iconBg: const Color(0xFFFFF7ED),
+                title: 'Tarif & Kebijakan Bagi Hasil',
+                subtitle: 'Sesi Paten 30 Menit • Bagi hasil terkelola transparan oleh platform Eva',
+                trailingBadge: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF7ED),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  onTap: () => CounselorExternalApiKeyModal.show(context, user: user, ref: ref),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Terkelola ⚡',
+                        style: TextStyle(color: Color(0xFFC2410C), fontWeight: FontWeight.bold, fontSize: 10),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(Icons.info_outline, size: 12, color: Color(0xFFC2410C)),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 16),
-              ],
+                onTap: () => CounselorRateModal.show(
+                  context: context,
+                  user: user,
+                  onSave: (_) {},
+                ),
+              ),
+              CounselorProfileMenuCard(
+                icon: Icons.account_balance_outlined,
+                iconColor: const Color(0xFF2563EB),
+                iconBg: const Color(0xFFEFF6FF),
+                title: 'Rekening Bank Pencairan Dana',
+                subtitle: 'BCA • ****8192 (dr. Sarah Jenkins)',
+                trailingBadge: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.verifiedBg,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text('Terverifikasi ✅', style: TextStyle(color: AppColors.verifiedGreen, fontWeight: FontWeight.bold, fontSize: 10)),
+                ),
+                onTap: () => CounselorBankAccountModal.show(context),
+              ),
+              const SizedBox(height: 16),
 
-              // 4. Honorarium & Keuangan Praktik (Khusus Profesional)
-              if (user?.isVolunteer != true) ...[
-                _buildSectionHeader('Honorarium & Keuangan Praktik', Icons.account_balance_wallet_outlined),
-                if (user?.isPartner == true) ...[
-                  CounselorProfileMenuCard(
-                    icon: Icons.apartment_rounded,
-                    iconColor: const Color(0xFF7E22CE),
-                    iconBg: const Color(0xFFF3E8FF),
-                    title: 'Tarif & Keuangan Mitra (Web Portal)',
-                    subtitle: 'Koin sesi masuk ke kas lembaga mitra (${user?.partnerName ?? "RS Mitra"})',
-                    trailingBadge: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3E8FF),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text('Web Mitra', style: TextStyle(color: Color(0xFF7E22CE), fontWeight: FontWeight.bold, fontSize: 10)),
-                    ),
-                    onTap: () {
-                      TopToast.show(
-                        context,
-                        title: 'Pengaturan Koin Mitra',
-                        message: 'Sebagai psikolog mitra, tarif koin dikelola oleh administrator mitra via Web Portal.',
-                        type: ToastType.info,
-                      );
-                    },
-                  ),
-                ] else ...[
-                  CounselorProfileMenuCard(
-                    icon: Icons.monetization_on_rounded,
-                    iconColor: const Color(0xFFC2410C),
-                    iconBg: const Color(0xFFFFF7ED),
-                    title: 'Tarif Koin Konsultasi',
-                    subtitle: '${user?.coinsPerSession ?? 150} Koin per ${user?.sessionDurationMinutes ?? 50} menit (≈ Rp ${_formatNumber((user?.coinsPerSession ?? 150) * 1000)})',
-                    trailingBadge: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF7ED),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '${user?.coinsPerSession ?? 150} Koin',
-                            style: const TextStyle(color: Color(0xFFC2410C), fontWeight: FontWeight.bold, fontSize: 11),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.edit_outlined, size: 12, color: Color(0xFFC2410C)),
-                        ],
-                      ),
-                    ),
-                    onTap: () => CounselorRateModal.show(
-                      context: context,
-                      user: user,
-                      onSave: (coins) {
-                        ref.read(authStateProvider.notifier).updateSessionSettings(
-                              sessionDurationMinutes: user?.sessionDurationMinutes ?? 50,
-                              coinsPerSession: coins,
-                            );
-                      },
-                    ),
-                  ),
-                  CounselorProfileMenuCard(
-                    icon: Icons.account_balance_outlined,
-                    iconColor: const Color(0xFF2563EB),
-                    iconBg: const Color(0xFFEFF6FF),
-                    title: 'Rekening Bank Pencairan Koin',
-                    subtitle: 'BCA • ****8192 (dr. Sarah Jenkins)',
-                    trailingBadge: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.verifiedBg,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text('Terverifikasi ✅', style: TextStyle(color: AppColors.verifiedGreen, fontWeight: FontWeight.bold, fontSize: 10)),
-                    ),
-                    onTap: () => CounselorBankAccountModal.show(context),
-                  ),
-                ],
-                const SizedBox(height: 16),
-              ],
-
-              // 5. Pencadangan Google Drive
+              // 4. Pencadangan Google Drive
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -369,7 +218,7 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
               ),
               const SizedBox(height: 16),
 
-              // 6. Sertifikasi Eva
+              // 5. Sertifikasi Eva
               _buildSectionHeader('Pencapaian & Sertifikasi Eva', Icons.military_tech_rounded),
               CounselorProfileMenuCard(
                 icon: Icons.workspace_premium_rounded,
@@ -392,48 +241,36 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
               ),
               const SizedBox(height: 16),
 
-              // 7. Legalitas & SOP Pelayanan
+              // 6. Legalitas & SOP Pelayanan
               _buildSectionHeader('Legalitas & SOP Pelayanan', Icons.verified_user_outlined),
-              if (user?.isVolunteer == true) ...[
-                CounselorProfileMenuCard(
-                  icon: Icons.menu_book_rounded,
-                  iconColor: const Color(0xFF0284C7),
-                  iconBg: const Color(0xFFE0F2FE),
-                  title: 'Panduan Etika Konselor Teman Sebaya',
-                  subtitle: 'Kode etik pendampingan non-klinis & protokol eskalasi krisis',
-                  trailingBadge: const SizedBox.shrink(),
-                  onTap: () => CounselorGuidelinesModal.showPeerCounselor(context),
-                ),
-              ] else ...[
-                CounselorProfileMenuCard(
-                  icon: Icons.verified_user_outlined,
-                  iconColor: AppColors.verifiedGreen,
-                  iconBg: AppColors.verifiedBg,
-                  title: 'Kredensial SIPP & STR Psikolog',
-                  subtitle: 'STR #4192-PSI-2024 • KTKI & HIMPSI',
-                  trailingBadge: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.verifiedBg,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text('Aktif 2029', style: TextStyle(color: AppColors.verifiedGreen, fontWeight: FontWeight.bold, fontSize: 10)),
+              CounselorProfileMenuCard(
+                icon: Icons.verified_user_outlined,
+                iconColor: AppColors.verifiedGreen,
+                iconBg: AppColors.verifiedBg,
+                title: 'Kredensial SIPP & STR Psikolog',
+                subtitle: 'STR #4192-PSI-2024 • KTKI & HIMPSI',
+                trailingBadge: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.verifiedBg,
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  onTap: () => CounselorStrCredentialsModal.show(context),
+                  child: const Text('Aktif 2029', style: TextStyle(color: AppColors.verifiedGreen, fontWeight: FontWeight.bold, fontSize: 10)),
                 ),
-                CounselorProfileMenuCard(
-                  icon: Icons.menu_book_outlined,
-                  iconColor: const Color(0xFFD97706),
-                  iconBg: const Color(0xFFFEF3C7),
-                  title: 'Panduan Etik & SOP HIMPSI',
-                  subtitle: 'Kode etik layanan telekonseling & penanganan krisis',
-                  trailingBadge: const SizedBox.shrink(),
-                  onTap: () => CounselorGuidelinesModal.showProfessional(context),
-                ),
-              ],
+                onTap: () => CounselorStrCredentialsModal.show(context),
+              ),
+              CounselorProfileMenuCard(
+                icon: Icons.menu_book_outlined,
+                iconColor: const Color(0xFFD97706),
+                iconBg: const Color(0xFFFEF3C7),
+                title: 'Panduan Etik & SOP HIMPSI',
+                subtitle: 'Kode etik layanan telekonseling & penanganan krisis',
+                trailingBadge: const SizedBox.shrink(),
+                onTap: () => CounselorGuidelinesModal.showProfessional(context),
+              ),
               const SizedBox(height: 16),
 
-              // 8. Keamanan & Panduan Aplikasi
+              // 7. Keamanan & Panduan Aplikasi
               _buildSectionHeader('Keamanan & Panduan Aplikasi', Icons.shield_outlined),
               CounselorProfileMenuCard(
                 icon: Icons.lock_clock_outlined,
@@ -456,7 +293,7 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                 iconColor: const Color(0xFF6366F1),
                 iconBg: const Color(0xFFEEF2FF),
                 title: 'Tur Panduan Aplikasi Konselor',
-                subtitle: 'Pelajari alur tiap menu, rekam medis, koin & backup Drive',
+                subtitle: 'Pelajari alur tiap menu, rekam medis & backup Drive',
                 trailingBadge: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
@@ -469,7 +306,7 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
               ),
               const SizedBox(height: 24),
 
-              // 9. Logout
+              // 8. Logout
               GestureDetector(
                 onTap: () async {
                   await ref.read(authStateProvider.notifier).logout();

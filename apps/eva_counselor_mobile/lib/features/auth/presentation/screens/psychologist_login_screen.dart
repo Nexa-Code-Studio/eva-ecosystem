@@ -5,6 +5,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 import '../../../../core/widgets/glass_card.dart';
+import '../../domain/entities/psychologist_user_entity.dart';
 import '../providers/auth_provider.dart';
 
 class PsychologistLoginScreen extends ConsumerStatefulWidget {
@@ -28,6 +29,20 @@ class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScree
         .login(_emailController.text, _passwordController.text);
     if (!mounted) return;
     setState(() => _isLoading = false);
+
+    final user = ref.read(authStateProvider).value;
+    if (user != null) {
+      if (user.verificationStatus == VerificationStatus.pending) {
+        Navigator.of(context)
+            .pushReplacementNamed('/counselor-verification-pending');
+        return;
+      } else if (user.verificationStatus == VerificationStatus.rejected ||
+          user.verificationStatus == VerificationStatus.needRevision) {
+        Navigator.of(context)
+            .pushReplacementNamed('/counselor-verification-rejected');
+        return;
+      }
+    }
     Navigator.of(context).pushReplacementNamed('/counselor-shell');
   }
 
@@ -116,7 +131,7 @@ class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScree
                 runSpacing: 4,
                 children: [
                   Text(
-                    'Belum terdaftar sebagai relawan?',
+                    'Belum terdaftar sebagai psikolog profesional?',
                     style: AppTypography.bodyMedium,
                   ),
                   GestureDetector(
@@ -133,67 +148,28 @@ class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScree
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFECEFF8)),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF4F6FC),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.apartment_rounded, size: 18, color: AppColors.primary),
-                    ),
-                    const SizedBox(width: 12),
+                  children: const [
+                    Icon(Icons.verified_user_outlined,
+                        size: 20, color: AppColors.primary),
+                    SizedBox(width: 12),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            'Psikolog Mitra Institusi / Klinik',
-                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppColors.textPrimary),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Daftar via web mitra? Aktivasi akun di sini',
-                            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                          ),
-                        ],
-                      ),
-                    ),
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      onPressed: () {
-                        Navigator.of(context).pushNamed(
-                          '/counselor-activation',
-                          arguments: {
-                            'email': 'sarah.lestari@gmail.com',
-                            'partnerName': 'RS Mitra Sehati Jakarta',
-                            'fullName': 'Dr. Sarah Lestari, M.Psi., Psikolog',
-                            'token': 'inv-eva-789234',
-                          },
-                        );
-                      },
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('Aktivasi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                          SizedBox(width: 2),
-                          Icon(Icons.chevron_right_rounded, size: 16),
-                        ],
+                      child: Text(
+                        'Layanan resmi telekonseling berizin. Setiap praktisi wajib memiliki STR & SIPP aktif.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                          height: 1.4,
+                        ),
                       ),
                     ),
                   ],
