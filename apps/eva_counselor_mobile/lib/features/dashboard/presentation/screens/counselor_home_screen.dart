@@ -299,7 +299,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            user?.displayName ?? 'Khoirotun Nisa, S.Psi., M.Psi., Psikolog',
+                            user?.displayName ?? 'Psikolog Mandiri',
                             style: AppTypography.headingSmall.copyWith(fontSize: 15),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
