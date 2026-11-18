@@ -68,6 +68,15 @@ class ConsentStatusResponse(BaseModel):
     patient_id: str
     counselor_id: str
     status: str
-    is_granted: bool
+    is_granted: bool = False
     granted_at: datetime | None = None
     expires_at: datetime | None = None
+
+
+class SoapSynthesisResponse(BaseModel):
+    subjective: str
+    objective: str
+    assessment: str
+    plan: str
+    model_used: str
+    synthesized_at: datetime

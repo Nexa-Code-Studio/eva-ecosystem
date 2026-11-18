@@ -133,6 +133,13 @@ async def get_care_service(db: AsyncSession = Depends(get_db_session)):
     return CareService(db)
 
 
+async def get_finance_service(db: AsyncSession = Depends(get_db_session)):
+    """Dependency factory for FinanceService."""
+    from app.services.finances import FinanceService
+
+    return FinanceService(db)
+
+
 
 
 

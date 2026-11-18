@@ -39,13 +39,13 @@ class AppConfig {
   /// Base API URL for psychologist endpoints
   static String get apiBaseUrl {
     final scheme = isSecure ? 'https' : 'http';
-    return '$scheme://$serverHost/api/v1/counselor';
+    return '$scheme://$serverHost/api/v1';
   }
 
   /// Base WebSocket URL for real-time video signaling & chat
   static String get wsBaseUrl {
     final scheme = isSecure ? 'wss' : 'ws';
-    return '$scheme://$serverHost/api/v1/counselor/ws';
+    return '$scheme://$serverHost/api/v1/call/ws';
   }
 
   /// Request timeout duration

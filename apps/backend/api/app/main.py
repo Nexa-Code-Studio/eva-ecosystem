@@ -13,6 +13,7 @@ from app.api.routes.conversations import router as conversations_router
 from app.api.routes.counselor import router as counselor_router
 from app.api.routes.dass import router as dass_router
 from app.api.routes.diaries import router as diaries_router
+from app.api.routes.finances import router as finances_router
 from app.api.routes.health import router as health_router
 from app.api.routes.patients import router as patients_router
 from app.api.routes.pricing import router as pricing_router
@@ -64,6 +65,7 @@ app.include_router(counselor_router, prefix="/api/v1")
 app.include_router(pricing_router, prefix="/api/v1")
 app.include_router(sessions_router, prefix="/api/v1")
 app.include_router(patients_router, prefix="/api/v1")
+app.include_router(finances_router, prefix="/api/v1")
 app.include_router(care_router, prefix="/api/v1")
 
 

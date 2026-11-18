@@ -46,4 +46,22 @@ class RemotePatientDataSource implements PatientDataSource {
     );
     return ClinicalNoteResponseDto.fromJson(response as Map<String, dynamic>);
   }
+
+  @override
+  Future<Map<String, dynamic>> synthesizeSoapFromTranscript({
+    required String transcript,
+    String? patientName,
+    String? sessionId,
+  }) async {
+    final response = await _client.post(
+      sessionId != null
+          ? ApiEndpoints.soapSynthesis(sessionId)
+          : '/sessions/soap-synthesis',
+      body: {
+        'transcript': transcript,
+        'patient_name': patientName,
+      },
+    );
+    return response as Map<String, dynamic>;
+  }
 }

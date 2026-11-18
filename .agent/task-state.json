@@ -65,10 +65,9 @@
   },
   "71": {
     "issue": 71,
-    "branch": "feat/71-counselor-realcase-integration",
-    "state": "In Review",
-    "updated_at": 1794999900,
-    "evidence_summary": "Evidence accepted: PR and test verification documented.",
-    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/73"
+    "branch": "main",
+    "state": "Done",
+    "updated_at": 1795008600,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified."
   }
 }
