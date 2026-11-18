@@ -22,34 +22,30 @@
   },
   "55": {
     "issue": 55,
-    "branch": "feat/55-backend-psychologist-db-pricing",
-    "state": "In Review",
-    "updated_at": 1794974009,
-    "evidence_summary": "Evidence accepted: PR and test verification documented.",
-    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/62"
+    "branch": "main",
+    "state": "Done",
+    "updated_at": 1794978995,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified."
   },
   "56": {
     "issue": 56,
-    "branch": "feat/56-backend-scheduling-extension",
-    "state": "In Review",
-    "updated_at": 1794974515,
-    "evidence_summary": "Evidence accepted: PR and test verification documented.",
-    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/63"
+    "branch": "main",
+    "state": "Done",
+    "updated_at": 1794978995,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified."
   },
   "57": {
     "issue": 57,
-    "branch": "feat/57-counselor-auth-verification-gate",
-    "state": "In Review",
-    "updated_at": 1794972685,
-    "evidence_summary": "Evidence accepted: PR and test verification documented.",
-    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/61"
+    "branch": "main",
+    "state": "Done",
+    "updated_at": 1794978996,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified."
   },
   "58": {
     "issue": 58,
-    "branch": "feat/58-counselor-session-soap-payout",
-    "state": "In Review",
-    "updated_at": 1794976402,
-    "evidence_summary": "Evidence accepted: PR and test verification documented.",
-    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/64"
+    "branch": "main",
+    "state": "Done",
+    "updated_at": 1794978996,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified."
   }
 }
