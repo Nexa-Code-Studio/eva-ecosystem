@@ -73,10 +73,10 @@ class PsychologistUserEntity {
     this.sessionDurationMinutes = 50,
     this.coinsPerSession = 150,
     this.coinBalance = 1250,
-    this.googleDriveEmail = 'sarah.anindya@gmail.com',
+    this.googleDriveEmail = 'khoirotunnisa2507@gmail.com',
     this.lastDriveBackup,
     this.autoBackupFrequency = 'Harian',
-    this.employeeNip = '198804122019032001',
+    this.employeeNip = '199807252026012001',
     this.isOnlinePracticeEnabled = true,
     this.isOfflinePracticeEnabled = false,
     this.offlinePlaceName,
@@ -92,7 +92,7 @@ class PsychologistUserEntity {
     this.externalSyncCount = 0,
     this.bankName = 'BCA (Bank Central Asia)',
     this.bankAccountNumber = '8192039182',
-    this.bankAccountHolder = 'dr. Sarah Jenkins, M.Psi',
+    this.bankAccountHolder = 'Khoirotun Nisa, M.Psi',
   });
 
   bool get isVolunteer => false;

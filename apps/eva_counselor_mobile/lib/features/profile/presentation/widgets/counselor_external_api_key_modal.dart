@@ -152,7 +152,7 @@ class _CounselorExternalApiKeySheetState
   Widget build(BuildContext context) {
     final user = ref.watch(authStateProvider).value ?? widget.initialUser;
     final apiKey = user?.externalApiKey;
-    final nip = user?.employeeNip ?? '198804122019032001';
+    final nip = user?.employeeNip ?? '199807252026012001';
 
     return Container(
       constraints: BoxConstraints(

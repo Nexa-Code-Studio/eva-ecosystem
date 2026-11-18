@@ -9,7 +9,7 @@ class CounselorReviewsModal {
         'topic': 'Konseling Kecemasan & Insomnia',
         'rating': 5,
         'date': '2 hari lalu',
-        'comment': 'dr. Sarah sangat mendengarkan tanpa menghakimi. Teknik regulasi napas dan CBT yang diajarkan sangat membantu mengendalikan serangan panik saya. Terima kasih banyak!',
+        'comment': 'Ibu Nisa sangat mendengarkan tanpa menghakimi. Teknik regulasi napas dan CBT yang diajarkan sangat membantu mengendalikan serangan panik saya. Terima kasih banyak!',
         'tag': 'Sangat Empatik',
       },
       {
