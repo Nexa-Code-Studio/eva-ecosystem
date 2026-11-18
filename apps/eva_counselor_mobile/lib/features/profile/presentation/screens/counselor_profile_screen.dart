@@ -37,7 +37,7 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
     setState(() => _isBackingUp = false);
 
     ref.read(authStateProvider.notifier).syncDriveBackup(
-          email: user?.googleDriveEmail ?? 'khoirotunnisa2507@gmail.com',
+          email: user?.effectiveGoogleDriveEmail ?? user?.email ?? '',
           frequency: _backupFrequency,
         );
 
@@ -162,7 +162,7 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                 iconColor: const Color(0xFF2563EB),
                 iconBg: const Color(0xFFEFF6FF),
                 title: 'Rekening Bank Pencairan Dana',
-                subtitle: 'BCA • ****8192 (${user?.bankAccountHolder ?? "Khoirotun Nisa, M.Psi"})',
+                subtitle: 'BCA • ****8192 (${user?.bankAccountHolder ?? user?.displayName ?? "Psikolog Mandiri"})',
                 trailingBadge: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
@@ -209,7 +209,7 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                     _backupWifiOnly = wifi;
                   });
                   ref.read(authStateProvider.notifier).syncDriveBackup(
-                        email: user?.googleDriveEmail ?? 'khoirotunnisa2507@gmail.com',
+                        email: user?.effectiveGoogleDriveEmail ?? user?.email ?? '',
                         frequency: freq,
                       );
                 },

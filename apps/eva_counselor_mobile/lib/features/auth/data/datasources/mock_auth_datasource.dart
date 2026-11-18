@@ -22,7 +22,7 @@ class MockAuthDataSource implements AuthDataSource {
         ? 'pending'
         : (isRevision ? 'need_revision' : 'verified');
 
-    String displayName = 'Khoirotun Nisa';
+    String displayName = 'Psikolog Mandiri';
     String titleDegree = 'S.Psi., M.Psi., Psikolog';
     String strNum = 'STR-PK-19980725-2026-01';
     if (isPending) {
@@ -53,17 +53,17 @@ class MockAuthDataSource implements AuthDataSource {
       isOnline: _mockOnlineState,
       profilePhotoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400',
       certificateDocUrl: 'https://eva.nexacode.dev/docs/sample_str.pdf',
-      token: 'mock-jwt-token-nisa-counselor-secret-xyz',
+      token: 'mock-jwt-token-counselor-secret-xyz',
       counselorRole: 'professional_independent',
       partnerName: null,
       sessionDurationMinutes: 30,
       coinsPerSession: 150,
       coinBalance: 1250,
-      googleDriveEmail: request.email.contains('@') ? request.email : 'khoirotunnisa2507@gmail.com',
+      googleDriveEmail: request.email,
       employeeNip: '199807252026012001',
       isOnlinePracticeEnabled: true,
       isOfflinePracticeEnabled: true,
-      offlinePlaceName: 'Biro Psikologi Mandiri Khoirotun Nisa',
+      offlinePlaceName: 'Biro Konsultasi Psikologi Mandiri',
       offlineAddress: 'Jl. Menteng Raya No. 42, RT 02/RW 03',
       offlineCity: 'Jakarta Pusat',
       offlineNotes: 'Lantai 2, Ruang Konseling Melati 1',
@@ -113,9 +113,9 @@ class MockAuthDataSource implements AuthDataSource {
     await Future.delayed(const Duration(milliseconds: 300));
     return PsychologistProfileResponseDto(
       id: 'counselor-uuid-001',
-      fullName: 'Khoirotun Nisa',
+      fullName: 'Psikolog Mandiri',
       titleDegree: 'S.Psi., M.Psi., Psikolog',
-      email: 'khoirotunnisa2507@gmail.com',
+      email: 'psikolog.mandiri@eva.id',
       strNumber: 'STR-PK-19980725-2026-01',
       association: 'Himpunan Psikologi Indonesia (HIMPSI)',
       specializations: [
@@ -128,16 +128,16 @@ class MockAuthDataSource implements AuthDataSource {
       verificationStatus: 'verified',
       isOnline: _mockOnlineState,
       profilePhotoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400',
-      token: 'mock-jwt-token-nisa-counselor-secret-xyz',
+      token: 'mock-jwt-token-counselor-secret-xyz',
       counselorRole: 'professional_independent',
       sessionDurationMinutes: 50,
       coinsPerSession: 150,
       coinBalance: 1250,
-      googleDriveEmail: 'khoirotunnisa2507@gmail.com',
+      googleDriveEmail: 'psikolog.mandiri@eva.id',
       employeeNip: '199807252026012001',
       isOnlinePracticeEnabled: true,
       isOfflinePracticeEnabled: true,
-      offlinePlaceName: 'Biro Psikologi Mandiri Khoirotun Nisa',
+      offlinePlaceName: 'Biro Konsultasi Psikologi Mandiri',
       offlineAddress: 'Jl. Menteng Raya No. 42, RT 02/RW 03',
       offlineCity: 'Jakarta Pusat',
       offlineNotes: 'Lantai 2, Ruang Konseling Melati 1',

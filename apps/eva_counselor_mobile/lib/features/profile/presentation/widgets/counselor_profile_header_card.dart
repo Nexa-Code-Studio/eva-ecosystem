@@ -55,12 +55,12 @@ class CounselorProfileHeaderCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      user?.displayName ?? 'Khoirotun Nisa, S.Psi., M.Psi., Psikolog',
+                      user?.displayName ?? 'Psikolog Mandiri',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      user?.email ?? 'khoirotunnisa2507@gmail.com',
+                      user?.email ?? 'psikolog.mandiri@eva.id',
                       style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 6),

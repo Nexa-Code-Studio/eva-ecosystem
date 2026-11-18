@@ -46,7 +46,7 @@ class _BankAccountModalContentState
     _accountNumberCtrl =
         TextEditingController(text: user?.bankAccountNumber ?? '8192039182');
     _accountHolderCtrl = TextEditingController(
-        text: user?.bankAccountHolder ?? 'Khoirotun Nisa, M.Psi');
+        text: user?.bankAccountHolder ?? user?.displayName ?? 'Psikolog Mandiri');
   }
 
   @override
