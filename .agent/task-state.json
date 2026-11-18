@@ -51,8 +51,9 @@
   "52": {
     "issue": 52,
     "branch": "feat/52-realtime-video-call",
-    "state": "In Progress",
-    "updated_at": 1794979975,
-    "evidence_summary": "Evidence accepted: active task branch verified."
+    "state": "In Review",
+    "updated_at": 1794983338,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/65"
   }
 }
