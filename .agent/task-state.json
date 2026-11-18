@@ -31,8 +31,9 @@
   "56": {
     "issue": 56,
     "branch": "feat/56-backend-scheduling-extension",
-    "state": "In Progress",
-    "updated_at": 1794974209,
-    "evidence_summary": "Evidence accepted: active task branch verified."
+    "state": "In Review",
+    "updated_at": 1794974515,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/63"
   }
 }
