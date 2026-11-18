@@ -57,9 +57,9 @@
   },
   "68": {
     "issue": 68,
-    "branch": "feat/68-counselor-mobile-hardening",
-    "state": "In Progress",
-    "updated_at": 1794983807,
-    "evidence_summary": "Evidence accepted: active task branch verified."
+    "branch": "main",
+    "state": "Done",
+    "updated_at": 1794984686,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified."
   }
 }
