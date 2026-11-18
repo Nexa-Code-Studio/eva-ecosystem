@@ -34,6 +34,7 @@ from app.models.enums import (
 from app.models.counselor import (
     ConsultationSession,
     CounselorTransaction,
+    PatientConsent,
     PlatformPricingConfig,
     PsychologistProfile,
 )
@@ -96,6 +97,7 @@ __all__ = [
     "NotificationPolicy",
     "NotificationPolicyType",
     "NotificationStatus",
+    "PatientConsent",
     "PlatformPricingConfig",
     "PricingConfigStatus",
     "PsychologistProfile",

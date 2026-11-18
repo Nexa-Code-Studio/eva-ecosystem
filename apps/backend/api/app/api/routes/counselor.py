@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.api.dependencies import get_counselor_service, get_current_user
+from app.api.dependencies import get_counselor_service, get_current_user, get_scheduling_service
 from app.models.user import User
 from app.schemas.counselor import (
     PsychologistProfileResponse,
@@ -15,7 +15,9 @@ from app.schemas.counselor import (
     UpdatePsychologistProfileRequest,
     VerifyPsychologistRequest,
 )
+from app.schemas.session import AvailableSlotsResponse, BookSessionRequest, ConsultationSessionResponse
 from app.services.counselor import CounselorService
+from app.services.session import SchedulingService
 
 router = APIRouter(prefix="/counselors", tags=["Counselors"])
 
@@ -106,3 +108,25 @@ async def verify_counselor(
 ) -> PsychologistVerificationResponse:
     """Review and verify or reject a psychologist's professional credentials (Admin)."""
     return await service.verify_counselor(counselor_id, admin.id, payload)
+
+
+@router.get("/{counselor_id}/available-slots", response_model=AvailableSlotsResponse)
+async def get_counselor_available_slots(
+    counselor_id: uuid.UUID,
+    date: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    service: SchedulingService = Depends(get_scheduling_service),
+) -> AvailableSlotsResponse:
+    """Get dynamic 30-minute teleconsultation slots based on counselor availability and buffers."""
+    return await service.get_available_slots(counselor_id, date)
+
+
+@router.post("/{counselor_id}/book", response_model=ConsultationSessionResponse, status_code=status.HTTP_201_CREATED)
+async def book_counselor_session(
+    counselor_id: uuid.UUID,
+    payload: BookSessionRequest,
+    patient: User = Depends(get_current_user),
+    service: SchedulingService = Depends(get_scheduling_service),
+) -> ConsultationSessionResponse:
+    """Book a 30-minute teleconsultation session with anti-collision validation."""
+    return await service.book_session(patient.id, payload)
+
