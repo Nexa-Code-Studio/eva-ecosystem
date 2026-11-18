@@ -43,6 +43,53 @@ def get_branch_commits(base_branch: str) -> list[str]:
         res = run_cmd(["git", "log", "--oneline", f"{base_branch}...HEAD"])
     return [c.strip() for c in res.stdout.splitlines() if c.strip()] if res.returncode == 0 else []
 
+def get_changed_files(base_branch: str) -> list[str]:
+    res = run_cmd(["git", "diff", "--name-only", f"origin/{base_branch}...HEAD"])
+    if res.returncode != 0:
+        res = run_cmd(["git", "diff", "--name-only", f"{base_branch}...HEAD"])
+    return [line.strip() for line in res.stdout.splitlines() if line.strip()] if res.returncode == 0 else []
+
+def check_alembic_heads(repo_root: Path) -> Tuple[bool, list[str]]:
+    migrations_dir = repo_root / "apps" / "backend" / "api" / "migrations" / "versions"
+    if not migrations_dir.exists():
+        return True, []
+
+    rev_pattern = re.compile(r"^\s*revision\s*(?::\s*[^=]+)?\s*=\s*[\"']([^\"']+)[\"']", re.MULTILINE)
+    down_rev_pattern = re.compile(r"^\s*down_revision\s*(?::\s*[^=]+)?\s*=\s*([^\n]+)", re.MULTILINE)
+
+    revisions = set()
+    down_revisions = set()
+
+    for f in migrations_dir.glob("*.py"):
+        if f.name.startswith("__"):
+            continue
+        try:
+            content = f.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        m_rev = rev_pattern.search(content)
+        m_down = down_rev_pattern.search(content)
+        if m_rev:
+            revisions.add(m_rev.group(1).strip())
+        if m_down:
+            down_val = m_down.group(1).strip()
+            if down_val != "None":
+                downs = re.findall(r"[\"']([^\"']+)[\"']", down_val)
+                for d in downs:
+                    down_revisions.add(d)
+
+    heads = list(revisions - down_revisions)
+    if len(heads) > 1:
+        return False, heads
+    return True, heads
+
+def check_env_config_parity(changed_files: list[str]) -> Tuple[bool, str]:
+    has_config_change = any("packages/shared/config.py" in f for f in changed_files)
+    has_example_change = any(".env.example" in f for f in changed_files)
+    if has_config_change and not has_example_change:
+        return False, "packages/shared/config.py was modified, but .env.example was not updated. Ensure new environment variables are documented."
+    return True, ""
+
 def main():
     parser = argparse.ArgumentParser(description="Prepare and validate a Pull Request")
     parser.add_argument("--base", type=str, help="Target base branch (default: main)")
@@ -75,6 +122,22 @@ def main():
     base_branch = args.base or get_default_branch()
     commits = get_branch_commits(base_branch)
     diff_stat = get_git_diff_stat(base_branch)
+    changed_files = get_changed_files(base_branch)
+
+    # Multi-Developer Backend Invariant Preflight
+    repo_root = get_repo_root()
+    is_alembic_ok, heads = check_alembic_heads(repo_root)
+    if not is_alembic_ok:
+        print(f"❌ Multiple Alembic migration heads detected: {heads}", file=sys.stderr)
+        print("Please rebase onto origin/main or merge heads before opening a PR:", file=sys.stderr)
+        print("  git pull --rebase origin main  (or alembic merge heads)", file=sys.stderr)
+        sys.exit(1)
+    elif heads:
+        print(f"✅ Alembic migration check passed (single head: {heads[0]})")
+
+    is_env_ok, env_msg = check_env_config_parity(changed_files)
+    if not is_env_ok:
+        print(f"⚠️  Warning: {env_msg}", file=sys.stderr)
 
     pr_title = args.title or f"{task_type}: resolve #{issue_num} ({slug.replace('-', ' ')})"
 
@@ -113,6 +176,7 @@ Closes #{issue_num}
 ## Reviewer Checklist
 - [x] Code adheres to repository architecture and guidelines
 - [x] No sensitive credentials, secrets, or local configs included
+- [x] Backend multi-developer invariants verified (single Alembic head & config safety)
 - [x] Tests covering new/modified logic have passed
 - [x] Backward compatibility preserved
 """

@@ -1,52 +1,105 @@
 ---
 name: sync-project-state
-description: Synchronize task status and GitHub Project v2 based on verifiable evidence (branches, tests, PRs, unblock notes).
+description: Synchronize task and GitHub Project status based on concrete, verifiable evidence (branches, tests, PR links, unblock notes).
 ---
 
 # Sync Project State Runbook
 
-This skill validates concrete evidence before updating a task's state in `.agent/task-state.json` and the bound GitHub Project v2.
+This skill defines the evidence requirements and operational procedures for transitioning task lifecycle states in `.agent/task-state.json` and GitHub Projects v2.
 
 > [!IMPORTANT]
 > **Developer Review Gate**: Mutasi status terminal (seperti menutup issue ke `Done`) atau modifikasi issue GitHub harus didahului konfirmasi dan review dari developer.
 
-## Status Machine
+## State Machine
 
 ```text
-Backlog ➔ Ready ➔ In Progress ➔ In Review ➔ Done (Terminal)
-(Blocked is bidirectional with Backlog, Ready, In Progress, In Review)
+Backlog  ───>  Ready  ───>  In Progress  ───>  In Review  ───>  Done (Terminal)
+   │             │              │                 │
+   └─────────────┴──────────────┴─────────────────┘
+                         ▲
+                         │ (bidirectional)
+                         ▼
+                      Blocked (Requires >= 3 chars reason)
 ```
 
-## Execution
+## State Transition & Evidence Matrix
 
-### 1. Move to In Progress
+| State Transition | Required Verifiable Evidence | CLI Parameters |
+| :--- | :--- | :--- |
+| `Backlog` ➔ `Ready` | Acceptance criteria approved by human owner | `--state Ready --acceptance-criteria "<criteria>"` |
+| `Ready` ➔ `In Progress` | Developer starts work; task branch checked out | `--state "In Progress"` |
+| `In Progress` ➔ `Blocked` | Concrete blocker identified, explained, and referenced | `--state Blocked --blocker-reason "<reason>"` |
+| `Blocked` ➔ `In Progress` | Blocker resolution verified | `--state "In Progress" --unblock-note "<resolution>"` |
+| `In Progress` ➔ `In Review` | PR created + unit/integration tests verified passing | `--state "In Review" --pr-url "<url>" --test-evidence "<evidence>"` |
+| `In Review` ➔ `Done` | PR merged into base branch OR human acceptance sign-off | `--state Done --pr-merged` or `--close-approval "<name>"` |
+
+## Step-by-Step Procedure
+
+### 1. Starting Work (`In Progress`)
+
+When you begin working on a checked-out task branch:
+
 ```bash
-python3 scripts/agentic/sync-state.py \
-  --state "In Progress" \
-  --issue 128
+python3 scripts/agentic/sync-state.py --state "In Progress"
 ```
 
-### 2. Mark Blocked (Requires Reason >= 3 chars)
+The script automatically infers the issue number from the active branch name (e.g. `feat/128-user-auth` ➔ `#128`). Alternatively, specify explicitly:
+
+```bash
+python3 scripts/agentic/sync-state.py --state "In Progress" --issue 128
+```
+
+### 2. Flagging a Blocker (`Blocked`)
+
+If external dependencies, missing credentials, or API issues prevent progress:
+
 ```bash
 python3 scripts/agentic/sync-state.py \
-  --state "Blocked" \
+  --state Blocked \
   --issue 128 \
-  --blocker-reason "Waiting for API endpoint v2"
+  --blocker-reason "Awaiting database migration approval from backend lead"
 ```
 
-### 3. Move to In Review (Requires PR & Test Evidence)
+### 3. Transitioning to Review (`In Review`)
+
+After writing code, running tests, and opening a Pull Request:
+
 ```bash
 python3 scripts/agentic/sync-state.py \
   --state "In Review" \
   --issue 128 \
-  --pr-url "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/15" \
-  --test-evidence "All 40 unit tests passing"
+  --pr-url "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/42" \
+  --test-evidence "12 unit tests passing: python3 -m unittest discover -s tests"
 ```
 
-### 4. Move to Done (Requires Merged PR or Approval)
+If `--pr-url` or `--test-evidence` is missing, the validator will reject the transition.
+
+### 4. Transitioning to Done (`Done`)
+
+Only after the Pull Request has been merged into the default branch:
+
 ```bash
 python3 scripts/agentic/sync-state.py \
-  --state "Done" \
+  --state Done \
   --issue 128 \
   --pr-merged
 ```
+
+Or with explicit developer sign-off:
+
+```bash
+python3 scripts/agentic/sync-state.py \
+  --state Done \
+  --issue 128 \
+  --close-approval "Verified and approved by Lead Dev"
+```
+
+### 5. Dry-Run and Idempotency
+
+To validate evidence without changing local state or sending API calls:
+
+```bash
+python3 scripts/agentic/sync-state.py --state "In Progress" --issue 128 --dry-run
+```
+
+Re-running the command with identical state produces an idempotent no-op without spamming comments or duplicate updates.
