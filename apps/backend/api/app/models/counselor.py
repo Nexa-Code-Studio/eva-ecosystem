@@ -258,3 +258,29 @@ class CounselorTransaction(BaseModel):
         "ConsultationSession",
         back_populates="transactions",
     )
+
+
+class PatientConsent(BaseModel):
+    """Patient consent allowing a psychologist to view screening DASS-21 and journal records."""
+
+    __tablename__ = "patient_consents"
+
+    patient_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    counselor_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("psychologist_profiles.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="granted", index=True)
+    granted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    patient: Mapped["User"] = orm_relationship("User", foreign_keys=[patient_id])
+    counselor: Mapped["PsychologistProfile"] = orm_relationship("PsychologistProfile")
+
