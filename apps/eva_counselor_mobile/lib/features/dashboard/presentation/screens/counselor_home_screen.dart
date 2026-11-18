@@ -16,111 +16,103 @@ class CounselorHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
-  int _selectedCalendarIndex = 1; // 1 = Sel 11 (Hari Ini)
+  int _selectedCalendarIndex = 0;
+  late List<Map<String, dynamic>> _calendarDays;
+  late String _monthYearLabel;
 
-  // FULL 7-DAY WEEK (Senin s/d Minggu)
-  final List<Map<String, dynamic>> _calendarDays = [
-    {
-      'day': 'Sen',
-      'date': '10',
-      'hasSession': true,
-      'isHighRisk': false,
-      'isOffDay': false,
-      'sessions': [
-        {
-          'time': '10:00 - 10:30 WIB',
-          'patientName': 'Aditya Nugraha',
-          'chiefComplaint': 'Regulasi emosi & relasi sosial',
-          'status': 'Selesai',
-          'isCompleted': true,
-          'patientId': 'patient-003',
-        },
-      ],
-    },
-    {
-      'day': 'Sel',
-      'date': '11',
-      'isToday': true,
-      'hasSession': true,
-      'isHighRisk': true,
-      'isOffDay': false,
-      'sessions': [
-        {
-          'time': '10:00 - 10:30 WIB',
-          'patientName': 'Rian Pratama (24 Thn)',
-          'chiefComplaint': 'Kecemasan akademik & insomnia',
-          'status': 'Mulai 15 Mnt Lagi',
-          'isLive': true,
-          'patientId': 'patient-001',
-          'sessionId': 'session-live-001',
-        },
-        {
-          'time': '14:00 - 14:30 WIB',
-          'patientName': 'Dinda Kirana (23 Thn)',
-          'chiefComplaint': 'Burnout & serangan panik akut',
-          'status': 'Perhatian Krisis 🚨',
-          'isHighRisk': true,
-          'patientId': 'patient-002',
-        },
-      ],
-    },
-    {
-      'day': 'Rab',
-      'date': '12',
-      'hasSession': true,
-      'isHighRisk': false,
-      'isOffDay': false,
-      'sessions': [
-        {
-          'time': '11:00 - 11:30 WIB',
-          'patientName': 'Maya Lestari (21 Thn)',
-          'chiefComplaint': 'Quarter-life crisis & eksplorasi karier',
-          'status': 'Terkonfirmasi',
-          'patientId': 'patient-004',
-        },
-      ],
-    },
-    {
-      'day': 'Kam',
-      'date': '13',
-      'hasSession': false,
-      'isHighRisk': false,
-      'isOffDay': false,
-      'sessions': [],
-    },
-    {
-      'day': 'Jum',
-      'date': '14',
-      'hasSession': true,
-      'isHighRisk': false,
-      'isOffDay': false,
-      'sessions': [
-        {
-          'time': '13:30 - 14:20 WIB',
-          'patientName': 'Budi Santoso',
-          'chiefComplaint': 'Konseling evaluasi lanjutan',
-          'status': 'Terkonfirmasi',
-          'patientId': 'patient-001',
-        },
-      ],
-    },
-    {
-      'day': 'Sab',
-      'date': '15',
-      'hasSession': false,
-      'isHighRisk': false,
-      'isOffDay': true, // LIBUR
-      'sessions': [],
-    },
-    {
-      'day': 'Min',
-      'date': '16',
-      'hasSession': false,
-      'isHighRisk': false,
-      'isOffDay': true, // LIBUR
-      'sessions': [],
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _initDynamicCalendar();
+  }
+
+  void _initDynamicCalendar() {
+    final now = DateTime.now();
+    final months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    _monthYearLabel = '${months[now.month - 1]} ${now.year}';
+
+    // Monday as start of current week (ISO 8601: Monday=1, Sunday=7)
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    final dayNames = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
+    _calendarDays = List.generate(7, (index) {
+      final date = monday.add(Duration(days: index));
+      final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
+      final isWeekend = index >= 5;
+
+      List<Map<String, dynamic>> sessions = [];
+      if (isToday) {
+        sessions = [
+          {
+            'time': '10:00 - 10:30 WIB',
+            'patientName': 'Rian Pratama (24 Thn)',
+            'chiefComplaint': 'Kecemasan akademik & insomnia',
+            'status': 'Sesi Siap Dimulai (Live)',
+            'isLive': true,
+            'patientId': 'patient-001',
+            'sessionId': 'session-live-001',
+          },
+          {
+            'time': '14:00 - 14:30 WIB',
+            'patientName': 'Dinda Kirana (23 Thn)',
+            'chiefComplaint': 'Burnout & serangan panik akut',
+            'status': 'Perhatian Krisis 🚨',
+            'isHighRisk': true,
+            'patientId': 'patient-002',
+          },
+        ];
+      } else if (!isWeekend) {
+        if (index == 0) {
+          sessions = [
+            {
+              'time': '10:00 - 10:30 WIB',
+              'patientName': 'Aditya Nugraha',
+              'chiefComplaint': 'Regulasi emosi & relasi sosial',
+              'status': 'Selesai',
+              'isCompleted': true,
+              'patientId': 'patient-003',
+            },
+          ];
+        } else if (index == 2 || index == 3) {
+          sessions = [
+            {
+              'time': '11:00 - 11:30 WIB',
+              'patientName': 'Maya Lestari (21 Thn)',
+              'chiefComplaint': 'Quarter-life crisis & eksplorasi karier',
+              'status': 'Terkonfirmasi',
+              'patientId': 'patient-004',
+            },
+          ];
+        } else if (index == 4) {
+          sessions = [
+            {
+              'time': '13:30 - 14:00 WIB',
+              'patientName': 'Budi Santoso',
+              'chiefComplaint': 'Konseling evaluasi lanjutan',
+              'status': 'Terkonfirmasi',
+              'patientId': 'patient-001',
+            },
+          ];
+        }
+      }
+
+      return {
+        'day': dayNames[index],
+        'date': '${date.day}',
+        'fullDate': date,
+        'isToday': isToday,
+        'hasSession': sessions.isNotEmpty,
+        'isHighRisk': sessions.any((s) => s['isHighRisk'] == true),
+        'isOffDay': isWeekend,
+        'sessions': sessions,
+      };
+    });
+
+    _selectedCalendarIndex = now.weekday - 1;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -165,7 +157,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                         child: Image.asset(
                           'assets/images/eva_logo_square.png',
                           fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Icon(
+                          errorBuilder: (context, error, stackTrace) => const Icon(
                             Icons.psychology_rounded,
                             color: AppColors.primary,
                             size: 20,
@@ -176,8 +168,8 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: const [
+                          const Row(
+                            children: [
                               Text(
                                 'EVA',
                                 style: TextStyle(
@@ -307,7 +299,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            user?.displayName ?? 'dr. Sarah Jenkins, M.Psi',
+                            user?.displayName ?? 'Psikolog Mandiri',
                             style: AppTypography.headingSmall.copyWith(fontSize: 15),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -318,14 +310,8 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                             runSpacing: 4,
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
-                              if (user?.isVolunteer == true)
-                                StatusBadge.volunteer('Relawan Teman Sebaya')
-                              else if (user?.isPartner == true)
-                                StatusBadge.proPartner('Psikolog Mitra • ${user?.partnerName ?? "RS Mitra"}')
-                              else
-                                StatusBadge.proIndependent('Psikolog Mandiri'),
-                              if (user?.isProfessional == true)
-                                StatusBadge.coins(user?.coinBalance ?? 1250),
+                              StatusBadge.proIndependent('Psikolog Mandiri'),
+                              StatusBadge.coins(user?.coinBalance ?? 1250),
                             ],
                           ),
                         ],
@@ -447,9 +433,9 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                               color: Colors.white.withValues(alpha: 0.18),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Row(
+                            child: const Row(
                               mainAxisSize: MainAxisSize.min,
-                              children: const [
+                              children: [
                                 Icon(Icons.access_time_rounded, color: Colors.white, size: 12),
                                 SizedBox(width: 5),
                                 Flexible(
@@ -491,10 +477,10 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Expanded(
+                        const Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
+                            children: [
                               Text(
                                 'Rian Pratama (24 Thn)',
                                 style: TextStyle(
@@ -582,38 +568,13 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
               ),
               const SizedBox(height: 18),
 
-              // 4. PROTOKOL KESELAMATAN (KHUSUS RELAWAN)
-              if (user?.isVolunteer == true) ...[
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE0F7F6),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: const Color(0xFFB2DFDB)),
-                  ),
-                  child: Row(
-                    children: const [
-                      Icon(Icons.shield_outlined, color: Color(0xFF00796B), size: 22),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Protokol Keselamatan: Kasus krisis darurat & indikasi risiko tinggi secara otomatis dialihkan sistem ke Psikolog Klinis Berizin. Anda hanya menangani sesi curhat non-kritis.',
-                          style: TextStyle(fontSize: 11, color: Color(0xFF004D40), height: 1.4),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
               // 5. HORIZONTAL SCHEDULE MINI-CALENDAR STRIP (LENGKAP 7 HARI, MERAH JIKA LIBUR)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Jadwal Praktik Mingguan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                   Text(
-                    'November 2026',
+                    _monthYearLabel,
                     style: AppTypography.bodySmall.copyWith(fontSize: 11, fontWeight: FontWeight.w600),
                   ),
                 ],
@@ -624,7 +585,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: _calendarDays.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  separatorBuilder: (context, index) => const SizedBox(width: 8),
                   itemBuilder: (context, idx) {
                     final item = _calendarDays[idx];
                     final isSelected = _selectedCalendarIndex == idx;
@@ -767,8 +728,8 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: AppColors.highRiskRed.withValues(alpha: 0.2)),
                         ),
-                        child: Row(
-                          children: const [
+                        child: const Row(
+                          children: [
                             Icon(Icons.event_busy_rounded, color: AppColors.highRiskRed, size: 24),
                             SizedBox(width: 12),
                             Expanded(
@@ -899,7 +860,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                             ),
                           ),
                         );
-                      }).toList(),
+                      }),
                     ],
                   ],
                 ),

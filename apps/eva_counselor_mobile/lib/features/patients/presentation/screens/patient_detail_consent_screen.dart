@@ -28,7 +28,7 @@ class _PatientDetailConsentScreenState
     {
       'time': '00:03',
       'speaker': 'Pasien',
-      'text': 'Halo Mbak Sarah, selamat pagi. Terima kasih sudah menerima jadwal saya.',
+      'text': 'Halo Bu Nisa, selamat pagi. Terima kasih sudah menerima jadwal saya.',
     },
     {
       'time': '00:18',
@@ -126,6 +126,8 @@ class _PatientDetailConsentScreenState
     );
 
     ref.invalidate(patientNotesProvider(widget.patientId));
+    ref.invalidate(patientsListProvider);
+    ref.invalidate(patientDetailProvider(widget.patientId));
     if (!mounted) return;
     setState(() {
       _isSavingNote = false;
@@ -136,6 +138,10 @@ class _PatientDetailConsentScreenState
     });
 
     final authUser = ref.read(authStateProvider).value;
+    if (authUser?.isProfessional == true) {
+      final reward = authUser?.coinsPerSession ?? 150;
+      ref.read(authStateProvider.notifier).addCoins(reward);
+    }
     final rewardText = authUser?.isProfessional == true
         ? 'Catatan klinis SOAP berhasil disimpan. +${authUser?.coinsPerSession ?? 150} Koin dikreditkan ke dompet Anda!'
         : 'Catatan klinis SOAP berhasil disimpan.';
@@ -152,8 +158,6 @@ class _PatientDetailConsentScreenState
   Widget build(BuildContext context) {
     final patientAsync = ref.watch(patientDetailProvider(widget.patientId));
     final notesAsync = ref.watch(patientNotesProvider(widget.patientId));
-    final authUser = ref.watch(authStateProvider).value;
-    final isVolunteer = authUser?.isVolunteer == true;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
@@ -403,9 +407,7 @@ class _PatientDetailConsentScreenState
                                   : null,
                             ),
                             child: Text(
-                              isVolunteer
-                                  ? 'Curhat Sebaya (Non-SOAP)'
-                                  : 'Catatan SOAP & Transkrip',
+                              'Catatan SOAP & Transkrip',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 12,
@@ -502,8 +504,8 @@ class _PatientDetailConsentScreenState
             color: AppColors.verifiedBg,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Row(
-            children: const [
+          child: const Row(
+            children: [
               Icon(Icons.verified_rounded, color: AppColors.verifiedGreen, size: 16),
               SizedBox(width: 8),
               Expanded(
@@ -596,81 +598,11 @@ class _PatientDetailConsentScreenState
     );
   }
 
-  // TAB 2: SOAP TAB CONTENT
+  // TAB 2: SOAP TAB CONTENT (PSIKOLOG MANDIRI: FORM SOAP LENGKAP + TRANSKRIP)
   Widget _buildSoapTabContent(dynamic patient, AsyncValue<List<dynamic>> notesAsync) {
     final schedule = patient.upcomingSchedule;
     final authUser = ref.watch(authStateProvider).value;
 
-    // 1. JIKA VOLUNTEER (TEMAN SEBAYA): TIDAK PERLU MENGISI SOAP
-    if (authUser?.isVolunteer == true) {
-      return Container(
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: const Color(0xFFECEFF8)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE0F7F6),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Icon(
-                Icons.volunteer_activism_rounded,
-                color: Color(0xFF00796B),
-                size: 40,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Relawan Teman Sebaya (Bebas SOAP)',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Sebagai Relawan Teman Sebaya, Anda tidak perlu mengisi catatan SOAP medis. Rekam medis SOAP klinis secara hukum hanya diperuntukkan bagi Psikolog Berizin STR.\n\nFokus peran Anda adalah pendengar suportif & teman curhat non-kritis. Jika terdapat indikasi bahaya krisis, sistem otomatis mengalihkan pasien ke Psikolog Profesional.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF7F8FC),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFECEFF8)),
-              ),
-              child: Row(
-                children: const [
-                  Icon(Icons.workspace_premium_rounded, color: AppColors.primary, size: 20),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Ingin membuka akses SOAP klinis & sistem koin? Upgrade ke Psikolog Profesional di menu Profil Anda.',
-                      style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // 2. JIKA PROFESIONAL: FORM SOAP LENGKAP + TRANSKRIP
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -685,9 +617,9 @@ class _PatientDetailConsentScreenState
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
             ),
-            child: Row(
+            child: const Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Icon(Icons.auto_awesome, color: AppColors.primary, size: 20),
                 SizedBox(width: 10),
                 Expanded(
@@ -808,8 +740,8 @@ class _PatientDetailConsentScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: const [
+              const Row(
+                children: [
                   Icon(Icons.record_voice_over_rounded, color: AppColors.primary, size: 20),
                   SizedBox(width: 8),
                   Text(

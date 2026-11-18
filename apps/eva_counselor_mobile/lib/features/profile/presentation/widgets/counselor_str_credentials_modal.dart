@@ -37,22 +37,22 @@ class CounselorStrCredentialsModal {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.verifiedGreen.withValues(alpha: 0.3)),
               ),
-              child: Column(
+              child: const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
+                    children: [
                       Text('Surat Tanda Registrasi (STR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.verifiedGreen)),
                       Icon(Icons.verified_rounded, color: AppColors.verifiedGreen, size: 18),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  const Text('Nomor: 4192-PSI-2024', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  const SizedBox(height: 2),
-                  const Text('Penerbit: KTKI (Konsil Tenaga Kesehatan Indonesia)', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                  const SizedBox(height: 2),
-                  const Text('Masa Berlaku: 18 Oktober 2029 (Aktif)', style: TextStyle(fontSize: 11, color: AppColors.verifiedGreen, fontWeight: FontWeight.w600)),
+                  SizedBox(height: 6),
+                  Text('Nomor: 4192-PSI-2024', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  SizedBox(height: 2),
+                  Text('Penerbit: KTKI (Konsil Tenaga Kesehatan Indonesia)', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                  SizedBox(height: 2),
+                  Text('Masa Berlaku: 18 Oktober 2029 (Aktif)', style: TextStyle(fontSize: 11, color: AppColors.verifiedGreen, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
@@ -64,9 +64,9 @@ class CounselorStrCredentialsModal {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFFECEFF8)),
               ),
-              child: Column(
+              child: const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text('Surat Izin Praktik Psikologi (SIPP)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary)),
                   SizedBox(height: 6),
                   Text('Nomor: 503/SIPP/DKS/2023', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),

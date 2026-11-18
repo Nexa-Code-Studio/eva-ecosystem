@@ -315,9 +315,9 @@ class _CounselorScheduleSettingsScreenState
                                 border:
                                     Border.all(color: const Color(0xFFE2E8F0)),
                               ),
-                              child: Row(
+                              child: const Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: const [
+                                children: [
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [

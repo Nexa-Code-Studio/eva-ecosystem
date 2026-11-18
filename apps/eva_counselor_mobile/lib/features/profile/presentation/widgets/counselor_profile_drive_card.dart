@@ -50,12 +50,14 @@ class CounselorProfileDriveCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      user?.googleDriveEmail ?? 'sarah.anindya@gmail.com',
+                      user?.effectiveGoogleDriveEmail ?? user?.email ?? 'Akun belum terhubung',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Cadangan: ${user?.lastDriveBackup != null ? "Hari ini, 10:15 WIB (18.4 MB)" : "Belum dicadangkan"} • Otomatis $backupFrequency',
+                      user?.lastDriveBackup != null
+                          ? 'Cadangan: ${_formatDriveBackupTime(user!.lastDriveBackup!)} (18.4 MB) • Otomatis $backupFrequency'
+                          : 'Belum dicadangkan • Otomatis $backupFrequency',
                       style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                     ),
                   ],
@@ -119,5 +121,11 @@ class CounselorProfileDriveCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatDriveBackupTime(DateTime dt) {
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return 'Hari ini, $hour:$minute WIB';
   }
 }

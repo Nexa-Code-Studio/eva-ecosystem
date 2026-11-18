@@ -169,3 +169,37 @@ Sebelum menyatakan pekerjaan refaktor atau pembuatan API baru selesai:
 1. Jalankan `make test-backend` untuk memastikan semua endpoint lolos uji integritas.
 2. Pastikan tidak ada `dict[str, Any]` yang tersisa sebagai tipe return di fungsi router.
 3. Jalankan `make lint` dan `make format` untuk menjamin kerapian kode sesuai standar Ruff.
+
+---
+
+## 7. Standar Kolaborasi Multi-Developer Backend (Pencegahan Tabrakan Kode)
+
+Ketika beberapa developer bekerja pada fitur berbeda yang menyentuh `apps/backend`, wajib mematuhi 5 aturan pencegahan tabrakan pada area sentral (*shared touchpoints*):
+
+### A. Migrasi Database (Alembic) & Shared Models (`app/models/`)
+1. **Strict Linear History**: Sebelum membuka Pull Request dengan migrasi baru, wajib lakukan `git pull --rebase origin main` agar revisi migrasi membentuk garis lurus tunggal (*single head*).
+2. **Larangan Edit Migrasi Lama**: Dilarang keras mengedit atau menghapus file migrasi di `apps/backend/api/migrations/versions/` yang sudah ter-merge ke `main`.
+3. **Modifikasi Entitas Bersama (contoh: `User`)**:
+   - Dilarang mengubah tipe data, menghapus, atau me-rename kolom yang sudah digunakan oleh modul lain.
+   - Kolom baru pada entitas bersama **wajib** bersifat opsional (`nullable=True`) atau memiliki nilai bawaan di database (`server_default=...`).
+4. **Isolasi Entitas Baru**: Buat file model baru di `app/models/{domain}.py` untuk domain baru, dan re-export di `app/models/__init__.py`.
+
+### B. Konfigurasi Lingkungan (`packages/shared/config.py` & `.env.example`)
+1. **Zero-Breakage Setting**: Setiap penambahan konfigurasi baru di `BaseConfig` **wajib** memiliki default value atau bernilai opsional (`str | None = None` / default mock). Dilarang mendeklarasikan setting wajib tanpa default value yang menyebabkan startup backend di mesin developer lain crash (*ValidationError*).
+2. **Sinkronisasi `.env.example`**: Setiap ada key baru di `packages/shared/config.py`, wajib mendokumentasikannya di `.env.example` pada commit yang sama.
+
+### C. Registrasi Router Sentral (`app/main.py`)
+1. **Minimal Touch**: Penambahan endpoint baru di `app/main.py` **hanya diperbolehkan maksimal 1–2 baris** untuk registrasi router:
+   ```python
+   app.include_router(domain_router, prefix="/api/v1/domain", tags=["Domain"])
+   ```
+2. **Larangan Modifikasi Middleware Tanpa Konsensus**: Dilarang menambah/mengubah middleware global, exception handler global, atau konfigurasi CORS secara mandiri tanpa persetujuan tim / PIC Backend.
+
+### D. Invarian Kontrak Dependency Injection (`app/api/dependencies.py`)
+1. **Universal Contract Invariant**: Signature dan return type dari provider bersama (khususnya `get_current_user`, `get_db_session`, `get_llm_provider`) adalah kontrak universal. Dilarang mengubah tipe payload atau signature fungsi tersebut tanpa persetujuan lintas tim.
+2. **Service Factory Separation**: Penambahan fungsi di `dependencies.py` murni sebatas fungsi factory instansiasi service baru (3–5 baris).
+
+### E. Namespacing Background Workers (`apps/backend/workers/`)
+1. **Task Prefixing**: Seluruh nama task asynchronous ARQ di `apps/backend/workers/app/tasks/` wajib diawali dengan prefix nama domain (contoh: `care_session_summary`, `call_transcribe_audio`, `recommendation_reset_streaks`).
+2. **Modul Task Terisolasi**: Tempatkan definisi task pada sub-file modular per domain di dalam folder `tasks/`.
+

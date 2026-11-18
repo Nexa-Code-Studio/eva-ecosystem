@@ -55,12 +55,12 @@ class CounselorProfileHeaderCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      user?.displayName ?? 'dr. Sarah Jenkins, M.Psi',
+                      user?.displayName ?? 'Psikolog Mandiri',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      user?.email ?? 'sarah.jenkins@psikolog.eva.id',
+                      user?.email ?? 'psikolog.mandiri@eva.id',
                       style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 6),
@@ -69,14 +69,8 @@ class CounselorProfileHeaderCard extends StatelessWidget {
                       runSpacing: 4,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        if (user?.isVolunteer == true)
-                          StatusBadge.volunteer('Relawan Teman Sebaya')
-                        else if (user?.isPartner == true)
-                          StatusBadge.proPartner('Psikolog Mitra')
-                        else
-                          StatusBadge.proIndependent('Psikolog Mandiri'),
-                        if (user?.isProfessional == true)
-                          StatusBadge.coins(user?.coinBalance ?? 1250),
+                        StatusBadge.proIndependent('Psikolog Mandiri'),
+                        StatusBadge.coins(user?.coinBalance ?? 1250),
                       ],
                     ),
                   ],

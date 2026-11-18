@@ -61,30 +61,12 @@ class StatusBadge extends StatelessWidget {
     );
   }
 
-  factory StatusBadge.volunteer([String label = 'Relawan Teman Sebaya']) {
-    return StatusBadge(
-      label: label,
-      backgroundColor: const Color(0xFFE0F7F6),
-      textColor: const Color(0xFF00796B),
-      icon: Icons.volunteer_activism_rounded,
-    );
-  }
-
   factory StatusBadge.proIndependent([String label = 'Psikolog Mandiri']) {
     return StatusBadge(
       label: label,
       backgroundColor: AppColors.primaryContainer,
       textColor: AppColors.primary,
       icon: Icons.verified_user_rounded,
-    );
-  }
-
-  factory StatusBadge.proPartner([String label = 'Psikolog Mitra']) {
-    return StatusBadge(
-      label: label,
-      backgroundColor: const Color(0xFFF3E8FF),
-      textColor: const Color(0xFF7E22CE),
-      icon: Icons.apartment_rounded,
     );
   }
 

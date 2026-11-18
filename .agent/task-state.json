@@ -51,9 +51,23 @@
   "52": {
     "issue": 52,
     "branch": "feat/52-realtime-video-call",
+    "state": "In Progress",
+    "updated_at": 1795000000,
+    "evidence_summary": "Evidence accepted: active task branch verified for backend token and room signaling."
+  },
+  "68": {
+    "issue": 68,
+    "branch": "main",
+    "state": "Done",
+    "updated_at": 1794984686,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified."
+  },
+  "71": {
+    "issue": 71,
+    "branch": "feat/71-counselor-realcase-integration",
     "state": "In Review",
-    "updated_at": 1794983338,
+    "updated_at": 1794999900,
     "evidence_summary": "Evidence accepted: PR and test verification documented.",
-    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/65"
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/73"
   }
 }

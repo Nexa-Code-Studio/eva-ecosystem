@@ -27,7 +27,7 @@ class PsychologistUserEntity {
   final int sessionDurationMinutes; // durasi 1 sesi dalam menit (misal 50)
   final int coinsPerSession; // tarif koin per sesi (misal 150 koin)
   final int coinBalance; // saldo koin akun
-  final String googleDriveEmail; // email drive untuk backup lokal E2EE
+  final String? googleDriveEmail; // email drive untuk backup lokal E2EE
   final DateTime? lastDriveBackup;
   final String autoBackupFrequency; // 'Harian', 'Mingguan', 'Manual'
 
@@ -73,10 +73,10 @@ class PsychologistUserEntity {
     this.sessionDurationMinutes = 50,
     this.coinsPerSession = 150,
     this.coinBalance = 1250,
-    this.googleDriveEmail = 'sarah.anindya@gmail.com',
+    this.googleDriveEmail,
     this.lastDriveBackup,
     this.autoBackupFrequency = 'Harian',
-    this.employeeNip = '198804122019032001',
+    this.employeeNip = '199807252026012001',
     this.isOnlinePracticeEnabled = true,
     this.isOfflinePracticeEnabled = false,
     this.offlinePlaceName,
@@ -92,33 +92,25 @@ class PsychologistUserEntity {
     this.externalSyncCount = 0,
     this.bankName = 'BCA (Bank Central Asia)',
     this.bankAccountNumber = '8192039182',
-    this.bankAccountHolder = 'dr. Sarah Jenkins, M.Psi',
+    this.bankAccountHolder = 'Khoirotun Nisa, M.Psi',
   });
 
-  bool get isVolunteer => role == CounselorRole.peerVolunteer;
-  bool get isPartner => role == CounselorRole.professionalPartner;
-  bool get isIndependent => role == CounselorRole.professionalIndependent;
-  bool get isProfessional => role != CounselorRole.peerVolunteer;
+  String get effectiveGoogleDriveEmail =>
+      (googleDriveEmail != null && googleDriveEmail!.isNotEmpty)
+          ? googleDriveEmail!
+          : email;
 
-  /// Relawan Teman Sebaya tidak diperkenankan mengatur atau membuka praktik offline/tatap muka.
-  bool get canConfigureOffline => role != CounselorRole.peerVolunteer;
+  bool get isVolunteer => false;
+  bool get isPartner => false;
+  bool get isIndependent => true;
+  bool get isProfessional => true;
 
-  /// Praktik offline psikolog mitra dikelola terpusat oleh mitra via Web Portal.
-  bool get isOfflineManagedByPartner => role == CounselorRole.professionalPartner;
+  bool get canConfigureOffline => true;
+  bool get isOfflineManagedByPartner => false;
 
-  String get displayName =>
-      isVolunteer ? fullName : '$fullName, $titleDegree';
+  String get displayName => '$fullName, $titleDegree';
 
-  String get roleBadgeLabel {
-    switch (role) {
-      case CounselorRole.peerVolunteer:
-        return 'Relawan Teman Sebaya';
-      case CounselorRole.professionalIndependent:
-        return 'Psikolog Profesional (Mandiri)';
-      case CounselorRole.professionalPartner:
-        return 'Psikolog Mitra • ${partnerName ?? "Klinik Sehati"}';
-    }
-  }
+  String get roleBadgeLabel => 'Psikolog Mandiri';
 
   PsychologistUserEntity copyWith({
     String? id,
