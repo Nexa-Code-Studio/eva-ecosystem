@@ -24,4 +24,14 @@ class VideoCallRepositoryImpl implements IVideoCallRepository {
       String sessionId, Duration duration, List<String> notes) async {
     return await _dataSource.terminateCall(sessionId, duration.inSeconds, notes);
   }
+
+  @override
+  Future<bool> extendSession(String sessionId, {int extendMinutes = 30}) async {
+    return await _dataSource.extendSession(sessionId, extendMinutes);
+  }
+
+  @override
+  Future<bool> rejectExtension(String sessionId) async {
+    return await _dataSource.rejectExtension(sessionId);
+  }
 }

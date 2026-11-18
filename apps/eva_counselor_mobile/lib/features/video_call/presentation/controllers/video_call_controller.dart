@@ -17,10 +17,54 @@ class VideoCallController extends StateNotifier<VideoCallSessionEntity> {
 
     _durationTimer?.cancel();
     _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      final nextSeconds = state.callDuration.inSeconds + 1;
+      final nextDuration = Duration(seconds: nextSeconds);
+
+      // Auto-trigger in-call extension prompt at minute 25 (1500 seconds)
+      bool promptExtension = state.isExtensionRequested;
+      if (nextDuration.inMinutes >= 25 &&
+          !state.isExtended &&
+          state.isExtensionApproved == null &&
+          !promptExtension) {
+        promptExtension = true;
+      }
+
       state = state.copyWith(
-        callDuration: Duration(seconds: state.callDuration.inSeconds + 1),
+        callDuration: nextDuration,
+        isExtensionRequested: promptExtension,
       );
     });
+  }
+
+  void triggerExtensionRequest() {
+    if (!state.isExtended && state.isExtensionApproved == null) {
+      state = state.copyWith(isExtensionRequested: true);
+    }
+  }
+
+  Future<bool> approveExtension() async {
+    final success = await _repository.extendSession(state.sessionId);
+    if (success) {
+      state = state.copyWith(
+        isExtended: true,
+        isExtensionRequested: false,
+        maxDuration: const Duration(minutes: 60),
+        isExtensionApproved: true,
+      );
+    }
+    return success;
+  }
+
+  Future<void> rejectExtension() async {
+    await _repository.rejectExtension(state.sessionId);
+    state = state.copyWith(
+      isExtensionRequested: false,
+      isExtensionApproved: false,
+    );
+  }
+
+  void dismissExtensionPrompt() {
+    state = state.copyWith(isExtensionRequested: false);
   }
 
   void toggleMic() {

@@ -62,7 +62,7 @@ class _VideoConsultationScreenState
     TopToast.show(
       context,
       title: 'Pasien Telah Bergabung',
-      message: '${_initialSession.patientName} telah terhubung. Penghitung waktu sesi 50 menit resmi dimulai.',
+      message: '${_initialSession.patientName} telah terhubung. Penghitung waktu sesi 30 menit resmi dimulai.',
       type: ToastType.success,
     );
   }
@@ -256,6 +256,7 @@ class _VideoConsultationScreenState
             Positioned(
               top: 20,
               left: 20,
+              right: 130,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -285,6 +286,35 @@ class _VideoConsultationScreenState
                       ),
                     ],
                   ),
+                  if (_isPatientPresent && !session.isExtended && session.isExtensionApproved == null) ...[
+                    const SizedBox(height: 6),
+                    GestureDetector(
+                      key: const Key('simulate_extension_btn'),
+                      onTap: () {
+                        ref
+                            .read(videoCallControllerProvider(_initialSession).notifier)
+                            .triggerExtensionRequest();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2563EB),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(Icons.hourglass_bottom_rounded, size: 12, color: Colors.white),
+                            SizedBox(width: 5),
+                            Text(
+                              'Simulasi Mnt-25 (Minta Tambah +30m)',
+                              style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 8),
 
                   // JADWAL VC CHIP
@@ -301,7 +331,7 @@ class _VideoConsultationScreenState
                         const Icon(Icons.event_available_rounded, size: 12, color: Colors.white70),
                         const SizedBox(width: 5),
                         Text(
-                          'Jadwal Sesi: ${widget.scheduledTime ?? "14:00 - 14:50 WIB"}',
+                          'Jadwal Sesi: ${widget.scheduledTime ?? "14:00 - 14:30 WIB"}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 10,
@@ -338,7 +368,7 @@ class _VideoConsultationScreenState
                         const SizedBox(width: 6),
                         Text(
                           _isPatientPresent
-                              ? 'Sesi Aktif: ${_formatDuration(session.callDuration)} / 50:00'
+                              ? 'Sesi Aktif: ${_formatDuration(session.callDuration)} / ${session.isExtended ? "60:00" : "30:00"}'
                               : (widget.isEarlyEntry
                                   ? 'Standby Lebih Awal • Menunggu Jam Jadwal'
                                   : 'Menunggu Pasien Masuk...'),
@@ -348,6 +378,24 @@ class _VideoConsultationScreenState
                             fontSize: 11,
                           ),
                         ),
+                        if (session.isExtended) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              '+30m',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -427,6 +475,158 @@ class _VideoConsultationScreenState
                 ),
               ),
             ),
+
+            // 5. In-Call 30-Min Extension Request Dialog / Overlay
+            if (session.isExtensionRequested)
+              Positioned(
+                top: 90,
+                left: 20,
+                right: 20,
+                child: Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E2333),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.35),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.hourglass_bottom_rounded,
+                              color: AppColors.primary,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Permintaan Tambah Sesi (+30 Mnt)',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Pasien (${session.patientName}) mengajukan perpanjangan telekonsultasi.',
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: const [
+                            Icon(Icons.info_outline, size: 14, color: Color(0xFF93C5FD)),
+                            SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Jika disetujui, durasi panggilan bertambah menjadi 60 menit tanpa memutus sambungan video.',
+                                style: TextStyle(color: Color(0xFF93C5FD), fontSize: 10),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.white24),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                              ),
+                              onPressed: () {
+                                ref
+                                    .read(videoCallControllerProvider(_initialSession).notifier)
+                                    .rejectExtension();
+                                TopToast.show(
+                                  context,
+                                  title: 'Perpanjangan Ditolak',
+                                  message: 'Pasien akan diarahkan untuk reservasi sesi berikutnya.',
+                                  type: ToastType.info,
+                                );
+                              },
+                              child: const Text(
+                                'Tolak',
+                                style: TextStyle(color: Colors.white70, fontSize: 12),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.verifiedGreen,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                              ),
+                              onPressed: () async {
+                                final success = await ref
+                                    .read(videoCallControllerProvider(_initialSession).notifier)
+                                    .approveExtension();
+                                if (success && context.mounted) {
+                                  TopToast.show(
+                                    context,
+                                    title: 'Sesi Diperpanjang! 🎉',
+                                    message: 'Konsultasi diperpanjang +30 menit (total 60:00).',
+                                    type: ToastType.success,
+                                  );
+                                }
+                              },
+                              child: const Text(
+                                'Terima (+30 Mnt)',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -621,11 +821,22 @@ class _VideoConsultationScreenState
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(color: AppColors.verifiedGreen, width: 3),
-            image: const DecorationImage(
-              image: NetworkImage(
-                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-              ),
+            color: const Color(0xFF2B3245),
+          ),
+          child: ClipOval(
+            child: Image.network(
+              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
               fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Center(
+                child: Text(
+                  session.patientName.isNotEmpty ? session.patientName[0] : 'P',
+                  style: const TextStyle(
+                    fontSize: 42,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
             ),
           ),
         ),

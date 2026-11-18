@@ -22,10 +22,11 @@ class _TransactionHistoryScreenState
   String _selectedFilter = 'Semua';
 
   void _showRedeemCoinModal(BuildContext context, int availableCoins) {
+    final authUser = ref.read(authStateProvider).value;
     final coinAmountCtrl = TextEditingController(text: '150');
-    final bankCtrl = TextEditingController(text: 'BCA');
-    final accountCtrl = TextEditingController(text: '8192039182');
-    final nameCtrl = TextEditingController(text: 'Sarah Anindya');
+    final bankCtrl = TextEditingController(text: authUser?.bankName ?? 'BCA');
+    final accountCtrl = TextEditingController(text: authUser?.bankAccountNumber ?? '8192039182');
+    final nameCtrl = TextEditingController(text: authUser?.bankAccountHolder ?? authUser?.fullName ?? 'dr. Sarah Jenkins, M.Psi');
     bool isSubmitting = false;
 
     showModalBottomSheet(
@@ -583,7 +584,7 @@ class _TransactionHistoryScreenState
     // KASUS 3: PROFESIONAL MANDIRI (SISTEM KOIN & REDEEM RUPIAH)
     final coins = authUser?.coinBalance ?? 1250;
     final rateCoins = authUser?.coinsPerSession ?? 150;
-    final sessionMins = authUser?.sessionDurationMinutes ?? 50;
+    final sessionMins = authUser?.sessionDurationMinutes ?? 30;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),

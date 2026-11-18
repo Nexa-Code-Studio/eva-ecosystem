@@ -49,6 +49,11 @@ class PsychologistUserEntity {
   final DateTime? externalApiLastSyncAt;
   final int externalSyncCount; // Jumlah slot jadwal eksternal yang diimpor
 
+  // Bank details for payout
+  final String bankName;
+  final String bankAccountNumber;
+  final String bankAccountHolder;
+
   const PsychologistUserEntity({
     required this.id,
     required this.fullName,
@@ -85,6 +90,9 @@ class PsychologistUserEntity {
     this.externalApiKeyCreatedAt,
     this.externalApiLastSyncAt,
     this.externalSyncCount = 0,
+    this.bankName = 'BCA (Bank Central Asia)',
+    this.bankAccountNumber = '8192039182',
+    this.bankAccountHolder = 'dr. Sarah Jenkins, M.Psi',
   });
 
   bool get isVolunteer => role == CounselorRole.peerVolunteer;
@@ -149,6 +157,9 @@ class PsychologistUserEntity {
     DateTime? externalApiLastSyncAt,
     int? externalSyncCount,
     bool clearExternalApiKey = false,
+    String? bankName,
+    String? bankAccountNumber,
+    String? bankAccountHolder,
   }) {
     return PsychologistUserEntity(
       id: id ?? this.id,
@@ -194,6 +205,9 @@ class PsychologistUserEntity {
       externalApiLastSyncAt:
           externalApiLastSyncAt ?? this.externalApiLastSyncAt,
       externalSyncCount: externalSyncCount ?? this.externalSyncCount,
+      bankName: bankName ?? this.bankName,
+      bankAccountNumber: bankAccountNumber ?? this.bankAccountNumber,
+      bankAccountHolder: bankAccountHolder ?? this.bankAccountHolder,
     );
   }
 }

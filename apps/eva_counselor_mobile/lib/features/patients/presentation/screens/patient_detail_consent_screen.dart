@@ -1256,10 +1256,10 @@ class _PatientDetailConsentScreenState
   void _showOfferScheduleSheet(BuildContext context, dynamic patient) {
     int selectedSlot = 0;
     final slots = [
-      'Besok Rabu, 12 Nov • 10:00 - 10:50 WIB',
-      'Kamis, 13 Nov • 14:00 - 14:50 WIB',
-      'Jumat, 14 Nov • 16:00 - 16:50 WIB',
-      'Senin, 17 Nov • 11:00 - 11:50 WIB',
+      'Besok Rabu, 12 Nov • 10:00 - 10:30 WIB',
+      'Kamis, 13 Nov • 14:00 - 14:30 WIB',
+      'Jumat, 14 Nov • 16:00 - 16:30 WIB',
+      'Senin, 17 Nov • 11:00 - 11:30 WIB',
     ];
 
     showModalBottomSheet(

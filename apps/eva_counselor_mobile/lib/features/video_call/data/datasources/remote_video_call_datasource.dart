@@ -33,4 +33,31 @@ class RemoteVideoCallDataSource implements VideoCallDataSource {
     );
     return (response as Map<String, dynamic>?)?['success'] as bool? ?? true;
   }
+
+  @override
+  Future<bool> extendSession(String sessionId, int extendMinutes) async {
+    final response = await _client.post(
+      '/sessions/$sessionId/extend',
+      body: {
+        'extend_minutes': extendMinutes,
+        'counselor_approved': true,
+      },
+    );
+    if (response is Map<String, dynamic>) {
+      return response['id'] != null || response['success'] == true;
+    }
+    return true;
+  }
+
+  @override
+  Future<bool> rejectExtension(String sessionId) async {
+    await _client.post(
+      '/sessions/$sessionId/extend',
+      body: {
+        'extend_minutes': 0,
+        'counselor_approved': false,
+      },
+    );
+    return true;
+  }
 }

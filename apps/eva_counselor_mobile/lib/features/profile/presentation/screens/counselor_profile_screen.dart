@@ -171,7 +171,7 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                   ),
                   child: const Text('Terverifikasi ✅', style: TextStyle(color: AppColors.verifiedGreen, fontWeight: FontWeight.bold, fontSize: 10)),
                 ),
-                onTap: () => CounselorBankAccountModal.show(context),
+                onTap: () => CounselorBankAccountModal.show(context, ref: ref),
               ),
               const SizedBox(height: 16),
 

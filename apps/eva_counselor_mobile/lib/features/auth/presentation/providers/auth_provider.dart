@@ -277,6 +277,20 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
     state = AsyncValue.data(current.copyWith(coinBalance: newBalance));
   }
 
+  void updateBankDetails({
+    required String bankName,
+    required String accountNumber,
+    required String accountHolder,
+  }) {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncValue.data(current.copyWith(
+      bankName: bankName,
+      bankAccountNumber: accountNumber,
+      bankAccountHolder: accountHolder,
+    ));
+  }
+
   Future<void> loadProfile() async {
     await checkAuthSession();
   }

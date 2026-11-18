@@ -28,4 +28,16 @@ class MockVideoCallDataSource implements VideoCallDataSource {
     await Future.delayed(const Duration(milliseconds: 400));
     return true;
   }
+
+  @override
+  Future<bool> extendSession(String sessionId, int extendMinutes) async {
+    await Future.delayed(const Duration(milliseconds: 350));
+    return true;
+  }
+
+  @override
+  Future<bool> rejectExtension(String sessionId) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    return true;
+  }
 }

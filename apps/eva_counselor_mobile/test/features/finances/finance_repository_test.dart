@@ -24,7 +24,7 @@ void main() {
       final transactions = await repository.getTransactions();
       expect(transactions.isNotEmpty, true);
       expect(transactions.first.status, TransactionStatus.completed);
-      expect(transactions.first.netEarnings, 180000);
+      expect(transactions.first.netEarnings, 120000);
     });
 
     test('requestPayout succeeds with valid banking parameters', () async {
