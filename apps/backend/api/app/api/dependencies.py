@@ -105,6 +105,21 @@ async def get_summary_stream_service(db: AsyncSession = Depends(get_db_session))
     return SummaryStreamService(db)
 
 
+async def get_counselor_service(db: AsyncSession = Depends(get_db_session)):
+    """Dependency factory for CounselorService."""
+    from app.services.counselor import CounselorService
+
+    return CounselorService(db)
+
+
+async def get_pricing_service(db: AsyncSession = Depends(get_db_session)):
+    """Dependency factory for PricingService."""
+    from app.services.pricing import PricingService
+
+    return PricingService(db)
+
+
+
 
 
 
