@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../features/auth/presentation/screens/partner_counselor_activation_screen.dart';
 import '../../features/auth/presentation/screens/psychologist_login_screen.dart';
 import '../../features/auth/presentation/screens/psychologist_registration_screen.dart';
+import '../../features/auth/presentation/screens/verification_pending_screen.dart';
+import '../../features/auth/presentation/screens/verification_rejected_screen.dart';
 import '../../features/dashboard/presentation/screens/counselor_main_shell_screen.dart';
 import '../../features/patients/presentation/screens/patient_detail_consent_screen.dart';
 import '../../features/patients/presentation/screens/patient_list_screen.dart';
@@ -22,21 +23,15 @@ class AppRouter {
           settings: settings,
         );
 
-      case '/counselor-activation':
-        final args = settings.arguments as Map<String, dynamic>?;
-        final token = args?['token'] as String? ?? uri.queryParameters['token'];
-        final email = args?['email'] as String? ?? uri.queryParameters['email'];
-        final partnerName =
-            args?['partnerName'] as String? ?? uri.queryParameters['partner'];
-        final fullName =
-            args?['fullName'] as String? ?? uri.queryParameters['name'];
+      case '/counselor-verification-pending':
         return FadeThroughPageRoute(
-          page: PartnerCounselorActivationScreen(
-            invitationToken: token,
-            prefilledEmail: email,
-            partnerName: partnerName,
-            fullName: fullName,
-          ),
+          page: const VerificationPendingScreen(),
+          settings: settings,
+        );
+
+      case '/counselor-verification-rejected':
+        return FadeThroughPageRoute(
+          page: const VerificationRejectedScreen(),
           settings: settings,
         );
 

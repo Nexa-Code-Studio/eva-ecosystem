@@ -24,15 +24,15 @@ class CounselorGuidelinesModal {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Standar Operasional Prosedur Layanan Telekonseling Luna:',
+              'Standar Operasional Prosedur Layanan Telekonseling EVA:',
               style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 14),
             _ethicItem('1. Kerahasiaan & Batas Etik', 'Data rekam medis SOAP terenkripsi end-to-end dan hanya dapat diakses psikolog penanggung jawab.'),
             const SizedBox(height: 8),
-            _ethicItem('2. Protokol De-eskalasi Krisis', 'Jika skor DASS-21 atau deteksi Luna AI menunjukkan risiko self-harm, psikolog wajib mengaktifkan hotline darurat.'),
+            _ethicItem('2. Protokol De-eskalasi Krisis', 'Jika skor DASS-21 atau deteksi Eva AI menunjukkan risiko self-harm, psikolog wajib mengaktifkan hotline darurat.'),
             const SizedBox(height: 8),
-            _ethicItem('3. Dokumentasi SOAP Tepat Waktu', 'Psikolog diharapkan mereview dan memverifikasi draft auto-SOAP Luna maksimal 24 jam setelah sesi selesai.'),
+            _ethicItem('3. Dokumentasi SOAP Tepat Waktu', 'Psikolog diharapkan mereview dan memverifikasi draft auto-SOAP Eva AI maksimal 24 jam setelah sesi selesai.'),
             const SizedBox(height: 16),
             ElevatedButton(
               style: ElevatedButton.styleFrom(

@@ -33,7 +33,7 @@ class CounselorReviewsModal {
         'topic': 'Stres Kerja & Manajemen Waktu',
         'rating': 4,
         'date': '2 minggu lalu',
-        'comment': 'Sangat membantu memetakan prioritas hidup. Telekonsultasi tepat waktu dan rangkuman SOAP Luna sangat memudahkan saya mereview kembali.',
+        'comment': 'Sangat membantu memetakan prioritas hidup. Telekonsultasi tepat waktu dan rangkuman SOAP Eva AI sangat memudahkan saya mereview kembali.',
         'tag': 'Tepat Waktu',
       },
     ];
