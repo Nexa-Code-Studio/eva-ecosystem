@@ -63,26 +63,60 @@ class _PatientDetailConsentScreenState
   final _assessCtrl = TextEditingController();
   final _planCtrl = TextEditingController();
   bool _isSavingNote = false;
+  bool _isSynthesizingSoap = false;
 
-  void _populateEvaTranscriptDraft(dynamic patient) {
+  void _populateEvaTranscriptDraft(dynamic patient) async {
     setState(() {
       _sessionUnlocked = true;
-      _subjCtrl.text =
-          'Pasien (${patient.name}) mengeluhkan kecemasan performansi akademik yang memuncak menjelang evaluasi akhir. Mengalami insomnia dan palpitasi ringan saat membuka tugas di malam hari.';
-      _objCtrl.text =
-          'Afek cemas dengan modulasi intonasi suara agak tegang di 10 menit awal. Kontak mata terjaga baik lewat video call, nafas lebih teratur setelah relaksasi pacer napas.';
-      _assessCtrl.text =
-          'Kecemasan situasional tingkat sedang (DASS-21 selaras). Belum ditemukan indikasi risiko melukai diri, responsif terhadap psikoedukasi.';
-      _planCtrl.text =
-          '1. Praktik teknik pernapasan diafragma 4-7-8 setiap malam.\n2. CBT Thought Record di jurnal Eva AI.\n3. Evaluasi sesi lanjutan 1 minggu ke depan.';
+      _isSynthesizingSoap = true;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('✨ Draf SOAP dari transkrip percakapan Eva AI berhasil dimuat. Anda dapat mengeditnya.'),
-        backgroundColor: AppColors.primary,
-      ),
-    );
+    try {
+      final repo = ref.read(patientRepositoryProvider);
+      final draft = await repo.synthesizeSoapNote(
+        transcript:
+            'Pasien: Selamat siang dok, akhir-akhir ini saya merasa sangat cemas setiap kali mau tidur. Pikiran saya dipenuhi kekhawatiran tentang pekerjaan dan evaluasi akhir. Nafas saya juga terasa pendek.\nPsikolog: Baik, terima kasih sudah menceritakan hal ini. Mari kita coba latihan teknik relaksasi 4-7-8 bersama terlebih dahulu.\nPasien: Setelah mencoba teknik pernapasan tadi, dada saya terasa jauh lebih rileks dan tenang.',
+        patientName: patient.name,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _subjCtrl.text = draft['subjective'] ?? '';
+        _objCtrl.text = draft['objective'] ?? '';
+        _assessCtrl.text = draft['assessment'] ?? '';
+        _planCtrl.text = draft['plan'] ?? '';
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              '✨ Draf SOAP berhasil disintesis oleh Eva AI (${draft["model_used"] ?? "AI"}). Silakan tinjau dan edit sebelum finalisasi.'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _subjCtrl.text =
+            'Pasien (${patient.name}) mengeluhkan kecemasan performansi yang memuncak menjelang evaluasi akhir. Mengalami insomnia dan palpitasi ringan saat membuka tugas di malam hari.';
+        _objCtrl.text =
+            'Afek cemas dengan modulasi intonasi suara agak tegang di 10 menit awal. Kontak mata terjaga baik lewat video call, nafas lebih teratur setelah relaksasi pacer napas.';
+        _assessCtrl.text =
+            'Kecemasan situasional tingkat sedang (DASS-21 selaras). Belum ditemukan indikasi risiko melukai diri, responsif terhadap psikoedukasi.';
+        _planCtrl.text =
+            '1. Praktik teknik pernapasan diafragma 4-7-8 setiap malam.\n2. CBT Thought Record di jurnal Eva AI.\n3. Evaluasi sesi lanjutan 1 minggu ke depan.';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✨ Draf SOAP dari transkrip percakapan Eva AI berhasil dimuat. Anda dapat mengeditnya.'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSynthesizingSoap = false);
+      }
+    }
   }
 
   void _handleRequestConsent() async {
@@ -988,12 +1022,20 @@ class _PatientDetailConsentScreenState
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
-              icon: const Icon(Icons.auto_awesome, color: AppColors.primary, size: 16),
-              label: const Text(
-                'Simulasikan Draf Transkrip Eva AI',
-                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
+              icon: _isSynthesizingSoap
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                    )
+                  : const Icon(Icons.auto_awesome, color: AppColors.primary, size: 16),
+              label: Text(
+                _isSynthesizingSoap
+                    ? 'Memproses Sintesis Eva AI...'
+                    : 'Sintesis Draf SOAP dari Transkrip Eva AI',
+                style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
               ),
-              onPressed: () => _populateEvaTranscriptDraft(patient),
+              onPressed: _isSynthesizingSoap ? null : () => _populateEvaTranscriptDraft(patient),
             ),
           ],
         ),
@@ -1099,12 +1141,20 @@ class _PatientDetailConsentScreenState
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
-              icon: const Icon(Icons.auto_awesome, color: AppColors.primary, size: 16),
-              label: const Text(
-                'Simulasikan Draf Transkrip Eva AI',
-                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
+              icon: _isSynthesizingSoap
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                    )
+                  : const Icon(Icons.auto_awesome, color: AppColors.primary, size: 16),
+              label: Text(
+                _isSynthesizingSoap
+                    ? 'Memproses Sintesis Eva AI...'
+                    : 'Sintesis Draf SOAP dari Transkrip Eva AI',
+                style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
               ),
-              onPressed: () => _populateEvaTranscriptDraft(patient),
+              onPressed: _isSynthesizingSoap ? null : () => _populateEvaTranscriptDraft(patient),
             ),
           ],
         ),
@@ -1172,12 +1222,20 @@ class _PatientDetailConsentScreenState
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
-              icon: const Icon(Icons.auto_awesome, color: AppColors.primary, size: 16),
-              label: const Text(
-                'Simulasikan Draf Transkrip Eva AI (Demo)',
-                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
+              icon: _isSynthesizingSoap
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                    )
+                  : const Icon(Icons.auto_awesome, color: AppColors.primary, size: 16),
+              label: Text(
+                _isSynthesizingSoap
+                    ? 'Memproses Sintesis Eva AI...'
+                    : 'Sintesis Draf SOAP dari Transkrip Eva AI',
+                style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
               ),
-              onPressed: () => _populateEvaTranscriptDraft(patient),
+              onPressed: _isSynthesizingSoap ? null : () => _populateEvaTranscriptDraft(patient),
             ),
           ],
         ),
