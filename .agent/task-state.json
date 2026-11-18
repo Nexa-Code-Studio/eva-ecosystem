@@ -47,5 +47,12 @@
     "state": "Done",
     "updated_at": 1794978996,
     "evidence_summary": "Evidence accepted: completion and merge/approval verified."
+  },
+  "52": {
+    "issue": 52,
+    "branch": "feat/52-realtime-video-call",
+    "state": "In Progress",
+    "updated_at": 1794979975,
+    "evidence_summary": "Evidence accepted: active task branch verified."
   }
 }
