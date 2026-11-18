@@ -4,4 +4,6 @@ abstract class VideoCallDataSource {
   Future<VideoSessionResponseDto> fetchSessionDetails(String sessionId);
   Future<bool> initiateCall(String sessionId);
   Future<bool> terminateCall(String sessionId, int durationSeconds, List<String> notes);
+  Future<bool> extendSession(String sessionId, int extendMinutes);
+  Future<bool> rejectExtension(String sessionId);
 }

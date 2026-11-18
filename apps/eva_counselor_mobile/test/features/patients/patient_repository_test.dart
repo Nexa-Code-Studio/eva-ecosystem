@@ -46,7 +46,7 @@ void main() {
 
       expect(livePatient.upcomingSchedule, isNotNull);
       expect(livePatient.upcomingSchedule!.isLiveNow, true);
-      expect(livePatient.upcomingSchedule!.timeRange, '10:00 - 10:50 WIB');
+      expect(livePatient.upcomingSchedule!.timeRange, '10:00 - 10:30 WIB');
     });
 
     test('Patient with future session has isLiveNow == false and VC room locked', () async {

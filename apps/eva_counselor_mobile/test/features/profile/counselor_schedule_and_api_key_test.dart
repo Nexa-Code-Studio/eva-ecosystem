@@ -514,6 +514,13 @@ class _MockAuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEn
   void redeemCoins(int coins) {}
 
   @override
+  void updateBankDetails({
+    required String bankName,
+    required String accountNumber,
+    required String accountHolder,
+  }) {}
+
+  @override
   Future<void> toggleAvailability(bool isOnline) async {}
 
   @override

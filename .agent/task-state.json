@@ -43,5 +43,13 @@
     "updated_at": 1794972685,
     "evidence_summary": "Evidence accepted: PR and test verification documented.",
     "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/61"
+  },
+  "58": {
+    "issue": 58,
+    "branch": "feat/58-counselor-session-soap-payout",
+    "state": "In Review",
+    "updated_at": 1794976402,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/64"
   }
 }

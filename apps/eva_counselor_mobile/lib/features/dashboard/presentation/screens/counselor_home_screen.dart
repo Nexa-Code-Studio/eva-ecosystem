@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/top_toast.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../patients/presentation/providers/patient_provider.dart';
@@ -27,7 +28,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
       'isOffDay': false,
       'sessions': [
         {
-          'time': '10:00 - 10:50 WIB',
+          'time': '10:00 - 10:30 WIB',
           'patientName': 'Aditya Nugraha',
           'chiefComplaint': 'Regulasi emosi & relasi sosial',
           'status': 'Selesai',
@@ -45,7 +46,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
       'isOffDay': false,
       'sessions': [
         {
-          'time': '10:00 - 10:50 WIB',
+          'time': '10:00 - 10:30 WIB',
           'patientName': 'Rian Pratama (24 Thn)',
           'chiefComplaint': 'Kecemasan akademik & insomnia',
           'status': 'Mulai 15 Mnt Lagi',
@@ -54,7 +55,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
           'sessionId': 'session-live-001',
         },
         {
-          'time': '14:00 - 14:50 WIB',
+          'time': '14:00 - 14:30 WIB',
           'patientName': 'Dinda Kirana (23 Thn)',
           'chiefComplaint': 'Burnout & serangan panik akut',
           'status': 'Perhatian Krisis 🚨',
@@ -71,7 +72,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
       'isOffDay': false,
       'sessions': [
         {
-          'time': '11:00 - 11:50 WIB',
+          'time': '11:00 - 11:30 WIB',
           'patientName': 'Maya Lestari (21 Thn)',
           'chiefComplaint': 'Quarter-life crisis & eksplorasi karier',
           'status': 'Terkonfirmasi',
@@ -335,54 +336,79 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
               ),
               const SizedBox(height: 8),
 
-              // STATUS INFO PILL (Online / Menerima Konsultasi)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFECEFF8)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: AppColors.verifiedGreen,
-                            shape: BoxShape.circle,
+              // STATUS INFO PILL (Online / Menerima Konsultasi - Interactive Toggle)
+              InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () {
+                  final currentlyOnline = user?.isOnline ?? true;
+                  ref.read(authStateProvider.notifier).updateAvailability(!currentlyOnline);
+                  TopToast.show(
+                    context,
+                    title: !currentlyOnline ? 'Status: Online 🟢' : 'Status: Istirahat ⏸️',
+                    message: !currentlyOnline
+                        ? 'Anda siap menerima jadwal telekonsultasi 30 menit.'
+                        : 'Jadwal Anda dijeda, pasien baru tidak dapat booking sesi.',
+                    type: !currentlyOnline ? ToastType.success : ToastType.info,
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: (user?.isOnline ?? true)
+                          ? const Color(0xFFECEFF8)
+                          : AppColors.pendingAmber.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: (user?.isOnline ?? true)
+                                  ? AppColors.verifiedGreen
+                                  : AppColors.pendingAmber,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            (user?.isOnline ?? true)
+                                ? 'Online (Menerima Konsultasi)'
+                                : 'Istirahat (Sesi Dijeda)',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: (user?.isOnline ?? true)
+                              ? AppColors.primary
+                              : const Color(0xFF94A3B8),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          (user?.isOnline ?? true) ? 'Aktif' : 'Istirahat',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Online (Menerima Konsultasi)',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Text(
-                        'Aktif',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 18),
@@ -486,7 +512,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                               ),
                               SizedBox(height: 4),
                               Text(
-                                'Durasi 50 Menit • Video Call',
+                                'Durasi 30 Menit • Video Call',
                                 style: TextStyle(color: Colors.white60, fontSize: 11),
                               ),
                             ],
@@ -535,11 +561,17 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                               'Masuk Sesi VC',
                               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                             ),
-                            onPressed: () {
-                              Navigator.of(context).pushNamed(
+                            onPressed: () async {
+                              final finished = await Navigator.of(context).pushNamed(
                                 '/counselor-video-call',
                                 arguments: 'session-live-001',
                               );
+                              if (finished == true && context.mounted) {
+                                Navigator.of(context).pushNamed(
+                                  '/counselor-patient-detail',
+                                  arguments: 'patient-001',
+                                );
+                              }
                             },
                           ),
                         ),

@@ -19,6 +19,12 @@ class VideoCallSessionEntity {
   final bool isFrontCamera;
   final List<String> realTimeNotes;
 
+  // In-call 30-min extension fields
+  final bool isExtended;
+  final bool isExtensionRequested;
+  final Duration maxDuration;
+  final bool? isExtensionApproved;
+
   const VideoCallSessionEntity({
     required this.sessionId,
     required this.patientId,
@@ -30,6 +36,10 @@ class VideoCallSessionEntity {
     this.isVideoDisabled = false,
     this.isFrontCamera = true,
     this.realTimeNotes = const [],
+    this.isExtended = false,
+    this.isExtensionRequested = false,
+    this.maxDuration = const Duration(minutes: 30),
+    this.isExtensionApproved,
   });
 
   VideoCallSessionEntity copyWith({
@@ -43,6 +53,10 @@ class VideoCallSessionEntity {
     bool? isVideoDisabled,
     bool? isFrontCamera,
     List<String>? realTimeNotes,
+    bool? isExtended,
+    bool? isExtensionRequested,
+    Duration? maxDuration,
+    bool? isExtensionApproved,
   }) {
     return VideoCallSessionEntity(
       sessionId: sessionId ?? this.sessionId,
@@ -55,6 +69,10 @@ class VideoCallSessionEntity {
       isVideoDisabled: isVideoDisabled ?? this.isVideoDisabled,
       isFrontCamera: isFrontCamera ?? this.isFrontCamera,
       realTimeNotes: realTimeNotes ?? this.realTimeNotes,
+      isExtended: isExtended ?? this.isExtended,
+      isExtensionRequested: isExtensionRequested ?? this.isExtensionRequested,
+      maxDuration: maxDuration ?? this.maxDuration,
+      isExtensionApproved: isExtensionApproved ?? this.isExtensionApproved,
     );
   }
 }
