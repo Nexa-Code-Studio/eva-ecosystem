@@ -1,14 +1,15 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../theme/app_colors.dart';
 import '../../domain/entities/consultation_session_entity.dart';
+import '../../domain/entities/video_call_state_entity.dart';
 import '../providers/care_provider.dart';
+import '../providers/video_call_provider.dart';
 import '../widgets/consultation_result_bottom_sheet.dart';
 
-/// Immersive Mock Video Call screen with licensed psychologists and peer counselors.
+/// Immersive Real-Time Video Call screen for psychological teleconsultation.
 class PsychologistVideoCallScreen extends ConsumerStatefulWidget {
   final ConsultationSessionEntity session;
 
@@ -23,17 +24,7 @@ class PsychologistVideoCallScreen extends ConsumerStatefulWidget {
 }
 
 class _PsychologistVideoCallScreenState
-    extends ConsumerState<PsychologistVideoCallScreen>
-    with SingleTickerProviderStateMixin {
-  late Timer _timer;
-  int _secondsElapsed = 0;
-  bool _isMicMuted = false;
-  bool _isCameraOff = false;
-  bool _isFrontCamera = true;
-  bool _isSpeakerOn = true;
-  bool _isPsychologistSpeaking = true;
-  late AnimationController _pulseController;
-
+    extends ConsumerState<PsychologistVideoCallScreen> {
   final List<Map<String, String>> _liveMessages = [
     {
       'sender': 'psychologist',
@@ -57,41 +48,7 @@ class _PsychologistVideoCallScreenState
   final TextEditingController _chatController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    _startTimer();
-
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
-
-    // Alternate speaking indicator every few seconds
-    Timer.periodic(const Duration(seconds: 4), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      setState(() {
-        _isPsychologistSpeaking = !_isPsychologistSpeaking;
-      });
-    });
-  }
-
-  void _startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        setState(() {
-          _secondsElapsed++;
-        });
-      }
-    });
-  }
-
-  @override
   void dispose() {
-    _timer.cancel();
-    _pulseController.dispose();
     _chatController.dispose();
     super.dispose();
   }
@@ -108,7 +65,8 @@ class _PsychologistVideoCallScreenState
       builder: (dialogCtx) {
         return AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Row(
             children: [
               Container(
@@ -182,6 +140,11 @@ class _PsychologistVideoCallScreenState
   }
 
   Future<void> _completeAndExitCall() async {
+    // 1. End call via VideoCallController
+    await ref
+        .read(videoCallControllerProvider(widget.session).notifier)
+        .endCall();
+
     final advice = widget.session.adviceList.isNotEmpty
         ? widget.session.adviceList
         : const [
@@ -201,7 +164,7 @@ class _PsychologistVideoCallScreenState
         'Sesi video call tatap muka online selesai dilaksanakan. Pasien menunjukkan perbaikan pemahaman emosi dan memiliki rencana aksi mandiri yang jelas.';
     const moodAfter = 'Lebih Tenang & Terarah (Skala 4/10)';
 
-    // 1. Mark session completed in Riverpod provider
+    // 2. Mark session completed in Riverpod care provider
     await ref.read(consultationSessionsProvider.notifier).completeSession(
           widget.session.id,
           adviceList: advice,
@@ -220,23 +183,25 @@ class _PsychologistVideoCallScreenState
       moodAfter: moodAfter,
     );
 
-    // 2. Langsung tampilkan bottom sheet saran sesi hasil konsultasi (bukan dilarikan ke log history)
+    // 3. Tampilkan bottom sheet saran sesi hasil konsultasi
     await ConsultationResultBottomSheet.show(
       context,
       updatedSession,
       onClose: () {
-        if (mounted) {
+        if (mounted && Navigator.canPop(context)) {
           Navigator.pop(context);
         }
       },
     );
 
-    if (mounted) {
+    if (mounted && Navigator.canPop(context)) {
       Navigator.pop(context);
     }
   }
 
   void _openLiveChatNotesSheet() {
+    final callState = ref.read(videoCallControllerProvider(widget.session));
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -253,7 +218,6 @@ class _PsychologistVideoCallScreenState
           ),
           child: Column(
             children: [
-              // Drag Handle
               Container(
                 margin: const EdgeInsets.only(top: 10, bottom: 8),
                 width: 36,
@@ -264,7 +228,8 @@ class _PsychologistVideoCallScreenState
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -294,8 +259,6 @@ class _PsychologistVideoCallScreenState
                 ),
               ),
               const Divider(height: 1, color: Color(0xFFE2E8F0)),
-
-              // Messages List
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.all(16),
@@ -305,7 +268,8 @@ class _PsychologistVideoCallScreenState
                     final isPsy = msg['sender'] == 'psychologist';
 
                     return Align(
-                      alignment: isPsy ? Alignment.centerLeft : Alignment.centerRight,
+                      alignment:
+                          isPsy ? Alignment.centerLeft : Alignment.centerRight,
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 10),
                         padding: const EdgeInsets.symmetric(
@@ -362,8 +326,6 @@ class _PsychologistVideoCallScreenState
                   },
                 ),
               ),
-
-              // Chat Input Box
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: Row(
@@ -386,14 +348,16 @@ class _PsychologistVideoCallScreenState
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(20),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            borderSide:
+                                const BorderSide(color: Color(0xFFE2E8F0)),
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     IconButton(
-                      icon: const Icon(Icons.send_rounded, color: AppColors.primary),
+                      icon: const Icon(Icons.send_rounded,
+                          color: AppColors.primary),
                       onPressed: () {
                         final text = _chatController.text.trim();
                         if (text.isNotEmpty) {
@@ -401,7 +365,8 @@ class _PsychologistVideoCallScreenState
                             _liveMessages.add({
                               'sender': 'user',
                               'text': text,
-                              'time': _formatTimer(_secondsElapsed),
+                              'time': _formatTimer(
+                                  callState.callDurationSeconds),
                             });
                           });
                           _chatController.clear();
@@ -419,24 +384,74 @@ class _PsychologistVideoCallScreenState
     );
   }
 
+  Widget _buildConnectionBadge(VideoCallStateEntity callState) {
+    Color dotColor;
+    String statusText;
+
+    switch (callState.connectionState) {
+      case VideoCallConnectionState.connecting:
+        dotColor = const Color(0xFFF59E0B);
+        statusText = 'Menghubungkan...';
+        break;
+      case VideoCallConnectionState.connected:
+        dotColor = const Color(0xFF22C55E);
+        statusText = 'Terhubung • Sesi #${widget.session.sessionNumber}';
+        break;
+      case VideoCallConnectionState.reconnecting:
+        dotColor = const Color(0xFFF97316);
+        statusText = 'Menghubungkan Ulang...';
+        break;
+      case VideoCallConnectionState.ended:
+        dotColor = const Color(0xFFEF4444);
+        statusText = 'Panggilan Berakhir';
+        break;
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(
+            color: dotColor,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 5),
+        Text(
+          statusText,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: Colors.white70,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final psychologist = widget.session.psychologist;
+    final callState = ref.watch(videoCallControllerProvider(widget.session));
+    final controller =
+        ref.read(videoCallControllerProvider(widget.session).notifier);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       body: SafeArea(
         child: Stack(
           children: [
-            // 1. Fullscreen Main Video Feed (Psychologist)
+            // 1. Fullscreen Main Video Feed (Psychologist Remote Feed)
             Positioned.fill(
               child: Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      const Color(0xFF0F172A),
-                      const Color(0xFF1E293B),
-                      const Color(0xFF0F172A),
+                      Color(0xFF0F172A),
+                      Color(0xFF1E293B),
+                      Color(0xFF0F172A),
                     ],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
@@ -445,7 +460,7 @@ class _PsychologistVideoCallScreenState
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    // Psychologist Video Feed Mock Image
+                    // Remote Video Stream Simulation with Avatar Background
                     Opacity(
                       opacity: 0.88,
                       child: Image.network(
@@ -480,8 +495,10 @@ class _PsychologistVideoCallScreenState
                       ),
                     ),
 
-                    // Speaking Indicator Waves
-                    if (_isPsychologistSpeaking)
+                    // Speaking Waveform / Indicator
+                    if (callState.isRemoteSpeaking &&
+                        callState.connectionState ==
+                            VideoCallConnectionState.connected)
                       Positioned(
                         bottom: 120,
                         left: 20,
@@ -496,7 +513,8 @@ class _PsychologistVideoCallScreenState
                               color: Colors.black.withValues(alpha: 0.55),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: const Color(0xFF22C55E).withValues(alpha: 0.6),
+                                color: const Color(0xFF22C55E)
+                                    .withValues(alpha: 0.6),
                               ),
                             ),
                             child: Row(
@@ -526,7 +544,7 @@ class _PsychologistVideoCallScreenState
               ),
             ),
 
-            // 2. Top Bar (Header & Timer)
+            // 2. Top Bar (Header, Connection State & Timer)
             Positioned(
               top: 14,
               left: 16,
@@ -534,13 +552,19 @@ class _PsychologistVideoCallScreenState
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Psychologist Header Info
                   Expanded(
                     child: Row(
                       children: [
                         CircleAvatar(
                           radius: 18,
-                          backgroundImage: NetworkImage(psychologist.avatarUrl),
+                          backgroundColor: const Color(0xFF334155),
+                          backgroundImage:
+                              NetworkImage(psychologist.avatarUrl),
+                          onBackgroundImageError: (exception, stackTrace) {},
+                          child: psychologist.avatarUrl.isEmpty
+                              ? const Icon(Icons.person,
+                                  size: 18, color: Colors.white)
+                              : null,
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -558,27 +582,7 @@ class _PsychologistVideoCallScreenState
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 7,
-                                    height: 7,
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFF22C55E),
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Text(
-                                    'Online • Sesi #${widget.session.sessionNumber}',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white70,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              _buildConnectionBadge(callState),
                             ],
                           ),
                         ),
@@ -588,7 +592,8 @@ class _PsychologistVideoCallScreenState
 
                   // Timer Badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(16),
@@ -604,7 +609,7 @@ class _PsychologistVideoCallScreenState
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          _formatTimer(_secondsElapsed),
+                          _formatTimer(callState.callDurationSeconds),
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
@@ -624,9 +629,7 @@ class _PsychologistVideoCallScreenState
               top: 76,
               right: 16,
               child: GestureDetector(
-                onTap: () {
-                  setState(() => _isFrontCamera = !_isFrontCamera);
-                },
+                onTap: controller.switchCamera,
                 child: Container(
                   width: 104,
                   height: 148,
@@ -649,7 +652,7 @@ class _PsychologistVideoCallScreenState
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      if (_isCameraOff)
+                      if (callState.isCameraOff)
                         Container(
                           color: const Color(0xFF0F172A),
                           child: Center(
@@ -691,9 +694,11 @@ class _PsychologistVideoCallScreenState
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  'Kamu',
+                                  callState.isFrontCamera
+                                      ? 'Kamu (Depan)'
+                                      : 'Kamu (Belakang)',
                                   style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 10,
+                                    fontSize: 9.5,
                                     fontWeight: FontWeight.w700,
                                     color: Colors.white,
                                   ),
@@ -702,7 +707,6 @@ class _PsychologistVideoCallScreenState
                             ),
                           ),
                         ),
-                      // Camera Flip hint
                       Positioned(
                         bottom: 4,
                         right: 4,
@@ -728,10 +732,11 @@ class _PsychologistVideoCallScreenState
             // 4. Bottom Video Call Action Control Bar
             Positioned(
               bottom: 24,
-              left: 20,
-              right: 20,
+              left: 16,
+              right: 16,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E293B).withValues(alpha: 0.94),
                   borderRadius: BorderRadius.circular(28),
@@ -749,37 +754,50 @@ class _PsychologistVideoCallScreenState
                   children: [
                     // Mute / Unmute Mic
                     _buildControlButton(
-                      icon: _isMicMuted
+                      icon: callState.isMicMuted
                           ? Icons.mic_off_rounded
                           : Icons.mic_rounded,
-                      isActive: !_isMicMuted,
+                      isActive: !callState.isMicMuted,
                       activeColor: Colors.white24,
-                      iconColor: _isMicMuted
+                      iconColor: callState.isMicMuted
                           ? const Color(0xFFEF4444)
                           : Colors.white,
-                      onTap: () => setState(() => _isMicMuted = !_isMicMuted),
+                      onTap: controller.toggleMic,
                     ),
 
                     // Camera On / Off
                     _buildControlButton(
-                      icon: _isCameraOff
+                      icon: callState.isCameraOff
                           ? Icons.videocam_off_rounded
                           : Icons.videocam_rounded,
-                      isActive: !_isCameraOff,
+                      isActive: !callState.isCameraOff,
                       activeColor: Colors.white24,
-                      iconColor: _isCameraOff
+                      iconColor: callState.isCameraOff
                           ? const Color(0xFFEF4444)
                           : Colors.white,
-                      onTap: () => setState(() => _isCameraOff = !_isCameraOff),
+                      onTap: controller.toggleCamera,
                     ),
 
-                    // Flip Camera
+                    // Switch Camera (Front / Back)
                     _buildControlButton(
                       icon: Icons.flip_camera_ios_rounded,
                       isActive: true,
                       activeColor: Colors.white24,
                       iconColor: Colors.white,
-                      onTap: () => setState(() => _isFrontCamera = !_isFrontCamera),
+                      onTap: controller.switchCamera,
+                    ),
+
+                    // Toggle Speaker Audio
+                    _buildControlButton(
+                      icon: callState.isSpeakerOn
+                          ? Icons.volume_up_rounded
+                          : Icons.volume_off_rounded,
+                      isActive: callState.isSpeakerOn,
+                      activeColor: Colors.white24,
+                      iconColor: callState.isSpeakerOn
+                          ? Colors.white
+                          : const Color(0xFFEF4444),
+                      onTap: controller.toggleSpeaker,
                     ),
 
                     // Chat & Notes Drawer
@@ -795,8 +813,8 @@ class _PsychologistVideoCallScreenState
                     GestureDetector(
                       onTap: _handleEndCall,
                       child: Container(
-                        width: 52,
-                        height: 52,
+                        width: 48,
+                        height: 48,
                         decoration: const BoxDecoration(
                           color: Color(0xFFDC2626),
                           shape: BoxShape.circle,
@@ -804,7 +822,7 @@ class _PsychologistVideoCallScreenState
                         child: const Icon(
                           Icons.call_end_rounded,
                           color: Colors.white,
-                          size: 26,
+                          size: 24,
                         ),
                       ),
                     ),
@@ -828,13 +846,13 @@ class _PsychologistVideoCallScreenState
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 46,
-        height: 46,
+        width: 42,
+        height: 42,
         decoration: BoxDecoration(
           color: activeColor,
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: iconColor, size: 22),
+        child: Icon(icon, color: iconColor, size: 20),
       ),
     );
   }

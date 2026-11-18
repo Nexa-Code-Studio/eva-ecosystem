@@ -7,7 +7,6 @@ import '../../../../widgets/app_back_button.dart';
 import '../../domain/entities/consultation_session_entity.dart';
 import '../../domain/entities/psychologist_entity.dart';
 import '../providers/care_provider.dart';
-import '../widgets/booking_consultation_sheet.dart';
 import 'consultation_session_logs_screen.dart';
 import 'psychologist_detail_screen.dart';
 
@@ -40,12 +39,6 @@ class _ConsultationHistoryScreenState
     final dayName = dayNames[dt.weekday - 1];
     final monthName = monthNames[dt.month - 1];
     return '$dayName, ${dt.day} $monthName ${dt.year}';
-  }
-
-  String _formatTime(DateTime dt) {
-    final hour = dt.hour.toString().padLeft(2, '0');
-    final minute = dt.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
   }
 
   /// Opens the dedicated session logs & advice screen for the selected psychologist
