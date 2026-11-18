@@ -126,6 +126,14 @@ async def get_scheduling_service(db: AsyncSession = Depends(get_db_session)):
     return SchedulingService(db)
 
 
+async def get_care_service(db: AsyncSession = Depends(get_db_session)):
+    """Dependency factory for CareService."""
+    from app.services.care import CareService
+
+    return CareService(db)
+
+
+
 
 
 

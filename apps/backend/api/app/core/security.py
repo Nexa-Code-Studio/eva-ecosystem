@@ -73,6 +73,35 @@ def decode_refresh_token(token: str) -> dict[str, Any] | None:
         return None
 
 
+def create_room_token(session_id: str, room_id: str, user_id: str, role: str) -> str:
+    """Generate signed JWT room signaling token for real-time video call consultation."""
+    now = datetime.now(UTC)
+    expire = now + timedelta(hours=2)
+    payload = {
+        "session_id": str(session_id),
+        "room_id": str(room_id),
+        "user_id": str(user_id),
+        "role": role,
+        "type": "video_room",
+        "iat": int(now.timestamp()),
+        "exp": int(expire.timestamp()),
+    }
+    return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+
+def decode_room_token(token: str) -> dict[str, Any] | None:
+    """Decode and validate JWT video room signaling token."""
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "video_room":
+            logger.warning("Invalid token type for video room token")
+            return None
+        return payload
+    except jwt.PyJWTError as e:
+        logger.warning(f"Failed to decode JWT video room token: {e}")
+        return None
+
+
 PBKDF2_ALGORITHM = "sha256"
 PBKDF2_ITERATIONS = 100_000
 

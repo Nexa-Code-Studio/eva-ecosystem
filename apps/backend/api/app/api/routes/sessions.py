@@ -2,13 +2,19 @@ import uuid
 
 from fastapi import APIRouter, Depends, status
 
-from app.api.dependencies import get_current_user, get_scheduling_service
+from app.api.dependencies import get_care_service, get_current_user, get_scheduling_service
 from app.models.user import User
+from app.schemas.care import (
+    CounselorSessionDetailResponse,
+    SessionActionResponse,
+    UpdateCallStatusRequest,
+)
 from app.schemas.session import (
     ConsultationSessionResponse,
     ExtensionAvailabilityResponse,
     UpdateSoapNotesRequest,
 )
+from app.services.care import CareService
 from app.services.session import SchedulingService
 
 router = APIRouter(prefix="/sessions", tags=["Sessions"])
@@ -43,3 +49,36 @@ async def save_session_soap_notes(
 ) -> ConsultationSessionResponse:
     """Save verified SOAP clinical notes for a completed teleconsultation session."""
     return await service.save_soap_notes(session_id, user.id, payload)
+
+
+@router.get("/{session_id}", response_model=CounselorSessionDetailResponse)
+async def get_session_details(
+    session_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    service: CareService = Depends(get_care_service),
+) -> CounselorSessionDetailResponse:
+    """Retrieve session connection details and room credentials for teleconsultation screen."""
+    return await service.get_counselor_session_detail(session_id, user.id)
+
+
+@router.post("/{session_id}/start", response_model=SessionActionResponse)
+async def start_consultation_session(
+    session_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    service: CareService = Depends(get_care_service),
+) -> SessionActionResponse:
+    """Start and transition consultation call to live state."""
+    return await service.start_session(session_id, user.id)
+
+
+@router.post("/{session_id}/end", response_model=SessionActionResponse)
+async def end_consultation_session(
+    session_id: uuid.UUID,
+    payload: UpdateCallStatusRequest | None = None,
+    user: User = Depends(get_current_user),
+    service: CareService = Depends(get_care_service),
+) -> SessionActionResponse:
+    """Terminate and finalize consultation call session."""
+    duration = payload.duration_seconds if payload and payload.duration_seconds else 0
+    notes = payload.notes if payload else None
+    return await service.end_session(session_id, user.id, duration_seconds=duration, quick_notes=notes)
