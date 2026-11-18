@@ -50,10 +50,11 @@
   },
   "52": {
     "issue": 52,
-    "branch": "main",
-    "state": "Done",
-    "updated_at": 1794983409,
-    "evidence_summary": "Evidence accepted: completion and merge/approval verified."
+    "branch": "feat/52-realtime-video-call",
+    "state": "In Review",
+    "updated_at": 1795000000,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/74"
   },
   "68": {
     "issue": 68,
@@ -68,6 +69,6 @@
     "state": "In Review",
     "updated_at": 1795007545,
     "evidence_summary": "Evidence accepted: PR and test verification documented.",
-    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/72"
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/73"
   }
 }
