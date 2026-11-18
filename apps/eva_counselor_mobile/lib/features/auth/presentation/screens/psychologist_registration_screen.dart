@@ -256,7 +256,7 @@ class _PsychologistRegistrationScreenState
                     children: [
                       CustomTextField(
                         label: 'Nama Lengkap (Sesuai KTP / Ijazah)',
-                        hint: 'cth: Sarah Anindya',
+                        hint: 'cth: Khoirotun Nisa',
                         controller: _fullNameCtrl,
                         prefixIcon: Icons.person_outline_rounded,
                         validator: (v) =>

@@ -356,12 +356,15 @@ void main() {
         consultationRatePerHour: 200000,
         verificationStatus: VerificationStatus.verified,
         role: CounselorRole.professionalIndependent,
-        employeeNip: '198804122019032001',
+        employeeNip: '199807252026012001',
         externalApiKey: 'eva_pat_live_9c82df09a12e557b4412',
       );
 
       await tester.pumpWidget(
         ProviderScope(
+          overrides: [
+            authStateProvider.overrideWith((ref) => _MockAuthStateNotifier(user)),
+          ],
           child: MaterialApp(
             home: Scaffold(
               body: Builder(
@@ -387,7 +390,7 @@ void main() {
 
       expect(find.text('Integrasi API Jadwal Eksternal'), findsOneWidget);
       expect(find.text('IDENTIFIER PEGAWAI (X-EMPLOYEE-NIP)'), findsOneWidget);
-      expect(find.text('198804122019032001'), findsOneWidget);
+      expect(find.text('199807252026012001'), findsOneWidget);
       expect(find.text('Salin NIP'), findsOneWidget);
       expect(find.text('PERSONAL ACCESS TOKEN (API KEY)'), findsOneWidget);
       expect(find.text('CUPLIKAN INTEGRASI cURL'), findsOneWidget);

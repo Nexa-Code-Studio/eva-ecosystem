@@ -73,7 +73,7 @@ class MockPatientDataSource implements PatientDataSource {
       ],
       upcomingSchedule: const PatientScheduleDto(
         formattedTime: 'Hari Ini • 14:00 - 14:30 WIB',
-        dateLabel: 'Selasa, 11 Nov 2026',
+        dateLabel: 'Hari Ini • Siang',
         timeRange: '14:00 - 14:30 WIB',
         isLiveNow: false,
         roomOpensAt: '13:45 WIB',
@@ -123,11 +123,11 @@ class MockPatientDataSource implements PatientDataSource {
         'Sesi 4: Pasien merasa tujuan kariernya sudah mulai jelas dan optimis.',
       ],
       upcomingSchedule: const PatientScheduleDto(
-        formattedTime: 'Besok Rabu, 12 Nov • 11:00 - 11:30 WIB',
-        dateLabel: 'Rabu, 12 Nov 2026',
+        formattedTime: 'Besok • 11:00 - 11:30 WIB',
+        dateLabel: 'Besok • Siang',
         timeRange: '11:00 - 11:30 WIB',
         isLiveNow: false,
-        roomOpensAt: 'Rabu, 10:45 WIB',
+        roomOpensAt: 'Besok, 10:45 WIB',
         statusText: 'Terkonfirmasi Mendatang',
         sessionId: 'session-live-004',
       ),

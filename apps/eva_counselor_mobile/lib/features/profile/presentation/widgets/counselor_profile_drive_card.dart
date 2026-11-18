@@ -50,7 +50,7 @@ class CounselorProfileDriveCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      user?.googleDriveEmail ?? 'sarah.anindya@gmail.com',
+                      user?.googleDriveEmail ?? 'khoirotunnisa2507@gmail.com',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                     const SizedBox(height: 2),

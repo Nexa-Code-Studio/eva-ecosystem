@@ -18,7 +18,7 @@ class PsychologistLoginScreen extends ConsumerStatefulWidget {
 
 class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScreen> {
   final _emailController =
-      TextEditingController(text: 'sarah.anindya@psikolog.eva.id');
+      TextEditingController(text: 'khoirotunnisa2507@gmail.com');
   final _passwordController = TextEditingController(text: 'password123');
   bool _isLoading = false;
 
@@ -122,7 +122,7 @@ class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScree
                       spacing: 6,
                       runSpacing: 6,
                       children: [
-                        _presetChip('Psikolog Mandiri (Terverifikasi)', 'sarah.anindya@psikolog.eva.id', AppColors.primary),
+                        _presetChip('Psikolog Mandiri (Terverifikasi)', 'khoirotunnisa2507@gmail.com', AppColors.primary),
                         _presetChip('Menunggu Verifikasi STR', 'pending.dimas@psikolog.eva.id', const Color(0xFFB45309)),
                         _presetChip('Perbaikan Berkas STR', 'revisi.clara@psikolog.eva.id', AppColors.error),
                       ],

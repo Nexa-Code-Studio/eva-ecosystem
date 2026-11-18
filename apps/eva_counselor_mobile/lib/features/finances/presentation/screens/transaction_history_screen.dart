@@ -25,7 +25,7 @@ class _TransactionHistoryScreenState
     final coinAmountCtrl = TextEditingController(text: '150');
     final bankCtrl = TextEditingController(text: authUser?.bankName ?? 'BCA');
     final accountCtrl = TextEditingController(text: authUser?.bankAccountNumber ?? '8192039182');
-    final nameCtrl = TextEditingController(text: authUser?.bankAccountHolder ?? authUser?.fullName ?? 'dr. Sarah Jenkins, M.Psi');
+    final nameCtrl = TextEditingController(text: authUser?.bankAccountHolder ?? authUser?.fullName ?? 'Khoirotun Nisa, M.Psi');
     bool isSubmitting = false;
 
     showModalBottomSheet(

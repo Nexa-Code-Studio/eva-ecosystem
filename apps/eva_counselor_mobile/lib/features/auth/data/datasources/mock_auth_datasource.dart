@@ -22,19 +22,25 @@ class MockAuthDataSource implements AuthDataSource {
         ? 'pending'
         : (isRevision ? 'need_revision' : 'verified');
 
-    String displayName = 'Sarah Anindya';
+    String displayName = 'Khoirotun Nisa';
+    String titleDegree = 'S.Psi., M.Psi., Psikolog';
+    String strNum = 'STR-PK-19980725-2026-01';
     if (isPending) {
       displayName = 'Dimas Wicaksono';
+      titleDegree = 'M.Psi., Psikolog Klinis';
+      strNum = 'STR-PK-19920115-PENDING';
     } else if (isRevision) {
       displayName = 'Clara Salsabila';
+      titleDegree = 'M.Psi., Psikolog Klinis';
+      strNum = 'STR-PK-19950310-REVISI';
     }
 
     return PsychologistProfileResponseDto(
       id: 'counselor-uuid-001',
       fullName: displayName,
-      titleDegree: 'M.Psi., Psikolog Klinis',
+      titleDegree: titleDegree,
       email: request.email,
-      strNumber: 'STR-PK-198827364-2024',
+      strNumber: strNum,
       association: 'Himpunan Psikologi Indonesia (HIMPSI)',
       specializations: [
         'Kecemasan Dewasa & Burnout',
@@ -47,17 +53,17 @@ class MockAuthDataSource implements AuthDataSource {
       isOnline: _mockOnlineState,
       profilePhotoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400',
       certificateDocUrl: 'https://eva.nexacode.dev/docs/sample_str.pdf',
-      token: 'mock-jwt-token-sarah-counselor-secret-xyz',
+      token: 'mock-jwt-token-nisa-counselor-secret-xyz',
       counselorRole: 'professional_independent',
       partnerName: null,
       sessionDurationMinutes: 30,
       coinsPerSession: 150,
       coinBalance: 1250,
-      googleDriveEmail: request.email,
-      employeeNip: '198804122019032001',
+      googleDriveEmail: request.email.contains('@') ? request.email : 'khoirotunnisa2507@gmail.com',
+      employeeNip: '199807252026012001',
       isOnlinePracticeEnabled: true,
       isOfflinePracticeEnabled: true,
-      offlinePlaceName: 'Biro Konsultasi Psikologi Mandiri Anindya',
+      offlinePlaceName: 'Biro Psikologi Mandiri Khoirotun Nisa',
       offlineAddress: 'Jl. Menteng Raya No. 42, RT 02/RW 03',
       offlineCity: 'Jakarta Pusat',
       offlineNotes: 'Lantai 2, Ruang Konseling Melati 1',
@@ -107,10 +113,10 @@ class MockAuthDataSource implements AuthDataSource {
     await Future.delayed(const Duration(milliseconds: 300));
     return PsychologistProfileResponseDto(
       id: 'counselor-uuid-001',
-      fullName: 'Sarah Anindya',
-      titleDegree: 'M.Psi., Psikolog Klinis',
-      email: 'sarah.anindya@psikolog.eva.id',
-      strNumber: 'STR-PK-198827364-2024',
+      fullName: 'Khoirotun Nisa',
+      titleDegree: 'S.Psi., M.Psi., Psikolog',
+      email: 'khoirotunnisa2507@gmail.com',
+      strNumber: 'STR-PK-19980725-2026-01',
       association: 'Himpunan Psikologi Indonesia (HIMPSI)',
       specializations: [
         'Kecemasan Dewasa & Burnout',
@@ -122,16 +128,16 @@ class MockAuthDataSource implements AuthDataSource {
       verificationStatus: 'verified',
       isOnline: _mockOnlineState,
       profilePhotoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400',
-      token: 'mock-jwt-token-sarah-counselor-secret-xyz',
+      token: 'mock-jwt-token-nisa-counselor-secret-xyz',
       counselorRole: 'professional_independent',
       sessionDurationMinutes: 50,
       coinsPerSession: 150,
       coinBalance: 1250,
-      googleDriveEmail: 'sarah.anindya@gmail.com',
-      employeeNip: '198804122019032001',
+      googleDriveEmail: 'khoirotunnisa2507@gmail.com',
+      employeeNip: '199807252026012001',
       isOnlinePracticeEnabled: true,
       isOfflinePracticeEnabled: true,
-      offlinePlaceName: 'Biro Konsultasi Psikologi Mandiri Anindya',
+      offlinePlaceName: 'Biro Psikologi Mandiri Khoirotun Nisa',
       offlineAddress: 'Jl. Menteng Raya No. 42, RT 02/RW 03',
       offlineCity: 'Jakarta Pusat',
       offlineNotes: 'Lantai 2, Ruang Konseling Melati 1',

@@ -366,7 +366,7 @@ class PsychologistProfileResponseDto {
       sessionDurationMinutes: sessionDurationMinutes,
       coinsPerSession: coinsPerSession,
       coinBalance: coinBalance,
-      googleDriveEmail: googleDriveEmail ?? 'sarah.anindya@gmail.com',
+      googleDriveEmail: googleDriveEmail ?? 'khoirotunnisa2507@gmail.com',
       employeeNip: employeeNip,
       isOnlinePracticeEnabled: isOnlinePracticeEnabled,
       isOfflinePracticeEnabled: isOfflinePracticeEnabled,

@@ -6,7 +6,7 @@ import '../../domain/entities/eva_certificate_entity.dart';
 
 class CounselorCertificatesModal {
   static List<EvaCertificateEntity> getCertificatesForUser(PsychologistUserEntity? user) {
-    final name = user?.displayName ?? 'Sarah Anindya, M.Psi., Psikolog Klinis';
+    final name = user?.displayName ?? 'Khoirotun Nisa, S.Psi., M.Psi., Psikolog';
 
     return [
       EvaCertificateEntity(

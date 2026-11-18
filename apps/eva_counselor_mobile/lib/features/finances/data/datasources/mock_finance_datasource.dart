@@ -52,7 +52,7 @@ class MockFinanceDataSource implements FinanceDataSource {
       adminFee: 0,
       netEarnings: 1500000,
       status: 'payout_requested',
-      bankAccountInfo: 'BCA • dr. Sarah Jenkins, M.Psi • 8192039182',
+      bankAccountInfo: 'BCA • Khoirotun Nisa, M.Psi • 8192039182',
     ),
   ];
 

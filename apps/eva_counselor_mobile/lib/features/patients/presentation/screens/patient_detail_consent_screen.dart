@@ -28,7 +28,7 @@ class _PatientDetailConsentScreenState
     {
       'time': '00:03',
       'speaker': 'Pasien',
-      'text': 'Halo Mbak Sarah, selamat pagi. Terima kasih sudah menerima jadwal saya.',
+      'text': 'Halo Bu Nisa, selamat pagi. Terima kasih sudah menerima jadwal saya.',
     },
     {
       'time': '00:18',
