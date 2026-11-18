@@ -169,3 +169,37 @@ class DeviceType(StrEnum):
     ANDROID = "android"
     IOS = "ios"
     WEB = "web"
+
+
+class PsychologistVerificationStatus(StrEnum):
+    PENDING = "pending"
+    VERIFIED = "verified"
+    REJECTED = "rejected"
+    NEED_REVISION = "need_revision"
+
+
+class ConsultationSessionStatus(StrEnum):
+    SCHEDULED = "scheduled"
+    LIVE = "live"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+
+
+class TransactionType(StrEnum):
+    EARNING = "earning"
+    PLATFORM_FEE = "platform_fee"
+    WITHDRAWAL = "withdrawal"
+    REFUND = "refund"
+
+
+class TransactionStatus(StrEnum):
+    PENDING = "pending"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class PricingConfigStatus(StrEnum):
+    ACTIVE = "active"
+    DRAFT = "draft"
+    ARCHIVED = "archived"
