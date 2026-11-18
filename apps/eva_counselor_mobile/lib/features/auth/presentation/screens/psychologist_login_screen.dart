@@ -94,7 +94,45 @@ class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScree
                 textAlign: TextAlign.center,
                 style: AppTypography.bodyMedium,
               ),
-              const SizedBox(height: 36),
+              const SizedBox(height: 20),
+
+              // Quick Account Preset Selector
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFECEFF8)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.touch_app_rounded, size: 16, color: AppColors.primary),
+                        SizedBox(width: 6),
+                        Text(
+                          'Pilih Cepat Akun Demo (Pengujian Fungsional)',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        _presetChip('Mandiri (Verified)', 'sarah.anindya@psikolog.eva.id', AppColors.primary),
+                        _presetChip('Mitra Klinik', 'mitra.dr.nadine@klinik.eva.id', const Color(0xFF0D9488)),
+                        _presetChip('Relawan Sebaya', 'relawan.raka@komunitas.eva.id', const Color(0xFFD97706)),
+                        _presetChip('Pending STR', 'pending.dimas@psikolog.eva.id', const Color(0xFFB45309)),
+                        _presetChip('Revisi Berkas', 'revisi.clara@psikolog.eva.id', AppColors.error),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
               GlassCard(
                 padding: const EdgeInsets.all(20),
                 child: Column(
@@ -176,6 +214,38 @@ class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScree
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _presetChip(String label, String email, Color color) {
+    final isSelected = _emailController.text == email;
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () {
+        setState(() {
+          _emailController.text = email;
+          _passwordController.text = 'password123';
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.12) : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? color : const Color(0xFFCBD5E1),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            color: isSelected ? color : AppColors.textSecondary,
           ),
         ),
       ),

@@ -16,111 +16,103 @@ class CounselorHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
-  int _selectedCalendarIndex = 1; // 1 = Sel 11 (Hari Ini)
+  int _selectedCalendarIndex = 0;
+  late List<Map<String, dynamic>> _calendarDays;
+  late String _monthYearLabel;
 
-  // FULL 7-DAY WEEK (Senin s/d Minggu)
-  final List<Map<String, dynamic>> _calendarDays = [
-    {
-      'day': 'Sen',
-      'date': '10',
-      'hasSession': true,
-      'isHighRisk': false,
-      'isOffDay': false,
-      'sessions': [
-        {
-          'time': '10:00 - 10:30 WIB',
-          'patientName': 'Aditya Nugraha',
-          'chiefComplaint': 'Regulasi emosi & relasi sosial',
-          'status': 'Selesai',
-          'isCompleted': true,
-          'patientId': 'patient-003',
-        },
-      ],
-    },
-    {
-      'day': 'Sel',
-      'date': '11',
-      'isToday': true,
-      'hasSession': true,
-      'isHighRisk': true,
-      'isOffDay': false,
-      'sessions': [
-        {
-          'time': '10:00 - 10:30 WIB',
-          'patientName': 'Rian Pratama (24 Thn)',
-          'chiefComplaint': 'Kecemasan akademik & insomnia',
-          'status': 'Mulai 15 Mnt Lagi',
-          'isLive': true,
-          'patientId': 'patient-001',
-          'sessionId': 'session-live-001',
-        },
-        {
-          'time': '14:00 - 14:30 WIB',
-          'patientName': 'Dinda Kirana (23 Thn)',
-          'chiefComplaint': 'Burnout & serangan panik akut',
-          'status': 'Perhatian Krisis 🚨',
-          'isHighRisk': true,
-          'patientId': 'patient-002',
-        },
-      ],
-    },
-    {
-      'day': 'Rab',
-      'date': '12',
-      'hasSession': true,
-      'isHighRisk': false,
-      'isOffDay': false,
-      'sessions': [
-        {
-          'time': '11:00 - 11:30 WIB',
-          'patientName': 'Maya Lestari (21 Thn)',
-          'chiefComplaint': 'Quarter-life crisis & eksplorasi karier',
-          'status': 'Terkonfirmasi',
-          'patientId': 'patient-004',
-        },
-      ],
-    },
-    {
-      'day': 'Kam',
-      'date': '13',
-      'hasSession': false,
-      'isHighRisk': false,
-      'isOffDay': false,
-      'sessions': [],
-    },
-    {
-      'day': 'Jum',
-      'date': '14',
-      'hasSession': true,
-      'isHighRisk': false,
-      'isOffDay': false,
-      'sessions': [
-        {
-          'time': '13:30 - 14:20 WIB',
-          'patientName': 'Budi Santoso',
-          'chiefComplaint': 'Konseling evaluasi lanjutan',
-          'status': 'Terkonfirmasi',
-          'patientId': 'patient-001',
-        },
-      ],
-    },
-    {
-      'day': 'Sab',
-      'date': '15',
-      'hasSession': false,
-      'isHighRisk': false,
-      'isOffDay': true, // LIBUR
-      'sessions': [],
-    },
-    {
-      'day': 'Min',
-      'date': '16',
-      'hasSession': false,
-      'isHighRisk': false,
-      'isOffDay': true, // LIBUR
-      'sessions': [],
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _initDynamicCalendar();
+  }
+
+  void _initDynamicCalendar() {
+    final now = DateTime.now();
+    final months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    _monthYearLabel = '${months[now.month - 1]} ${now.year}';
+
+    // Monday as start of current week (ISO 8601: Monday=1, Sunday=7)
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    final dayNames = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
+    _calendarDays = List.generate(7, (index) {
+      final date = monday.add(Duration(days: index));
+      final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
+      final isWeekend = index >= 5;
+
+      List<Map<String, dynamic>> sessions = [];
+      if (isToday) {
+        sessions = [
+          {
+            'time': '10:00 - 10:30 WIB',
+            'patientName': 'Rian Pratama (24 Thn)',
+            'chiefComplaint': 'Kecemasan akademik & insomnia',
+            'status': 'Sesi Siap Dimulai (Live)',
+            'isLive': true,
+            'patientId': 'patient-001',
+            'sessionId': 'session-live-001',
+          },
+          {
+            'time': '14:00 - 14:30 WIB',
+            'patientName': 'Dinda Kirana (23 Thn)',
+            'chiefComplaint': 'Burnout & serangan panik akut',
+            'status': 'Perhatian Krisis 🚨',
+            'isHighRisk': true,
+            'patientId': 'patient-002',
+          },
+        ];
+      } else if (!isWeekend) {
+        if (index == 0) {
+          sessions = [
+            {
+              'time': '10:00 - 10:30 WIB',
+              'patientName': 'Aditya Nugraha',
+              'chiefComplaint': 'Regulasi emosi & relasi sosial',
+              'status': 'Selesai',
+              'isCompleted': true,
+              'patientId': 'patient-003',
+            },
+          ];
+        } else if (index == 2 || index == 3) {
+          sessions = [
+            {
+              'time': '11:00 - 11:30 WIB',
+              'patientName': 'Maya Lestari (21 Thn)',
+              'chiefComplaint': 'Quarter-life crisis & eksplorasi karier',
+              'status': 'Terkonfirmasi',
+              'patientId': 'patient-004',
+            },
+          ];
+        } else if (index == 4) {
+          sessions = [
+            {
+              'time': '13:30 - 14:00 WIB',
+              'patientName': 'Budi Santoso',
+              'chiefComplaint': 'Konseling evaluasi lanjutan',
+              'status': 'Terkonfirmasi',
+              'patientId': 'patient-001',
+            },
+          ];
+        }
+      }
+
+      return {
+        'day': dayNames[index],
+        'date': '${date.day}',
+        'fullDate': date,
+        'isToday': isToday,
+        'hasSession': sessions.isNotEmpty,
+        'isHighRisk': sessions.any((s) => s['isHighRisk'] == true),
+        'isOffDay': isWeekend,
+        'sessions': sessions,
+      };
+    });
+
+    _selectedCalendarIndex = now.weekday - 1;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -613,7 +605,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                 children: [
                   const Text('Jadwal Praktik Mingguan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                   Text(
-                    'November 2026',
+                    _monthYearLabel,
                     style: AppTypography.bodySmall.copyWith(fontSize: 11, fontWeight: FontWeight.w600),
                   ),
                 ],

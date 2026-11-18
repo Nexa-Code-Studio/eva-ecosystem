@@ -17,10 +17,27 @@ class MockAuthDataSource implements AuthDataSource {
 
     final isVolunteer = lowerEmail.contains('volunteer') || lowerEmail.contains('relawan');
     final isPartner = lowerEmail.contains('mitra') || lowerEmail.contains('klinik');
+    final isPending = lowerEmail.contains('pending');
+    final isRevision = lowerEmail.contains('revisi') || lowerEmail.contains('reject');
+
+    final verificationStatus = isPending
+        ? 'pending'
+        : (isRevision ? 'need_revision' : 'verified');
+
+    String displayName = 'Sarah Anindya';
+    if (isVolunteer) {
+      displayName = 'Raka Danendra (Relawan Sebaya)';
+    } else if (isPartner) {
+      displayName = 'dr. Nadine Larassati';
+    } else if (isPending) {
+      displayName = 'Dimas Wicaksono';
+    } else if (isRevision) {
+      displayName = 'Clara Salsabila';
+    }
 
     return PsychologistProfileResponseDto(
       id: 'counselor-uuid-001',
-      fullName: isVolunteer ? 'Raka Danendra (Relawan Sebaya)' : 'Sarah Anindya',
+      fullName: displayName,
       titleDegree: isVolunteer ? 'Relawan Teman Sebaya' : 'M.Psi., Psikolog Klinis',
       email: request.email,
       strNumber: isVolunteer ? 'VOLUNTEER-PEER' : 'STR-PK-198827364-2024',
@@ -32,7 +49,7 @@ class MockAuthDataSource implements AuthDataSource {
       ],
       yearsOfExperience: isVolunteer ? 1 : 5,
       consultationRatePerHour: isVolunteer ? 0 : 200000,
-      verificationStatus: 'verified',
+      verificationStatus: verificationStatus,
       isOnline: _mockOnlineState,
       profilePhotoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400',
       certificateDocUrl: isVolunteer ? null : 'https://eva.nexacode.dev/docs/sample_str.pdf',

@@ -126,6 +126,8 @@ class _PatientDetailConsentScreenState
     );
 
     ref.invalidate(patientNotesProvider(widget.patientId));
+    ref.invalidate(patientsListProvider);
+    ref.invalidate(patientDetailProvider(widget.patientId));
     if (!mounted) return;
     setState(() {
       _isSavingNote = false;
@@ -136,6 +138,10 @@ class _PatientDetailConsentScreenState
     });
 
     final authUser = ref.read(authStateProvider).value;
+    if (authUser?.isProfessional == true) {
+      final reward = authUser?.coinsPerSession ?? 150;
+      ref.read(authStateProvider.notifier).addCoins(reward);
+    }
     final rewardText = authUser?.isProfessional == true
         ? 'Catatan klinis SOAP berhasil disimpan. +${authUser?.coinsPerSession ?? 150} Koin dikreditkan ke dompet Anda!'
         : 'Catatan klinis SOAP berhasil disimpan.';

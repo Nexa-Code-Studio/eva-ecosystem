@@ -39,7 +39,7 @@ class MockPatientDataSource implements PatientDataSource {
       ],
       upcomingSchedule: const PatientScheduleDto(
         formattedTime: 'Hari Ini • 10:00 - 10:30 WIB',
-        dateLabel: 'Selasa, 11 Nov 2026',
+        dateLabel: 'Hari ini • Sesi Siap Dimulai',
         timeRange: '10:00 - 10:30 WIB',
         isLiveNow: true,
         roomOpensAt: '09:45 WIB (Telah Dibuka)',
@@ -183,12 +183,13 @@ class MockPatientDataSource implements PatientDataSource {
         latestMoodTag: p.latestMoodTag,
         emotionalRiskScore: p.emotionalRiskScore,
         isHighRisk: p.isHighRisk,
-        hasConsent: false,
+        hasConsent: true, // Persetujuan otomatis aktif setelah diminta (simulasi langsung)
         lastSessionDate: p.lastSessionDate,
         totalCompletedSessions: p.totalCompletedSessions,
         consentRequestedAt: DateTime.now().toIso8601String(),
         dassHistory: p.dassHistory,
         sharedDiarySummaries: p.sharedDiarySummaries,
+        upcomingSchedule: p.upcomingSchedule,
       );
     }
     return true;
@@ -216,6 +217,27 @@ class MockPatientDataSource implements PatientDataSource {
       recommendedTasks: request.recommendedTasks,
     );
     _mockNotes.putIfAbsent(request.patientId, () => []).insert(0, newNote);
+
+    final pIdx = _mockPatients.indexWhere((p) => p.id == request.patientId);
+    if (pIdx != -1) {
+      final p = _mockPatients[pIdx];
+      _mockPatients[pIdx] = PatientResponseDto(
+        id: p.id,
+        name: p.name,
+        age: p.age,
+        gender: p.gender,
+        chiefComplaint: p.chiefComplaint,
+        latestMoodTag: 'Terkonseling & Stabil 🌿',
+        emotionalRiskScore: (p.emotionalRiskScore - 2).clamp(1, 10),
+        isHighRisk: false,
+        hasConsent: true,
+        lastSessionDate: DateTime.now().toIso8601String(),
+        totalCompletedSessions: p.totalCompletedSessions + 1,
+        dassHistory: p.dassHistory,
+        sharedDiarySummaries: p.sharedDiarySummaries,
+        upcomingSchedule: p.upcomingSchedule,
+      );
+    }
     return newNote;
   }
 }
