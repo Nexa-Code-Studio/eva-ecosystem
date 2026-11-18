@@ -227,8 +227,8 @@ class _BankAccountModalContentState
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0xFFECEFF8)),
                 ),
-                child: Row(
-                  children: const [
+                child: const Row(
+                  children: [
                     Icon(Icons.schedule_rounded,
                         size: 16, color: AppColors.primary),
                     SizedBox(width: 8),

@@ -210,10 +210,10 @@ class _PsychologistRegistrationScreenState
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
+                      const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
+                          children: [
                             Text(
                               'Praktisi Individu Profesional',
                               style: TextStyle(
@@ -351,9 +351,9 @@ class _PsychologistRegistrationScreenState
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
-                  child: Column(
+                  child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Row(
                         children: [
                           Icon(Icons.timer_outlined,

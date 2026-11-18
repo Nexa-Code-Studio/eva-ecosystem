@@ -68,10 +68,10 @@ class CounselorDurationBufferModal {
                           size: 20, color: AppColors.primary),
                     ),
                     const SizedBox(width: 12),
-                    Expanded(
+                    const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Row(
                             children: [
                               Text(

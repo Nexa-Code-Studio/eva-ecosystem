@@ -55,8 +55,8 @@ class _TransactionHistoryScreenState
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: const [
+                    const Row(
+                      children: [
                         Icon(Icons.monetization_on_rounded, color: Color(0xFFC2410C), size: 22),
                         SizedBox(width: 8),
                         Text(
@@ -422,8 +422,8 @@ class _TransactionHistoryScreenState
                   children: [
                     Container(
                       padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE0F7F6),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE0F7F6),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -556,9 +556,9 @@ class _TransactionHistoryScreenState
                           color: Colors.white.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        child: Row(
+                        child: const Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: const [
+                          children: [
                             _MitraStatItem(label: 'Sesi Bulan Ini', value: '38 Sesi'),
                             _MitraStatItem(label: 'Koin Mitra Terakumulasi', value: '5.700 Koin'),
                           ],
@@ -688,9 +688,9 @@ class _TransactionHistoryScreenState
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          Column(
+                          const Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
+                            children: [
                               Text('Menunggu Selesai SOAP', style: TextStyle(color: Colors.white70, fontSize: 10)),
                               SizedBox(height: 2),
                               Text('150 Koin', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),

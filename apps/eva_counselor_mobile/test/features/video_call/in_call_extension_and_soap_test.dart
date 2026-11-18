@@ -38,8 +38,8 @@ void main() {
       final controller = VideoCallController(repository, initialSession);
       controller.triggerExtensionRequest();
 
-      expect(controller.debugState.isExtensionRequested, true);
-      expect(controller.debugState.isExtended, false);
+      expect(controller.state.isExtensionRequested, true);
+      expect(controller.state.isExtended, false);
     });
 
     test('approveExtension updates timer to 60:00 and marks isExtended true', () async {
@@ -48,10 +48,10 @@ void main() {
 
       final success = await controller.approveExtension();
       expect(success, true);
-      expect(controller.debugState.isExtended, true);
-      expect(controller.debugState.maxDuration, const Duration(minutes: 60));
-      expect(controller.debugState.isExtensionRequested, false);
-      expect(controller.debugState.isExtensionApproved, true);
+      expect(controller.state.isExtended, true);
+      expect(controller.state.maxDuration, const Duration(minutes: 60));
+      expect(controller.state.isExtensionRequested, false);
+      expect(controller.state.isExtensionApproved, true);
     });
 
     test('rejectExtension rejects extension and maintains 30-min duration', () async {
@@ -59,10 +59,10 @@ void main() {
       controller.triggerExtensionRequest();
 
       await controller.rejectExtension();
-      expect(controller.debugState.isExtended, false);
-      expect(controller.debugState.maxDuration, const Duration(minutes: 30));
-      expect(controller.debugState.isExtensionRequested, false);
-      expect(controller.debugState.isExtensionApproved, false);
+      expect(controller.state.isExtended, false);
+      expect(controller.state.maxDuration, const Duration(minutes: 30));
+      expect(controller.state.isExtensionRequested, false);
+      expect(controller.state.isExtensionApproved, false);
     });
 
     testWidgets('VideoConsultationScreen displays in-call extension prompt and handles approval',
@@ -113,14 +113,14 @@ void main() {
 
     testWidgets('CounselorBankAccountModal displays registered bank and enables editing',
         (tester) async {
-      final mockUser = PsychologistUserEntity(
+      final mockUser = const PsychologistUserEntity(
         id: 'counselor-1',
         fullName: 'dr. Sarah Jenkins',
         titleDegree: 'M.Psi',
         email: 'sarah@eva.id',
         strNumber: 'STR-99182',
         association: 'HIMPSI',
-        specializations: const ['CBT'],
+        specializations: ['CBT'],
         yearsOfExperience: 5,
         consultationRatePerHour: 150000,
         verificationStatus: VerificationStatus.verified,

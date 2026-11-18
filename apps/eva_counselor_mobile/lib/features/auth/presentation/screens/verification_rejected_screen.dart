@@ -129,9 +129,9 @@ class _VerificationRejectedScreenState
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: const Color(0xFFFFE4E6)),
                 ),
-                child: Column(
+                child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Row(
                       children: [
                         Icon(Icons.feedback_outlined,

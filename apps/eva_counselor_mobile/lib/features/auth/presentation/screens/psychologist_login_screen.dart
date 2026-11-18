@@ -75,7 +75,7 @@ class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScree
                     'assets/images/eva_logo.png',
                     width: 48,
                     height: 48,
-                    errorBuilder: (_, __, ___) => const Icon(
+                    errorBuilder: (context, error, stackTrace) => const Icon(
                       Icons.psychology_rounded,
                       size: 40,
                       color: AppColors.primary,
@@ -157,8 +157,8 @@ class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScree
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
-                child: Row(
-                  children: const [
+                child: const Row(
+                  children: [
                     Icon(Icons.verified_user_outlined,
                         size: 20, color: AppColors.primary),
                     SizedBox(width: 12),

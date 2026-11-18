@@ -84,8 +84,8 @@ class CounselorReviewsModal {
                 ),
                 child: Row(
                   children: [
-                    Column(
-                      children: const [
+                    const Column(
+                      children: [
                         Text('4.9', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
                         Row(
                           children: [
@@ -149,10 +149,10 @@ class CounselorReviewsModal {
                         children: [
                           Row(
                             children: [
-                              CircleAvatar(
+                              const CircleAvatar(
                                 radius: 14,
                                 backgroundColor: AppColors.primaryContainer,
-                                child: const Icon(Icons.person, size: 16, color: AppColors.primary),
+                                child: Icon(Icons.person, size: 16, color: AppColors.primary),
                               ),
                               const SizedBox(width: 8),
                               Column(

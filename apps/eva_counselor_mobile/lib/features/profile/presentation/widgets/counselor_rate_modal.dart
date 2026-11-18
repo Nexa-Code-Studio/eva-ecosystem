@@ -66,10 +66,10 @@ class CounselorRateModal {
                         size: 20, color: AppColors.primary),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
                           'Sesi Paten: 30 Menit',
                           style: TextStyle(
@@ -114,10 +114,10 @@ class CounselorRateModal {
                         size: 20, color: Color(0xFF16A34A)),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
                           'Bagi Hasil Transparan & Terkelola',
                           style: TextStyle(
@@ -162,10 +162,10 @@ class CounselorRateModal {
                         size: 20, color: Color(0xFF4F46E5)),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
                           'Perpanjangan Sesi Langsung (+30 Mnt)',
                           style: TextStyle(

@@ -176,7 +176,7 @@ class CounselorCertificatesModal {
                   shrinkWrap: true,
                   physics: const BouncingScrollPhysics(),
                   itemCount: certs.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  separatorBuilder: (context, index) => const SizedBox(height: 12),
                   itemBuilder: (modalCtx, idx) {
                     final c = certs[idx];
                     return Container(
@@ -345,16 +345,16 @@ class CounselorCertificatesModal {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Row(
+                          const Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: const [
+                            children: [
                               Text('✦', style: TextStyle(color: Color(0xFFB45309), fontSize: 14)),
                               Text('✦', style: TextStyle(color: Color(0xFFB45309), fontSize: 14)),
                             ],
                           ),
-                          Row(
+                          const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
+                            children: [
                               Icon(Icons.spa_rounded, color: AppColors.primary, size: 18),
                               SizedBox(width: 6),
                               Text(
@@ -498,10 +498,10 @@ class CounselorCertificatesModal {
                                   ],
                                   border: Border.all(color: const Color(0xFFFEF3C7), width: 1.5),
                                 ),
-                                child: Center(
+                                child: const Center(
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
-                                    children: const [
+                                    children: [
                                       Icon(Icons.workspace_premium_rounded, size: 20, color: Colors.white),
                                       Text(
                                         'VERIFIED',
@@ -535,9 +535,9 @@ class CounselorCertificatesModal {
                               ),
                             ],
                           ),
-                          Row(
+                          const Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: const [
+                            children: [
                               Text('✦', style: TextStyle(color: Color(0xFFB45309), fontSize: 14)),
                               Text('✦', style: TextStyle(color: Color(0xFFB45309), fontSize: 14)),
                             ],

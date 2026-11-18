@@ -223,9 +223,9 @@ class _VideoConsultationScreenState
                         child: Center(
                           child: session.isVideoDisabled
                               ? const Icon(Icons.videocam_off, color: Colors.white54, size: 24)
-                              : Column(
+                              : const Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
+                                  children: [
                                     Icon(Icons.person, color: Colors.white, size: 30),
                                     SizedBox(height: 4),
                                     Text('Anda (Psikolog)', style: TextStyle(color: Colors.white70, fontSize: 10)),
@@ -301,9 +301,9 @@ class _VideoConsultationScreenState
                           color: const Color(0xFF2563EB),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Row(
+                        child: const Row(
                           mainAxisSize: MainAxisSize.min,
-                          children: const [
+                          children: [
                             Icon(Icons.hourglass_bottom_rounded, size: 12, color: Colors.white),
                             SizedBox(width: 5),
                             Text(
@@ -549,8 +549,8 @@ class _VideoConsultationScreenState
                           color: Colors.white.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Row(
-                          children: const [
+                        child: const Row(
+                          children: [
                             Icon(Icons.info_outline, size: 14, color: Color(0xFF93C5FD)),
                             SizedBox(width: 6),
                             Expanded(
@@ -827,7 +827,7 @@ class _VideoConsultationScreenState
             child: Image.network(
               'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Center(
+              errorBuilder: (context, error, stackTrace) => Center(
                 child: Text(
                   session.patientName.isNotEmpty ? session.patientName[0] : 'P',
                   style: const TextStyle(
@@ -856,9 +856,9 @@ class _VideoConsultationScreenState
             color: Colors.white.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Row(
+          child: const Row(
             mainAxisSize: MainAxisSize.min,
-            children: const [
+            children: [
               Icon(Icons.shield_outlined, size: 12, color: AppColors.verifiedGreen),
               SizedBox(width: 6),
               Text(
