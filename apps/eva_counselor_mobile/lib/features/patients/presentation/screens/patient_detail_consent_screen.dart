@@ -158,8 +158,6 @@ class _PatientDetailConsentScreenState
   Widget build(BuildContext context) {
     final patientAsync = ref.watch(patientDetailProvider(widget.patientId));
     final notesAsync = ref.watch(patientNotesProvider(widget.patientId));
-    final authUser = ref.watch(authStateProvider).value;
-    final isVolunteer = authUser?.isVolunteer == true;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
@@ -409,9 +407,7 @@ class _PatientDetailConsentScreenState
                                   : null,
                             ),
                             child: Text(
-                              isVolunteer
-                                  ? 'Curhat Sebaya (Non-SOAP)'
-                                  : 'Catatan SOAP & Transkrip',
+                              'Catatan SOAP & Transkrip',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 12,
@@ -602,81 +598,11 @@ class _PatientDetailConsentScreenState
     );
   }
 
-  // TAB 2: SOAP TAB CONTENT
+  // TAB 2: SOAP TAB CONTENT (PSIKOLOG MANDIRI: FORM SOAP LENGKAP + TRANSKRIP)
   Widget _buildSoapTabContent(dynamic patient, AsyncValue<List<dynamic>> notesAsync) {
     final schedule = patient.upcomingSchedule;
     final authUser = ref.watch(authStateProvider).value;
 
-    // 1. JIKA VOLUNTEER (TEMAN SEBAYA): TIDAK PERLU MENGISI SOAP
-    if (authUser?.isVolunteer == true) {
-      return Container(
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: const Color(0xFFECEFF8)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE0F7F6),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Icon(
-                Icons.volunteer_activism_rounded,
-                color: Color(0xFF00796B),
-                size: 40,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Relawan Teman Sebaya (Bebas SOAP)',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Sebagai Relawan Teman Sebaya, Anda tidak perlu mengisi catatan SOAP medis. Rekam medis SOAP klinis secara hukum hanya diperuntukkan bagi Psikolog Berizin STR.\n\nFokus peran Anda adalah pendengar suportif & teman curhat non-kritis. Jika terdapat indikasi bahaya krisis, sistem otomatis mengalihkan pasien ke Psikolog Profesional.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF7F8FC),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFECEFF8)),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.workspace_premium_rounded, color: AppColors.primary, size: 20),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Ingin membuka akses SOAP klinis & sistem koin? Upgrade ke Psikolog Profesional di menu Profil Anda.',
-                      style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // 2. JIKA PROFESIONAL: FORM SOAP LENGKAP + TRANSKRIP
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

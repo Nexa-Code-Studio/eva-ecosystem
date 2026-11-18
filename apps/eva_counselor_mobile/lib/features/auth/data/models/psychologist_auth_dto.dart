@@ -369,9 +369,7 @@ class PsychologistProfileResponseDto {
       googleDriveEmail: googleDriveEmail ?? 'sarah.anindya@gmail.com',
       employeeNip: employeeNip,
       isOnlinePracticeEnabled: isOnlinePracticeEnabled,
-      isOfflinePracticeEnabled: roleEnum == CounselorRole.peerVolunteer
-          ? false
-          : isOfflinePracticeEnabled,
+      isOfflinePracticeEnabled: isOfflinePracticeEnabled,
       offlinePlaceName: offlinePlaceName,
       offlineAddress: offlineAddress,
       offlineCity: offlineCity,
@@ -379,7 +377,7 @@ class PsychologistProfileResponseDto {
       offlineScheduleDays: offlineScheduleDays,
       offlineStartTime: offlineStartTime,
       offlineEndTime: offlineEndTime,
-      externalApiKey: roleEnum == CounselorRole.peerVolunteer ? null : externalApiKey,
+      externalApiKey: externalApiKey,
       externalApiKeyCreatedAt: externalApiKeyCreatedAt,
       externalApiLastSyncAt: externalApiLastSyncAt,
       externalSyncCount: externalSyncCount,

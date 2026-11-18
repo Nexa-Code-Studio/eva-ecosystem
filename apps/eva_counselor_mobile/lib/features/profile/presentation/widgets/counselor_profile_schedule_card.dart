@@ -52,7 +52,7 @@ class CounselorProfileScheduleCard extends StatefulWidget {
 class _CounselorProfileScheduleCardState extends State<CounselorProfileScheduleCard> {
   void _showOfflineScheduleDialog() {
     final user = widget.user;
-    if (user == null || user.isVolunteer || user.isPartner) return;
+    if (user == null) return;
 
     final currentDays = Set<String>.from(user.offlineScheduleDays);
     String startTime = user.offlineStartTime;
@@ -234,8 +234,6 @@ class _CounselorProfileScheduleCardState extends State<CounselorProfileScheduleC
     final user = widget.user;
     final isOnlineActive = user?.isOnlinePracticeEnabled ?? true;
     final isOfflineActive = user?.isOfflinePracticeEnabled ?? false;
-    final isVolunteer = user?.isVolunteer == true;
-    final isPartner = user?.isPartner == true;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -247,50 +245,18 @@ class _CounselorProfileScheduleCardState extends State<CounselorProfileScheduleC
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Mode Konseling: Volunteer Info Card VS Mode Layanan Switchers
-          if (isVolunteer) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0F4FF),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.primary.withValues(alpha: 0.18)),
+          // 1. Mode Layanan Praktik Mandiri
+          const Row(
+            children: [
+              Icon(Icons.tune_rounded, size: 15, color: AppColors.primary),
+              SizedBox(width: 6),
+              Text(
+                'Mode Layanan Praktik Mandiri',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
               ),
-              child: const Row(
-                children: [
-                  Icon(Icons.volunteer_activism_rounded, color: AppColors.primary, size: 18),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Relawan Teman Sebaya • Khusus Daring',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5, color: AppColors.textPrimary),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Layanan aktif untuk telekonseling curhat non-klinis via video call & chat aplikasi.',
-                          style: TextStyle(fontSize: 10, color: AppColors.textSecondary, height: 1.3),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ] else ...[
-            const Row(
-              children: [
-                Icon(Icons.tune_rounded, size: 15, color: AppColors.primary),
-                SizedBox(width: 6),
-                Text(
-                  'Mode Layanan Praktik',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
+            ],
+          ),
+          const SizedBox(height: 10),
 
             // Option A: Telekonseling Online
             Container(
@@ -406,11 +372,9 @@ class _CounselorProfileScheduleCardState extends State<CounselorProfileScheduleC
                           ],
                         ),
                         const SizedBox(height: 2),
-                        Text(
-                          isPartner
-                              ? 'Dikelola ${user?.partnerName ?? "Mitra"} di Web'
-                              : 'Offline di tempat praktik mandiri',
-                          style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                        const Text(
+                          'Offline di tempat praktik mandiri',
+                          style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -418,40 +382,25 @@ class _CounselorProfileScheduleCardState extends State<CounselorProfileScheduleC
                     ),
                   ),
                   const SizedBox(width: 8),
-                  if (isPartner) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryContainer,
-                        borderRadius: BorderRadius.circular(7),
-                      ),
-                      child: const Text(
-                        'Web Mitra',
-                        style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: AppColors.primary),
-                      ),
-                    ),
-                  ] else ...[
-                    Switch.adaptive(
-                      value: isOfflineActive,
-                      activeTrackColor: AppColors.primary,
-                      onChanged: (val) {
-                        if (!val && !isOnlineActive) {
-                          TopToast.show(
-                            context,
-                            title: 'Minimal 1 Mode Aktif',
-                            message: 'Anda harus mengaktifkan minimal salah satu mode praktik (Online atau Offline).',
-                            type: ToastType.warning,
-                          );
-                          return;
-                        }
-                        widget.onPracticeModesChanged?.call(isOnlineActive, val);
-                      },
-                    ),
-                  ],
+                  Switch.adaptive(
+                    value: isOfflineActive,
+                    activeTrackColor: AppColors.primary,
+                    onChanged: (val) {
+                      if (!val && !isOnlineActive) {
+                        TopToast.show(
+                          context,
+                          title: 'Minimal 1 Mode Aktif',
+                          message: 'Anda harus mengaktifkan minimal salah satu mode praktik (Online atau Offline).',
+                          type: ToastType.warning,
+                        );
+                        return;
+                      }
+                      widget.onPracticeModesChanged?.call(isOnlineActive, val);
+                    },
+                  ),
                 ],
               ),
             ),
-          ],
           const SizedBox(height: 14),
 
           // 2. Jadwal Hari & Jam Online
@@ -614,7 +563,7 @@ class _CounselorProfileScheduleCardState extends State<CounselorProfileScheduleC
           ],
 
           // 3. Alamat & Jadwal Praktik Tatap Muka (Offline)
-          if (isOfflineActive && !isVolunteer) ...[
+          if (isOfflineActive) ...[
             const Divider(height: 24, color: Color(0xFFF0F2F8)),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -629,30 +578,20 @@ class _CounselorProfileScheduleCardState extends State<CounselorProfileScheduleC
                     ),
                   ],
                 ),
-                if (!isPartner)
-                  InkWell(
-                    onTap: widget.onEditOfflineAddress,
-                    borderRadius: BorderRadius.circular(8),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      child: Row(
-                        children: [
-                          Text('Ubah Alamat', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                          SizedBox(width: 2),
-                          Icon(Icons.edit_outlined, size: 12, color: AppColors.primary),
-                        ],
-                      ),
+                InkWell(
+                  onTap: widget.onEditOfflineAddress,
+                  borderRadius: BorderRadius.circular(8),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    child: Row(
+                      children: [
+                        Text('Ubah Alamat', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                        SizedBox(width: 2),
+                        Icon(Icons.edit_outlined, size: 12, color: AppColors.primary),
+                      ],
                     ),
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryContainer,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text('Diatur Mitra di Web', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: AppColors.primary)),
                   ),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -673,7 +612,7 @@ class _CounselorProfileScheduleCardState extends State<CounselorProfileScheduleC
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          user?.offlinePlaceName ?? (isPartner ? 'Klinik Mitra Sehati' : 'Biro Psikologi Mandiri Anindya'),
+                          user?.offlinePlaceName ?? 'Biro Psikologi Mandiri Anindya',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.textPrimary),
                         ),
                       ),
@@ -709,13 +648,6 @@ class _CounselorProfileScheduleCardState extends State<CounselorProfileScheduleC
                       ],
                     ),
                   ],
-                  if (isPartner) ...[
-                    const SizedBox(height: 6),
-                    const Text(
-                      'ℹ️ Alamat praktik offline dan kuota ruangan dikelola oleh administrator mitra di web portal.',
-                      style: TextStyle(fontSize: 9.5, color: Color(0xFF6B7280)),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -723,7 +655,7 @@ class _CounselorProfileScheduleCardState extends State<CounselorProfileScheduleC
 
             // Hari & Jam Offline
             InkWell(
-              onTap: isPartner ? null : _showOfflineScheduleDialog,
+              onTap: _showOfflineScheduleDialog,
               borderRadius: BorderRadius.circular(10),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -758,10 +690,8 @@ class _CounselorProfileScheduleCardState extends State<CounselorProfileScheduleC
                           '${user?.offlineStartTime ?? "10:00"}-${user?.offlineEndTime ?? "16:00"}',
                           style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary),
                         ),
-                        if (!isPartner) ...[
-                          const SizedBox(width: 2),
-                          const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.primary),
-                        ],
+                        const SizedBox(width: 2),
+                        const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.primary),
                       ],
                     ),
                   ],

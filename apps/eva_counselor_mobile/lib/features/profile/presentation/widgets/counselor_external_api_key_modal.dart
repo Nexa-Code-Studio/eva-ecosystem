@@ -9,16 +9,6 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 
 class CounselorExternalApiKeyModal {
   static void show(BuildContext context, {required PsychologistUserEntity? user, required WidgetRef ref}) {
-    if (user?.isVolunteer == true) {
-      TopToast.show(
-        context,
-        title: 'Akses Dibatasi',
-        message: 'Relawan Sebaya hanya melayani konseling daring non-klinis dan tidak memiliki akses integrasi jadwal offline.',
-        type: ToastType.warning,
-      );
-      return;
-    }
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

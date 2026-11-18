@@ -310,14 +310,8 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                             runSpacing: 4,
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
-                              if (user?.isVolunteer == true)
-                                StatusBadge.volunteer('Relawan Teman Sebaya')
-                              else if (user?.isPartner == true)
-                                StatusBadge.proPartner('Psikolog Mitra • ${user?.partnerName ?? "RS Mitra"}')
-                              else
-                                StatusBadge.proIndependent('Psikolog Mandiri'),
-                              if (user?.isProfessional == true)
-                                StatusBadge.coins(user?.coinBalance ?? 1250),
+                              StatusBadge.proIndependent('Psikolog Mandiri'),
+                              StatusBadge.coins(user?.coinBalance ?? 1250),
                             ],
                           ),
                         ],
@@ -573,31 +567,6 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                 ),
               ),
               const SizedBox(height: 18),
-
-              // 4. PROTOKOL KESELAMATAN (KHUSUS RELAWAN)
-              if (user?.isVolunteer == true) ...[
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE0F7F6),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: const Color(0xFFB2DFDB)),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.shield_outlined, color: Color(0xFF00796B), size: 22),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Protokol Keselamatan: Kasus krisis darurat & indikasi risiko tinggi secara otomatis dialihkan sistem ke Psikolog Klinis Berizin. Anda hanya menangani sesi curhat non-kritis.',
-                          style: TextStyle(fontSize: 11, color: Color(0xFF004D40), height: 1.4),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
 
               // 5. HORIZONTAL SCHEDULE MINI-CALENDAR STRIP (LENGKAP 7 HARI, MERAH JIKA LIBUR)
               Row(

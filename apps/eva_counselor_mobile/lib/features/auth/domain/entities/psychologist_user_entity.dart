@@ -95,30 +95,17 @@ class PsychologistUserEntity {
     this.bankAccountHolder = 'dr. Sarah Jenkins, M.Psi',
   });
 
-  bool get isVolunteer => role == CounselorRole.peerVolunteer;
-  bool get isPartner => role == CounselorRole.professionalPartner;
-  bool get isIndependent => role == CounselorRole.professionalIndependent;
-  bool get isProfessional => role != CounselorRole.peerVolunteer;
+  bool get isVolunteer => false;
+  bool get isPartner => false;
+  bool get isIndependent => true;
+  bool get isProfessional => true;
 
-  /// Relawan Teman Sebaya tidak diperkenankan mengatur atau membuka praktik offline/tatap muka.
-  bool get canConfigureOffline => role != CounselorRole.peerVolunteer;
+  bool get canConfigureOffline => true;
+  bool get isOfflineManagedByPartner => false;
 
-  /// Praktik offline psikolog mitra dikelola terpusat oleh mitra via Web Portal.
-  bool get isOfflineManagedByPartner => role == CounselorRole.professionalPartner;
+  String get displayName => '$fullName, $titleDegree';
 
-  String get displayName =>
-      isVolunteer ? fullName : '$fullName, $titleDegree';
-
-  String get roleBadgeLabel {
-    switch (role) {
-      case CounselorRole.peerVolunteer:
-        return 'Relawan Teman Sebaya';
-      case CounselorRole.professionalIndependent:
-        return 'Psikolog Profesional (Mandiri)';
-      case CounselorRole.professionalPartner:
-        return 'Psikolog Mitra • ${partnerName ?? "Klinik Sehati"}';
-    }
-  }
+  String get roleBadgeLabel => 'Psikolog Mandiri';
 
   PsychologistUserEntity copyWith({
     String? id,

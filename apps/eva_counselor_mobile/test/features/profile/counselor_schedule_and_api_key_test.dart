@@ -16,60 +16,35 @@ void main() {
   });
 
   group('Psychologist Schedule & External API Key Tests', () {
-    test('Peer Volunteer role cannot configure offline practice or use API Key', () {
-      const volunteer = PsychologistUserEntity(
-        id: 'vol-001',
-        fullName: 'Budi Volunteer',
-        titleDegree: 'Relawan Sebaya',
-        email: 'budi@volunteer.eva.id',
-        strNumber: 'VOL-PEER',
-        association: 'Teman Curhat',
-        specializations: ['Curhat Teman'],
-        yearsOfExperience: 1,
-        consultationRatePerHour: 0,
-        verificationStatus: VerificationStatus.verified,
-        role: CounselorRole.peerVolunteer,
-        isOnlinePracticeEnabled: true,
-        isOfflinePracticeEnabled: false,
-        employeeNip: 'VOL-2026-001',
-        externalApiKey: null,
-      );
-
-      expect(volunteer.isVolunteer, isTrue);
-      expect(volunteer.canConfigureOffline, isFalse);
-      expect(volunteer.isOfflinePracticeEnabled, isFalse);
-      expect(volunteer.externalApiKey, isNull);
-    });
-
-    test('Partner psychologist offline practice is managed by partner via web', () {
-      const partner = PsychologistUserEntity(
-        id: 'partner-001',
-        fullName: 'dr. Sarah Jenkins',
+    test('Psikolog Mandiri entity capabilities and invariant checks', () {
+      const counselor = PsychologistUserEntity(
+        id: 'counselor-001',
+        fullName: 'Sarah Anindya',
         titleDegree: 'M.Psi., Psikolog',
-        email: 'sarah@mitra.eva.id',
-        strNumber: 'STR-MITRA-99',
+        email: 'sarah@psikolog.eva.id',
+        strNumber: 'STR-PK-9912',
         association: 'HIMPSI',
         specializations: ['Klinis'],
         yearsOfExperience: 5,
         consultationRatePerHour: 180000,
         verificationStatus: VerificationStatus.verified,
-        role: CounselorRole.professionalPartner,
-        partnerName: 'RS Mitra Sehati',
+        role: CounselorRole.professionalIndependent,
         isOnlinePracticeEnabled: true,
         isOfflinePracticeEnabled: true,
-        offlinePlaceName: 'RS Mitra Sehati - Unit Poliklinik Jiwa & Psikologi',
-        offlineAddress: 'Jl. Gatot Subroto No. 128, Lt. 3',
-        offlineCity: 'Jakarta Selatan',
-        employeeNip: '198507202015022003',
-        externalApiKey: 'eva_pat_live_partner_token_xyz',
+        offlinePlaceName: 'Biro Psikologi Mandiri Anindya',
+        offlineAddress: 'Jl. Menteng Raya No. 42',
+        offlineCity: 'Jakarta Pusat',
+        externalApiKey: 'eva_pat_live_sarah_token_xyz',
       );
 
-      expect(partner.isPartner, isTrue);
-      expect(partner.canConfigureOffline, isTrue);
-      expect(partner.isOfflineManagedByPartner, isTrue);
-      expect(partner.offlinePlaceName, contains('RS Mitra Sehati'));
-      expect(partner.employeeNip, equals('198507202015022003'));
-      expect(partner.externalApiKey, isNotNull);
+      expect(counselor.isIndependent, isTrue);
+      expect(counselor.isVolunteer, isFalse);
+      expect(counselor.isPartner, isFalse);
+      expect(counselor.canConfigureOffline, isTrue);
+      expect(counselor.isOfflineManagedByPartner, isFalse);
+      expect(counselor.roleBadgeLabel, equals('Psikolog Mandiri'));
+      expect(counselor.offlinePlaceName, contains('Biro Psikologi Mandiri Anindya'));
+      expect(counselor.externalApiKey, isNotNull);
     });
 
     test('Independent psychologist can toggle offline, update address & manage API Key', () {
@@ -232,7 +207,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Mode Layanan Praktik'), findsOneWidget);
+      expect(find.textContaining('Mode Layanan Praktik'), findsOneWidget);
       expect(find.text('Telekonseling Online'), findsOneWidget);
       expect(find.text('Praktik Tatap Muka'), findsOneWidget);
       expect(find.text('Opsional'), findsOneWidget);
@@ -241,19 +216,19 @@ void main() {
       expect(find.text('Ubah Alamat'), findsOneWidget);
     });
 
-    testWidgets('CounselorProfileScheduleCard for volunteer shows clean info card without offline options', (tester) async {
-      const volunteer = PsychologistUserEntity(
-        id: 'vol-test',
-        fullName: 'Raka Sebaya',
-        titleDegree: 'Relawan Sebaya',
-        email: 'raka@volunteer.eva.id',
-        strNumber: 'VOL-PEER',
-        association: 'Teman Curhat',
-        specializations: ['Curhat'],
-        yearsOfExperience: 1,
-        consultationRatePerHour: 0,
+    testWidgets('CounselorProfileScheduleCard with offline disabled shows online schedule without offline address card', (tester) async {
+      const counselor = PsychologistUserEntity(
+        id: 'counselor-test',
+        fullName: 'Sarah Anindya',
+        titleDegree: 'M.Psi., Psikolog',
+        email: 'sarah@psikolog.eva.id',
+        strNumber: 'STR-PK-1234',
+        association: 'HIMPSI',
+        specializations: ['Klinis'],
+        yearsOfExperience: 5,
+        consultationRatePerHour: 150000,
         verificationStatus: VerificationStatus.verified,
-        role: CounselorRole.peerVolunteer,
+        role: CounselorRole.professionalIndependent,
         isOnlinePracticeEnabled: true,
         isOfflinePracticeEnabled: false,
       );
@@ -271,7 +246,7 @@ void main() {
                 sessionDuration: 50,
                 bufferTime: 15,
                 isVacationMode: false,
-                user: volunteer,
+                user: counselor,
                 onDaysChanged: (_) {},
                 onHoursChanged: (_, _) {},
                 onDurationBufferChanged: (_, _) {},
@@ -284,9 +259,8 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Relawan Teman Sebaya • Khusus Daring'), findsOneWidget);
-      expect(find.text('Mode Layanan Praktik'), findsNothing);
-      expect(find.text('Praktik Tatap Muka'), findsNothing);
+      expect(find.textContaining('Mode Layanan Praktik'), findsOneWidget);
+      expect(find.text('Telekonseling Online'), findsOneWidget);
       expect(find.text('Alamat Praktik Tatap Muka'), findsNothing);
     });
 
