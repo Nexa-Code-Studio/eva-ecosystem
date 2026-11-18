@@ -23,8 +23,9 @@
   "57": {
     "issue": 57,
     "branch": "feat/57-counselor-auth-verification-gate",
-    "state": "In Progress",
-    "updated_at": 1794969749,
-    "evidence_summary": "Evidence accepted: active task branch verified."
+    "state": "In Review",
+    "updated_at": 1794972685,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/61"
   }
 }
