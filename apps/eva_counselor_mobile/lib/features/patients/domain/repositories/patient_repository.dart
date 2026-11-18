@@ -15,4 +15,9 @@ abstract class IPatientRepository {
     required String plan,
     required List<String> recommendedTasks,
   });
+  Future<Map<String, String>> synthesizeSoapNote({
+    required String transcript,
+    String? patientName,
+    String? sessionId,
+  });
 }

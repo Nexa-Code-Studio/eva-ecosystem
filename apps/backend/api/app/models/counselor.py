@@ -31,6 +31,13 @@ class PsychologistProfile(BaseModel):
 
     __tablename__ = "psychologist_profiles"
 
+    def __init__(self, **kwargs: Any) -> None:
+        kwargs.setdefault("verification_status", PsychologistVerificationStatus.PENDING.value)
+        kwargs.setdefault("is_online", True)
+        kwargs.setdefault("buffer_time_minutes", 10)
+        kwargs.setdefault("wallet_balance", Decimal("0.00"))
+        super().__init__(**kwargs)
+
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),

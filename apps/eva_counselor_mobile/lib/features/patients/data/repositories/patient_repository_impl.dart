@@ -55,4 +55,24 @@ class PatientRepositoryImpl implements IPatientRepository {
     final dto = await _dataSource.createClinicalNote(request);
     return dto.toEntity();
   }
+
+  @override
+  Future<Map<String, String>> synthesizeSoapNote({
+    required String transcript,
+    String? patientName,
+    String? sessionId,
+  }) async {
+    final res = await _dataSource.synthesizeSoapFromTranscript(
+      transcript: transcript,
+      patientName: patientName,
+      sessionId: sessionId,
+    );
+    return {
+      'subjective': res['subjective']?.toString() ?? '',
+      'objective': res['objective']?.toString() ?? '',
+      'assessment': res['assessment']?.toString() ?? '',
+      'plan': res['plan']?.toString() ?? '',
+      'model_used': res['model_used']?.toString() ?? 'eva-ai',
+    };
+  }
 }

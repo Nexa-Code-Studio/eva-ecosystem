@@ -7,6 +7,8 @@ from app.models.user import User
 from app.schemas.session import (
     ConsultationSessionResponse,
     ExtensionAvailabilityResponse,
+    SoapSynthesisResponse,
+    SynthesizeSoapRequest,
     UpdateSoapNotesRequest,
 )
 from app.services.session import SchedulingService
@@ -43,3 +45,33 @@ async def save_session_soap_notes(
 ) -> ConsultationSessionResponse:
     """Save verified SOAP clinical notes for a completed teleconsultation session."""
     return await service.save_soap_notes(session_id, user.id, payload)
+
+
+@router.post("/soap-synthesis", response_model=SoapSynthesisResponse)
+async def synthesize_soap_notes(
+    payload: SynthesizeSoapRequest,
+    user: User = Depends(get_current_user),
+    service: SchedulingService = Depends(get_scheduling_service),
+) -> SoapSynthesisResponse:
+    """Synthesize clinical SOAP note from video call conversation transcript using Eva AI."""
+    result = await service.synthesize_soap(
+        transcript=payload.transcript,
+        patient_name=payload.patient_name,
+    )
+    return SoapSynthesisResponse(**result)
+
+
+@router.post("/{session_id}/synthesize-soap", response_model=SoapSynthesisResponse)
+async def synthesize_session_soap_notes(
+    session_id: uuid.UUID,
+    payload: SynthesizeSoapRequest,
+    user: User = Depends(get_current_user),
+    service: SchedulingService = Depends(get_scheduling_service),
+) -> SoapSynthesisResponse:
+    """Synthesize clinical SOAP note for a specific consultation session using Eva AI."""
+    result = await service.synthesize_soap(
+        transcript=payload.transcript,
+        patient_name=payload.patient_name,
+        session_id=session_id,
+    )
+    return SoapSynthesisResponse(**result)

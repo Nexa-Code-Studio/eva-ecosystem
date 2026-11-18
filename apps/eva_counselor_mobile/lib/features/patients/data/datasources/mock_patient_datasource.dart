@@ -240,4 +240,26 @@ class MockPatientDataSource implements PatientDataSource {
     }
     return newNote;
   }
+
+  @override
+  Future<Map<String, dynamic>> synthesizeSoapFromTranscript({
+    required String transcript,
+    String? patientName,
+    String? sessionId,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final cleanName = patientName ?? 'Pasien';
+    return {
+      'subjective':
+          'Pasien ($cleanName) mengeluhkan kecemasan performansi akademik dan gangguan tidur berdasarkan transkrip sesi dialog.',
+      'objective':
+          'Afek cemas dengan modulasi intonasi suara agak tegang di fase awal. Kontak mata terjaga baik lewat video call, pernapasan lebih teratur setelah relaksasi.',
+      'assessment':
+          'Kecemasan situasional tingkat sedang (selaras dengan DASS-21). Responsif terhadap psikoedukasi dan teknik grounding.',
+      'plan':
+          '1. Praktik teknik pernapasan diafragma 4-7-8 setiap malam.\n2. CBT Thought Record di jurnal Eva AI.\n3. Evaluasi sesi lanjutan 1 minggu ke depan.',
+      'model_used': 'mock-eva-ai',
+      'synthesized_at': DateTime.now().toIso8601String(),
+    };
+  }
 }

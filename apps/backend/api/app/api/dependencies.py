@@ -126,6 +126,14 @@ async def get_scheduling_service(db: AsyncSession = Depends(get_db_session)):
     return SchedulingService(db)
 
 
+async def get_finance_service(db: AsyncSession = Depends(get_db_session)):
+    """Dependency factory for FinanceService."""
+    from app.services.finances import FinanceService
+
+    return FinanceService(db)
+
+
+
 
 
 
