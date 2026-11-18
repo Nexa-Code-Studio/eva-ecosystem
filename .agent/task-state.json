@@ -19,5 +19,13 @@
     "state": "In Progress",
     "updated_at": 1794198995,
     "evidence_summary": "Evidence accepted: active task branch verified."
+  },
+  "55": {
+    "issue": 55,
+    "branch": "feat/55-backend-psychologist-db-pricing",
+    "state": "In Review",
+    "updated_at": 1794974009,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/62"
   }
 }
