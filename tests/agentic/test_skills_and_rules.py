@@ -18,14 +18,14 @@ class TestSkillsAndRules(unittest.TestCase):
     def test_required_skills_exist_and_have_frontmatter(self):
         required_skills = [
             "developer-onboarding",
-            "task-startup",
-            "project-state-sync",
-            "pr-preparation",
-            "inspect-project-tasks",
             "start-task",
             "sync-project-state",
             "prepare-pr",
+            "inspect-project-tasks",
             "manage-github-project",
+            "monorepo-ops",
+            "flutter-workflow",
+            "text-to-speech",
         ]
         skills_dir = self.repo_root / ".agents" / "skills"
         self.assertTrue(skills_dir.is_dir(), ".agents/skills must be a directory")
@@ -93,9 +93,9 @@ class TestSkillsAndRules(unittest.TestCase):
         content = agents_file.read_text(encoding="utf-8")
         self.assertIn("Supervised Autonomous Development Coordination Policies", content)
         self.assertIn("developer-onboarding", content)
-        self.assertIn("task-startup", content)
-        self.assertIn("project-state-sync", content)
-        self.assertIn("pr-preparation", content)
+        self.assertIn("start-task", content)
+        self.assertIn("sync-project-state", content)
+        self.assertIn("prepare-pr", content)
 
     def test_developer_schema_and_example(self):
         schema_path = self.repo_root / ".agent" / "developer.schema.json"

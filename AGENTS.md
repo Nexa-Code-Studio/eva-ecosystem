@@ -44,9 +44,10 @@
   - `text-to-speech`: ElevenLabs voice AI integration.
   - `developer-onboarding`: Workstation identity configuration and preflight diagnostics.
   - `inspect-project-tasks`: Inspecting developer tasks, blockers, and review requests.
-  - `start-task` (and `task-startup`): Inspecting tasks and initializing `{type}/{issue}-{slug}` branches and worktrees.
-  - `sync-project-state` (and `project-state-sync`): Deterministic, evidence-based task state transitions.
-  - `prepare-pr` (and `pr-preparation`): PR validation, test verification, and standardized PR formatting.
+  - `start-task`: Inspecting tasks, doctor preflight, and initializing `{type}/{issue}-{slug}` branches or isolated worktrees.
+  - `sync-project-state`: Deterministic, evidence-based task state transitions and GitHub Project v2 synchronization.
+  - `prepare-pr`: Branch validation, Alembic single-head preflight, local test verification, and standardized PR formatting.
+  - `manage-github-project`: Automating GitHub Issues and Project v2 interactions with mandatory developer review gate.
 - **State & Code Style**:
   - Write concise, clean, typed code without verbose redundant comments.
   - Do not introduce heavy dependencies without user confirmation.
