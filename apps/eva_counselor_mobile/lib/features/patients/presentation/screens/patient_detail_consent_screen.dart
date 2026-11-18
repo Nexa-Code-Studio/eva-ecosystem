@@ -502,8 +502,8 @@ class _PatientDetailConsentScreenState
             color: AppColors.verifiedBg,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Row(
-            children: const [
+          child: const Row(
+            children: [
               Icon(Icons.verified_rounded, color: AppColors.verifiedGreen, size: 16),
               SizedBox(width: 8),
               Expanded(
@@ -652,8 +652,8 @@ class _PatientDetailConsentScreenState
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: const Color(0xFFECEFF8)),
               ),
-              child: Row(
-                children: const [
+              child: const Row(
+                children: [
                   Icon(Icons.workspace_premium_rounded, color: AppColors.primary, size: 20),
                   SizedBox(width: 10),
                   Expanded(
@@ -685,9 +685,9 @@ class _PatientDetailConsentScreenState
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
             ),
-            child: Row(
+            child: const Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Icon(Icons.auto_awesome, color: AppColors.primary, size: 20),
                 SizedBox(width: 10),
                 Expanded(
@@ -808,8 +808,8 @@ class _PatientDetailConsentScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: const [
+              const Row(
+                children: [
                   Icon(Icons.record_voice_over_rounded, color: AppColors.primary, size: 20),
                   SizedBox(width: 8),
                   Text(

@@ -165,7 +165,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                         child: Image.asset(
                           'assets/images/eva_logo_square.png',
                           fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Icon(
+                          errorBuilder: (context, error, stackTrace) => const Icon(
                             Icons.psychology_rounded,
                             color: AppColors.primary,
                             size: 20,
@@ -176,8 +176,8 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: const [
+                          const Row(
+                            children: [
                               Text(
                                 'EVA',
                                 style: TextStyle(
@@ -447,9 +447,9 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                               color: Colors.white.withValues(alpha: 0.18),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Row(
+                            child: const Row(
                               mainAxisSize: MainAxisSize.min,
-                              children: const [
+                              children: [
                                 Icon(Icons.access_time_rounded, color: Colors.white, size: 12),
                                 SizedBox(width: 5),
                                 Flexible(
@@ -491,10 +491,10 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Expanded(
+                        const Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
+                            children: [
                               Text(
                                 'Rian Pratama (24 Thn)',
                                 style: TextStyle(
@@ -591,8 +591,8 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: const Color(0xFFB2DFDB)),
                   ),
-                  child: Row(
-                    children: const [
+                  child: const Row(
+                    children: [
                       Icon(Icons.shield_outlined, color: Color(0xFF00796B), size: 22),
                       SizedBox(width: 10),
                       Expanded(
@@ -624,7 +624,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: _calendarDays.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  separatorBuilder: (context, index) => const SizedBox(width: 8),
                   itemBuilder: (context, idx) {
                     final item = _calendarDays[idx];
                     final isSelected = _selectedCalendarIndex == idx;
@@ -767,8 +767,8 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: AppColors.highRiskRed.withValues(alpha: 0.2)),
                         ),
-                        child: Row(
-                          children: const [
+                        child: const Row(
+                          children: [
                             Icon(Icons.event_busy_rounded, color: AppColors.highRiskRed, size: 24),
                             SizedBox(width: 12),
                             Expanded(
@@ -899,7 +899,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                             ),
                           ),
                         );
-                      }).toList(),
+                      }),
                     ],
                   ],
                 ),
