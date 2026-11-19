@@ -101,10 +101,10 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
                   }).toList();
 
                   if (filtered.isEmpty) {
-                    return Center(
+                    return const Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
+                        children: [
                           Icon(Icons.person_search_rounded, size: 48, color: AppColors.textLight),
                           SizedBox(height: 10),
                           Text('Tidak ada pasien yang sesuai filter.', style: TextStyle(color: AppColors.textSecondary)),
@@ -116,7 +116,7 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
                   return ListView.separated(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    separatorBuilder: (context, index) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final p = filtered[index];
 
@@ -230,9 +230,9 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
                                         color: AppColors.highRiskBg,
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: Row(
+                                      child: const Row(
                                         mainAxisSize: MainAxisSize.min,
-                                        children: const [
+                                        children: [
                                           Icon(Icons.crisis_alert_rounded, size: 14, color: AppColors.highRiskRed),
                                           SizedBox(width: 6),
                                           Text(

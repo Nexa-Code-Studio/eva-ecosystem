@@ -39,7 +39,7 @@ class MockPatientDataSource implements PatientDataSource {
       ],
       upcomingSchedule: const PatientScheduleDto(
         formattedTime: 'Hari Ini • 10:00 - 10:30 WIB',
-        dateLabel: 'Selasa, 11 Nov 2026',
+        dateLabel: 'Hari ini • Sesi Siap Dimulai',
         timeRange: '10:00 - 10:30 WIB',
         isLiveNow: true,
         roomOpensAt: '09:45 WIB (Telah Dibuka)',
@@ -73,7 +73,7 @@ class MockPatientDataSource implements PatientDataSource {
       ],
       upcomingSchedule: const PatientScheduleDto(
         formattedTime: 'Hari Ini • 14:00 - 14:30 WIB',
-        dateLabel: 'Selasa, 11 Nov 2026',
+        dateLabel: 'Hari Ini • Siang',
         timeRange: '14:00 - 14:30 WIB',
         isLiveNow: false,
         roomOpensAt: '13:45 WIB',
@@ -123,11 +123,11 @@ class MockPatientDataSource implements PatientDataSource {
         'Sesi 4: Pasien merasa tujuan kariernya sudah mulai jelas dan optimis.',
       ],
       upcomingSchedule: const PatientScheduleDto(
-        formattedTime: 'Besok Rabu, 12 Nov • 11:00 - 11:30 WIB',
-        dateLabel: 'Rabu, 12 Nov 2026',
+        formattedTime: 'Besok • 11:00 - 11:30 WIB',
+        dateLabel: 'Besok • Siang',
         timeRange: '11:00 - 11:30 WIB',
         isLiveNow: false,
-        roomOpensAt: 'Rabu, 10:45 WIB',
+        roomOpensAt: 'Besok, 10:45 WIB',
         statusText: 'Terkonfirmasi Mendatang',
         sessionId: 'session-live-004',
       ),
@@ -183,12 +183,13 @@ class MockPatientDataSource implements PatientDataSource {
         latestMoodTag: p.latestMoodTag,
         emotionalRiskScore: p.emotionalRiskScore,
         isHighRisk: p.isHighRisk,
-        hasConsent: false,
+        hasConsent: true, // Persetujuan otomatis aktif setelah diminta (simulasi langsung)
         lastSessionDate: p.lastSessionDate,
         totalCompletedSessions: p.totalCompletedSessions,
         consentRequestedAt: DateTime.now().toIso8601String(),
         dassHistory: p.dassHistory,
         sharedDiarySummaries: p.sharedDiarySummaries,
+        upcomingSchedule: p.upcomingSchedule,
       );
     }
     return true;
@@ -216,6 +217,49 @@ class MockPatientDataSource implements PatientDataSource {
       recommendedTasks: request.recommendedTasks,
     );
     _mockNotes.putIfAbsent(request.patientId, () => []).insert(0, newNote);
+
+    final pIdx = _mockPatients.indexWhere((p) => p.id == request.patientId);
+    if (pIdx != -1) {
+      final p = _mockPatients[pIdx];
+      _mockPatients[pIdx] = PatientResponseDto(
+        id: p.id,
+        name: p.name,
+        age: p.age,
+        gender: p.gender,
+        chiefComplaint: p.chiefComplaint,
+        latestMoodTag: 'Terkonseling & Stabil 🌿',
+        emotionalRiskScore: (p.emotionalRiskScore - 2).clamp(1, 10),
+        isHighRisk: false,
+        hasConsent: true,
+        lastSessionDate: DateTime.now().toIso8601String(),
+        totalCompletedSessions: p.totalCompletedSessions + 1,
+        dassHistory: p.dassHistory,
+        sharedDiarySummaries: p.sharedDiarySummaries,
+        upcomingSchedule: p.upcomingSchedule,
+      );
+    }
     return newNote;
+  }
+
+  @override
+  Future<Map<String, dynamic>> synthesizeSoapFromTranscript({
+    required String transcript,
+    String? patientName,
+    String? sessionId,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final cleanName = patientName ?? 'Pasien';
+    return {
+      'subjective':
+          'Pasien ($cleanName) mengeluhkan kecemasan performansi akademik dan gangguan tidur berdasarkan transkrip sesi dialog.',
+      'objective':
+          'Afek cemas dengan modulasi intonasi suara agak tegang di fase awal. Kontak mata terjaga baik lewat video call, pernapasan lebih teratur setelah relaksasi.',
+      'assessment':
+          'Kecemasan situasional tingkat sedang (selaras dengan DASS-21). Responsif terhadap psikoedukasi dan teknik grounding.',
+      'plan':
+          '1. Praktik teknik pernapasan diafragma 4-7-8 setiap malam.\n2. CBT Thought Record di jurnal Eva AI.\n3. Evaluasi sesi lanjutan 1 minggu ke depan.',
+      'model_used': 'mock-eva-ai',
+      'synthesized_at': DateTime.now().toIso8601String(),
+    };
   }
 }

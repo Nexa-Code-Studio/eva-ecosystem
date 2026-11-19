@@ -152,11 +152,9 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
   }) {
     final current = state.value;
     if (current == null) return;
-    // Volunteer cannot set offline practice
-    final effectiveOffline = current.isVolunteer ? false : isOffline;
     state = AsyncValue.data(current.copyWith(
       isOnlinePracticeEnabled: isOnline,
-      isOfflinePracticeEnabled: effectiveOffline,
+      isOfflinePracticeEnabled: isOffline,
     ));
   }
 
@@ -168,7 +166,6 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
   }) {
     final current = state.value;
     if (current == null) return;
-    if (current.isVolunteer || current.isPartner) return;
     state = AsyncValue.data(current.copyWith(
       offlinePlaceName: placeName,
       offlineAddress: address,
@@ -193,7 +190,7 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
 
   void generateOrRotateExternalApiKey() {
     final current = state.value;
-    if (current == null || current.isVolunteer) return;
+    if (current == null) return;
     final hex = DateTime.now().millisecondsSinceEpoch.toRadixString(16);
     final token = 'eva_pat_live_${hex}9a72b4c10';
     state = AsyncValue.data(current.copyWith(
@@ -275,6 +272,19 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
     if (current == null) return;
     final newBalance = (current.coinBalance - coins).clamp(0, 999999);
     state = AsyncValue.data(current.copyWith(coinBalance: newBalance));
+  }
+
+  void addCoins(int coins) {
+    final current = state.value;
+    if (current == null) return;
+    final newBalance = current.coinBalance + coins;
+    state = AsyncValue.data(current.copyWith(coinBalance: newBalance));
+  }
+
+  void setVerificationStatus(VerificationStatus status) {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncValue.data(current.copyWith(verificationStatus: status));
   }
 
   void updateBankDetails({

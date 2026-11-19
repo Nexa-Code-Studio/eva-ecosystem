@@ -17,68 +17,133 @@ class CounselorDriveBackupModal {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) => Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Pengaturan Cadangan Google Drive', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  IconButton(icon: const Icon(Icons.close, size: 20), onPressed: () => Navigator.pop(ctx)),
-                ],
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Rekam medis terenkripsi dicadangkan ke Google Drive pribadi Anda:',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  const Text('Frekuensi: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  const SizedBox(width: 8),
-                  ...['Harian', 'Mingguan', 'Manual'].map((f) => Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: ChoiceChip(
-                          label: Text(f),
-                          selected: tempFreq == f,
-                          onSelected: (_) => setModalState(() => tempFreq = f),
+        builder: (ctx, setModalState) => SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 16,
+              bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFCBD5E1),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F5E9),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.cloud_sync_rounded,
+                        color: AppColors.verifiedGreen,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        'Cadangan Google Drive',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: AppColors.textPrimary,
                         ),
-                      )),
-                ],
-              ),
-              const SizedBox(height: 12),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Cadangkan Hanya Melalui Wi-Fi', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                subtitle: const Text('Hindari penggunaan kuota seluler untuk pencadangan', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                value: tempWifi,
-                activeColor: AppColors.primary,
-                onChanged: (val) => setModalState(() => tempWifi = val),
-              ),
-              const SizedBox(height: 16),
-              CustomButton(
-                label: 'Simpan Preferensi',
-                onPressed: () {
-                  onSave(tempFreq, tempWifi);
-                  Navigator.pop(ctx);
-                  TopToast.show(
-                    context,
-                    title: 'Preferensi Cadangan Disimpan',
-                    message: 'Jadwal cadangan otomatis Google Drive diatur ke $tempFreq.',
-                    type: ToastType.success,
-                  );
-                },
-              ),
-            ],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 20),
+                      onPressed: () => Navigator.pop(ctx),
+                      color: AppColors.textSecondary,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Rekam medis terenkripsi dicadangkan ke Google Drive pribadi Anda:',
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Frekuensi Pencadangan:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: ['Harian', 'Mingguan', 'Manual'].map((f) {
+                    final isSelected = tempFreq == f;
+                    return ChoiceChip(
+                      label: Text(f),
+                      selected: isSelected,
+                      selectedColor: AppColors.primaryContainer,
+                      labelStyle: TextStyle(
+                        fontSize: 12,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.textSecondary,
+                      ),
+                      onSelected: (_) => setModalState(() => tempFreq = f),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 14),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text(
+                    'Cadangkan Hanya Melalui Wi-Fi',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: const Text(
+                    'Hindari penggunaan kuota seluler untuk pencadangan',
+                    style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                  ),
+                  value: tempWifi,
+                  activeThumbColor: AppColors.primary,
+                  onChanged: (val) => setModalState(() => tempWifi = val),
+                ),
+                const SizedBox(height: 16),
+                CustomButton(
+                  label: 'Simpan Preferensi',
+                  onPressed: () {
+                    onSave(tempFreq, tempWifi);
+                    Navigator.pop(ctx);
+                    TopToast.show(
+                      context,
+                      title: 'Preferensi Cadangan Disimpan',
+                      message:
+                          'Jadwal cadangan otomatis Google Drive diatur ke $tempFreq.',
+                      type: ToastType.success,
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),

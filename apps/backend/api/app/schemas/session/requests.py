@@ -20,6 +20,11 @@ class UpdateSoapNotesRequest(BaseModel):
     status: str = Field(default="verified", pattern="^(draft|verified)$")
 
 
+class SynthesizeSoapRequest(BaseModel):
+    transcript: str = Field(..., min_length=5, max_length=50000, description="Full conversation transcript from video call")
+    patient_name: str | None = Field(default=None, max_length=150)
+
+
 class RequestConsentRequest(BaseModel):
     counselor_id: uuid.UUID
 

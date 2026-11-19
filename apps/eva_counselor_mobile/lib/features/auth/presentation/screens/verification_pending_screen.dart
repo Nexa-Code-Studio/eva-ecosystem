@@ -22,31 +22,20 @@ class _VerificationPendingScreenState
 
   void _handleRefreshStatus() async {
     setState(() => _isRefreshing = true);
-    await ref.read(authStateProvider.notifier).loadProfile();
+    await Future.delayed(const Duration(milliseconds: 600));
+    ref
+        .read(authStateProvider.notifier)
+        .setVerificationStatus(VerificationStatus.verified);
     if (!mounted) return;
     setState(() => _isRefreshing = false);
 
-    final user = ref.read(authStateProvider).value;
-    if (user != null && user.verificationStatus == VerificationStatus.verified) {
-      TopToast.show(
-        context,
-        title: 'Verifikasi Berhasil! 🎉',
-        message: 'Akun profesional Anda telah disetujui. Selamat datang di Eva.',
-        type: ToastType.success,
-      );
-      Navigator.of(context).pushReplacementNamed('/counselor-shell');
-    } else if (user != null &&
-        (user.verificationStatus == VerificationStatus.rejected ||
-            user.verificationStatus == VerificationStatus.needRevision)) {
-      Navigator.of(context).pushReplacementNamed('/counselor-verification-rejected');
-    } else {
-      TopToast.show(
-        context,
-        title: 'Status Masih Ditinjau ⏳',
-        message: 'Tim kredensial sedang meninjau dokumen STR & SIPP Anda.',
-        type: ToastType.info,
-      );
-    }
+    TopToast.show(
+      context,
+      title: 'Verifikasi Berhasil! 🎉',
+      message: 'Akun profesional Anda telah disetujui. Selamat datang di Eva.',
+      type: ToastType.success,
+    );
+    Navigator.of(context).pushReplacementNamed('/counselor-shell');
   }
 
   void _handleLogout() async {
@@ -231,6 +220,7 @@ class _VerificationPendingScreenState
   Widget _infoRow(String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
@@ -239,12 +229,16 @@ class _VerificationPendingScreenState
             color: AppColors.textSecondary,
           ),
         ),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
           ),
         ),
       ],

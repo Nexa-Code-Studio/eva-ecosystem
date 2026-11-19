@@ -6,94 +6,49 @@ import '../../domain/entities/eva_certificate_entity.dart';
 
 class CounselorCertificatesModal {
   static List<EvaCertificateEntity> getCertificatesForUser(PsychologistUserEntity? user) {
-    final name = user?.displayName ?? 'dr. Sarah Jenkins, M.Psi';
-    final isVol = user?.isVolunteer == true;
+    final name = user?.displayName ?? 'Psikolog Mandiri';
 
-    if (isVol) {
-      return [
-        EvaCertificateEntity(
-          id: 'CERT-VOL-01',
-          title: 'SERTIFIKAT KELULUSAN PEER COUNSELOR',
-          subtitle: 'Certified Active Listener & Support Specialist',
-          recipientName: name,
-          milestoneCriteria: 'Lulus Uji Etika & Pelatihan Konseling Sebaya',
-          certificateNumber: 'EVA/CERT/2026/VOL/00094',
-          issueDate: '15 Oktober 2026',
-          categoryLabel: 'Relawan Teman Sebaya',
-          description:
-              'Diberikan atas kelulusan program sertifikasi pendampingan emosional, komunikasi empatik non-klinis, dan kepatuhan penuh terhadap etika teman sebaya Eva.',
-          badgeColor: const Color(0xFF0284C7),
-        ),
-        EvaCertificateEntity(
-          id: 'CERT-VOL-02',
-          title: 'SERTIFIKAT DEDIKASI TEMAN SEBAYA',
-          subtitle: 'Community Mental Health Dedication Award',
-          recipientName: name,
-          milestoneCriteria: 'Menyelesaikan 10 Sesi Curhat Komunitas',
-          certificateNumber: 'EVA/CERT/2026/VOL/00148',
-          issueDate: '01 November 2026',
-          categoryLabel: 'Relawan Teman Sebaya',
-          description:
-              'Diberikan sebagai penghargaan atas ketulusan mendengarkan aktif dan mendampingi keluhan emosional teman sebaya di ekosistem kesehatan mental Eva.',
-          badgeColor: const Color(0xFFD97706),
-        ),
-        EvaCertificateEntity(
-          id: 'CERT-VOL-03',
-          title: 'SERTIFIKAT KONTRIBUTOR EMPATI SEBAYA',
-          subtitle: 'Excellence in Community Empathy 2026',
-          recipientName: name,
-          milestoneCriteria: 'Pendampingan 25 Sesi Tanpa Keluhan & Rating 5.0',
-          certificateNumber: 'EVA/CERT/2026/VOL/00220',
-          issueDate: '05 November 2026',
-          categoryLabel: 'Relawan Teman Sebaya',
-          description:
-              'Diberikan atas kontribusi konsisten menjaga ruang aman bebas penghakiman, memberikan pertolongan pertama psikologis suportif bagi sesama.',
-          badgeColor: const Color(0xFF16A34A),
-        ),
-      ];
-    } else {
-      return [
-        EvaCertificateEntity(
-          id: 'CERT-PRO-01',
-          title: 'SERTIFIKAT PRAKTIK TELEKONSELING KLINIS',
-          subtitle: 'Clinical Tele-Psychology Excellence & Competence',
-          recipientName: name,
-          milestoneCriteria: 'Penyelesaian 25 Sesi Klinis Terverifikasi',
-          certificateNumber: 'EVA/CERT/2026/PRO/00341',
-          issueDate: '20 Oktober 2026',
-          categoryLabel: user?.isPartner == true ? 'Psikolog Mitra' : 'Psikolog Mandiri',
-          description:
-              'Diberikan atas dedikasi dan kompetensi klinis prima dalam menyelenggarakan telekonsultasi kesehatan mental dengan standar etika tertinggi.',
-          badgeColor: const Color(0xFF2563EB),
-        ),
-        EvaCertificateEntity(
-          id: 'CERT-PRO-02',
-          title: 'SERTIFIKAT KEPATUHAN REKAM MEDIS SOAP',
-          subtitle: 'Certified Clinical Medical Record Standard',
-          recipientName: name,
-          milestoneCriteria: 'Kepatuhan Rekam SOAP 100% pada 50 Sesi',
-          certificateNumber: 'EVA/CERT/2026/PRO/00512',
-          issueDate: '02 November 2026',
-          categoryLabel: user?.isPartner == true ? 'Psikolog Mitra' : 'Psikolog Mandiri',
-          description:
-              'Diberikan atas komitmen integritas dokumentasi SOAP klinis (Subjective, Objective, Assessment, Plan) yang terenkripsi aman demi keselamatan pasien.',
-          badgeColor: const Color(0xFFD97706),
-        ),
-        EvaCertificateEntity(
-          id: 'CERT-PRO-03',
-          title: 'SERTIFIKAT KONSELOR TELADAN EVA 2026',
-          subtitle: 'Distinguished Clinical Practitioner 2026',
-          recipientName: name,
-          milestoneCriteria: '100+ Sesi Terlaksana dengan Rating Kepuasan 4.9+',
-          certificateNumber: 'EVA/CERT/2026/PRO/00789',
-          issueDate: '06 November 2026',
-          categoryLabel: user?.isPartner == true ? 'Psikolog Mitra' : 'Psikolog Mandiri',
-          description:
-              'Penghargaan tertinggi platform Eva atas loyalitas pelayanan intervensi krisis, kepuasan pasien bintang lima, dan kontribusi nyata pada kesehatan jiwa bangsa.',
-          badgeColor: const Color(0xFF7E22CE),
-        ),
-      ];
-    }
+    return [
+      EvaCertificateEntity(
+        id: 'CERT-PRO-01',
+        title: 'SERTIFIKAT PRAKTIK TELEKONSELING KLINIS',
+        subtitle: 'Clinical Tele-Psychology Excellence & Competence',
+        recipientName: name,
+        milestoneCriteria: 'Penyelesaian 25 Sesi Klinis Terverifikasi',
+        certificateNumber: 'EVA/CERT/2026/PRO/00341',
+        issueDate: '20 Oktober 2026',
+        categoryLabel: 'Psikolog Mandiri',
+        description:
+            'Diberikan atas dedikasi dan kompetensi klinis prima dalam menyelenggarakan telekonsultasi kesehatan mental dengan standar etika tertinggi.',
+        badgeColor: const Color(0xFF2563EB),
+      ),
+      EvaCertificateEntity(
+        id: 'CERT-PRO-02',
+        title: 'SERTIFIKAT KEPATUHAN REKAM MEDIS SOAP',
+        subtitle: 'Certified Clinical Medical Record Standard',
+        recipientName: name,
+        milestoneCriteria: 'Kepatuhan Rekam SOAP 100% pada 50 Sesi',
+        certificateNumber: 'EVA/CERT/2026/PRO/00512',
+        issueDate: '02 November 2026',
+        categoryLabel: 'Psikolog Mandiri',
+        description:
+            'Diberikan atas komitmen integritas dokumentasi SOAP klinis (Subjective, Objective, Assessment, Plan) yang terenkripsi aman demi keselamatan pasien.',
+        badgeColor: const Color(0xFFD97706),
+      ),
+      EvaCertificateEntity(
+        id: 'CERT-PRO-03',
+        title: 'SERTIFIKAT KONSELOR TELADAN EVA 2026',
+        subtitle: 'Distinguished Clinical Practitioner 2026',
+        recipientName: name,
+        milestoneCriteria: '100+ Sesi Terlaksana dengan Rating Kepuasan 4.9+',
+        certificateNumber: 'EVA/CERT/2026/PRO/00789',
+        issueDate: '06 November 2026',
+        categoryLabel: 'Psikolog Mandiri',
+        description:
+            'Penghargaan tertinggi platform Eva atas loyalitas pelayanan intervensi krisis, kepuasan pasien bintang lima, dan kontribusi nyata pada kesehatan jiwa bangsa.',
+        badgeColor: const Color(0xFF7E22CE),
+      ),
+    ];
   }
 
   static void showGallery(BuildContext context, PsychologistUserEntity? user) {
@@ -176,7 +131,7 @@ class CounselorCertificatesModal {
                   shrinkWrap: true,
                   physics: const BouncingScrollPhysics(),
                   itemCount: certs.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  separatorBuilder: (context, index) => const SizedBox(height: 12),
                   itemBuilder: (modalCtx, idx) {
                     final c = certs[idx];
                     return Container(
@@ -345,16 +300,16 @@ class CounselorCertificatesModal {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Row(
+                          const Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: const [
+                            children: [
                               Text('✦', style: TextStyle(color: Color(0xFFB45309), fontSize: 14)),
                               Text('✦', style: TextStyle(color: Color(0xFFB45309), fontSize: 14)),
                             ],
                           ),
-                          Row(
+                          const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
+                            children: [
                               Icon(Icons.spa_rounded, color: AppColors.primary, size: 18),
                               SizedBox(width: 6),
                               Text(
@@ -498,10 +453,10 @@ class CounselorCertificatesModal {
                                   ],
                                   border: Border.all(color: const Color(0xFFFEF3C7), width: 1.5),
                                 ),
-                                child: Center(
+                                child: const Center(
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
-                                    children: const [
+                                    children: [
                                       Icon(Icons.workspace_premium_rounded, size: 20, color: Colors.white),
                                       Text(
                                         'VERIFIED',
@@ -535,9 +490,9 @@ class CounselorCertificatesModal {
                               ),
                             ],
                           ),
-                          Row(
+                          const Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: const [
+                            children: [
                               Text('✦', style: TextStyle(color: Color(0xFFB45309), fontSize: 14)),
                               Text('✦', style: TextStyle(color: Color(0xFFB45309), fontSize: 14)),
                             ],

@@ -159,7 +159,7 @@ class _CounselorNotificationScreenState extends State<CounselorNotificationScree
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 itemCount: filtered.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (context, index) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final notif = filtered[index];
                   final isCrisis = notif['isCrisis'] == true;

@@ -190,13 +190,11 @@ class CounselorSpotlightTourOverlay extends StatelessWidget {
 
 class _SpotlightHolePainter extends CustomPainter {
   final Rect targetRect;
-  final double radius;
-  final Color overlayColor;
+  static const Color overlayColor = Color(0xDD0A0F1D);
+  static const double radius = 16.0;
 
   _SpotlightHolePainter({
     required this.targetRect,
-    this.radius = 16.0,
-    this.overlayColor = const Color(0xDD0A0F1D),
   });
 
   @override
@@ -215,14 +213,14 @@ class _SpotlightHolePainter extends CustomPainter {
     final path = Path()
       ..fillType = PathFillType.evenOdd
       ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
-      ..addRRect(RRect.fromRectAndRadius(targetRect, Radius.circular(radius)));
+      ..addRRect(RRect.fromRectAndRadius(targetRect, const Radius.circular(radius)));
 
     canvas.drawPath(path, paint);
   }
 
   @override
   bool shouldRepaint(covariant _SpotlightHolePainter oldDelegate) {
-    return oldDelegate.targetRect != targetRect || oldDelegate.overlayColor != overlayColor;
+    return oldDelegate.targetRect != targetRect;
   }
 }
 

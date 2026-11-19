@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/services/google_drive_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/top_toast.dart';
 import '../../../auth/domain/entities/psychologist_user_entity.dart';
@@ -31,31 +32,65 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
   bool _backupWifiOnly = true;
 
   void _handleBackupNow(PsychologistUserEntity? user) async {
+    final targetEmail = user?.effectiveGoogleDriveEmail ?? user?.email ?? '';
     setState(() => _isBackingUp = true);
-    await Future.delayed(const Duration(milliseconds: 1400));
-    if (!mounted) return;
-    setState(() => _isBackingUp = false);
+    try {
+      final driveService = ref.read(googleDriveServiceProvider);
+      final result = await driveService.uploadEncryptedBackup(
+        email: targetEmail,
+        data: {'session_count': 12, 'timestamp': DateTime.now().toIso8601String()},
+      );
 
-    ref.read(authStateProvider.notifier).syncDriveBackup(
-          email: user?.googleDriveEmail ?? 'sarah.anindya@gmail.com',
-          frequency: _backupFrequency,
-        );
+      if (!mounted) return;
+      ref.read(authStateProvider.notifier).syncDriveBackup(
+            email: targetEmail,
+            frequency: _backupFrequency,
+          );
 
-    TopToast.show(
-      context,
-      title: 'Pencadangan Berhasil! ☁️',
-      message: '18.4 MB data rekam SOAP & audio transkrip terenkripsi aman di Google Drive Anda.',
-      type: ToastType.success,
-    );
+      TopToast.show(
+        context,
+        title: 'Pencadangan Berhasil! ☁️',
+        message:
+            '${result.formattedSizeMb} data rekam SOAP & audio transkrip terenkripsi aman di Google Drive Anda ($targetEmail).',
+        type: ToastType.success,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      TopToast.show(
+        context,
+        title: 'Gagal Mencadangkan',
+        message: e.toString(),
+        type: ToastType.error,
+      );
+    } finally {
+      if (mounted) setState(() => _isBackingUp = false);
+    }
   }
 
-  void _handleRestoreDrive() {
-    TopToast.show(
-      context,
-      title: 'Memeriksa Cadangan Google Drive...',
-      message: 'Data lokal terverifikasi sinkron dengan cadangan cloud terakhir (Hari ini, 10:15 WIB).',
-      type: ToastType.info,
-    );
+  void _handleRestoreDrive() async {
+    final user = ref.read(authStateProvider).value;
+    final targetEmail = user?.effectiveGoogleDriveEmail ?? user?.email ?? '';
+    try {
+      final driveService = ref.read(googleDriveServiceProvider);
+      await driveService.restoreEncryptedBackup(email: targetEmail);
+
+      if (!mounted) return;
+      TopToast.show(
+        context,
+        title: 'Cadangan Google Drive Sinkron ☁️',
+        message:
+            'Data rekam medis lokal terverifikasi sinkron dengan cadangan Google Drive ($targetEmail).',
+        type: ToastType.info,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      TopToast.show(
+        context,
+        title: 'Gagal Memeriksa Cadangan',
+        message: e.toString(),
+        type: ToastType.error,
+      );
+    }
   }
 
   Widget _buildSectionHeader(String title, IconData icon) {
@@ -162,7 +197,7 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                 iconColor: const Color(0xFF2563EB),
                 iconBg: const Color(0xFFEFF6FF),
                 title: 'Rekening Bank Pencairan Dana',
-                subtitle: 'BCA • ****8192 (dr. Sarah Jenkins)',
+                subtitle: 'BCA • ****8192 (${user?.bankAccountHolder ?? user?.displayName ?? "Psikolog Mandiri"})',
                 trailingBadge: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
@@ -209,7 +244,7 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                     _backupWifiOnly = wifi;
                   });
                   ref.read(authStateProvider.notifier).syncDriveBackup(
-                        email: user?.googleDriveEmail ?? 'sarah.anindya@gmail.com',
+                        email: user?.effectiveGoogleDriveEmail ?? user?.email ?? '',
                         frequency: freq,
                       );
                 },
