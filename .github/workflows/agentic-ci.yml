@@ -35,6 +35,10 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install CI Test Dependencies
+        run: |
+          pip install -q pyyaml
+
       - name: Verify Git Hygiene (No Local Config Committed)
         run: |
           if git ls-files --error-unmatch .agent/developer.local.json 2>/dev/null; then
