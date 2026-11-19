@@ -9,7 +9,17 @@ import os
 import re
 import unittest
 from pathlib import Path
-import yaml
+
+try:
+    import yaml
+except ImportError:
+    import subprocess
+    import sys
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "pyyaml"])
+        import yaml
+    except Exception:
+        yaml = None
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS_DIR = REPO_ROOT / ".github" / "workflows"
@@ -29,6 +39,8 @@ class TestCICDWorkflows(unittest.TestCase):
     """Test suite validating all CI/CD pipelines and production configurations."""
 
     def setUp(self):
+        if yaml is None:
+            self.skipTest("pyyaml is not available in environment.")
         self.assertTrue(WORKFLOWS_DIR.exists(), f"Workflows directory missing: {WORKFLOWS_DIR}")
         self.workflow_files = list(WORKFLOWS_DIR.glob("*.yml")) + list(WORKFLOWS_DIR.glob("*.yaml"))
         self.assertGreater(len(self.workflow_files), 0, "No workflow YAML files found.")
