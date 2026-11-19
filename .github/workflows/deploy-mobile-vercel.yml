@@ -17,6 +17,12 @@ on:
         required: true
         type: boolean
         default: true
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/eva_mobile/**'
+      - '.github/workflows/deploy-mobile-vercel.yml'
 
 permissions:
   contents: read
