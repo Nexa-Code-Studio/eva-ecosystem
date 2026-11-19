@@ -2,27 +2,28 @@ import {
   Calculator,
   CheckCircle2,
   Clock,
-  History,
   Loader2,
   Percent,
   Save,
   Sliders,
 } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useSearchParams } from 'react-router'
 import { cn } from '@/lib/cn'
 import {
   STANDARD_SESSION_DURATION_MINUTES,
   calculatePricingBreakdown,
   fetchActivePlatformPricing,
-  fetchPlatformPricingHistory,
   savePlatformPricingConfig,
   type PlatformPricingConfig,
+  type PortalDatabase,
 } from '@/lib/portalStore'
+import { AdminCoinPackagesConfigTab } from './AdminCoinPackagesConfigTab'
+
+type SettingsSubTab = 'pricing' | 'coins_catalog'
 
 interface AdminPlatformSettingsModuleProps {
-  pricingConfig: PlatformPricingConfig
-  pricingHistory: PlatformPricingConfig[]
-  basePricePerCoinIdr: number
+  db: PortalDatabase
   onFeedback: (message: string) => void
 }
 
@@ -36,14 +37,12 @@ function formatIdr(value: number): string {
 
 interface PricingSettingsFormProps {
   pricingConfig: PlatformPricingConfig
-  pricingHistory: PlatformPricingConfig[]
   basePricePerCoinIdr: number
   onFeedback: (message: string) => void
 }
 
 function PricingSettingsForm({
   pricingConfig,
-  pricingHistory,
   basePricePerCoinIdr,
   onFeedback,
 }: PricingSettingsFormProps) {
@@ -154,22 +153,28 @@ function PricingSettingsForm({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+    <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-start">
       {/* Form Pengaturan Master */}
       <form
         onSubmit={handleSubmit}
         className="rounded-[12px] border border-[#E2E8F0] bg-white p-5 lg:col-span-6"
       >
-        <div className="flex items-center gap-2 border-b border-[#E2E8F0] pb-3.5">
-          <span className="flex size-8 items-center justify-center rounded-[8px] bg-[#EEF0FF] text-primary">
-            <Sliders className="size-4" />
-          </span>
-          <div>
-            <h2 className="text-sm font-bold text-ink">Master Tarif &amp; Skema Bagi Hasil</h2>
-            <p className="text-[11px] text-ink-muted">
-              Diterapkan seragam untuk seluruh Psikolog Profesional Mandiri.
-            </p>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E2E8F0] pb-3.5">
+          <div className="flex items-center gap-2">
+            <span className="flex size-8 items-center justify-center rounded-[8px] bg-[#EEF0FF] text-primary">
+              <Sliders className="size-4" />
+            </span>
+            <div>
+              <h2 className="text-sm font-bold text-ink">Master Tarif &amp; Skema Bagi Hasil</h2>
+              <p className="text-[11px] text-ink-muted">
+                Diterapkan seragam untuk seluruh Psikolog Profesional Mandiri.
+              </p>
+            </div>
           </div>
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-[6px] border border-[#C7D2FE] bg-[#EEF0FF] px-2.5 py-1 text-[11px] font-semibold text-primary">
+            <Clock className="size-3" />
+            <span>Blok Sesi: 30 Menit (+30m In-Call)</span>
+          </span>
         </div>
 
         {errorMsg && (
@@ -432,96 +437,88 @@ function PricingSettingsForm({
             </div>
           </div>
         </div>
-
-        {/* Riwayat Kebijakan Tarif */}
-        <div className="rounded-[12px] border border-[#E2E8F0] bg-white p-5">
-          <div className="flex items-center gap-2 border-b border-[#E2E8F0] pb-3">
-            <History className="size-4 text-ink-muted" />
-            <h3 className="text-sm font-bold text-ink">Riwayat Kebijakan Tarif</h3>
-          </div>
-
-          <div className="mt-3 space-y-2.5">
-            {pricingHistory.map((item) => (
-              <div
-                key={item.id}
-                className={cn(
-                  'flex flex-col justify-between gap-2 rounded-[10px] border p-3 text-xs sm:flex-row sm:items-center',
-                  item.status === 'active'
-                    ? 'border-emerald-200 bg-emerald-50/40'
-                    : 'border-[#E2E8F0] bg-[#F8FAFC]',
-                )}
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-ink">
-                      {formatCoins(item.pricePerSession)} / 30m
-                    </span>
-                    <span
-                      className={cn(
-                        'rounded-[4px] px-1.5 py-0.5 text-[10px] font-bold uppercase',
-                        item.status === 'active'
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-slate-200 text-ink-muted',
-                      )}
-                    >
-                      {item.status === 'active' ? 'Aktif' : 'Arsip'}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 text-[11px] text-ink-soft">
-                    Split {item.counselorSharePercentage}% Psikolog : {item.platformFeePercentage}% Platform · Ekstensi {formatCoins(item.extensionPricePerSession)}
-                  </p>
-                  {item.notes && (
-                    <p className="mt-0.5 text-[11px] text-ink-muted">{item.notes}</p>
-                  )}
-                </div>
-                <span className="shrink-0 font-mono text-[10.5px] text-ink-muted">
-                  {item.effectiveFrom.slice(0, 10)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   )
 }
 
 export function AdminPlatformSettingsModule({
-  pricingConfig,
-  pricingHistory,
-  basePricePerCoinIdr,
+  db,
   onFeedback,
 }: AdminPlatformSettingsModuleProps) {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabParam = searchParams.get('tab')
+  const activeSubTab: SettingsSubTab =
+    tabParam === 'coins_catalog' ? 'coins_catalog' : 'pricing'
+
+  const handleSubTabChange = (tab: SettingsSubTab) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (tab === 'pricing') {
+        next.delete('tab')
+      } else {
+        next.set('tab', tab)
+      }
+      return next
+    })
+  }
+
   useEffect(() => {
-    void Promise.all([fetchActivePlatformPricing(), fetchPlatformPricingHistory()]).catch(
-      () => undefined,
-    )
+    void fetchActivePlatformPricing().catch(() => undefined)
   }, [])
 
+  const activePackagesCount = db.coinPackages.filter((pkg) => pkg.isActive).length
+
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+    <div>
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-xl font-bold tracking-[-0.02em] text-ink sm:text-2xl">
             Pengaturan Platform EVA
           </h1>
           <p className="mt-0.5 text-xs text-ink-muted">
-            Tetapkan tarif master telekonsultasi dalam satuan EVA Coin (30 menit), tarif perpanjangan +30 menit, dan rasio bagi hasil resmi.
+            Kelola tarif master telekonsultasi dalam satuan EVA Coin, rasio bagi hasil resmi, kurs dasar koin, serta katalog paket top-up.
           </p>
         </div>
-        <div className="inline-flex shrink-0 items-center gap-2 rounded-[8px] border border-[#C7D2FE] bg-[#EEF0FF] px-3 py-1.5 text-xs font-semibold text-primary">
-          <Clock className="size-3.5" />
-          <span>Blok Sesi Paten: 30 Menit (+30m In-Call)</span>
+
+        <div className="inline-flex flex-wrap rounded-[8px] border border-[#E2E8F0] bg-white p-1">
+          <button
+            type="button"
+            onClick={() => handleSubTabChange('pricing')}
+            className={cn(
+              'cursor-pointer rounded-[6px] px-3 py-1.5 text-xs font-semibold transition-colors',
+              activeSubTab === 'pricing'
+                ? 'bg-primary text-white'
+                : 'text-ink-soft hover:text-ink',
+            )}
+          >
+            Tarif Konsultasi
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSubTabChange('coins_catalog')}
+            className={cn(
+              'cursor-pointer rounded-[6px] px-3 py-1.5 text-xs font-semibold transition-colors',
+              activeSubTab === 'coins_catalog'
+                ? 'bg-primary text-white'
+                : 'text-ink-soft hover:text-ink',
+            )}
+          >
+            Kurs &amp; Paket Koin ({activePackagesCount})
+          </button>
         </div>
       </div>
 
-      <PricingSettingsForm
-        key={pricingConfig.id}
-        pricingConfig={pricingConfig}
-        pricingHistory={pricingHistory}
-        basePricePerCoinIdr={basePricePerCoinIdr}
-        onFeedback={onFeedback}
-      />
+      {activeSubTab === 'coins_catalog' ? (
+        <AdminCoinPackagesConfigTab db={db} onFeedback={onFeedback} />
+      ) : (
+        <PricingSettingsForm
+          key={db.pricingConfig.id}
+          pricingConfig={db.pricingConfig}
+          basePricePerCoinIdr={db.coinEconomyConfig.basePricePerCoinIdr}
+          onFeedback={onFeedback}
+        />
+      )}
     </div>
   )
 }

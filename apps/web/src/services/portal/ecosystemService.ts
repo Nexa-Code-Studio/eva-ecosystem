@@ -206,6 +206,14 @@ export function updateCoinEconomyConfig(
 
 export function upsertCoinPackage(input: Omit<CoinPackage, 'id'> & { id?: string }): CoinPackage {
   const db = loadPortalDb()
+  const normalizedCode = input.code.trim().toUpperCase()
+  const duplicate = db.coinPackages.find(
+    (p) => p.code.trim().toUpperCase() === normalizedCode && p.id !== input.id,
+  )
+  if (duplicate) {
+    throw new Error(`Kode paket "${normalizedCode}" sudah digunakan paket lain.`)
+  }
+
   if (input.id) {
     const idx = db.coinPackages.findIndex((p) => p.id === input.id)
     if (idx !== -1) {
@@ -213,7 +221,10 @@ export function upsertCoinPackage(input: Omit<CoinPackage, 'id'> & { id?: string
         ...db.coinPackages[idx],
         ...input,
         id: input.id,
-        code: input.code.trim().toUpperCase(),
+        code: normalizedCode,
+        name: input.name.trim(),
+        description: input.description.trim(),
+        isPopular: Boolean(input.isPopular),
       }
       db.coinPackages[idx] = updated
       savePortalDb(db)
@@ -223,12 +234,24 @@ export function upsertCoinPackage(input: Omit<CoinPackage, 'id'> & { id?: string
 
   const created: CoinPackage = {
     ...input,
-    id: `pkg-${Date.now()}`,
-    code: input.code.trim().toUpperCase(),
+    id: `pkg-${Date.now()}-${db.coinPackages.length + 1}`,
+    code: normalizedCode,
+    name: input.name.trim(),
+    description: input.description.trim(),
+    isPopular: Boolean(input.isPopular),
   }
   db.coinPackages.push(created)
   savePortalDb(db)
   return created
+}
+
+export function deleteCoinPackage(packageId: string): CoinPackage | null {
+  const db = loadPortalDb()
+  const target = db.coinPackages.find((p) => p.id === packageId) ?? null
+  if (!target) return null
+  db.coinPackages = db.coinPackages.filter((p) => p.id !== packageId)
+  savePortalDb(db)
+  return target
 }
 
 export function toggleCoinPackageActive(packageId: string) {

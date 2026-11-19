@@ -66,8 +66,8 @@ apps/web/recordings/
 | **02** | `02-pendaftaran-psikolog-mandiri.mp4` | `/daftar-psikolog` | Form Wizard 3 Tahap Psikolog Profesional Mandiri (Profil, STR & SIP, Akun) |
 | **03** | `03-login-dan-cek-status-psikolog.mp4` | `/login` | Cek status verifikasi psikolog (Pending, Revisi) & Login Admin |
 | **04** | `04-admin-dashboard-overview.mp4` | `/admin/dashboard` | KPI Eksekutif, Tren Konsultasi & Distribusi DASS-21 |
-| **05** | `05-admin-pengaturan-tarif-platform.mp4` | `/admin/settings` | Pengaturan tarif sesi 30m, ekstensi +30m, bagi hasil % & kalkulator preview |
+| **05** | `05-admin-pengaturan-tarif-platform.mp4` | `/admin/settings` | Pengaturan tarif sesi 30m, ekstensi +30m, bagi hasil %, kalkulator preview & Kurs/Paket Koin |
 | **06** | `06-admin-verifikasi-str-sip-psikolog.mp4` | `/admin/psychologists` | Simulasi pendaftaran mobile & verifikasi STR/SIP psikolog mandiri |
 | **07** | `07-admin-monitoring-sesi-online.mp4` | `/admin/monitoring` | Monitoring sesi telekonsultasi read-only 30 Menit & Diperpanjang: 60 Menit |
 | **08** | `08-admin-pengguna-dan-transaksi-koin.mp4` | `/admin/users-coins` | Direktori pengguna aplikasi & riwayat transaksi koin suara |
-| **09** | `09-admin-cms-konten-dan-katalog-koin.mp4` | `/admin/content-config` | CMS Misi Koping, Hotline Krisis, Paket Koin, FAQ & Logout |
+| **09** | `09-admin-cms-konten-dan-katalog-koin.mp4` | `/admin/content-config` | CMS Misi Koping, Hotline Krisis, Waitlist, FAQ & Logout |

@@ -38,6 +38,7 @@ export {
   addFaqEntry,
   addWaitlistEntry,
   adjustUserCoinBalance,
+  deleteCoinPackage,
   deleteCopingQuest,
   deleteFaqEntry,
   reviewCoinTransaction,

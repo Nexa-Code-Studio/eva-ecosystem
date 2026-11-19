@@ -68,15 +68,15 @@
     {
       "id": "05",
       "filename": "05-admin-pengaturan-tarif-platform.mp4",
-      "title": "05. Panel Admin EVA — Pengaturan Master Tarif 30 Menit & Bagi Hasil",
+      "title": "05. Panel Admin EVA — Pengaturan Tarif Platform, Kurs & Paket Koin",
       "route": "/admin/settings",
       "targetDurationSeconds": 30,
       "startSecondPlan": 115,
       "endSecondPlan": 145,
       "actions": [
-        "Mengubah tarif dasar sesi 30 menit dan tarif perpanjangan +30 menit",
-        "Menyesuaikan persentase Hak Psikolog vs Fee Platform (total 100%)",
-        "Meninjau kalkulator simulasi pembagian hasil sesi 30 & 60 menit lalu menyimpan kebijakan"
+        "Mengubah tarif dasar sesi 30 menit dan tarif perpanjangan +30 menit (Koin), serta bagi hasil",
+        "Meninjau kalkulator simulasi pembagian hasil sesi 30 & 60 menit lalu menyimpan kebijakan",
+        "Sub-tab Kurs & Paket Koin (?tab=coins_catalog): Meninjau kurs dasar koin & katalog paket top-up"
       ]
     },
     {
@@ -123,14 +123,13 @@
     {
       "id": "09",
       "filename": "09-admin-cms-konten-dan-katalog-koin.mp4",
-      "title": "09. Panel Admin EVA — CMS Misi Koping, Hotline Krisis, Paket Koin & FAQ",
+      "title": "09. Panel Admin EVA — CMS Misi Koping, Hotline Krisis, Waitlist & FAQ",
       "route": "/admin/content-config",
       "targetDurationSeconds": 25,
       "startSecondPlan": 230,
       "endSecondPlan": 255,
       "actions": [
         "Sub-tab Misi Koping & Krisis (Mobile): Meninjau nomor Hotline Krisis SafetyNet dan daftar misi koping harian",
-        "Sub-tab Kurs & Paket Koin (?tab=coins_catalog): Meninjau konfigurasi paket koin",
         "Sub-tab Waitlist & FAQ (?tab=website): Meninjau waitlist & FAQ website, lalu Logout"
       ]
     }

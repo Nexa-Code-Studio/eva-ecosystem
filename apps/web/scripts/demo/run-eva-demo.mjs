@@ -491,7 +491,7 @@ async function main() {
     })
 
     // =========================================================================
-    // SEGMEN 05: Admin Pengaturan Master Tarif & Bagi Hasil (/admin/settings)
+    // SEGMEN 05: Admin Pengaturan Tarif Platform, Kurs & Paket Koin (/admin/settings)
     // =========================================================================
     await runSegment('05', async () => {
       await moveAndClick(
@@ -508,8 +508,10 @@ async function main() {
       await moveAndType(page.locator('#share-counselor'), '80', 600)
       await moveAndClick(
         page.getByRole('button', { name: /Simpan & Terapkan Tarif Platform/i }),
-        2200,
+        1800,
       )
+
+      await moveAndClick(page.getByRole('button', { name: /Kurs & Paket Koin/i }), 2000)
       await smoothScrollTo(240, 900)
       await waitMs(1200)
       await smoothScrollTo(0, 700)
@@ -608,7 +610,7 @@ async function main() {
     })
 
     // =========================================================================
-    // SEGMEN 09: Admin CMS Konten & Katalog Koin (/admin/content-config)
+    // SEGMEN 09: Admin CMS Konten Mobile & Website (/admin/content-config)
     // =========================================================================
     await runSegment('09', async () => {
       await moveAndClick(
@@ -622,11 +624,6 @@ async function main() {
 
       await smoothScrollTo(250, 900)
       await waitMs(1500)
-      await smoothScrollTo(0, 700)
-
-      await moveAndClick(page.getByRole('button', { name: /Kurs & Paket Koin/i }), 2200)
-      await smoothScrollTo(240, 900)
-      await waitMs(1400)
       await smoothScrollTo(0, 700)
 
       await moveAndClick(page.getByRole('button', { name: /Waitlist & FAQ/i }), 2200)

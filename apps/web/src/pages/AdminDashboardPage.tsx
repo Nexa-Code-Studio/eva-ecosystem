@@ -166,14 +166,7 @@ export function AdminMonitoringRoute() {
 
 export function AdminSettingsRoute() {
   const { db, onFeedback } = useAdminOutletContext()
-  return (
-    <AdminPlatformSettingsModule
-      pricingConfig={db.pricingConfig}
-      pricingHistory={db.pricingHistory}
-      basePricePerCoinIdr={db.coinEconomyConfig.basePricePerCoinIdr}
-      onFeedback={onFeedback}
-    />
-  )
+  return <AdminPlatformSettingsModule db={db} onFeedback={onFeedback} />
 }
 
 export function AdminUsersCoinsRoute() {
