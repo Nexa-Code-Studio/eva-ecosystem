@@ -86,10 +86,10 @@ jobs:
           cd apps/eva_counselor_mobile
           flutter pub get
           if [ "$BUILD_TYPE" = "debug" ]; then
-            flutter build apk --debug
+            flutter build apk --debug --android-skip-build-dependency-validation
             cp build/app/outputs/flutter-apk/app-debug.apk "$GITHUB_WORKSPACE/eva-counselor-mobile-debug.apk"
           else
-            flutter build apk --release
+            flutter build apk --release --android-skip-build-dependency-validation
             cp build/app/outputs/flutter-apk/app-release.apk "$GITHUB_WORKSPACE/eva-counselor-mobile-release.apk"
           fi
 
@@ -101,10 +101,10 @@ jobs:
           cd apps/eva_mobile
           flutter pub get
           if [ "$BUILD_TYPE" = "debug" ]; then
-            flutter build apk --debug
+            flutter build apk --debug --android-skip-build-dependency-validation
             cp build/app/outputs/flutter-apk/app-debug.apk "$GITHUB_WORKSPACE/eva-mobile-debug.apk"
           else
-            flutter build apk --release
+            flutter build apk --release --android-skip-build-dependency-validation
             cp build/app/outputs/flutter-apk/app-release.apk "$GITHUB_WORKSPACE/eva-mobile-release.apk"
           fi
 

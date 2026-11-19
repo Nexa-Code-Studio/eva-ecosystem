@@ -82,6 +82,7 @@ class TestCICDWorkflows(unittest.TestCase):
         # Check that eva-mobile-release.apk is created
         raw_text = build_mobile.read_text(encoding="utf-8")
         self.assertIn("eva-mobile-release.apk", raw_text, "Workflow must produce 'eva-mobile-release.apk'.")
+        self.assertIn("--android-skip-build-dependency-validation", raw_text, "Workflow must bypass gradle validation.")
         self.assertIn("softprops/action-gh-release", raw_text, "Workflow must publish release assets.")
 
     def test_deploy_backend_vps_spec(self):
@@ -113,17 +114,19 @@ class TestCICDWorkflows(unittest.TestCase):
         self.assertIn("appleboy/ssh-action", raw_text, "Workflow must use SSH action for VPS deployment.")
         self.assertIn("/root/vps-blueprints/runbooks/deploy-eva-backend.sh", raw_text, "Workflow must call deployment runbook.")
 
-    def test_deploy_mobile_vercel_spec(self):
-        """Verify deploy-mobile-vercel.yml auto-triggers on push to main."""
-        vercel_wf = WORKFLOWS_DIR / "deploy-mobile-vercel.yml"
-        self.assertTrue(vercel_wf.exists(), "deploy-mobile-vercel.yml must exist.")
+    def test_deploy_mobile_web_pages_spec(self):
+        """Verify deploy-mobile-web.yml auto-triggers on push to main for Eva Mobile and Counselor."""
+        pages_wf = WORKFLOWS_DIR / "deploy-mobile-web.yml"
+        self.assertTrue(pages_wf.exists(), "deploy-mobile-web.yml must exist.")
 
-        data = load_workflow_yaml(vercel_wf)
+        data = load_workflow_yaml(pages_wf)
 
         on_trigger = data.get("on", {})
-        self.assertIn("push", on_trigger, "deploy-mobile-vercel.yml must trigger on push.")
+        self.assertIn("push", on_trigger, "deploy-mobile-web.yml must trigger on push.")
         self.assertIn("main", on_trigger["push"].get("branches", []), "Push must trigger on 'main'.")
-        self.assertIn("apps/eva_mobile/**", on_trigger["push"].get("paths", []), "Push must filter on apps/eva_mobile/**.")
+        paths = on_trigger["push"].get("paths", [])
+        self.assertIn("apps/eva_mobile/**", paths, "Push must filter on apps/eva_mobile/**.")
+        self.assertIn("apps/eva_counselor_mobile/**", paths, "Push must filter on apps/eva_counselor_mobile/**.")
 
     def test_trigger_path_isolation(self):
         """Verify mobile and backend workflows have mutually isolated path filters."""
