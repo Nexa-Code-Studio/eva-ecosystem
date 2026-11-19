@@ -53,14 +53,14 @@ export function buildMockHistorySeed(today = new Date('2026-10-29T12:00:00Z'), d
 
     const newUsers = Math.max(8, Math.round((14 + rand() * 12) * growth * weekendFactor))
     const voiceSessions = Math.max(90, Math.round((180 + rand() * 110) * growth * weekendFactor))
-    const referrals = Math.max(0, Math.round((1.2 + rand() * 3.4) * growth))
+    const consultations = Math.max(2, Math.round((3 + rand() * 5) * growth))
 
     result.push({
       date: formatDateIso(d),
       label: formatDateLabel(d),
       newUsers,
       voiceSessions,
-      referrals,
+      consultations,
     })
   }
 

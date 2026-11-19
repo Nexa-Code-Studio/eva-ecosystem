@@ -125,9 +125,9 @@ export function ClinicalEvaluationModal({ isOpen, onClose }: ClinicalEvaluationM
             Tutup
           </Button>
           <div className="flex flex-wrap gap-2">
-            <Link to="/pengajuan-mitra" onClick={onClose}>
+            <Link to="/daftar-psikolog" onClick={onClose}>
               <Button variant="primary" size="md">
-                Ajukan Kemitraan Faskes
+                Daftar Psikolog Mandiri
               </Button>
             </Link>
           </div>

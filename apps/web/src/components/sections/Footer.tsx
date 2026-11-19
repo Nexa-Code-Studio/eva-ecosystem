@@ -1,4 +1,4 @@
-import { ArrowUpRight, Building2, Heart, PhoneCall, Stethoscope } from 'lucide-react'
+import { ArrowUpRight, Heart, PhoneCall, Stethoscope, UserCheck } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { ClinicalEvaluationModal } from '@/components/modals/ClinicalEvaluationModal'
@@ -56,30 +56,30 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  to="/pengajuan-mitra"
-                  data-cursor="MITRA"
+                  to="/daftar-psikolog"
+                  data-cursor="DAFTAR"
                   className="text-body-md text-ink-soft transition-colors duration-[250ms] hover:text-primary"
                 >
-                  Pengajuan Mitra Faskes
+                  Pendaftaran Psikolog Mandiri
                 </Link>
               </li>
             </ul>
           </nav>
 
           <div>
-            <p className="text-overline text-ink-muted uppercase">Untuk Profesional &amp; Mitra Faskes</p>
+            <p className="text-overline text-ink-muted uppercase">Untuk Psikolog Profesional</p>
             <div className="mt-4 flex flex-col items-start gap-3">
               <Button
                 id="footer-partner-apply"
-                to="/pengajuan-mitra"
-                data-cursor="MITRA"
+                to="/daftar-psikolog"
+                data-cursor="DAFTAR"
                 variant="social"
                 size="md"
                 className="w-full sm:w-auto"
-                leftIcon={<Building2 />}
+                leftIcon={<UserCheck />}
                 rightIcon={<ArrowUpRight />}
               >
-                Ajukan Kemitraan Faskes
+                Daftar Psikolog Mandiri
               </Button>
               <Button
                 id="footer-partner-evaluation"

@@ -1,21 +1,14 @@
 import {
-  ArrowUpCircle,
-  Building2,
+  AlertCircle,
   CheckCircle2,
   Clock,
-  Coins,
-  GraduationCap,
-  HeartHandshake,
+  ShieldAlert,
+  Sparkles,
+  Stethoscope,
   XCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/cn'
-import type {
-  PartnerStatus,
-  PsychologistRole,
-  PsychologistStatus,
-  UpgradeRequest,
-  VerificationStatus,
-} from '@/types/portal'
+import type { PsychologistStatus, VerificationStatus } from '@/types/portal'
 
 export {
   PsychologistShieldBadge,
@@ -26,64 +19,34 @@ export function VerificationBadge({ status }: { status: VerificationStatus }) {
   if (status === 'pending') {
     return (
       <span className="inline-flex shrink-0 items-center gap-1 rounded-[6px] border border-[#FDE68A] bg-[#FEF3C7] px-2 py-0.5 text-[11px] font-semibold text-[#92400E]">
-        <Clock className="size-3" /> Menunggu Verifikasi Sertifikat
+        <Clock className="size-3" /> Menunggu Verifikasi
       </span>
     )
   }
-  if (status === 'approved') {
+  if (status === 'verified') {
     return (
       <span className="inline-flex shrink-0 items-center gap-1 rounded-[6px] border border-[#BBF7D0] bg-[#F0FDF4] px-2 py-0.5 text-[11px] font-semibold text-[#166534]">
-        <CheckCircle2 className="size-3" /> Mandiri Terverifikasi
+        <CheckCircle2 className="size-3" /> Terverifikasi
+      </span>
+    )
+  }
+  if (status === 'need_revision') {
+    return (
+      <span className="inline-flex shrink-0 items-center gap-1 rounded-[6px] border border-[#FDBA74] bg-[#FFF7ED] px-2 py-0.5 text-[11px] font-semibold text-[#C2410C]">
+        <AlertCircle className="size-3" /> Perlu Revisi
       </span>
     )
   }
   if (status === 'rejected') {
     return (
       <span className="inline-flex shrink-0 items-center gap-1 rounded-[6px] border border-[#FECACA] bg-[#FEF2F2] px-2 py-0.5 text-[11px] font-semibold text-[#991B1B]">
-        <XCircle className="size-3" /> Berkas Ditolak
+        <XCircle className="size-3" /> Ditolak
       </span>
     )
   }
   return (
     <span className="inline-flex shrink-0 items-center gap-1 rounded-[6px] border border-[#CBD5E1] bg-[#F1F5F9] px-2 py-0.5 text-[11px] font-semibold text-ink-soft">
-      Nonaktif
-    </span>
-  )
-}
-
-export function PartnerStatusBadge({
-  status,
-}: {
-  status: PartnerStatus
-  isResubmitted?: boolean
-}) {
-  if (status === 'pending') {
-    return (
-      <span className="inline-flex shrink-0 items-center gap-1 rounded-[6px] border border-[#FDE68A] bg-[#FEF3C7] px-2 py-0.5 text-[11px] font-semibold text-[#92400E]">
-        <Clock className="size-3" />
-        Menunggu Verifikasi
-      </span>
-    )
-  }
-  if (status === 'approved') {
-    return (
-      <span className="inline-flex shrink-0 items-center gap-1 rounded-[6px] border border-[#BBF7D0] bg-[#F0FDF4] px-2 py-0.5 text-[11px] font-semibold text-[#166534]">
-        <CheckCircle2 className="size-3" />
-        Disetujui
-      </span>
-    )
-  }
-  if (status === 'rejected') {
-    return (
-      <span className="inline-flex shrink-0 items-center gap-1 rounded-[6px] border border-[#FECACA] bg-[#FEF2F2] px-2 py-0.5 text-[11px] font-semibold text-[#991B1B]">
-        <XCircle className="size-3" />
-        Ditolak
-      </span>
-    )
-  }
-  return (
-    <span className="inline-flex shrink-0 items-center gap-1 rounded-[6px] border border-[#CBD5E1] bg-[#F1F5F9] px-2 py-0.5 text-[11px] font-semibold text-ink-soft">
-      Dinonaktifkan
+      <ShieldAlert className="size-3" /> Dinonaktifkan
     </span>
   )
 }
@@ -92,7 +55,7 @@ export function PracticeStatusBadge({ status }: { status: PsychologistStatus }) 
   return (
     <span
       className={cn(
-        'rounded-[6px] px-2 py-0.5 text-[11px] font-semibold',
+        'inline-flex shrink-0 items-center gap-1 rounded-[6px] px-2 py-0.5 text-[11px] font-semibold',
         status === 'active'
           ? 'bg-[#F0FDF4] text-[#166534]'
           : status === 'on_leave'
@@ -101,129 +64,70 @@ export function PracticeStatusBadge({ status }: { status: PsychologistStatus }) 
       )}
     >
       {status === 'active'
-        ? 'Aktif Praktik'
+        ? 'Online / Siap Sesi'
         : status === 'on_leave'
-          ? 'Sedang Cuti'
-          : 'Nonaktif'}
+          ? 'Sedang Istirahat'
+          : 'Sedang Tidak Aktif'}
     </span>
   )
 }
 
 export function PsychologistRoleBadge({
-  role,
   verificationStatus,
   className,
 }: {
-  role?: PsychologistRole
   verificationStatus?: VerificationStatus
   className?: string
 }) {
-  if (verificationStatus === 'pending' && role !== 'relawan_profesional_mitra') {
-    return null
-  }
-
-  if (role === 'relawan_profesional_mitra') {
-    return (
-      <span
-        className={cn(
-          'inline-flex shrink-0 items-center gap-1.5 rounded-[6px] border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-800 shadow-2xs',
-          className,
-        )}
-      >
-        <Building2 className="size-3 text-emerald-600" />
-        <span>Relawan Profesional (Mitra)</span>
-      </span>
-    )
-  }
-
-  if (role === 'relawan_profesional_non_mitra') {
-    return (
-      <span
-        className={cn(
-          'inline-flex shrink-0 items-center gap-1.5 rounded-[6px] border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[11px] font-bold text-indigo-800 shadow-2xs',
-          className,
-        )}
-      >
-        <GraduationCap className="size-3 text-indigo-600" />
-        <span>Relawan Profesional (Non Mitra)</span>
-      </span>
-    )
-  }
-
-  // Default to relawan pendamping
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center gap-1.5 rounded-[6px] border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-bold text-sky-800 shadow-2xs',
+        'inline-flex shrink-0 items-center gap-1.5 rounded-[6px] border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[11px] font-bold text-indigo-800 shadow-2xs',
         className,
       )}
     >
-      <HeartHandshake className="size-3 text-sky-600" />
-      <span>Relawan Pendamping</span>
-    </span>
-  )
-}
-
-export function UpgradeRequestBadge({
-  request,
-  className,
-}: {
-  request?: UpgradeRequest | null
-  className?: string
-}) {
-  if (!request) return null
-
-  return (
-    <span
-      className={cn(
-        'inline-flex shrink-0 items-center gap-1.5 rounded-[6px] border border-amber-400 bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-900 shadow-xs',
-        className,
-      )}
-    >
-      <ArrowUpCircle className="size-3 text-amber-700" />
-      <span>Menunggu Upgrade ke Relawan Profesional (Non Mitra)</span>
-    </span>
-  )
-}
-
-export function PsychologistSessionFeeBadge({
-  feeCoins,
-  durationMinutes,
-  className,
-}: {
-  feeCoins?: number
-  durationMinutes?: number
-  className?: string
-}) {
-  const isFree = !feeCoins || feeCoins === 0
-  const duration = durationMinutes ?? (isFree ? 30 : 45)
-
-  if (isFree) {
-    return (
-      <span
-        className={cn(
-          'inline-flex shrink-0 items-center gap-1 rounded-[6px] border border-[#CBD5E1] bg-[#F8FAFC] px-2 py-0.5 text-[11px] font-semibold text-ink-soft',
-          className,
-        )}
-      >
-        <span>Gratis / {duration} mnt</span>
-      </span>
-    )
-  }
-
-  return (
-    <span
-      className={cn(
-        'inline-flex shrink-0 items-center gap-1 rounded-[6px] border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-900',
-        className,
-      )}
-    >
-      <Coins className="size-3 text-amber-600" />
+      <Stethoscope className="size-3 text-indigo-600" />
       <span>
-        {feeCoins} Koin / {duration} mnt
+        {verificationStatus === 'verified'
+          ? 'Psikolog Mandiri Terverifikasi'
+          : 'Psikolog Profesional Individu'}
       </span>
     </span>
   )
 }
 
+export function SessionDurationBadge({
+  durationMinutes,
+  isExtended,
+  className,
+}: {
+  durationMinutes: 30 | 60
+  isExtended: boolean
+  className?: string
+}) {
+  if (isExtended || durationMinutes === 60) {
+    return (
+      <span
+        className={cn(
+          'inline-flex shrink-0 items-center gap-1 rounded-[6px] border border-[#C7D2FE] bg-[#EEF0FF] px-2 py-0.5 text-[11px] font-bold text-primary',
+          className,
+        )}
+      >
+        <Sparkles className="size-3" />
+        <span>Diperpanjang: 60 Menit</span>
+      </span>
+    )
+  }
 
+  return (
+    <span
+      className={cn(
+        'inline-flex shrink-0 items-center gap-1 rounded-[6px] border border-[#E2E8F0] bg-[#F8FAFC] px-2 py-0.5 text-[11px] font-semibold text-ink',
+        className,
+      )}
+    >
+      <Clock className="size-3 text-ink-muted" />
+      <span>30 Menit</span>
+    </span>
+  )
+}

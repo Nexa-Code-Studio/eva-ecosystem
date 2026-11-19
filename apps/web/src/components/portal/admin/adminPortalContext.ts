@@ -1,29 +1,22 @@
 import { useOutletContext } from 'react-router'
-import type { PortalDatabase } from '@/types/portal'
 import type { PortalSession } from '@/lib/portalStore'
+import type { AdminModuleId } from '@/types/domain/dashboard'
+import type { PortalDatabase } from '@/types/portal'
 
-export type AdminModule =
-  | 'dashboard'
-  | 'psychologists'
-  | 'partners'
-  | 'referrals'
-  | 'users_coins'
-  | 'content_config'
+export type AdminModule = AdminModuleId
 
 export interface AdminSummaryCounts {
-  pendingMandiri: number
-  approvedMandiri: number
-  faskesPsy: number
-  pendingPartners: number
-  approvedPartners: number
+  pendingPsychologists: number
+  verifiedPsychologists: number
+  needRevisionPsychologists: number
+  activeSessions: number
+  extendedSessions: number
   crisisUsers: number
-  unassignedRefs: number
   newWaitlist: number
   totalGeneralUsers: number
   activeQuestsCount: number
   totalWaitlistCount: number
   hotlineNumber: string
-  pendingPsyAction?: number
 }
 
 export interface AdminOutletContext {
@@ -36,8 +29,10 @@ export interface AdminOutletContext {
 
 export function getActiveAdminModule(pathname: string): AdminModule {
   if (pathname.includes('/admin/psychologists')) return 'psychologists'
-  if (pathname.includes('/admin/partners')) return 'partners'
-  if (pathname.includes('/admin/referrals')) return 'referrals'
+  if (pathname.includes('/admin/monitoring') || pathname.includes('/admin/referrals')) {
+    return 'monitoring'
+  }
+  if (pathname.includes('/admin/settings')) return 'settings'
   if (pathname.includes('/admin/users-coins')) return 'users_coins'
   if (pathname.includes('/admin/content-config')) return 'content_config'
   return 'dashboard'

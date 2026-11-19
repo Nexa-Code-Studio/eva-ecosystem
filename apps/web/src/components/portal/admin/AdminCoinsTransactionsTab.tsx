@@ -164,7 +164,7 @@ export function AdminCoinsTransactionsTab({
             Rp{db.coinEconomyConfig.basePricePerCoinIdr.toLocaleString('id-ID')} / Koin
           </p>
           <p className="mt-0.5 text-xs text-ink-muted">
-            1 Koin = 1 Menit bicara · Trial baru: {db.coinEconomyConfig.freeTrialCoinsNewUser} Koin
+            Voice AI (1 Koin/mnt) &amp; konsultasi · Trial: {db.coinEconomyConfig.freeTrialCoinsNewUser} Koin
           </p>
         </div>
       </div>
@@ -177,7 +177,7 @@ export function AdminCoinsTransactionsTab({
               Riwayat Transaksi Top-Up Koin Pengguna
             </h2>
             <p className="text-xs text-ink-muted">
-              Verifikasi pembayaran masuk dan pantau distribusi koin menit bicara ke akun pengguna.
+              Verifikasi pembayaran masuk dan pantau distribusi EVA Coin ke akun pengguna.
             </p>
           </div>
 

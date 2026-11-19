@@ -63,6 +63,13 @@
     "updated_at": 1794984686,
     "evidence_summary": "Evidence accepted: completion and merge/approval verified."
   },
+  "60": {
+    "issue": 60,
+    "branch": "feat/60-web-psychologist-verification-settings",
+    "state": "In Progress",
+    "updated_at": 1794991724,
+    "evidence_summary": "Evidence accepted: active task branch verified."
+  },
   "71": {
     "issue": 71,
     "branch": "main",

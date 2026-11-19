@@ -213,10 +213,10 @@ export const faqs: FaqItem[] = [
   },
   {
     id: 'pricing',
-    category: 'Biaya & Koin Suara',
+    category: 'Biaya & EVA Coin',
     question: 'Bagaimana sistem biaya dan penggunaan Koin di aplikasi EVA?',
     answer:
-      'Fitur Misi Koping Harian, Diari Otomatis, dan Skrining DASS-21 dapat diakses gratis. Untuk sesi Curhat Suara AI 24/7, EVA menggunakan sistem EVA Coin di mana 1 Koin setara dengan 1 menit berbicara bersama EVA (harga dasar Rp1.000/koin dengan pilihan paket hemat). Setiap pengguna baru otomatis mendapatkan bonus 10 Koin gratis untuk mencoba sesi suara.',
+      'Fitur Misi Koping Harian, Diari Otomatis, dan Skrining DASS-21 dapat diakses gratis. Untuk seluruh layanan berbayar EVA — baik Curhat Suara AI 24/7 (1 Koin = 1 menit berbicara) maupun telekonsultasi psikolog profesional (tarif Koin per sesi 30 menit) — EVA menggunakan mata uang terpadu EVA Coin (kurs dasar Rp1.000/Koin dengan pilihan paket top-up hemat). Setiap pengguna baru otomatis mendapatkan bonus 10 Koin gratis.',
   },
   {
     id: 'clinical',
@@ -304,7 +304,7 @@ export const waitlist = {
   note: '100% Aman • Privasi tersimpan di ponsel • Bebas biaya',
 }
 
-export const partnerCtas = ['Ajukan Kemitraan Faskes', 'Baca Evaluasi Klinis Psikolog']
+export const psychologistCtas = ['Daftar Psikolog Mandiri', 'Baca Evaluasi Klinis Psikolog']
 
 export const crisisHotline = 'Hubungi Layanan Krisis Bebas Pulsa (119 Ext 8)'
 

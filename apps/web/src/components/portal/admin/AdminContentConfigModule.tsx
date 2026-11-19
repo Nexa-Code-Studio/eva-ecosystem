@@ -1,8 +1,7 @@
-import { useSearchParams } from 'react-router'
+import { Navigate, useSearchParams } from 'react-router'
 import { cn } from '@/lib/cn'
 import type { PortalDatabase } from '@/types/portal'
 import { AdminMobileContentTab } from './AdminMobileContentTab'
-import { AdminCoinPackagesConfigTab } from './AdminCoinPackagesConfigTab'
 import { AdminWebsiteContentTab } from './AdminWebsiteContentTab'
 
 interface AdminContentConfigModuleProps {
@@ -10,13 +9,17 @@ interface AdminContentConfigModuleProps {
   onFeedback: (message: string) => void
 }
 
-export type CmsSubTab = 'mobile' | 'coins_catalog' | 'website'
+export type CmsSubTab = 'mobile' | 'website'
 
 export function AdminContentConfigModule({ db, onFeedback }: AdminContentConfigModuleProps) {
   const [searchParams, setSearchParams] = useSearchParams()
-  const tabParam = searchParams.get('tab') as CmsSubTab | null
-  const cmsSubTab: CmsSubTab =
-    tabParam === 'coins_catalog' || tabParam === 'website' ? tabParam : 'mobile'
+  const tabParam = searchParams.get('tab')
+
+  if (tabParam === 'coins_catalog') {
+    return <Navigate to="/admin/settings?tab=coins_catalog" replace />
+  }
+
+  const cmsSubTab: CmsSubTab = tabParam === 'website' ? 'website' : 'mobile'
 
   const handleSubTabChange = (tab: CmsSubTab) => {
     setSearchParams((prev) => {
@@ -38,7 +41,7 @@ export function AdminContentConfigModule({ db, onFeedback }: AdminContentConfigM
             Konten Aplikasi Mobile &amp; Operasional Website
           </h1>
           <p className="mt-0.5 text-xs text-ink-muted">
-            Kelola Misi Koping Harian, Hotline Krisis SafetyNet, Kurs &amp; Katalog Paket Koin Suara, serta Waitlist &amp; FAQ Website.
+            Kelola Misi Koping Harian, Hotline Krisis SafetyNet, serta Waitlist &amp; FAQ Website.
           </p>
         </div>
 
@@ -57,18 +60,6 @@ export function AdminContentConfigModule({ db, onFeedback }: AdminContentConfigM
           </button>
           <button
             type="button"
-            onClick={() => handleSubTabChange('coins_catalog')}
-            className={cn(
-              'cursor-pointer rounded-[6px] px-3 py-1.5 text-xs font-semibold transition-colors',
-              cmsSubTab === 'coins_catalog'
-                ? 'bg-primary text-white'
-                : 'text-ink-soft hover:text-ink',
-            )}
-          >
-            Kurs &amp; Paket Koin ({db.coinPackages.filter((pkg) => pkg.isActive).length})
-          </button>
-          <button
-            type="button"
             onClick={() => handleSubTabChange('website')}
             className={cn(
               'cursor-pointer rounded-[6px] px-3 py-1.5 text-xs font-semibold transition-colors',
@@ -84,8 +75,6 @@ export function AdminContentConfigModule({ db, onFeedback }: AdminContentConfigM
 
       {cmsSubTab === 'mobile' ? (
         <AdminMobileContentTab db={db} onFeedback={onFeedback} />
-      ) : cmsSubTab === 'coins_catalog' ? (
-        <AdminCoinPackagesConfigTab db={db} onFeedback={onFeedback} />
       ) : (
         <AdminWebsiteContentTab db={db} onFeedback={onFeedback} />
       )}

@@ -14,18 +14,19 @@ import {
   getMockDashboardAnalyticsBaseline,
 } from './dashboardMetrics.mock'
 import {
+  INITIAL_CONSULTATION_SESSIONS,
   INITIAL_COPING_QUESTS,
   INITIAL_CRISIS_CONFIG,
   INITIAL_FAQS,
   INITIAL_GENERAL_USERS,
-  INITIAL_REFERRAL_LIST,
+  INITIAL_PRICING_CONFIG,
+  INITIAL_PRICING_HISTORY,
   INITIAL_WAITLIST,
 } from './ecosystem.mock'
-import { INITIAL_PARTNERS } from './partners.mock'
 import {
   INITIAL_PSYCHOLOGISTS,
+  buildPsychologistCertificates,
   buildSimulatedMobilePsychologist,
-  buildSimulatedUpgradeDocuments,
 } from './psychologists.mock'
 import type { PortalDatabase } from '@/types/domain/portal'
 
@@ -34,29 +35,31 @@ export {
   INITIAL_COIN_ECONOMY_CONFIG,
   INITIAL_COIN_PACKAGES,
   INITIAL_COIN_TRANSACTIONS,
+  INITIAL_CONSULTATION_SESSIONS,
   INITIAL_COPING_QUESTS,
   INITIAL_CRISIS_CONFIG,
   INITIAL_FAQS,
   INITIAL_GENERAL_USERS,
-  INITIAL_PARTNERS,
+  INITIAL_PRICING_CONFIG,
+  INITIAL_PRICING_HISTORY,
   INITIAL_PSYCHOLOGISTS,
-  INITIAL_REFERRAL_LIST,
   INITIAL_WAITLIST,
   MOCK_ADMIN_ACCOUNT,
   MOCK_BASELINE_DASS,
   MOCK_BASELINE_USERS,
   buildMockHistorySeed,
+  buildPsychologistCertificates,
   buildSimulatedMobilePsychologist,
-  buildSimulatedUpgradeDocuments,
   generateCertificateSvgUri,
   getEmptyDashboardAnalyticsBaseline,
   getMockDashboardAnalyticsBaseline,
 }
 
 export const INITIAL_MOCK_DB: PortalDatabase = {
-  partners: INITIAL_PARTNERS,
   psychologists: INITIAL_PSYCHOLOGISTS,
-  referrals: INITIAL_REFERRAL_LIST,
+  consultationSessions: INITIAL_CONSULTATION_SESSIONS,
+  pricingConfig: INITIAL_PRICING_CONFIG,
+  pricingHistory: INITIAL_PRICING_HISTORY,
   generalUsers: INITIAL_GENERAL_USERS,
   copingQuests: INITIAL_COPING_QUESTS,
   crisisConfig: INITIAL_CRISIS_CONFIG,

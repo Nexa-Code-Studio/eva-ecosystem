@@ -37,9 +37,9 @@ export function PsychologistCompositionCard({
     <div className={cn('flex flex-col justify-between rounded-[12px] border border-[#E2E8F0] bg-white p-5', className)}>
       <div>
         <div className="border-b border-[#E2E8F0] pb-3.5">
-          <h2 className="text-sm font-bold text-ink">Komposisi Psikolog &amp; Relawan</h2>
+          <h2 className="text-sm font-bold text-ink">Status Psikolog Mandiri</h2>
           <p className="text-xs text-ink-muted">
-            Distribusi psikolog mitra faskes, relawan terdaftar, dan antrean verifikasi.
+            Distribusi psikolog terverifikasi, antrean verifikasi STR/SIP, dan pengajuan revisi.
           </p>
         </div>
 
