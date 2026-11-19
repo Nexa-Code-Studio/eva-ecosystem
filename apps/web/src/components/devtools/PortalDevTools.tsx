@@ -30,7 +30,7 @@ export function MobilePsychologistSimulatorTrigger({ onOpen }: { onOpen: () => v
       className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-[8px] bg-primary px-3.5 text-xs font-semibold text-white shadow-btn transition-colors hover:bg-primary-hover"
     >
       <Smartphone className="size-4" />
-      <span>Simulasi Pendaftaran &amp; Upgrade</span>
+      <span>Simulasi Pendaftaran Mobile</span>
     </button>
   )
 }

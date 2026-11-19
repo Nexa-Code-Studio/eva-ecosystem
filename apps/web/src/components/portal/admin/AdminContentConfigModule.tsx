@@ -38,7 +38,7 @@ export function AdminContentConfigModule({ db, onFeedback }: AdminContentConfigM
             Konten Aplikasi Mobile &amp; Operasional Website
           </h1>
           <p className="mt-0.5 text-xs text-ink-muted">
-            Kelola Misi Koping Harian, Hotline Krisis SafetyNet, Kurs &amp; Katalog Paket Koin Suara, serta Waitlist &amp; FAQ Website.
+            Kelola Misi Koping Harian, Hotline Krisis SafetyNet, Kurs &amp; Katalog Paket EVA Coin, serta Waitlist &amp; FAQ Website.
           </p>
         </div>
 

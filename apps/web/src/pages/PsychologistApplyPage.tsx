@@ -1,27 +1,30 @@
 import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { ApplyStep1Facility } from '@/components/portal/apply/ApplyStep1Facility'
-import { ApplyStep2PicOperational } from '@/components/portal/apply/ApplyStep2PicOperational'
-import { ApplyStep3AccountConfirm } from '@/components/portal/apply/ApplyStep3AccountConfirm'
-import { usePartnerApplyForm, type WizardStep } from '@/hooks/usePartnerApplyForm'
+import { ApplyStep1Identity } from '@/components/portal/apply/ApplyStep1Identity'
+import { ApplyStep2Credentials } from '@/components/portal/apply/ApplyStep2Credentials'
+import { ApplyStep3Account } from '@/components/portal/apply/ApplyStep3Account'
+import { usePsychologistApplyForm, type WizardStep } from '@/hooks/usePsychologistApplyForm'
 import { cn } from '@/lib/cn'
 
 const STEP_LABELS: Record<WizardStep, string> = {
-  1: '1. Data Faskes',
-  2: '2. PIC & Layanan',
+  1: '1. Profil Klinis',
+  2: '2. STR & SIP',
   3: '3. Akun & Kirim',
 }
 
-export function PartnerApplyPage() {
+export function PsychologistApplyPage() {
   const [searchParams] = useSearchParams()
-  const revisionPartnerId = searchParams.get('revisi')
-  const form = usePartnerApplyForm(revisionPartnerId)
+  const revisionPsyId = searchParams.get('revisi')
+  const form = usePsychologistApplyForm(revisionPsyId)
   const year = new Date().getFullYear()
 
   useEffect(() => {
+    document.title = form.isRevisionMode
+      ? 'Perbaikan Pendaftaran Psikolog : EVA'
+      : 'Pendaftaran Psikolog Profesional Mandiri : EVA'
     window.scrollTo(0, 0)
-  }, [])
+  }, [form.isRevisionMode])
 
   return (
     <div className="flex min-h-[100dvh] flex-col justify-between bg-[#F8F9FE] px-4 py-6 sm:px-6 sm:py-8">
@@ -46,43 +49,44 @@ export function PartnerApplyPage() {
           </Link>
           <h1 className="mt-2.5 text-[20px] font-semibold tracking-[-0.015em] text-ink">
             {form.isRevisionMode
-              ? 'Perbaikan Pengajuan Mitra Faskes'
-              : 'Pengajuan Mitra Fasilitas Kesehatan'}
+              ? 'Perbaikan Data Psikolog Profesional'
+              : 'Pendaftaran Psikolog Profesional Mandiri'}
           </h1>
           <p className="mt-1 max-w-md text-xs text-ink-soft">
             {form.isRevisionMode
-              ? 'Perbarui data fasilitas kesehatan Anda sesuai catatan verifikasi Admin.'
-              : 'Daftarkan Rumah Sakit, Klinik, atau Biro Psikologi Anda ke ekosistem EVA.'}
+              ? 'Perbarui data kredensial STR/SIP Anda sesuai catatan verifikasi Admin EVA.'
+              : 'Bergabung sebagai psikolog independen terverifikasi untuk layanan telekonsultasi online 30 menit di EVA.'}
           </p>
         </div>
 
         <div className="rounded-[12px] border border-[#E2E8F0] bg-white p-6 shadow-[0_1px_3px_rgba(15,23,42,0.04)] sm:p-7">
-          {form.submittedPartner ? (
+          {form.submittedPsychologist ? (
             <div role="status" className="py-2">
               <div className="flex items-start gap-3 rounded-[10px] border border-success/30 bg-success/5 p-4">
                 <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-success" />
                 <div>
                   <h2 className="text-base font-semibold text-ink">
                     {form.isRevisionMode
-                      ? 'Perbaikan Pengajuan Berhasil Dikirim Ulang'
-                      : 'Pengajuan Kemitraan Berhasil Dikirim'}
+                      ? 'Perbaikan Berkas Berhasil Dikirim Ulang'
+                      : 'Pendaftaran Psikolog Berhasil Dikirim'}
                   </h2>
                   <p className="mt-1 text-xs leading-relaxed text-ink-soft">
-                    Data untuk{' '}
+                    Data kredensial untuk{' '}
                     <strong className="font-semibold text-ink">
-                      {form.submittedPartner.facilityName}
+                      {form.submittedPsychologist.fullName}, {form.submittedPsychologist.titleDegree}
                     </strong>{' '}
-                    telah masuk ke antrean verifikasi Admin EVA. Akun Anda akan aktif setelah izin
-                    operasional faskes disetujui.
+                    (STR <span className="font-mono">{form.submittedPsychologist.strNumber}</span>)
+                    telah masuk ke antrean verifikasi Admin EVA. Setelah disetujui, akun dapat
+                    langsung digunakan pada aplikasi <strong>Eva Counselor Mobile</strong>.
                   </p>
                 </div>
               </div>
-              <div className="mt-5 flex items-center justify-end">
+              <div className="mt-5 flex items-center justify-end gap-2">
                 <Link
                   to="/login"
                   className="inline-flex h-10 items-center justify-center rounded-[8px] bg-primary px-5 text-xs font-semibold text-white transition-colors hover:bg-[#464BB8]"
                 >
-                  Ke Halaman Masuk
+                  Cek Status di Halaman Masuk
                 </Link>
               </div>
             </div>
@@ -113,97 +117,100 @@ export function PartnerApplyPage() {
                 })}
               </div>
 
-              {form.isRevisionMode && form.revisionTarget?.rejectionReason && (
+              {form.isRevisionMode && form.revisionTarget?.verificationNotes && (
                 <div className="mb-5 flex items-start gap-2.5 rounded-[8px] border border-crisis-border bg-crisis-bg p-3 text-xs leading-relaxed text-crisis-text">
                   <AlertTriangle className="mt-0.5 size-4 shrink-0" />
                   <div>
                     <span className="font-semibold">Catatan Admin: </span>
-                    <span>{form.revisionTarget.rejectionReason}</span>
+                    <span>{form.revisionTarget.verificationNotes}</span>
                   </div>
                 </div>
               )}
 
               {form.step === 1 && (
-                <ApplyStep1Facility
-                  facilityName={form.facilityName}
-                  facilityType={form.facilityType}
+                <ApplyStep1Identity
+                  fullName={form.fullName}
+                  titleDegree={form.titleDegree}
                   city={form.city}
-                  licenseNumber={form.licenseNumber}
-                  address={form.address}
+                  education={form.education}
+                  yearsOfExperience={form.yearsOfExperience}
+                  specializations={form.specializations}
+                  bio={form.bio}
                   errors={form.errors}
-                  onFacilityNameChange={(val) => {
-                    form.setFacilityName(val)
-                    form.clearError('facilityName')
+                  onFullNameChange={(val) => {
+                    form.setFullName(val)
+                    form.clearError('fullName')
                   }}
-                  onFacilityTypeChange={form.setFacilityType}
+                  onTitleDegreeChange={(val) => {
+                    form.setTitleDegree(val)
+                    form.clearError('titleDegree')
+                  }}
                   onCityChange={(val) => {
                     form.setCity(val)
                     form.clearError('city')
                   }}
-                  onLicenseNumberChange={(val) => {
-                    form.setLicenseNumber(val)
-                    form.clearError('licenseNumber')
+                  onEducationChange={form.setEducation}
+                  onYearsChange={(val) => {
+                    form.setYearsOfExperience(val)
+                    form.clearError('yearsOfExperience')
                   }}
-                  onAddressChange={(val) => {
-                    form.setAddress(val)
-                    form.clearError('address')
-                  }}
+                  onToggleSpecialization={form.toggleSpecialization}
+                  onBioChange={form.setBio}
                 />
               )}
 
               {form.step === 2 && (
-                <ApplyStep2PicOperational
-                  picName={form.picName}
-                  picRole={form.picRole}
-                  phone={form.phone}
-                  estimatedPsychologists={form.estimatedPsychologists}
-                  operatingHours={form.operatingHours}
-                  website={form.website}
-                  bpjsSupported={form.bpjsSupported}
+                <ApplyStep2Credentials
+                  strNumber={form.strNumber}
+                  sipNumber={form.sipNumber}
+                  association={form.association}
+                  certificateDocUrl={form.certificateDocUrl}
+                  practiceSchedule={form.practiceSchedule}
                   errors={form.errors}
-                  onPicNameChange={(val) => {
-                    form.setPicName(val)
-                    form.clearError('picName')
+                  onStrNumberChange={(val) => {
+                    form.setStrNumber(val)
+                    form.clearError('strNumber')
                   }}
-                  onPicRoleChange={(val) => {
-                    form.setPicRole(val)
-                    form.clearError('picRole')
+                  onSipNumberChange={form.setSipNumber}
+                  onAssociationChange={(val) => {
+                    form.setAssociation(val)
+                    form.clearError('association')
                   }}
-                  onPhoneChange={(val) => {
-                    form.setPhone(val)
-                    form.clearError('phone')
+                  onCertificateDocUrlChange={form.setCertificateDocUrl}
+                  onPracticeScheduleChange={(val) => {
+                    form.setPracticeSchedule(val)
+                    form.clearError('practiceSchedule')
                   }}
-                  onEstimatedPsychologistsChange={form.setEstimatedPsychologists}
-                  onOperatingHoursChange={form.setOperatingHours}
-                  onWebsiteChange={form.setWebsite}
-                  onBpjsSupportedChange={form.setBpjsSupported}
                 />
               )}
 
               {form.step === 3 && (
-                <ApplyStep3AccountConfirm
-                  facilityName={form.facilityName}
-                  facilityType={form.facilityType}
-                  licenseNumber={form.licenseNumber}
+                <ApplyStep3Account
+                  fullName={form.fullName}
+                  titleDegree={form.titleDegree}
+                  strNumber={form.strNumber}
+                  sipNumber={form.sipNumber}
                   city={form.city}
-                  picName={form.picName}
-                  phone={form.phone}
                   email={form.email}
+                  phone={form.phone}
                   password={form.password}
                   showPassword={form.showPassword}
-                  notes={form.notes}
+                  isRevisionMode={form.isRevisionMode}
                   errors={form.errors}
                   onEditStep1={() => form.setStep(1)}
                   onEmailChange={(val) => {
                     form.setEmail(val)
                     form.clearError('email')
                   }}
+                  onPhoneChange={(val) => {
+                    form.setPhone(val)
+                    form.clearError('phone')
+                  }}
                   onPasswordChange={(val) => {
                     form.setPassword(val)
                     form.clearError('password')
                   }}
                   onToggleShowPassword={() => form.setShowPassword((v) => !v)}
-                  onNotesChange={form.setNotes}
                 />
               )}
 
@@ -222,7 +229,7 @@ export function PartnerApplyPage() {
                     to="/login"
                     className="text-xs font-medium text-ink-soft transition-colors hover:text-ink"
                   >
-                    Sudah mengajukan? Masuk
+                    Sudah mendaftar? Cek Status
                   </Link>
                 )}
 
@@ -246,13 +253,13 @@ export function PartnerApplyPage() {
                     {form.submitting ? (
                       <>
                         <Loader2 className="size-4 animate-spin" />
-                        <span>Menyimpan…</span>
+                        <span>Mengirim…</span>
                       </>
                     ) : (
                       <span>
                         {form.isRevisionMode
-                          ? 'Simpan Perbaikan & Ajukan Ulang'
-                          : 'Kirim Pengajuan Mitra'}
+                          ? 'Simpan Perbaikan & Kirim Ulang'
+                          : 'Kirim Pendaftaran Psikolog'}
                       </span>
                     )}
                   </button>

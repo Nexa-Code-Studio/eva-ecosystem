@@ -409,45 +409,37 @@ async function main() {
     })
 
     // =========================================================================
-    // SEGMEN 02: Pengajuan Mitra Faskes (/pengajuan-mitra)
+    // SEGMEN 02: Pendaftaran Psikolog Profesional Mandiri (/daftar-psikolog)
     // =========================================================================
     await runSegment('02', async () => {
-      await page.goto(`${BASE_URL}/pengajuan-mitra`, { waitUntil: 'networkidle' })
+      await page.goto(`${BASE_URL}/daftar-psikolog`, { waitUntil: 'networkidle' })
       await waitMs(1200)
 
-      // Step 1: Data Faskes
-      await moveAndType(page.locator('#facilityName'), 'KLINIK UTAMA SEHAT JIWA NUSANTARA', 600)
-      await moveAndType(page.locator('#city'), 'YOGYAKARTA', 500)
-      await moveAndType(page.locator('#licenseNumber'), '3471099/KEMENKES/KL-U/2026', 600)
+      // Step 1: Profil Klinis
+      await moveAndType(page.locator('#psy-fullName'), 'Nadia Kusumawardhani', 600)
+      await moveAndType(page.locator('#psy-city'), 'YOGYAKARTA', 500)
       await moveAndType(
-        page.locator('#address'),
-        'Jl. Kaliurang Km 6.5 No. 48, Depok, Sleman, DIY 55281',
-        700,
+        page.locator('#psy-education'),
+        'Magister Profesi Psikologi Klinis Universitas Gadjah Mada',
+        600,
       )
       await moveAndClick(page.getByRole('button', { name: /Lanjutkan/i }), 1200)
 
-      // Step 2: PIC & Layanan
-      await moveAndType(page.locator('#picName'), 'dr. Nadia Kusumawardhani, Sp.KJ', 600)
-      await moveAndType(page.locator('#picRole'), 'Kepala Instalasi Kesehatan Jiwa', 500)
-      await moveAndType(page.locator('#phone'), '081234567899', 500)
-      await moveAndType(page.locator('#estimatedPsychologists'), '6', 400)
-      await moveAndType(page.locator('#operatingHours'), 'Senin - Sabtu, 08.00 - 17.00 WIB', 600)
+      // Step 2: STR & SIP
+      await moveAndType(page.locator('#psy-strNumber'), 'STR-PK-2026-771204', 600)
+      await moveAndType(page.locator('#psy-sipNumber'), '20260512-2031-01-0881', 600)
       await moveAndClick(page.getByRole('button', { name: /Lanjutkan/i }), 1200)
 
       // Step 3: Akun & Kirim
-      await moveAndType(page.locator('#apply-email'), 'mitra@sehatjiwanusantara.co.id', 600)
-      await moveAndType(page.locator('#apply-password'), 'mitra12345', 600)
-      await moveAndType(
-        page.locator('#notes'),
-        'Siap menerima rujukan pasien skrining DASS-21 tingkat sedang hingga berat.',
-        700,
-      )
-      await moveAndClick(page.getByRole('button', { name: /Kirim Pengajuan Mitra/i }), 2200)
-      await moveAndClick(page.getByRole('link', { name: /Ke Halaman Masuk/i }), 1200)
+      await moveAndType(page.locator('#apply-email'), 'nadia.kusuma@psikologmandiri.id', 600)
+      await moveAndType(page.locator('#apply-phone'), '081234567899', 500)
+      await moveAndType(page.locator('#apply-password'), 'psikolog12345', 600)
+      await moveAndClick(page.getByRole('button', { name: /Kirim Pendaftaran Psikolog/i }), 2200)
+      await moveAndClick(page.getByRole('link', { name: /Cek Status di Halaman Masuk/i }), 1200)
     })
 
     // =========================================================================
-    // SEGMEN 03: Login & Cek Status Mitra (/login)
+    // SEGMEN 03: Login & Cek Status Psikolog (/login)
     // =========================================================================
     await runSegment('03', async () => {
       if (!page.url().includes('/login')) {
@@ -455,20 +447,20 @@ async function main() {
       }
       await waitMs(1000)
 
-      // 1. Cek Akun Mitra Pending
+      // 1. Cek Akun Psikolog Pending
       await moveAndClick(page.getByRole('button', { name: /Buka daftar akun demo|Akun Demo/i }), 900)
-      await moveAndClick(page.getByRole('button', { name: /Mitra Faskes \(Pending\)/i }), 800)
-      await moveAndClick(page.getByRole('button', { name: /^Masuk$/i }), 2500)
+      await moveAndClick(page.getByRole('button', { name: /Psikolog Mandiri \(Pending\)/i }), 800)
+      await moveAndClick(page.getByRole('button', { name: /^Masuk$/i }), 2200)
       await page.keyboard.press('Escape')
       await waitMs(800)
 
-      // 2. Cek Akun Mitra Ditolak / Revisi
+      // 2. Cek Akun Psikolog Revisi / Ditolak
       await moveAndClick(page.getByRole('button', { name: /Buka daftar akun demo|Akun Demo/i }), 900)
       await moveAndClick(
-        page.getByRole('button', { name: /Mitra Faskes \(Ditolak \/ Revisi\)/i }),
+        page.getByRole('button', { name: /Psikolog \(Revisi \/ Ditolak\)/i }),
         800,
       )
-      await moveAndClick(page.getByRole('button', { name: /^Masuk$/i }), 2800)
+      await moveAndClick(page.getByRole('button', { name: /^Masuk$/i }), 2400)
       await page.keyboard.press('Escape')
       await waitMs(800)
 
@@ -485,7 +477,6 @@ async function main() {
       await page.waitForURL('**/admin/dashboard**', { timeout: 5000 }).catch(() => {})
       await waitMs(1800)
 
-      // Hover di beberapa kartu KPI & Chart
       await page.mouse.move(650, 220, { steps: 12 })
       await waitMs(1200)
       await page.mouse.move(1100, 220, { steps: 12 })
@@ -500,41 +491,36 @@ async function main() {
     })
 
     // =========================================================================
-    // SEGMEN 05: Admin Verifikasi Mitra Faskes (/admin/partners)
+    // SEGMEN 05: Admin Pengaturan Master Tarif & Bagi Hasil (/admin/settings)
     // =========================================================================
     await runSegment('05', async () => {
       await moveAndClick(
-        page.locator('aside button, nav button').filter({ hasText: /Mitra Faskes/i }),
+        page.locator('aside a, nav a').filter({ hasText: /Pengaturan Platform/i }),
         1400,
       )
-      if (!page.url().includes('/admin/partners')) {
-        await page.goto(`${BASE_URL}/admin/partners`, { waitUntil: 'networkidle' })
+      if (!page.url().includes('/admin/settings')) {
+        await page.goto(`${BASE_URL}/admin/settings`, { waitUntil: 'networkidle' })
       }
       await waitMs(1200)
 
-      // Klik filter Pending
-      await moveAndClick(page.getByRole('button', { name: /Pending \(/i }), 1500)
-
-      // Pilih faskes pertama di list antrean kiri
-      const partnerCards = page.locator('.divide-y > button, .divide-y > div button').first()
-      await moveAndClick(partnerCards, 1500)
-
-      // Scroll sedikit melihat detail izin operasional lalu klik Setujui
-      await smoothScrollTo(220, 900)
-      await waitMs(1500)
+      await moveAndType(page.locator('#pricing-base'), '175', 800)
+      await moveAndType(page.locator('#pricing-ext'), '175', 700)
+      await moveAndType(page.locator('#share-counselor'), '80', 600)
       await moveAndClick(
-        page.getByRole('button', { name: /Setujui & Aktifkan Akun Mitra/i }),
-        2500,
+        page.getByRole('button', { name: /Simpan & Terapkan Tarif Platform/i }),
+        2200,
       )
-      await smoothScrollTo(0, 800)
+      await smoothScrollTo(240, 900)
+      await waitMs(1200)
+      await smoothScrollTo(0, 700)
     })
 
     // =========================================================================
-    // SEGMEN 06: Admin Verifikasi & Simulasi Psikolog (/admin/psychologists)
+    // SEGMEN 06: Admin Verifikasi STR/SIP Psikolog (/admin/psychologists)
     // =========================================================================
     await runSegment('06', async () => {
       await moveAndClick(
-        page.locator('aside button, nav button').filter({ hasText: /Psikolog/i }),
+        page.locator('aside a, nav a').filter({ hasText: /Verifikasi Psikolog/i }),
         1400,
       )
       if (!page.url().includes('/admin/psychologists')) {
@@ -542,38 +528,29 @@ async function main() {
       }
       await waitMs(1200)
 
-      // Buka modal Simulasi Pendaftaran & Upgrade Mobile
+      // Buka modal Simulasi Pendaftaran Mobile
       await moveAndClick(
-        page.getByRole('button', { name: /Simulasi Pendaftaran & Upgrade/i }),
+        page.getByRole('button', { name: /Simulasi Pendaftaran Mobile/i }),
         1400,
       )
-      const nameInput = page.locator('input[placeholder*="Rania"], input[placeholder*="Dika"]').first()
-      await moveAndType(nameInput, 'Rania Putri Maharani, M.Psi., Psikolog', 600)
-      const cityInput = page.locator('input[placeholder="SEMARANG"]').first()
-      await moveAndType(cityInput, 'BANDUNG', 500)
+      await moveAndType(page.locator('#sim-name'), 'Rania Putri Maharani', 600)
+      await moveAndType(page.locator('#sim-str'), 'STR-PK-2026-991023', 500)
+      await moveAndType(page.locator('#sim-city'), 'BANDUNG', 500)
       await moveAndClick(
-        page.getByRole('button', { name: /Kirim Pendaftaran Relawan/i }),
+        page.getByRole('button', { name: /Kirim Pendaftaran Simulasi/i }),
         1800,
       )
 
-      // Klik tab/filter Antrean Tindakan jika ada
-      const pendingTab = page.locator('button').filter({ hasText: /Antrean Tindakan|Perlu Tindakan|Pending/i })
+      const pendingTab = page.locator('button').filter({ hasText: /Antrean \(/i })
       if ((await pendingTab.count()) > 0) {
         await moveAndClick(pendingTab.first(), 1400)
       }
 
-      // Buka detail psikolog
-      const detailBtn = page
-        .getByRole('button', { name: /Tinjau Berkas|Detail|Periksa|Verifikasi/i })
-        .first()
-      if (!(await moveAndClick(detailBtn, 1800))) {
-        const tableRowBtn = page.locator('table tbody tr button').first()
-        await moveAndClick(tableRowBtn, 1800)
-      }
+      const detailBtn = page.getByRole('button', { name: /Tinjau Berkas/i }).first()
+      await moveAndClick(detailBtn, 1800)
 
-      // Setujui atau tutup modal detail psikolog
       const approvePsyBtn = page.getByRole('button', {
-        name: /Setujui & Aktifkan Akun|Setujui Upgrade/i,
+        name: /Approve & Aktifkan/i,
       })
       if ((await approvePsyBtn.count()) > 0) {
         await moveAndClick(approvePsyBtn.first(), 2200)
@@ -584,33 +561,23 @@ async function main() {
     })
 
     // =========================================================================
-    // SEGMEN 07: Admin Triage Rujukan Klinis (/admin/referrals)
+    // SEGMEN 07: Admin Monitoring Jadwal & Sesi Online (/admin/monitoring)
     // =========================================================================
     await runSegment('07', async () => {
       await moveAndClick(
-        page.locator('aside button, nav button').filter({ hasText: /Rujukan/i }),
+        page.locator('aside a, nav a').filter({ hasText: /Monitoring Sesi/i }),
         1400,
       )
-      if (!page.url().includes('/admin/referrals')) {
-        await page.goto(`${BASE_URL}/admin/referrals`, { waitUntil: 'networkidle' })
+      if (!page.url().includes('/admin/monitoring')) {
+        await page.goto(`${BASE_URL}/admin/monitoring`, { waitUntil: 'networkidle' })
       }
       await waitMs(1400)
 
-      // Filter Belum Ditugaskan
-      const unassignedTab = page.locator('button').filter({ hasText: /Belum Ditugaskan/i })
-      if ((await unassignedTab.count()) > 0) {
-        await moveAndClick(unassignedTab.first(), 1200)
-      }
-
-      // Klik tombol Pilih / Tugaskan Psikolog pada kartu rujukan
-      const openDrawerBtn = page
-        .getByRole('button', { name: /Pilih Psikolog|Tugaskan|Ubah Penugasan/i })
-        .first()
-      await moveAndClick(openDrawerBtn, 1800)
-
-      // Di dalam ReferralAssignmentDrawer, klik Tugaskan Psikolog
-      const assignBtn = page.getByRole('button', { name: /Tugaskan Psikolog/i }).first()
-      await moveAndClick(assignBtn, 2400)
+      const durationSelect = page.getByLabel('Filter Durasi Sesi')
+      await durationSelect.selectOption('60')
+      await waitMs(1500)
+      await durationSelect.selectOption('all')
+      await waitMs(1400)
     })
 
     // =========================================================================
@@ -618,7 +585,7 @@ async function main() {
     // =========================================================================
     await runSegment('08', async () => {
       await moveAndClick(
-        page.locator('aside button, nav button').filter({ hasText: /Pengguna & Koin/i }),
+        page.locator('aside a, nav a').filter({ hasText: /Pengguna & Koin/i }),
         1400,
       )
       if (!page.url().includes('/admin/users-coins')) {
@@ -626,13 +593,11 @@ async function main() {
       }
       await waitMs(1400)
 
-      // Cari pengguna di sub-tab Pengguna Aplikasi
       const searchInput = page.locator('input[type="search"], input[placeholder*="Cari"]').first()
       await moveAndType(searchInput, 'EVA', 1400)
       await searchInput.fill('')
       await waitMs(1000)
 
-      // Pindah ke sub-tab Riwayat Transaksi Koin
       await moveAndClick(
         page.getByRole('button', { name: /Riwayat Transaksi Koin/i }),
         2200,
@@ -647,7 +612,7 @@ async function main() {
     // =========================================================================
     await runSegment('09', async () => {
       await moveAndClick(
-        page.locator('aside button, nav button').filter({ hasText: /Konten|Konfigurasi/i }),
+        page.locator('aside a, nav a').filter({ hasText: /Konten|Konfigurasi/i }),
         1400,
       )
       if (!page.url().includes('/admin/content-config')) {
@@ -655,128 +620,21 @@ async function main() {
       }
       await waitMs(1500)
 
-      // Sub-tab 1: Misi Koping & Krisis (Mobile)
       await smoothScrollTo(250, 900)
       await waitMs(1500)
       await smoothScrollTo(0, 700)
 
-      // Sub-tab 2: Kurs & Paket Koin
       await moveAndClick(page.getByRole('button', { name: /Kurs & Paket Koin/i }), 2200)
       await smoothScrollTo(240, 900)
       await waitMs(1400)
       await smoothScrollTo(0, 700)
 
-      // Sub-tab 3: Waitlist & FAQ (Website)
       await moveAndClick(page.getByRole('button', { name: /Waitlist & FAQ/i }), 2200)
       await smoothScrollTo(260, 900)
       await waitMs(1400)
       await smoothScrollTo(0, 700)
 
-      // Logout Admin
       await moveAndClick(page.getByRole('button', { name: /Keluar/i }), 1500)
-    })
-
-    // =========================================================================
-    // SEGMEN 10: Portal Mitra Faskes — Triage Rujukan Pasien (/mitra/referrals)
-    // =========================================================================
-    await runSegment('10', async () => {
-      if (!page.url().includes('/login')) {
-        await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle' })
-      }
-      await moveAndClick(page.getByRole('button', { name: /Buka daftar akun demo|Akun Demo/i }), 800)
-      await moveAndClick(
-        page.getByRole('button', { name: /Mitra Faskes \(Terverifikasi\)/i }),
-        800,
-      )
-      await moveAndClick(page.getByRole('button', { name: /^Masuk$/i }), 1800)
-
-      // Toggle status menerima rujukan pasien2x agar terlihat interaktif
-      const toggleAcceptBtn = page.getByRole('button', {
-        name: /Menerima Rujukan Pasien|Penerimaan Rujukan Dijeda/i,
-      })
-      await moveAndClick(toggleAcceptBtn, 1200)
-      await moveAndClick(toggleAcceptBtn, 1200)
-
-      // Buka drawer penugasan rujukan pasien di sisi Mitra
-      const assignPartnerBtn = page
-        .getByRole('button', { name: /Pilih Psikolog|Tugaskan|Ubah Penugasan/i })
-        .first()
-      if (await moveAndClick(assignPartnerBtn, 1800)) {
-        const confirmPsyBtn = page.getByRole('button', { name: /Tugaskan Psikolog/i }).first()
-        if ((await confirmPsyBtn.count()) > 0) {
-          await moveAndClick(confirmPsyBtn, 2200)
-        } else {
-          await page.keyboard.press('Escape')
-          await waitMs(1000)
-        }
-      }
-    })
-
-    // =========================================================================
-    // SEGMEN 11: Portal Mitra Faskes — Manajemen Psikolog (/mitra/psychologists)
-    // =========================================================================
-    await runSegment('11', async () => {
-      await moveAndClick(page.getByRole('link', { name: /Manajemen Psikolog/i }), 1500)
-      if (!page.url().includes('/mitra/psychologists')) {
-        await page.goto(`${BASE_URL}/mitra/psychologists`, { waitUntil: 'networkidle' })
-      }
-      await waitMs(1200)
-
-      // Klik Tambah Psikolog
-      await moveAndClick(page.getByRole('button', { name: /Tambah Psikolog/i }), 1400)
-
-      await moveAndType(
-        page.locator('input[placeholder*="Ayu Kartika"]'),
-        'drg. Sinta Maharani, M.Psi., Psikolog',
-        600,
-      )
-      await moveAndType(
-        page.locator('input[placeholder*="20190412"]'),
-        '20220915-2027-02-1108',
-        500,
-      )
-      await moveAndType(
-        page.locator('input[placeholder*="Senin, Rabu"]'),
-        'Selasa, Kamis, Sabtu (09.00 - 15.00 WIB)',
-        600,
-      )
-
-      // Pilih 2 spesialisasi
-      const specChip = page.locator('[role="dialog"] button').filter({
-        hasText: /Kecemasan|Depresi|Trauma|Keluarga/i,
-      })
-      if ((await specChip.count()) > 0) {
-        await moveAndClick(specChip.first(), 600)
-      }
-
-      // Isi tarif koin sesi
-      const feeInput = page.locator('input[placeholder*="Contoh: 50"]')
-      if ((await feeInput.count()) > 0) {
-        await moveAndType(feeInput, '60', 500)
-      }
-
-      await moveAndClick(page.getByRole('button', { name: /Simpan Data Psikolog/i }), 2200)
-    })
-
-    // =========================================================================
-    // SEGMEN 12: Portal Mitra Faskes — Profil Faskes (/mitra/profile)
-    // =========================================================================
-    await runSegment('12', async () => {
-      await moveAndClick(page.getByRole('link', { name: /Profil Faskes/i }), 1500)
-      if (!page.url().includes('/mitra/profile')) {
-        await page.goto(`${BASE_URL}/mitra/profile`, { waitUntil: 'networkidle' })
-      }
-      await waitMs(1500)
-      await smoothScrollTo(260, 1000)
-      await waitMs(1800)
-      await smoothScrollTo(0, 900)
-
-      const saveProfileBtn = page.getByRole('button', { name: /Simpan Perubahan|Simpan Profil/i })
-      if ((await saveProfileBtn.count()) > 0) {
-        await moveAndClick(saveProfileBtn.first(), 1600)
-      }
-
-      await moveAndClick(page.getByRole('button', { name: /Keluar/i }), 1400)
     })
 
     // Tutup halaman & context agar file video .webm selesai ditulis ke disk

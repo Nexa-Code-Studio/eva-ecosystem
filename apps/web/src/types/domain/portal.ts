@@ -1,67 +1,16 @@
-export type FacilityType =
-  | 'Rumah Sakit'
-  | 'Klinik Utama'
-  | 'Klinik Pratama'
-  | 'Biro Psikologi'
-
-export type PartnerStatus = 'pending' | 'approved' | 'rejected' | 'suspended'
-
-export interface PartnerAccount {
-  id: string
-  // Required facility fields
-  facilityName: string
-  facilityType: FacilityType
-  licenseNumber: string
-  city: string
-  address: string
-  // Required PIC fields
-  picName: string
-  picRole: string
-  phone: string
-  // Required auth credentials
-  email: string
-  password: string
-  // Optional fields
-  website?: string
-  operatingHours?: string
-  estimatedPsychologists?: number
-  bpjsSupported?: boolean
-  notes?: string
-  // Verification & operational metadata
-  status: PartnerStatus
-  submittedAt: string
-  reviewedAt?: string
-  rejectionReason?: string
-  isResubmitted?: boolean
-  resubmittedAt?: string
-  acceptingReferrals: boolean
-}
-
 export type PsychologistStatus = 'active' | 'on_leave' | 'inactive'
-export type PsychologistPracticeType = 'faskes' | 'mandiri'
-export type VerificationStatus = 'pending' | 'approved' | 'rejected' | 'suspended'
+export type VerificationStatus =
+  | 'pending'
+  | 'verified'
+  | 'need_revision'
+  | 'rejected'
+  | 'suspended'
 
-export type PsychologistRole =
-  | 'relawan_profesional_mitra'
-  | 'relawan_profesional_non_mitra'
-  | 'relawan_biasa'
-
-export interface UpgradeRequest {
-  targetRole: 'relawan_profesional_non_mitra'
-  requestedAt: string
-  notes?: string
-  documents?: PsychologistCertificate[]
-}
+export type DassSeverity = 'Moderate' | 'Severe' | 'Extreme'
 
 export interface PsychologistCertificate {
   id: string
-  docType:
-    | 'SIPP'
-    | 'STR HIMPSI'
-    | 'Ijazah Profesi'
-    | 'Sertifikat Klinis'
-    | 'Sertifikat Pelatihan'
-    | 'Bukti Kinerja Relawan'
+  docType: 'STR HIMPSI' | 'SIPP' | 'Ijazah Profesi' | 'Sertifikat Klinis'
   title: string
   documentNumber: string
   issuedBy: string
@@ -75,54 +24,82 @@ export interface PsychologistCertificate {
 
 export interface Psychologist {
   id: string
-  partnerId: string | null
-  practiceType?: PsychologistPracticeType
-  verificationStatus?: VerificationStatus
-  role?: PsychologistRole
-  upgradeRequest?: UpgradeRequest | null
-  // Required fields
+  userId?: string
   fullName: string
-  sippNumber: string
-  strNumber?: string
+  titleDegree: string
+  email: string
+  password?: string
+  phone?: string
+  city?: string
+  education?: string
+  strNumber: string
+  sipNumber?: string | null
+  association: string
   specializations: string[]
+  yearsOfExperience: number
+  bio?: string | null
+  profilePhotoUrl?: string | null
+  certificateDocUrl?: string | null
+  verificationStatus: VerificationStatus
+  verificationNotes?: string | null
+  verifiedAt?: string | null
+  isOnline: boolean
+  bufferTimeMinutes: number
   practiceSchedule: string
   status: PsychologistStatus
-  // Tarif & Durasi Sesi Konseling
-  sessionDurationMinutes?: number
-  sessionFeeCoins?: number
-  // Optional fields & mobile app registration details
-  weeklyQuota?: number
-  yearsExperience?: number
-  education?: string
-  city?: string
-  email?: string
-  phone?: string
-  submittedAt?: string
+  submittedAt: string
   reviewedAt?: string
-  rejectionReason?: string
   documents?: PsychologistCertificate[]
 }
 
-export type ReferralStatus = 'unassigned' | 'scheduled' | 'completed'
-export type DassSeverity = 'Moderate' | 'Severe' | 'Extreme'
-
-export interface PatientReferral {
+export interface PlatformPricingConfig {
   id: string
-  partnerId: string | null
+  sessionDurationMinutes: number
+  pricePerSession: number
+  counselorSharePercentage: number
+  platformFeePercentage: number
+  extensionPricePerSession: number
+  status: 'active' | 'draft' | 'archived'
+  notes?: string | null
+  effectiveFrom: string
+  effectiveUntil?: string | null
+  createdAt: string
+}
+
+export interface PricingCalculation {
+  sessionDurationMinutes: number
+  totalPrice: number
+  counselorEarning: number
+  platformFee: number
+  extensionPrice: number
+}
+
+export type ConsultationSessionStatus =
+  | 'scheduled'
+  | 'waiting'
+  | 'in_progress'
+  | 'completed'
+  | 'extended'
+  | 'cancelled'
+
+export interface ConsultationSessionMonitoring {
+  id: string
+  sessionCode: string
   patientCode: string
-  age: number
-  gender: 'Perempuan' | 'Laki-laki'
-  submittedAt: string
-  dass21: {
-    depression: number
-    anxiety: number
-    stress: number
-    severity: DassSeverity
-  }
-  clinicalSummary: string
-  preferredSchedule: string
-  assignedPsychologistId: string | null
-  status: ReferralStatus
+  patientDisplayName: string
+  counselorId: string
+  counselorName: string
+  counselorTitle: string
+  scheduledStartTime: string
+  scheduledEndTime: string
+  durationMinutes: 30 | 60
+  isExtended: boolean
+  status: ConsultationSessionStatus
+  totalPriceCoins: number
+  counselorEarningCoins: number
+  platformFeeCoins: number
+  dassSeverity?: DassSeverity
+  clinicalSummary?: string
 }
 
 export type AppUserStatus = 'active' | 'flagged_crisis' | 'suspended'
@@ -229,16 +206,17 @@ export interface FaqEntry {
 }
 
 export interface PortalSession {
-  role: 'admin' | 'partner'
+  role: 'admin'
   email: string
-  partnerId?: string
+  accessToken?: string
   loginAt: string
 }
 
 export interface PortalDatabase {
-  partners: PartnerAccount[]
   psychologists: Psychologist[]
-  referrals: PatientReferral[]
+  consultationSessions: ConsultationSessionMonitoring[]
+  pricingConfig: PlatformPricingConfig
+  pricingHistory: PlatformPricingConfig[]
   generalUsers: GeneralAppUser[]
   copingQuests: CopingQuest[]
   crisisConfig: CrisisConfig
@@ -248,4 +226,3 @@ export interface PortalDatabase {
   coinPackages: CoinPackage[]
   coinTransactions: CoinTopupTransaction[]
 }
-

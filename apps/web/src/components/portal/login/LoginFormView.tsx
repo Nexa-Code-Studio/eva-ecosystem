@@ -256,12 +256,12 @@ export function LoginFormView({
       </form>
 
       <div className="mt-5 border-t border-[#E2E8F0] pt-4 text-center text-xs text-ink-soft">
-        Instansi kesehatan belum terdaftar?{' '}
+        Psikolog profesional ingin bergabung?{' '}
         <Link
-          to="/pengajuan-mitra"
+          to="/daftar-psikolog"
           className="font-semibold text-primary hover:text-primary-deep"
         >
-          Ajukan kemitraan faskes
+          Daftar Psikolog Mandiri
         </Link>
       </div>
     </>

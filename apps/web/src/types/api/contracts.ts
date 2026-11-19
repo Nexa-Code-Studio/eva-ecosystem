@@ -6,11 +6,8 @@ import type {
   CopingQuest,
   CrisisConfig,
   FaqEntry,
-  PartnerAccount,
   PortalDatabase,
   Psychologist,
-  PsychologistCertificate,
-  ReferralStatus,
   WaitlistEntry,
 } from '@/types/domain/portal'
 
@@ -20,66 +17,96 @@ export interface LoginRequestDto {
 }
 
 export type AuthResult =
-  | { ok: true; role: 'admin' }
-  | { ok: true; role: 'partner'; partner: PartnerAccount }
+  | { ok: true; role: 'admin'; accessToken?: string }
+  | { ok: true; role: 'counselor_status'; psychologist: Psychologist }
   | { ok: false; error: string }
 
-export type NewPartnerApplicationInput = Omit<
-  PartnerAccount,
-  | 'id'
-  | 'status'
-  | 'submittedAt'
-  | 'reviewedAt'
-  | 'rejectionReason'
-  | 'isResubmitted'
-  | 'resubmittedAt'
-  | 'acceptingReferrals'
->
+export interface RegisterPsychologistRequestDto {
+  full_name: string
+  title_degree: string
+  email: string
+  password: string
+  str_number: string
+  sip_number?: string | null
+  association: string
+  specializations: string[]
+  years_of_experience: number
+  bio?: string | null
+  certificate_doc_url?: string | null
+  phone?: string
+  city?: string
+  education?: string
+  practice_schedule?: string
+}
 
-export type SubmitPartnerApplicationResultDto =
-  | { ok: true; partner: PartnerAccount }
+export type SubmitPsychologistApplicationResultDto =
+  | { ok: true; psychologist: Psychologist }
   | { ok: false; error: string }
 
-export interface UpdatePartnerVerificationRequestDto {
-  partnerId: string
-  decision: 'approved' | 'rejected' | 'suspended'
-  rejectionReason?: string
+export interface VerifyPsychologistRequestDto {
+  status: 'verified' | 'rejected' | 'need_revision'
+  notes?: string | null
 }
 
-export type UpsertPsychologistRequestDto = Omit<Psychologist, 'id'> & { id?: string }
-
-export interface UpdatePsychologistVerificationRequestDto {
-  psychologistId: string
-  decision: 'approved' | 'rejected' | 'suspended'
-  rejectionReason?: string
+export interface UpsertPlatformPricingRequestDto {
+  session_duration_minutes: number
+  price_per_session: number
+  counselor_share_percentage: number
+  platform_fee_percentage: number
+  extension_price_per_session: number
+  notes?: string | null
 }
 
-export interface RequestPsychologistUpgradeDto {
-  targetRole: 'relawan_profesional_non_mitra'
-  notes?: string
-  documents?: PsychologistCertificate[]
+export interface BackendPsychologistProfileResponseDto {
+  id: string
+  user_id: string
+  full_name: string
+  title_degree: string
+  str_number: string
+  sip_number?: string | null
+  association: string
+  specializations: string[]
+  years_of_experience: number
+  bio?: string | null
+  profile_photo_url?: string | null
+  certificate_doc_url?: string | null
+  verification_status: string
+  verification_notes?: string | null
+  verified_at?: string | null
+  is_online: boolean
+  buffer_time_minutes: number
+  created_at: string
+}
+
+export interface BackendPricingConfigResponseDto {
+  id: string
+  session_duration_minutes: number
+  price_per_session: number
+  counselor_share_percentage: number
+  platform_fee_percentage: number
+  extension_price_per_session: number
+  status: 'active' | 'draft' | 'archived'
+  notes?: string | null
+  effective_from: string
+  effective_until?: string | null
+  created_at: string
 }
 
 export interface SimulateMobilePsychologistInput {
-  role?: 'relawan_biasa' | 'relawan_profesional_non_mitra'
   fullName: string
+  titleDegree?: string
   sippNumber?: string
-  strNumber?: string
+  strNumber: string
+  association?: string
   city: string
   education: string
   email: string
   phone: string
   practiceSchedule: string
   specializations: string[]
+  yearsOfExperience?: number
+  bio?: string
   sippValidUntil?: string
-  sessionDurationMinutes?: number
-  sessionFeeCoins?: number
-}
-
-export interface AssignReferralRequestDto {
-  referralId: string
-  psychologistId: string | null
-  status: ReferralStatus
 }
 
 export interface UpdateGeneralUserStatusRequestDto {
@@ -106,23 +133,22 @@ export interface UpdateWaitlistStatusRequestDto {
 
 export type CreateFaqRequestDto = Omit<FaqEntry, 'id' | 'isPublished'>
 
-export interface AdjustUserCoinBalanceDto {
+export interface AdjustUserCoinBalanceRequestDto {
   userId: string
   deltaCoins: number
   reason: string
 }
 
-export interface UpdateCoinTransactionStatusDto {
-  transactionId: string
+export type UpsertCoinPackageRequestDto = Omit<CoinPackage, 'id'> & { id?: string }
+
+export type UpdateCoinEconomyConfigRequestDto = Partial<
+  Omit<CoinEconomyConfig, 'updatedAt'>
+>
+
+export interface ReviewCoinTransactionRequestDto {
+  txId: string
   status: CoinTransactionStatus
   adminNotes?: string
 }
 
-export type UpsertCoinPackageDto = Omit<CoinPackage, 'id'> & { id?: string }
-
-export type UpdateCoinEconomyConfigDto = Partial<
-  Pick<CoinEconomyConfig, 'basePricePerCoinIdr' | 'freeTrialCoinsNewUser'>
->
-
-export type PortalSnapshotDto = PortalDatabase
-
+export type PortalDatabaseSnapshot = PortalDatabase

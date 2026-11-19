@@ -1,4 +1,9 @@
-import type { CoinEconomyConfig, CrisisConfig, PortalDatabase } from '@/types/portal'
+import type {
+  CoinEconomyConfig,
+  CrisisConfig,
+  PlatformPricingConfig,
+  PortalDatabase,
+} from '@/types/portal'
 
 export const DEFAULT_CRISIS_CONFIG: CrisisConfig = {
   hotlineNumber: '119 EXT 8',
@@ -16,10 +21,25 @@ export const DEFAULT_COIN_ECONOMY_CONFIG: CoinEconomyConfig = {
   updatedAt: '2026-11-01',
 }
 
+export const DEFAULT_PLATFORM_PRICING_CONFIG: PlatformPricingConfig = {
+  id: 'pricing-default',
+  sessionDurationMinutes: 30,
+  pricePerSession: 150,
+  counselorSharePercentage: 80,
+  platformFeePercentage: 20,
+  extensionPricePerSession: 150,
+  status: 'active',
+  notes: 'Konfigurasi default sesi telekonsultasi 30 menit',
+  effectiveFrom: '2026-11-01T00:00:00Z',
+  effectiveUntil: null,
+  createdAt: '2026-11-01T00:00:00Z',
+}
+
 export const EMPTY_PORTAL_DATABASE: PortalDatabase = {
-  partners: [],
   psychologists: [],
-  referrals: [],
+  consultationSessions: [],
+  pricingConfig: DEFAULT_PLATFORM_PRICING_CONFIG,
+  pricingHistory: [DEFAULT_PLATFORM_PRICING_CONFIG],
   generalUsers: [],
   copingQuests: [],
   crisisConfig: DEFAULT_CRISIS_CONFIG,

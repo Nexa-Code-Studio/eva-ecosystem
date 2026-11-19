@@ -58,10 +58,10 @@ export function AdminUsersCoinsModule({
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-xl font-bold tracking-[-0.02em] text-ink sm:text-2xl">
-            Manajemen Pengguna &amp; Koin Suara
+            Manajemen Pengguna &amp; EVA Coin
           </h1>
           <p className="mt-0.5 text-xs text-ink-muted">
-            Pantau direktori pengguna aplikasi mobile EVA, saldo koin bicara (1 Koin = 1 Menit), serta riwayat transaksi top-up koin.
+            Pantau direktori pengguna aplikasi mobile EVA, saldo koin terpadu (Voice AI 1 Koin/mnt &amp; konsultasi psikolog), serta riwayat top-up koin.
           </p>
         </div>
 

@@ -7,31 +7,8 @@ import type {
   CopingQuest,
   CrisisConfig,
   FaqEntry,
-  ReferralStatus,
   WaitlistEntry,
 } from '@/types/portal'
-
-export function assignReferral(
-  referralId: string,
-  psychologistId: string | null,
-  status: ReferralStatus,
-) {
-  const db = loadPortalDb()
-  const idx = db.referrals.findIndex((r) => r.id === referralId)
-  if (idx === -1) return
-
-  const assignedPsy = psychologistId
-    ? db.psychologists.find((p) => p.id === psychologistId)
-    : null
-
-  db.referrals[idx] = {
-    ...db.referrals[idx],
-    partnerId: assignedPsy ? assignedPsy.partnerId : db.referrals[idx].partnerId,
-    assignedPsychologistId: psychologistId,
-    status,
-  }
-  savePortalDb(db)
-}
 
 export function updateGeneralUserStatus(userId: string, accountStatus: AppUserStatus) {
   const db = loadPortalDb()

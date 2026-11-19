@@ -6,10 +6,10 @@ import {
   type LoginSubmitState,
   type LoginViewMode,
 } from '@/components/portal/login/LoginFormView'
-import { PartnerStatusModal } from '@/components/portal/login/PartnerStatusModal'
+import { PsychologistVerificationStatusModal } from '@/components/portal/login/PsychologistVerificationStatusModal'
 import { QuickLoginDevTool } from '@/components/devtools/PortalDevTools'
 import { EMAIL_RE } from '@/constants/portal'
-import { authenticateUser, usePortalDb, type PartnerAccount } from '@/lib/portalStore'
+import { authenticateUser, usePortalDb, type Psychologist } from '@/lib/portalStore'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -26,7 +26,7 @@ export function LoginPage() {
   const [authError, setAuthError] = useState<string | null>(null)
   const [submitState, setSubmitState] = useState<LoginSubmitState>('idle')
 
-  const [statusModalPartner, setStatusModalPartner] = useState<PartnerAccount | null>(null)
+  const [statusModalPsy, setStatusModalPsy] = useState<Psychologist | null>(null)
   const [demoMenuOpen, setDemoMenuOpen] = useState(false)
 
   const year = new Date().getFullYear()
@@ -36,13 +36,13 @@ export function LoginPage() {
   }, [])
 
   useEffect(() => {
-    if (!statusModalPartner) return
+    if (!statusModalPsy) return
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setStatusModalPartner(null)
+      if (e.key === 'Escape') setStatusModalPsy(null)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [statusModalPartner])
+  }, [statusModalPsy])
 
   const switchMode = (nextMode: LoginViewMode) => {
     setMode(nextMode)
@@ -59,7 +59,7 @@ export function LoginPage() {
     setEmailError(null)
     setPasswordError(null)
     setAuthError(null)
-    setStatusModalPartner(null)
+    setStatusModalPsy(null)
     setDemoMenuOpen(false)
   }
 
@@ -103,14 +103,8 @@ export function LoginPage() {
         return
       }
 
-      const partner = result.partner
-      if (partner.status === 'approved') {
-        navigate('/mitra')
-        return
-      }
-
-      setStatusModalPartner(partner)
-    }, 400)
+      setStatusModalPsy(result.psychologist)
+    }, 300)
   }
 
   const handleForgotSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -127,7 +121,7 @@ export function LoginPage() {
     setSubmitState('submitting')
     window.setTimeout(() => {
       setSubmitState('success')
-    }, 600)
+    }, 500)
   }
 
   return (
@@ -148,6 +142,9 @@ export function LoginPage() {
             <img src="/eva_logo.png" alt="EVA" className="size-12 object-contain" />
             <span className="text-xl font-bold tracking-[-0.02em] text-ink">EVA</span>
           </Link>
+          <p className="mt-1.5 text-xs text-ink-soft">
+            Panel Admin EVA &amp; Cek Status Verifikasi Psikolog Mandiri
+          </p>
         </div>
 
         <div className="rounded-[12px] border border-[#E2E8F0] bg-white p-6 shadow-[0_1px_3px_rgba(15,23,42,0.04)] sm:p-8">
@@ -180,18 +177,18 @@ export function LoginPage() {
         </div>
       </main>
 
-      <PartnerStatusModal
-        partner={statusModalPartner}
-        onClose={() => setStatusModalPartner(null)}
-        onRevise={(partnerId) => {
-          setStatusModalPartner(null)
-          navigate(`/pengajuan-mitra?revisi=${encodeURIComponent(partnerId)}`)
+      <PsychologistVerificationStatusModal
+        psychologist={statusModalPsy}
+        onClose={() => setStatusModalPsy(null)}
+        onRevise={(psyId) => {
+          setStatusModalPsy(null)
+          navigate(`/daftar-psikolog?revisi=${encodeURIComponent(psyId)}`)
         }}
       />
 
       <QuickLoginDevTool
         isOpen={demoMenuOpen}
-        partners={db.partners}
+        psychologists={db.psychologists}
         onToggleOpen={() => setDemoMenuOpen((v) => !v)}
         onClose={() => setDemoMenuOpen(false)}
         onSelectCredentials={fillDemoCredentials}

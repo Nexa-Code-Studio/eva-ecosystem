@@ -46,7 +46,7 @@ export function AdminCoinPackagesConfigTab({
       freeTrialCoinsNewUser: freeTrial,
     })
     onFeedback(
-      `Konfigurasi nilai koin berhasil diperbarui: Rp${basePrice.toLocaleString('id-ID')}/Koin (1 Koin = 1 Menit Suara).`,
+      `Konfigurasi nilai EVA Coin berhasil diperbarui: Rp${basePrice.toLocaleString('id-ID')}/Koin.`,
     )
   }
 
@@ -87,10 +87,10 @@ export function AdminCoinPackagesConfigTab({
           </span>
           <div>
             <h2 className="text-sm font-bold text-ink">
-              Konfigurasi Ekonomi Koin Suara &amp; Katalog Paket Aplikasi
+              Konfigurasi Ekonomi EVA Coin &amp; Katalog Paket Aplikasi
             </h2>
             <p className="text-xs text-ink-muted">
-              1 Koin setara dengan 1 menit sesi berbicara suara bersama EVA. Pengaturan di bawah ini disinkronkan ke halaman Top-Up aplikasi mobile.
+              1 Koin berlaku sebagai mata uang terpadu EVA (1 menit sesi suara AI maupun telekonsultasi psikolog). Pengaturan di bawah ini disinkronkan ke halaman Top-Up aplikasi mobile.
             </p>
           </div>
         </div>
@@ -117,13 +117,13 @@ export function AdminCoinPackagesConfigTab({
             Pengaturan Kurs Dasar &amp; Kuota Trial
           </h3>
           <p className="mt-0.5 text-xs text-ink-muted">
-            Atur nilai konversi dasar untuk 1 Koin (1 menit sesi suara AI EVA) dan bonus registrasi awal.
+            Atur nilai konversi dasar untuk 1 EVA Coin (mata uang Voice AI 1 Koin/mnt &amp; telekonsultasi) dan bonus registrasi awal.
           </p>
 
           <div className="mt-4 space-y-3.5 text-xs">
             <div>
               <label className="block font-semibold text-ink">
-                Harga Dasar per 1 Koin (1 Menit Suara) - Rp
+                Harga Dasar per 1 EVA Coin - Rp
               </label>
               <input
                 type="number"
@@ -312,7 +312,7 @@ export function AdminCoinPackagesConfigTab({
 
                     <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
                       <span className="rounded-[5px] bg-white px-2 py-0.5 font-semibold text-ink shadow-2xs">
-                        {pkg.coins} Koin ({pkg.coins} mnt)
+                        {pkg.coins} Koin
                       </span>
                       {pkg.bonusCoins > 0 && (
                         <span className="rounded-[5px] bg-emerald-50 px-2 py-0.5 font-bold text-emerald-700">
@@ -320,7 +320,7 @@ export function AdminCoinPackagesConfigTab({
                         </span>
                       )}
                       <span className="text-ink-muted">
-                        · ~Rp{effectivePerCoin.toLocaleString('id-ID')}/mnt
+                        · ~Rp{effectivePerCoin.toLocaleString('id-ID')}/Koin
                       </span>
                     </div>
 

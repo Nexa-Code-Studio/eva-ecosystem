@@ -43,7 +43,7 @@ export function AdminWebsiteContentTab({
         <div className="rounded-[12px] border border-[#E2E8F0] bg-white p-5">
           <div>
             <h2 className="text-sm font-bold text-ink">
-              Pendaftar Early Access & Kemitraan Website ({db.waitlistEntries.length})
+              Pendaftar Early Access &amp; Psikolog Website ({db.waitlistEntries.length})
             </h2>
             <p className="text-xs text-ink-muted">
               Terhubung langsung dengan form Early Access di halaman utama Website.

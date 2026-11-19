@@ -1,11 +1,9 @@
-import { Download, ShieldCheck, Sparkles, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Download, ShieldCheck } from 'lucide-react'
 import { Button, Container, LunaOrb } from '@/components/ui'
 import { waitlist } from '@/content/landing'
 import { useLatestRelease } from '@/hooks/useLatestRelease'
 
 export function CTA() {
-  const [partnerTopic, setPartnerTopic] = useState<string | null>(null)
   const { version, sizeFormatted, downloadUrl } = useLatestRelease()
 
   const specs = [
@@ -14,18 +12,6 @@ export function CTA() {
     { id: 'size', label: sizeFormatted },
     { id: 'price', label: waitlist.specs[3] },
   ]
-
-  useEffect(() => {
-    const onPartnerInquiry = (e: Event) => {
-      const customEvent = e as CustomEvent<{ topic: string }>
-      const topic = customEvent.detail?.topic
-      if (topic) {
-        setPartnerTopic(topic)
-      }
-    }
-    window.addEventListener('eva:partner-inquiry', onPartnerInquiry)
-    return () => window.removeEventListener('eva:partner-inquiry', onPartnerInquiry)
-  }, [])
 
   return (
     <section
@@ -55,31 +41,6 @@ export function CTA() {
             <p className="mt-4 text-body-lg text-white/70 sm:text-[19px] sm:leading-relaxed max-w-2xl">
               {waitlist.description}
             </p>
-
-            {/* Partner inquiry context banner triggered from Footer */}
-            {partnerTopic && (
-              <div className="mt-6 inline-flex items-center gap-2 rounded-pill border border-primary-light/30 bg-primary/25 py-2 pr-3 pl-4 text-caption !tracking-normal text-white backdrop-blur-sm animate-enter">
-                <Sparkles className="size-3.5 text-primary-light" />
-                <span>
-                  Topik Kemitraan: <strong>{partnerTopic}</strong>: hubungi tim kami di{' '}
-                  <a
-                    href={`mailto:kemitraan@eva.id?subject=${encodeURIComponent(`Kemitraan EVA: ${partnerTopic}`)}`}
-                    className="underline decoration-primary-light font-bold hover:text-primary-light"
-                  >
-                    kemitraan@eva.id
-                  </a>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setPartnerTopic(null)}
-                  data-cursor="HAPUS"
-                  aria-label="Hapus topik kemitraan"
-                  className="ml-1 flex size-5 items-center justify-center rounded-full bg-white/10 text-white/80 hover:bg-white/20 hover:text-white"
-                >
-                  <X className="size-3" />
-                </button>
-              </div>
-            )}
 
             {/* Direct Download Action Card */}
             <div className="mt-10 flex w-full max-w-xl flex-col items-center">

@@ -1,13 +1,15 @@
-import { loadPortalDb, savePortalDb } from './storage'
 import {
+  buildPsychologistCertificates,
   buildSimulatedMobilePsychologist,
-  buildSimulatedUpgradeDocuments,
 } from '@/data/mock/psychologists.mock'
+import { getActivePortalDataSource, loadPortalDb, savePortalDb } from './storage'
 import type {
-  Psychologist,
-  PsychologistStatus,
+  RegisterPsychologistRequestDto,
   SimulateMobilePsychologistInput,
-} from '@/types/portal'
+  SubmitPsychologistApplicationResultDto,
+  VerifyPsychologistRequestDto,
+} from '@/types/api/contracts'
+import type { Psychologist, PsychologistStatus } from '@/types/domain/portal'
 
 export function simulateMobilePsychologistSubmission(
   input: SimulateMobilePsychologistInput,
@@ -19,97 +21,108 @@ export function simulateMobilePsychologistSubmission(
   return created
 }
 
-export function simulateVolunteerUpgradeSubmission(
+export async function registerPsychologistApplication(
+  payload: RegisterPsychologistRequestDto,
+): Promise<SubmitPsychologistApplicationResultDto> {
+  try {
+    const psychologist = await getActivePortalDataSource().registerPsychologist(payload)
+    return { ok: true, psychologist }
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : 'Gagal mengirim pendaftaran psikolog. Silakan periksa kembali data Anda.',
+    }
+  }
+}
+
+export function resubmitPsychologistApplication(
   psychologistId: string,
-  targetRole: 'relawan_profesional_non_mitra',
-  notes: string,
+  payload: RegisterPsychologistRequestDto,
 ): Psychologist | null {
   const db = loadPortalDb()
   const idx = db.psychologists.findIndex((p) => p.id === psychologistId)
   if (idx === -1) return null
 
-  const psy = db.psychologists[idx]
   const today = new Date().toISOString().slice(0, 10)
-  const upgradeDocs = buildSimulatedUpgradeDocuments(psy)
+  const existing = db.psychologists[idx]
+  const docs = buildPsychologistCertificates({
+    fullName: `${payload.full_name.trim()}, ${payload.title_degree.trim()}`,
+    strNumber: payload.str_number.trim().toUpperCase(),
+    sipNumber: payload.sip_number?.trim().toUpperCase() || null,
+    association: payload.association.trim(),
+    city: payload.city?.trim().toUpperCase() || existing.city,
+    education: payload.education?.trim() || existing.education,
+    verified: false,
+  })
 
-  db.psychologists[idx] = {
-    ...psy,
-    rejectionReason: undefined,
-    upgradeRequest: {
-      targetRole,
-      requestedAt: today,
-      notes,
-      documents: upgradeDocs,
-    },
+  const updated: Psychologist = {
+    ...existing,
+    fullName: payload.full_name.trim(),
+    titleDegree: payload.title_degree.trim(),
+    email: payload.email.trim(),
+    password: payload.password || existing.password,
+    phone: payload.phone?.trim() || existing.phone,
+    city: payload.city?.trim().toUpperCase() || existing.city,
+    education: payload.education?.trim() || existing.education,
+    strNumber: payload.str_number.trim().toUpperCase(),
+    sipNumber: payload.sip_number?.trim().toUpperCase() || null,
+    association: payload.association.trim(),
+    specializations: payload.specializations,
+    yearsOfExperience: payload.years_of_experience,
+    bio: payload.bio?.trim() || null,
+    certificateDocUrl: payload.certificate_doc_url?.trim() || docs[0]?.fileName || null,
+    verificationStatus: 'pending',
+    verificationNotes: null,
+    verifiedAt: null,
+    submittedAt: today,
+    documents: docs,
   }
 
+  db.psychologists[idx] = updated
   savePortalDb(db)
-  return db.psychologists[idx]
+  return updated
 }
 
-export function upsertPsychologist(
-  input: Omit<Psychologist, 'id'> & { id?: string },
-): Psychologist {
-  const db = loadPortalDb()
-  const role = input.role || (input.partnerId ? 'relawan_profesional_mitra' : 'relawan_profesional_non_mitra')
-  const practiceType = role === 'relawan_profesional_mitra' ? 'faskes' : 'mandiri'
-  const verificationStatus = input.verificationStatus ?? (input.partnerId ? 'approved' : 'pending')
-
-  if (input.id) {
-    const idx = db.psychologists.findIndex((p) => p.id === input.id)
-    if (idx !== -1) {
-      const existing = db.psychologists[idx]
-      const nextRole =
-        input.role || existing.role || (existing.partnerId ? 'relawan_profesional_mitra' : 'relawan_profesional_non_mitra')
-      const isRelawanBiasa = nextRole === 'relawan_biasa'
-      const updated: Psychologist = {
-        ...existing,
-        ...input,
-        role: nextRole,
-        sessionDurationMinutes:
-          input.sessionDurationMinutes ?? existing.sessionDurationMinutes ?? (isRelawanBiasa ? 30 : 45),
-        sessionFeeCoins: isRelawanBiasa
-          ? 0
-          : (input.sessionFeeCoins ?? existing.sessionFeeCoins ?? 50),
-        id: input.id,
-      }
-      db.psychologists[idx] = updated
-      savePortalDb(db)
-      return updated
-    }
-  }
-
-  const isRelawanBiasa = role === 'relawan_biasa'
-  const created: Psychologist = {
-    practiceType,
-    verificationStatus,
-    role,
-    sessionDurationMinutes: input.sessionDurationMinutes ?? (isRelawanBiasa ? 30 : 45),
-    sessionFeeCoins: isRelawanBiasa ? 0 : (input.sessionFeeCoins ?? 50),
-    ...input,
-    id: `psy-${Date.now()}`,
-  }
-  db.psychologists.unshift(created)
-  savePortalDb(db)
-  return created
+export async function reviewPsychologistVerification(
+  psychologistId: string,
+  payload: VerifyPsychologistRequestDto,
+): Promise<Psychologist> {
+  return getActivePortalDataSource().verifyPsychologist(psychologistId, payload)
 }
 
 export function updatePsychologistStatus(id: string, status: PsychologistStatus) {
   const db = loadPortalDb()
   const idx = db.psychologists.findIndex((p) => p.id === id)
   if (idx === -1) return
-  db.psychologists[idx] = { ...db.psychologists[idx], status }
+  db.psychologists[idx] = {
+    ...db.psychologists[idx],
+    status,
+    isOnline: status === 'active',
+  }
+  savePortalDb(db)
+}
+
+export function suspendPsychologistAccount(id: string, notes?: string) {
+  const db = loadPortalDb()
+  const idx = db.psychologists.findIndex((p) => p.id === id)
+  if (idx === -1) return
+  db.psychologists[idx] = {
+    ...db.psychologists[idx],
+    verificationStatus: 'suspended',
+    verificationNotes: notes?.trim() || db.psychologists[idx].verificationNotes,
+    status: 'inactive',
+    isOnline: false,
+    reviewedAt: new Date().toISOString().slice(0, 10),
+  }
   savePortalDb(db)
 }
 
 export function deletePsychologist(id: string) {
   const db = loadPortalDb()
   db.psychologists = db.psychologists.filter((p) => p.id !== id)
-  db.referrals = db.referrals.map((r) =>
-    r.assignedPsychologistId === id
-      ? { ...r, assignedPsychologistId: null, status: 'unassigned' }
-      : r,
-  )
   savePortalDb(db)
 }
 
@@ -119,133 +132,10 @@ export function togglePsychologistDocumentVerified(psychologistId: string, docId
   if (idx === -1) return
   const psy = db.psychologists[idx]
   const docs = psy.documents ?? []
-  const upgradeDocs = psy.upgradeRequest?.documents ?? []
-
-  const nextDocs = docs.map((d) => (d.id === docId ? { ...d, verified: !d.verified } : d))
-  const nextUpgradeDocs = upgradeDocs.map((d) =>
-    d.id === docId ? { ...d, verified: !d.verified } : d,
-  )
 
   db.psychologists[idx] = {
     ...psy,
-    documents: nextDocs,
-    upgradeRequest: psy.upgradeRequest
-      ? {
-          ...psy.upgradeRequest,
-          documents: nextUpgradeDocs,
-        }
-      : psy.upgradeRequest,
-  }
-  savePortalDb(db)
-}
-
-export function reviewIndependentPsychologist(
-  psychologistId: string,
-  decision: 'approved' | 'rejected' | 'suspended',
-  rejectionReason?: string,
-) {
-  const db = loadPortalDb()
-  const idx = db.psychologists.findIndex((p) => p.id === psychologistId)
-  if (idx === -1) return
-
-  const today = new Date().toISOString().slice(0, 10)
-  const currentDocs = db.psychologists[idx].documents ?? []
-
-  db.psychologists[idx] = {
-    ...db.psychologists[idx],
-    verificationStatus: decision,
-    status: decision === 'approved' ? 'active' : 'inactive',
-    reviewedAt: today,
-    rejectionReason:
-      decision === 'rejected' ? rejectionReason?.trim() : db.psychologists[idx].rejectionReason,
-    documents:
-      decision === 'approved'
-        ? currentDocs.map((d) => ({ ...d, verified: true }))
-        : currentDocs,
-  }
-  savePortalDb(db)
-}
-
-export function approvePsychologistUpgrade(psychologistId: string) {
-  const db = loadPortalDb()
-  const idx = db.psychologists.findIndex((p) => p.id === psychologistId)
-  if (idx === -1) return
-  const psy = db.psychologists[idx]
-  if (!psy.upgradeRequest) return
-
-  const targetRole = psy.upgradeRequest.targetRole
-  const upgradeDocs = (psy.upgradeRequest.documents ?? []).map((d) => ({
-    ...d,
-    verified: true,
-  }))
-  const existingDocs = psy.documents ?? []
-  const upgradeDocIds = new Set(upgradeDocs.map((d) => d.id))
-  const mergedDocs = [
-    ...existingDocs.filter((d) => !upgradeDocIds.has(d.id)),
-    ...upgradeDocs,
-  ]
-
-  const sippDoc = upgradeDocs.find((d) => d.docType === 'SIPP')
-  const strDoc = upgradeDocs.find((d) => d.docType === 'STR HIMPSI')
-
-  const nextSippNumber =
-    targetRole === 'relawan_profesional_non_mitra' && sippDoc?.documentNumber
-      ? sippDoc.documentNumber
-      : psy.sippNumber
-  const nextStrNumber =
-    targetRole === 'relawan_profesional_non_mitra' && strDoc?.documentNumber
-      ? strDoc.documentNumber
-      : psy.strNumber
-
-  db.psychologists[idx] = {
-    ...psy,
-    role: targetRole,
-    upgradeRequest: null,
-    documents: mergedDocs,
-    sippNumber: nextSippNumber,
-    strNumber: nextStrNumber,
-    rejectionReason: undefined,
-  }
-  savePortalDb(db)
-}
-
-export function rejectPsychologistUpgrade(psychologistId: string, reason?: string) {
-  const db = loadPortalDb()
-  const idx = db.psychologists.findIndex((p) => p.id === psychologistId)
-  if (idx === -1) return
-  const psy = db.psychologists[idx]
-  if (!psy.upgradeRequest) return
-
-  db.psychologists[idx] = {
-    ...psy,
-    upgradeRequest: null,
-    rejectionReason: reason ? `Pengajuan upgrade ditolak: ${reason.trim()}` : psy.rejectionReason,
-  }
-  savePortalDb(db)
-}
-
-export function requestPsychologistUpgrade(
-  psychologistId: string,
-  input: {
-    targetRole: 'relawan_profesional_non_mitra'
-    notes?: string
-    documents?: Psychologist['documents']
-  },
-) {
-  const db = loadPortalDb()
-  const idx = db.psychologists.findIndex((p) => p.id === psychologistId)
-  if (idx === -1) return
-
-  const today = new Date().toISOString().slice(0, 10)
-  db.psychologists[idx] = {
-    ...db.psychologists[idx],
-    rejectionReason: undefined,
-    upgradeRequest: {
-      targetRole: input.targetRole,
-      requestedAt: today,
-      notes: input.notes,
-      documents: input.documents,
-    },
+    documents: docs.map((d) => (d.id === docId ? { ...d, verified: !d.verified } : d)),
   }
   savePortalDb(db)
 }
