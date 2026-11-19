@@ -67,6 +67,15 @@ class ApiClient {
     return _handleResponse(response);
   }
 
+  Future<dynamic> patch(String path, {dynamic body}) async {
+    final uri = _buildUri(path);
+    final headers = await _buildHeaders();
+    final response = await _client
+        .patch(uri, headers: headers, body: body != null ? jsonEncode(body) : null)
+        .timeout(AppConfig.connectTimeout);
+    return _handleResponse(response);
+  }
+
   Future<dynamic> delete(String path) async {
     final uri = _buildUri(path);
     final headers = await _buildHeaders();

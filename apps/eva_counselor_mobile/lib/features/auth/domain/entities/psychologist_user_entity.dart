@@ -27,7 +27,7 @@ class PsychologistUserEntity {
   final int sessionDurationMinutes; // durasi 1 sesi dalam menit (misal 50)
   final int coinsPerSession; // tarif koin per sesi (misal 150 koin)
   final int coinBalance; // saldo koin akun
-  final String googleDriveEmail; // email drive untuk backup lokal E2EE
+  final String? googleDriveEmail; // email drive untuk backup lokal E2EE
   final DateTime? lastDriveBackup;
   final String autoBackupFrequency; // 'Harian', 'Mingguan', 'Manual'
 
@@ -73,7 +73,7 @@ class PsychologistUserEntity {
     this.sessionDurationMinutes = 50,
     this.coinsPerSession = 150,
     this.coinBalance = 1250,
-    this.googleDriveEmail = 'khoirotunnisa2507@gmail.com',
+    this.googleDriveEmail,
     this.lastDriveBackup,
     this.autoBackupFrequency = 'Harian',
     this.employeeNip = '199807252026012001',
@@ -94,6 +94,11 @@ class PsychologistUserEntity {
     this.bankAccountNumber = '8192039182',
     this.bankAccountHolder = 'Khoirotun Nisa, M.Psi',
   });
+
+  String get effectiveGoogleDriveEmail =>
+      (googleDriveEmail != null && googleDriveEmail!.isNotEmpty)
+          ? googleDriveEmail!
+          : email;
 
   bool get isVolunteer => false;
   bool get isPartner => false;

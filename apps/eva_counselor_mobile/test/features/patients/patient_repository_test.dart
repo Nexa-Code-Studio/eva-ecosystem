@@ -80,5 +80,19 @@ void main() {
       expect(note.subjective, contains('gelisah'));
       expect(note.assessment, contains('Kecemasan performansi'));
     });
+
+    test('synthesizeSoapNote generates structured SOAP fields from transcript via Eva AI', () async {
+      final draft = await repository.synthesizeSoapNote(
+        transcript: 'Pasien: Saya sering cemas dok. Psikolog: Mari latihan nafas bersama.',
+        patientName: 'Rian Pratama',
+      );
+
+      expect(draft.containsKey('subjective'), true);
+      expect(draft.containsKey('objective'), true);
+      expect(draft.containsKey('assessment'), true);
+      expect(draft.containsKey('plan'), true);
+      expect(draft['subjective']!.isNotEmpty, true);
+      expect(draft['plan']!.isNotEmpty, true);
+    });
   });
 }

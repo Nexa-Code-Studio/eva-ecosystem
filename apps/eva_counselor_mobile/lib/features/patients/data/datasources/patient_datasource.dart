@@ -7,4 +7,9 @@ abstract class PatientDataSource {
   Future<bool> sendConsentRequest(String patientId);
   Future<List<ClinicalNoteResponseDto>> fetchClinicalNotes(String patientId);
   Future<ClinicalNoteResponseDto> createClinicalNote(CreateClinicalNoteRequestDto request);
+  Future<Map<String, dynamic>> synthesizeSoapFromTranscript({
+    required String transcript,
+    String? patientName,
+    String? sessionId,
+  });
 }

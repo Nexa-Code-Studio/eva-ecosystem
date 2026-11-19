@@ -52,8 +52,9 @@
     "issue": 52,
     "branch": "main",
     "state": "Done",
-    "updated_at": 1794983409,
-    "evidence_summary": "Evidence accepted: completion and merge/approval verified."
+    "updated_at": 1795008800,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/74"
   },
   "68": {
     "issue": 68,
@@ -68,5 +69,20 @@
     "state": "In Progress",
     "updated_at": 1794991724,
     "evidence_summary": "Evidence accepted: active task branch verified."
+  },
+  "71": {
+    "issue": 71,
+    "branch": "main",
+    "state": "Done",
+    "updated_at": 1795008600,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified."
+  },
+  "46": {
+    "issue": 46,
+    "branch": "feat/46-automated-release-and-vps-cd",
+    "state": "Done",
+    "updated_at": 1795050752,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/75"
   }
 }
