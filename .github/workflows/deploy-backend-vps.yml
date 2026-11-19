@@ -93,3 +93,40 @@ jobs:
             echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
             echo "==> Triggering deployment runbook..."
             /root/vps-blueprints/runbooks/deploy-eva-backend.sh
+
+      - name: Notify Discord on VPS Backend Deploy Success
+        if: success()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
+            echo "DISCORD_WEBHOOK_URL is not configured. Skipping Discord notification."
+            exit 0
+          fi
+          COMMIT_SHA="${{ github.sha }}"
+          SHORT_SHA="${COMMIT_SHA:0:7}"
+          ACTOR="${{ github.actor }}"
+
+          PAYLOAD=$(cat <<EOF
+          {
+            "embeds": [
+              {
+                "title": "🖥️ Deployment Berhasil: Backend API VPS",
+                "description": "Container Docker backend API (\`eva-api\`, \`eva-worker\`, \`eva-mcp\`) berhasil diperbarui dan berjalan sehat di VPS!\n\n🩺 **Healthcheck**: HTTP 200 OK",
+                "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                "color": 3066993,
+                "fields": [
+                  {"name": "Branch", "value": "\`main\`", "inline": true},
+                  {"name": "Commit", "value": "\`${SHORT_SHA}\`", "inline": true},
+                  {"name": "Host", "value": "172.93.219.133", "inline": true}
+                ],
+                "footer": {"text": "EVA AI VPS CD Pipeline • GitHub Actions"},
+                "timestamp": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+              }
+            ],
+            "allowed_mentions": {"parse": []}
+          }
+          EOF
+          )
+
+          curl -s -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$DISCORD_WEBHOOK_URL"

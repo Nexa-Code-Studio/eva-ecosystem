@@ -149,3 +149,41 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Notify Discord on Deployment Success
+        if: success()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
+            echo "DISCORD_WEBHOOK_URL is not configured. Skipping Discord notification."
+            exit 0
+          fi
+          PAGES_URL="${{ steps.deployment.outputs.page_url }}"
+          COMMIT_SHA="${{ github.sha }}"
+          SHORT_SHA="${COMMIT_SHA:0:7}"
+          ACTOR="${{ github.actor }}"
+
+          PAYLOAD=$(cat <<EOF
+          {
+            "embeds": [
+              {
+                "title": "🚀 Deployment Berhasil: EVA Ecosystem Web (Pages)",
+                "description": "Multi-App Web (Mobile Eva & Konselor) berhasil di-deploy ke GitHub Pages!\n\n🌐 **Live URL**: ${PAGES_URL}\n📱 **Sub-Apps**:\n• Eva Mobile: ${PAGES_URL}app/\n• Konselor: ${PAGES_URL}counselor/",
+                "url": "${PAGES_URL}",
+                "color": 3066993,
+                "fields": [
+                  {"name": "Branch", "value": "\`main\`", "inline": true},
+                  {"name": "Commit", "value": "\`${SHORT_SHA}\`", "inline": true},
+                  {"name": "Pemicu", "value": "@${ACTOR}", "inline": true}
+                ],
+                "footer": {"text": "EVA AI Deployment Pipeline • GitHub Pages"},
+                "timestamp": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+              }
+            ],
+            "allowed_mentions": {"parse": []}
+          }
+          EOF
+          )
+
+          curl -s -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$DISCORD_WEBHOOK_URL"

@@ -257,3 +257,41 @@ jobs:
             release-dist/*.ipa
             release-dist/*.tar.gz
             release-dist/*.zip
+
+      - name: Notify Discord on APK Release Success
+        if: success()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
+            echo "DISCORD_WEBHOOK_URL is not configured. Skipping Discord notification."
+            exit 0
+          fi
+          RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/latest"
+          COMMIT_SHA="${{ github.sha }}"
+          SHORT_SHA="${COMMIT_SHA:0:7}"
+          ACTOR="${{ github.actor }}"
+
+          PAYLOAD=$(cat <<EOF
+          {
+            "embeds": [
+              {
+                "title": "📦 Rilis Sukses: Eva Mobile Android APK",
+                "description": "Paket APK rilis produksi terbaru berhasil dikompilasi dan diterbitkan!\n\n📥 **Download APK**: [eva-mobile-release.apk](https://github.com/${{ github.repository }}/releases/latest/download/eva-mobile-release.apk)\n🏷️ **Release Tag**: [latest](${RELEASE_URL})",
+                "url": "${RELEASE_URL}",
+                "color": 3066993,
+                "fields": [
+                  {"name": "Branch", "value": "\`main\`", "inline": true},
+                  {"name": "Commit", "value": "\`${SHORT_SHA}\`", "inline": true},
+                  {"name": "Pemicu", "value": "@${ACTOR}", "inline": true}
+                ],
+                "footer": {"text": "EVA AI Mobile Release • GitHub Actions"},
+                "timestamp": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+              }
+            ],
+            "allowed_mentions": {"parse": []}
+          }
+          EOF
+          )
+
+          curl -s -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$DISCORD_WEBHOOK_URL"
