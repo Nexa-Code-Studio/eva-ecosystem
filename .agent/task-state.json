@@ -94,9 +94,16 @@
   },
   "83": {
     "issue": 83,
-    "branch": "fix/83-separate-pages-deploy-jobs",
+    "branch": "main",
+    "state": "Done",
+    "updated_at": 1795146475,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified."
+  },
+  "79": {
+    "issue": 79,
+    "branch": "feat/79-counselor-webrtc-videocall",
     "state": "In Progress",
-    "updated_at": 1795146179,
+    "updated_at": 1795146604,
     "evidence_summary": "Evidence accepted: active task branch verified."
   }
 }

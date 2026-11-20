@@ -1,0 +1,19 @@
+name: webrtc_client
+description: Shared WebRTC Engine and Signaling client for EVA Ecosystem.
+version: 0.1.0
+publish_to: 'none'
+
+environment:
+  sdk: ^3.11.5
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_webrtc: ^1.6.3
+  web_socket_channel: ^3.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

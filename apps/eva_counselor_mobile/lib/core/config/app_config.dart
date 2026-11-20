@@ -52,11 +52,14 @@ class AppConfig {
     return '$scheme://$serverHost/api/v1';
   }
 
-  /// Base WebSocket URL for real-time video signaling & chat
-  static String get wsBaseUrl {
+  /// Base WebSocket URL for real-time video signaling & consultation
+  static String get wsCareBaseUrl {
     final scheme = isSecure ? 'wss' : 'ws';
-    return '$scheme://$serverHost/api/v1/call/ws';
+    return '$scheme://$serverHost/api/v1/care/ws';
   }
+
+  /// Base WebSocket URL (alias for wsCareBaseUrl)
+  static String get wsBaseUrl => wsCareBaseUrl;
 
   /// Request timeout duration
   static const Duration connectTimeout = Duration(seconds: 15);
