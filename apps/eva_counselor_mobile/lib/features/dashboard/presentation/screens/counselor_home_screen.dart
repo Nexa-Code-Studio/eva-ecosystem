@@ -5,6 +5,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/top_toast.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../finances/presentation/providers/finance_provider.dart';
 import '../../../patients/presentation/providers/patient_provider.dart';
 import '../providers/counselor_nav_provider.dart';
 
@@ -106,6 +107,19 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
         ? patients.firstWhere((p) => p.upcomingSchedule != null)
         : null;
     final highRiskPatients = patients.where((p) => p.isHighRisk).toList();
+
+    // Financial & session metrics (dynamically calculated)
+    final financesAsync = ref.watch(financialSummaryProvider);
+    final finances = financesAsync.value;
+    final activePatientsCount = patients.length;
+    final completedSessionsCount =
+        patients.fold<int>(0, (sum, p) => sum + p.totalCompletedSessions);
+    final balanceAmount = finances?.availableBalance ??
+        (user?.coinBalance != null ? (user!.coinBalance * 1000) : 360000);
+    final balanceFormatted = 'Rp ${balanceAmount.toString().replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]}.',
+        )}';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
@@ -382,59 +396,8 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
               ),
               const SizedBox(height: 18),
 
-              // 3. UPCOMING TELECONSULTATION HERO CARD (Dynamic or Clean Empty State)
-              if (upcomingPatient == null)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.divider),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.event_available_rounded,
-                          color: AppColors.primary,
-                          size: 26,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Tidak Ada Sesi Telekonsultasi Aktif',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Jadwal konsultasi baru dari pasien yang terdaftar akan otomatis tampil di sini saat mendekati waktu sesi.',
-                        textAlign: TextAlign.center,
-                        style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              else
+              // 3. UPCOMING TELECONSULTATION HERO CARD (Hidden if no session scheduled today)
+              if (upcomingPatient != null) ...[
                 Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(24),
@@ -603,7 +566,8 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                     ],
                   ),
                 ),
-              const SizedBox(height: 18),
+                const SizedBox(height: 18),
+              ],
 
               // 5. HORIZONTAL SCHEDULE MINI-CALENDAR STRIP (LENGKAP 7 HARI, MERAH JIKA LIBUR)
               Row(
@@ -935,12 +899,26 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                                   color: AppColors.verifiedBg,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
-                                child: const Text('+2', style: TextStyle(color: AppColors.verifiedGreen, fontSize: 10, fontWeight: FontWeight.bold)),
+                                child: Text(
+                                  activePatientsCount > 0 ? '+$activePatientsCount' : '0',
+                                  style: const TextStyle(
+                                    color: AppColors.verifiedGreen,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 10),
-                          const Text('14', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                          Text(
+                            '$activePatientsCount',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
                           const SizedBox(height: 2),
                           const Text('Pasien Aktif', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                         ],
@@ -974,7 +952,14 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                             ],
                           ),
                           const SizedBox(height: 10),
-                          const Text('38', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                          Text(
+                            '$completedSessionsCount',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
                           const SizedBox(height: 2),
                           const Text('Sesi Selesai', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                         ],
@@ -1016,9 +1001,13 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                               ],
                             ),
                             const SizedBox(height: 10),
-                            const Text(
-                              'Rp 4.250.000',
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                            Text(
+                              balanceFormatted,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
