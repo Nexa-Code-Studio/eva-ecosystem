@@ -80,3 +80,55 @@ class SoapSynthesisResponse(BaseModel):
     plan: str
     model_used: str
     synthesized_at: datetime
+
+
+class PatientScheduleResponse(BaseModel):
+    session_id: str
+    scheduled_start_time: str
+    duration_minutes: int = 30
+    status: str = "scheduled"
+
+
+class DassAssessmentItemResponse(BaseModel):
+    date: str
+    depression_score: int = 0
+    anxiety_score: int = 0
+    stress_score: int = 0
+    depression_severity: str = "Normal"
+    anxiety_severity: str = "Normal"
+    stress_severity: str = "Normal"
+
+
+class CounselorPatientResponse(BaseModel):
+    id: str
+    name: str
+    age: int = 25
+    gender: str = "L"
+    chief_complaint: str = "-"
+    latest_mood_tag: str = "Tenang & Nyaman"
+    emotional_risk_score: int = 2
+    is_high_risk: bool = False
+    has_consent: bool = False
+    last_session_date: str
+    total_completed_sessions: int = 0
+    consent_requested_at: str | None = None
+    dass_history: list[DassAssessmentItemResponse] | None = None
+    shared_diary_summaries: list[str] | None = None
+    upcoming_schedule: PatientScheduleResponse | None = None
+
+
+class RequestConsentResponse(BaseModel):
+    success: bool = True
+    message: str = "Permohonan akses rekam medis berhasil dikirim ke pasien."
+
+
+class ClinicalNoteDetailResponse(BaseModel):
+    id: str
+    patient_id: str
+    session_id: str
+    created_at: str
+    subjective: str
+    objective: str
+    assessment: str
+    plan: str
+    recommended_tasks: list[str] = []

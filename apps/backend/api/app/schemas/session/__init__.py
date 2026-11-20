@@ -1,5 +1,6 @@
 from app.schemas.session.requests import (
     BookSessionRequest,
+    CreateClinicalNoteRequest,
     ExtendSessionRequest,
     RequestConsentRequest,
     SynthesizeSoapRequest,
@@ -8,16 +9,22 @@ from app.schemas.session.requests import (
 )
 from app.schemas.session.responses import (
     AvailableSlotsResponse,
+    ClinicalNoteDetailResponse,
     ClinicalNotesResponse,
     ConsentStatusResponse,
     ConsultationSessionResponse,
+    CounselorPatientResponse,
+    DassAssessmentItemResponse,
     ExtensionAvailabilityResponse,
+    PatientScheduleResponse,
+    RequestConsentResponse,
     SoapSynthesisResponse,
     TimeSlotResponse,
 )
 
 __all__ = [
     "BookSessionRequest",
+    "CreateClinicalNoteRequest",
     "ExtendSessionRequest",
     "UpdateSoapNotesRequest",
     "SynthesizeSoapRequest",
@@ -30,4 +37,9 @@ __all__ = [
     "ClinicalNotesResponse",
     "ConsentStatusResponse",
     "SoapSynthesisResponse",
+    "PatientScheduleResponse",
+    "DassAssessmentItemResponse",
+    "CounselorPatientResponse",
+    "RequestConsentResponse",
+    "ClinicalNoteDetailResponse",
 ]

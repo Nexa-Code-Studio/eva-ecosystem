@@ -2,14 +2,21 @@ class AppConfig {
   /// Toggle between Mock Data (offline/local development) and Live Backend API.
   /// Can be overridden at build time via:
   /// --dart-define=USE_MOCK_DATA=true / false
-  static const bool useMockData = bool.fromEnvironment(
+  /// Defaults to false for production live server connection.
+  static bool useMockData = const bool.fromEnvironment(
     'USE_MOCK_DATA',
-    defaultValue: true,
+    defaultValue: false,
   );
 
   /// Toggle local API endpoint (127.0.0.1:8888 or 10.0.2.2:8888 for Android emulator)
   static const bool useLocalApi = bool.fromEnvironment(
     'USE_LOCAL_API',
+    defaultValue: true,
+  );
+
+  /// Whether running on an Android emulator (uses 10.0.2.2 instead of 127.0.0.1)
+  static const bool isEmulator = bool.fromEnvironment(
+    'IS_EMULATOR',
     defaultValue: false,
   );
 
@@ -29,7 +36,10 @@ class AppConfig {
   /// Active host resolution
   static String get serverHost {
     if (customLocalHost.isNotEmpty) return customLocalHost;
-    if (useLocalApi) return localServerHost;
+    if (useLocalApi) {
+      if (isEmulator) return emulatorServerHost;
+      return localServerHost;
+    }
     return defaultServerHost;
   }
 

@@ -16,6 +16,9 @@ from app.models.counselor import (
     PatientConsent,
     PsychologistProfile,
 )
+from app.models.dass import DASSAssessment
+from app.models.diary import DiaryEntry
+from app.models.user import User
 from app.models.enums import (
     ConsultationSessionStatus,
     PsychologistVerificationStatus,
@@ -25,10 +28,16 @@ from app.models.enums import (
 from app.schemas.session import (
     AvailableSlotsResponse,
     BookSessionRequest,
+    ClinicalNoteDetailResponse,
     ClinicalNotesResponse,
     ConsentStatusResponse,
     ConsultationSessionResponse,
+    CounselorPatientResponse,
+    CreateClinicalNoteRequest,
+    DassAssessmentItemResponse,
     ExtensionAvailabilityResponse,
+    PatientScheduleResponse,
+    RequestConsentResponse,
     TimeSlotResponse,
     UpdateSoapNotesRequest,
 )
@@ -587,3 +596,261 @@ class SchedulingService:
             "model_used": f"{model_name}-fallback",
             "synthesized_at": datetime.now(UTC),
         }
+
+    async def get_counselor_patients(self, counselor_user_id: uuid.UUID) -> list[CounselorPatientResponse]:
+        """List all patients associated with the authenticated counselor."""
+        c_query = select(PsychologistProfile).where(PsychologistProfile.user_id == counselor_user_id)
+        c_res = await self.db.execute(c_query)
+        profile = c_res.scalar_one_or_none()
+        if not profile:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profil psikolog tidak ditemukan.")
+
+        session_pts_query = select(ConsultationSession.patient_id).where(
+            ConsultationSession.counselor_id == profile.id
+        ).distinct()
+        consent_pts_query = select(PatientConsent.patient_id).where(
+            PatientConsent.counselor_id == profile.id
+        ).distinct()
+
+        res_sess_pts = await self.db.execute(session_pts_query)
+        res_cons_pts = await self.db.execute(consent_pts_query)
+
+        patient_ids = set(res_sess_pts.scalars().all()) | set(res_cons_pts.scalars().all())
+
+        if not patient_ids:
+            return []
+
+        patients: list[CounselorPatientResponse] = []
+        for pid in patient_ids:
+            patient_dto = await self._build_counselor_patient_dto(profile.id, pid)
+            if patient_dto:
+                patients.append(patient_dto)
+
+        return sorted(patients, key=lambda p: p.last_session_date, reverse=True)
+
+    async def get_patient_detail_for_counselor(
+        self, counselor_user_id: uuid.UUID, patient_id: uuid.UUID
+    ) -> CounselorPatientResponse:
+        """Fetch detailed profile, DASS assessment, and history for a patient."""
+        c_query = select(PsychologistProfile).where(PsychologistProfile.user_id == counselor_user_id)
+        c_res = await self.db.execute(c_query)
+        profile = c_res.scalar_one_or_none()
+        if not profile:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profil psikolog tidak ditemukan.")
+
+        dto = await self._build_counselor_patient_dto(profile.id, patient_id)
+        if not dto:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Data pasien tidak ditemukan.")
+        return dto
+
+    async def _build_counselor_patient_dto(
+        self, counselor_profile_id: uuid.UUID, patient_id: uuid.UUID
+    ) -> CounselorPatientResponse | None:
+        user_query = select(User).where(User.id == patient_id)
+        user_res = await self.db.execute(user_query)
+        user = user_res.scalar_one_or_none()
+        if not user:
+            return None
+
+        # Consent status
+        consent_query = select(PatientConsent).where(
+            PatientConsent.patient_id == patient_id,
+            PatientConsent.counselor_id == counselor_profile_id,
+        )
+        c_res = await self.db.execute(consent_query)
+        consent = c_res.scalar_one_or_none()
+        has_consent = consent is not None and consent.status == "granted"
+        consent_requested_at = consent.created_at.isoformat() if consent else None
+
+        # Sessions history
+        sess_query = (
+            select(ConsultationSession)
+            .where(
+                ConsultationSession.patient_id == patient_id,
+                ConsultationSession.counselor_id == counselor_profile_id,
+            )
+            .order_by(ConsultationSession.scheduled_start_time.desc())
+        )
+        s_res = await self.db.execute(sess_query)
+        sessions = s_res.scalars().all()
+
+        completed_sessions = [s for s in sessions if s.status == ConsultationSessionStatus.COMPLETED.value]
+        total_completed = len(completed_sessions)
+
+        last_session_date = (
+            completed_sessions[0].scheduled_start_time.isoformat()
+            if completed_sessions
+            else (sessions[0].scheduled_start_time.isoformat() if sessions else datetime.now(UTC).isoformat())
+        )
+
+        chief_complaint = "Konsultasi Kesehatan Mental"
+        if completed_sessions and completed_sessions[0].soap_notes:
+            subj = completed_sessions[0].soap_notes.get("subjective", "")
+            if subj:
+                chief_complaint = subj[:80] + ("..." if len(subj) > 80 else "")
+
+        # Upcoming schedule
+        now = datetime.now(UTC)
+        upcoming_session = next(
+            (s for s in sessions if s.status == ConsultationSessionStatus.SCHEDULED.value and s.scheduled_start_time >= now - timedelta(hours=1)),
+            None,
+        )
+        upcoming_dto = None
+        if upcoming_session:
+            upcoming_dto = PatientScheduleResponse(
+                session_id=str(upcoming_session.id),
+                scheduled_start_time=upcoming_session.scheduled_start_time.isoformat(),
+                duration_minutes=upcoming_session.duration_minutes,
+                status=upcoming_session.status,
+            )
+
+        # DASS history (only if consent granted)
+        dass_items: list[DassAssessmentItemResponse] = []
+        if has_consent:
+            dass_query = (
+                select(DASSAssessment)
+                .where(DASSAssessment.user_id == patient_id)
+                .order_by(DASSAssessment.assessed_date.desc())
+                .limit(5)
+            )
+            d_res = await self.db.execute(dass_query)
+            dass_rows = d_res.scalars().all()
+            for d in dass_rows:
+                dass_items.append(
+                    DassAssessmentItemResponse(
+                        date=str(d.assessed_date),
+                        depression_score=d.depression_score,
+                        anxiety_score=d.anxiety_score,
+                        stress_score=d.stress_score,
+                        depression_severity=d.depression_severity,
+                        anxiety_severity=d.anxiety_severity,
+                        stress_severity=d.stress_severity,
+                    )
+                )
+
+        # Shared diary summaries (only if consent granted)
+        diary_summaries: list[str] = []
+        latest_mood = "Tenang & Nyaman"
+        risk_score = 2
+        is_high_risk = False
+        if has_consent:
+            diary_query = (
+                select(DiaryEntry)
+                .where(DiaryEntry.user_id == patient_id)
+                .order_by(DiaryEntry.entry_date.desc())
+                .limit(3)
+            )
+            diary_res = await self.db.execute(diary_query)
+            diaries = diary_res.scalars().all()
+            for dy in diaries:
+                if dy.summary:
+                    diary_summaries.append(f"[{dy.entry_date}] {dy.summary}")
+            if diaries and diaries[0].mood_tag:
+                latest_mood = diaries[0].mood_tag
+                if any(w in latest_mood for w in ("Cemas", "Sedih", "Stres", "Marah")):
+                    risk_score = 4
+                if "Darurat" in latest_mood or "Krisis" in latest_mood:
+                    is_high_risk = True
+                    risk_score = 5
+
+        name = user.display_name or user.username or "Pasien Eva"
+
+        return CounselorPatientResponse(
+            id=str(patient_id),
+            name=name,
+            age=25,
+            gender="L",
+            chief_complaint=chief_complaint,
+            latest_mood_tag=latest_mood,
+            emotional_risk_score=risk_score,
+            is_high_risk=is_high_risk,
+            has_consent=has_consent,
+            last_session_date=last_session_date,
+            total_completed_sessions=total_completed,
+            consent_requested_at=consent_requested_at,
+            dass_history=dass_items if dass_items else None,
+            shared_diary_summaries=diary_summaries if diary_summaries else None,
+            upcoming_schedule=upcoming_dto,
+        )
+
+    async def create_clinical_note(
+        self,
+        counselor_user_id: uuid.UUID,
+        patient_id: uuid.UUID,
+        payload: CreateClinicalNoteRequest,
+    ) -> ClinicalNoteDetailResponse:
+        c_query = select(PsychologistProfile).where(PsychologistProfile.user_id == counselor_user_id)
+        c_res = await self.db.execute(c_query)
+        profile = c_res.scalar_one_or_none()
+        if not profile:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profil psikolog tidak ditemukan.")
+
+        target_session = None
+        if payload.session_id:
+            try:
+                s_id = uuid.UUID(payload.session_id)
+                s_query = select(ConsultationSession).where(
+                    ConsultationSession.id == s_id,
+                    ConsultationSession.counselor_id == profile.id,
+                )
+                res = await self.db.execute(s_query)
+                target_session = res.scalar_one_or_none()
+            except ValueError:
+                pass
+
+        if not target_session:
+            s_query = (
+                select(ConsultationSession)
+                .where(
+                    ConsultationSession.patient_id == patient_id,
+                    ConsultationSession.counselor_id == profile.id,
+                )
+                .order_by(ConsultationSession.scheduled_start_time.desc())
+            )
+            res = await self.db.execute(s_query)
+            target_session = res.scalars().first()
+
+        soap_dict = {
+            "subjective": payload.subjective,
+            "objective": payload.objective,
+            "assessment": payload.assessment,
+            "plan": payload.plan,
+            "recommended_tasks": payload.recommended_tasks,
+            "updated_at": datetime.now(UTC).isoformat(),
+        }
+
+        if target_session:
+            target_session.soap_notes = soap_dict
+            await self.db.commit()
+            await self.db.refresh(target_session)
+            session_id_str = str(target_session.id)
+            note_id = f"note-{target_session.id}"
+        else:
+            session_id_str = payload.session_id or str(uuid.uuid4())
+            note_id = f"note-{uuid.uuid4()}"
+
+        return ClinicalNoteDetailResponse(
+            id=note_id,
+            patient_id=str(patient_id),
+            session_id=session_id_str,
+            created_at=datetime.now(UTC).isoformat(),
+            subjective=payload.subjective,
+            objective=payload.objective,
+            assessment=payload.assessment,
+            plan=payload.plan,
+            recommended_tasks=payload.recommended_tasks,
+        )
+
+    async def request_patient_consent(
+        self,
+        counselor_user_id: uuid.UUID,
+        patient_id: uuid.UUID,
+    ) -> RequestConsentResponse:
+        c_query = select(PsychologistProfile).where(PsychologistProfile.user_id == counselor_user_id)
+        c_res = await self.db.execute(c_query)
+        profile = c_res.scalar_one_or_none()
+        if not profile:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profil psikolog tidak ditemukan.")
+
+        await self.update_consent_status(patient_id, profile.id, "pending")
+        return RequestConsentResponse(success=True, message="Permohonan akses rekam medis berhasil dikirim ke pasien.")
