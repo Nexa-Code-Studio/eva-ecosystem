@@ -22,20 +22,43 @@ class _VerificationPendingScreenState
 
   void _handleRefreshStatus() async {
     setState(() => _isRefreshing = true);
-    await Future.delayed(const Duration(milliseconds: 600));
-    ref
-        .read(authStateProvider.notifier)
-        .setVerificationStatus(VerificationStatus.verified);
-    if (!mounted) return;
-    setState(() => _isRefreshing = false);
+    try {
+      await ref.read(authStateProvider.notifier).checkAuthSession();
+      final user = ref.read(authStateProvider).value;
+      if (!mounted) return;
 
-    TopToast.show(
-      context,
-      title: 'Verifikasi Berhasil! 🎉',
-      message: 'Akun profesional Anda telah disetujui. Selamat datang di Eva.',
-      type: ToastType.success,
-    );
-    Navigator.of(context).pushReplacementNamed('/counselor-shell');
+      if (user?.verificationStatus == VerificationStatus.verified) {
+        TopToast.show(
+          context,
+          title: 'Verifikasi Berhasil! 🎉',
+          message: 'Akun profesional Anda telah disetujui. Selamat datang di Eva.',
+          type: ToastType.success,
+        );
+        Navigator.of(context).pushReplacementNamed('/counselor-shell');
+      } else if (user?.verificationStatus == VerificationStatus.needRevision ||
+          user?.verificationStatus == VerificationStatus.rejected) {
+        Navigator.of(context)
+            .pushReplacementNamed('/counselor-verification-rejected');
+      } else {
+        TopToast.show(
+          context,
+          title: 'Status: Masih Ditinjau ⏳',
+          message:
+              'Berkas pendaftaran Anda masih dalam antrean peninjauan oleh tim admin di Web Portal.',
+          type: ToastType.info,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      TopToast.show(
+        context,
+        title: 'Gagal Memeriksa Status',
+        message: e.toString(),
+        type: ToastType.error,
+      );
+    } finally {
+      if (mounted) setState(() => _isRefreshing = false);
+    }
   }
 
   void _handleLogout() async {
