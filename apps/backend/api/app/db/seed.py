@@ -513,7 +513,8 @@ async def seed_counselor_master_data(session: AsyncSessionLocal, patient_user: U
         PatientConsent.counselor_id == profile.id,
     )
     res_consent = await session.execute(query_consent)
-    if not res_consent.scalar_one_or_none():
+    existing_consent = res_consent.scalar_one_or_none()
+    if not existing_consent:
         consent = PatientConsent(
             patient_id=patient_user.id,
             counselor_id=profile.id,
@@ -523,6 +524,11 @@ async def seed_counselor_master_data(session: AsyncSessionLocal, patient_user: U
         session.add(consent)
         await session.commit()
         logger.info("Seeded Patient Consent between Samsul & Sarah Amelia.")
+    else:
+        existing_consent.status = "granted"
+        existing_consent.granted_at = datetime.now(UTC)
+        await session.commit()
+        logger.info("Ensured Patient Consent status is granted for Samsul.")
 
     # 5. Consultation Sessions & SOAP Notes
     query_sess = select(ConsultationSession).where(
