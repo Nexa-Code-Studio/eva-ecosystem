@@ -61,6 +61,19 @@ class AppConfig {
   /// Base WebSocket URL (alias for wsCareBaseUrl)
   static String get wsBaseUrl => wsCareBaseUrl;
 
+  /// Google OAuth 2.0 Client ID for Google Sign-In & Google Drive backup
+  static const String googleClientId = String.fromEnvironment(
+    'GOOGLE_CLIENT_ID',
+    defaultValue: '541439650704-tufjmhlfh9qg1a54irmbgfb4pv2rpm2g.apps.googleusercontent.com',
+  );
+
+  /// Google Drive scopes for encrypted clinical backup
+  static const List<String> googleDriveScopes = [
+    'email',
+    'https://www.googleapis.com/auth/drive.appdata',
+    'https://www.googleapis.com/auth/drive.file',
+  ];
+
   /// Request timeout duration
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 30);

@@ -102,8 +102,16 @@
   "79": {
     "issue": 79,
     "branch": "feat/79-counselor-webrtc-videocall",
+    "state": "Done",
+    "updated_at": 1795148092,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/85"
+  },
+  "86": {
+    "issue": 86,
+    "branch": "feat/86-counselor-drive-backup",
     "state": "In Progress",
-    "updated_at": 1795146604,
+    "updated_at": 1795148642,
     "evidence_summary": "Evidence accepted: active task branch verified."
   }
 }

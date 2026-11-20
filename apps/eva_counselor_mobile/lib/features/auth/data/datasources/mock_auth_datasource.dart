@@ -115,7 +115,7 @@ class MockAuthDataSource implements AuthDataSource {
       id: 'counselor-uuid-001',
       fullName: 'Psikolog Mandiri',
       titleDegree: 'S.Psi., M.Psi., Psikolog',
-      email: 'psikolog.mandiri@eva.id',
+      email: 'khoirotunnisa2507@gmail.com',
       strNumber: 'STR-PK-19980725-2026-01',
       association: 'Himpunan Psikologi Indonesia (HIMPSI)',
       specializations: [
@@ -133,7 +133,7 @@ class MockAuthDataSource implements AuthDataSource {
       sessionDurationMinutes: 50,
       coinsPerSession: 150,
       coinBalance: 1250,
-      googleDriveEmail: 'psikolog.mandiri@eva.id',
+      googleDriveEmail: 'khoirotunnisa2507@gmail.com',
       employeeNip: '199807252026012001',
       isOnlinePracticeEnabled: true,
       isOfflinePracticeEnabled: true,
