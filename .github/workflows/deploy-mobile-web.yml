@@ -22,6 +22,7 @@ on:
     paths:
       - 'apps/eva_mobile/**'
       - 'apps/eva_counselor_mobile/**'
+      - 'packages/webrtc_client/**'
       - 'scripts/web-hub/**'
       - '.github/workflows/deploy-mobile-web.yml'
 

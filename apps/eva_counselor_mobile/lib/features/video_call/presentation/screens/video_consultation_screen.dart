@@ -1,10 +1,14 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:webrtc_client/webrtc_client.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 import '../../../../core/widgets/top_toast.dart';
 import '../../domain/entities/video_call_state_entity.dart';
+import '../controllers/video_call_controller.dart';
 import '../providers/video_call_provider.dart';
 
 class VideoConsultationScreen extends ConsumerStatefulWidget {
@@ -27,53 +31,42 @@ class VideoConsultationScreen extends ConsumerStatefulWidget {
 }
 
 class _VideoConsultationScreenState
-    extends ConsumerState<VideoConsultationScreen> {
+    extends ConsumerState<VideoConsultationScreen>
+    with WidgetsBindingObserver {
   final _quickNoteCtrl = TextEditingController();
-  late final VideoCallSessionEntity _initialSession;
-
-  bool _isPatientPresent = false;
-  Timer? _simulatedJoinTimer;
 
   @override
   void initState() {
     super.initState();
-    final name = widget.patientName ?? 'Rian Pratama';
-    _initialSession = VideoCallSessionEntity(
-      sessionId: widget.sessionId,
-      patientId: 'patient-001',
-      patientName: name,
-      scheduledTime: DateTime.now(),
-    );
+    WidgetsBinding.instance.addObserver(this);
 
-    // Otomatis simulasi pasien masuk setelah 3.5 detik HANYA jika bukan early entry
-    if (!widget.isEarlyEntry) {
-      _simulatedJoinTimer = Timer(const Duration(milliseconds: 3500), () {
-        if (mounted && !_isPatientPresent) {
-          _connectPatient();
-        }
-      });
-    }
+    // Initialize controller and WebRTC peer connection
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctrl =
+          ref.read(videoCallControllerProvider(widget.sessionId).notifier);
+      if (widget.patientName != null && widget.patientName!.isNotEmpty) {
+        ctrl.setPatientName(widget.patientName!);
+      }
+      ctrl.initializeCall();
+    });
   }
 
-  void _connectPatient() {
-    _simulatedJoinTimer?.cancel();
-    setState(() => _isPatientPresent = true);
-    ref.read(videoCallControllerProvider(_initialSession).notifier).startCall();
-    TopToast.show(
-      context,
-      title: 'Pasien Telah Bergabung',
-      message: '${_initialSession.patientName} telah terhubung. Penghitung waktu sesi 30 menit resmi dimulai.',
-      type: ToastType.success,
-    );
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    ref
+        .read(videoCallControllerProvider(widget.sessionId).notifier)
+        .handleLifecycleState(state);
   }
 
   @override
   void dispose() {
-    _simulatedJoinTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _quickNoteCtrl.dispose();
     super.dispose();
   }
 
-  void _showQuickNotesDrawer(BuildContext context, dynamic session) {
+  void _showQuickNotesDrawer(
+      BuildContext context, VideoCallSessionEntity session) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -120,12 +113,14 @@ class _VideoConsultationScreenState
                   style: IconButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
+                    minimumSize: const Size(48, 48),
                   ),
                   icon: const Icon(Icons.add),
                   onPressed: () {
                     if (_quickNoteCtrl.text.isNotEmpty) {
                       ref
-                          .read(videoCallControllerProvider(_initialSession).notifier)
+                          .read(videoCallControllerProvider(widget.sessionId)
+                              .notifier)
                           .addQuickNote(_quickNoteCtrl.text);
                       _quickNoteCtrl.clear();
                     }
@@ -137,7 +132,11 @@ class _VideoConsultationScreenState
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 180),
               child: session.realTimeNotes.isEmpty
-                  ? const Text('Belum ada catatan observasi ditambahkan.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12))
+                  ? const Text(
+                      'Belum ada catatan observasi ditambahkan.',
+                      style: TextStyle(
+                          color: AppColors.textSecondary, fontSize: 12),
+                    )
                   : ListView.builder(
                       shrinkWrap: true,
                       itemCount: session.realTimeNotes.length,
@@ -152,7 +151,7 @@ class _VideoConsultationScreenState
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  session.realTimeNotes[idx] as String,
+                                  session.realTimeNotes[idx],
                                   style: const TextStyle(fontSize: 12),
                                 ),
                               ),
@@ -168,6 +167,84 @@ class _VideoConsultationScreenState
     );
   }
 
+  void _showQualityPresetSelector(
+      BuildContext context, VideoCallSessionEntity session) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E2333),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Pilih Kualitas Video Konsultasi',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Sesuaikan resolusi berdasarkan stabilitas jaringan internet Anda.',
+                style: TextStyle(color: Colors.white60, fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+              ...VideoQualityPreset.values.map((preset) {
+                final isSelected = session.qualityPreset == preset;
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    preset == VideoQualityPreset.audioOnly
+                        ? Icons.volume_up_rounded
+                        : (preset == VideoQualityPreset.hd720p
+                            ? Icons.hd_rounded
+                            : Icons.sd_rounded),
+                    color: isSelected ? AppColors.primary : Colors.white70,
+                  ),
+                  title: Text(
+                    preset.label,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.white70,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  subtitle: Text(
+                    preset == VideoQualityPreset.audioOnly
+                        ? 'Hemat data & baterai (tanpa kamera)'
+                        : (preset == VideoQualityPreset.hd720p
+                            ? '1280x720 • Jernih & Stabil'
+                            : '640x480 • Hemat Kuota'),
+                    style:
+                        const TextStyle(color: Colors.white38, fontSize: 11),
+                  ),
+                  trailing: isSelected
+                      ? const Icon(Icons.check_circle_rounded,
+                          color: AppColors.primary)
+                      : null,
+                  onTap: () {
+                    ref
+                        .read(videoCallControllerProvider(widget.sessionId)
+                            .notifier)
+                        .setQualityPreset(preset);
+                    Navigator.of(ctx).pop();
+                  },
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   String _formatDuration(Duration d) {
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
@@ -176,7 +253,11 @@ class _VideoConsultationScreenState
 
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(videoCallControllerProvider(_initialSession));
+    final session = ref.watch(videoCallControllerProvider(widget.sessionId));
+    final controller =
+        ref.read(videoCallControllerProvider(widget.sessionId).notifier);
+    final isPatientConnected =
+        !session.isWaitingForPatient && session.status == VideoCallStatus.connected;
 
     return Scaffold(
       backgroundColor: const Color(0xFF101318),
@@ -188,9 +269,30 @@ class _VideoConsultationScreenState
               child: Container(
                 color: const Color(0xFF161A24),
                 child: Center(
-                  child: !_isPatientPresent
+                  child: session.isWaitingForPatient
                       ? _buildWaitingPatientView(session)
-                      : _buildConnectedPatientView(session),
+                      : _buildPatientVideoView(controller, session),
+                ),
+              ),
+            ),
+
+            // Top & Bottom WCAG AA Gradient Scrim (Contrast >= 4.5:1)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      stops: [0.0, 0.25, 0.75, 1.0],
+                      colors: [
+                        Color(0xD9000000),
+                        Colors.transparent,
+                        Colors.transparent,
+                        Color(0xE6000000),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -199,179 +301,209 @@ class _VideoConsultationScreenState
             Positioned(
               top: 20,
               right: 20,
-              child: Container(
-                width: 100,
-                height: 135,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF282D3D),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1.5),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black45,
-                      blurRadius: 12,
-                      offset: Offset(0, 4),
+              child: Semantics(
+                label: 'Pratinjau Video Konselor',
+                child: Container(
+                  width: 104,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF282D3D),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.25),
+                      width: 1.5,
                     ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Stack(
-                    children: [
-                      Container(
-                        color: const Color(0xFF2B3245),
-                        child: Center(
-                          child: session.isVideoDisabled
-                              ? const Icon(Icons.videocam_off, color: Colors.white54, size: 24)
-                              : const Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.person, color: Colors.white, size: 30),
-                                    SizedBox(height: 4),
-                                    Text('Anda (Psikolog)', style: TextStyle(color: Colors.white70, fontSize: 10)),
-                                  ],
-                                ),
-                        ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black54,
+                        blurRadius: 12,
+                        offset: Offset(0, 4),
                       ),
-                      if (session.isMicMuted)
-                        Positioned(
-                          bottom: 6,
-                          right: 6,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: AppColors.error,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.mic_off, color: Colors.white, size: 10),
-                          ),
-                        ),
                     ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Stack(
+                      children: [
+                        _buildLocalVideo(controller, session),
+                        if (session.isMicMuted)
+                          Positioned(
+                            bottom: 6,
+                            right: 6,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: AppColors.error,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.mic_off,
+                                  color: Colors.white, size: 12),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
 
-            // 3. Top Call Status HUD & Timer Bar
+            // 3. Top Call Status HUD & Control Bar
             Positioned(
               top: 20,
               left: 20,
-              right: 130,
+              right: 135,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      IconButton(
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.white.withValues(alpha: 0.15),
-                          foregroundColor: Colors.white,
+                      Semantics(
+                        button: true,
+                        label: 'Kembali ke halaman sebelumnya',
+                        child: IconButton(
+                          style: IconButton.styleFrom(
+                            backgroundColor:
+                                Colors.white.withValues(alpha: 0.15),
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(48, 48),
+                          ),
+                          icon: const Icon(Icons.arrow_back, size: 20),
+                          onPressed: () => Navigator.of(context).pop(),
                         ),
-                        icon: const Icon(Icons.arrow_back, size: 18),
-                        onPressed: () => Navigator.of(context).pop(),
                       ),
                       const SizedBox(width: 8),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white.withValues(alpha: 0.15),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                      Semantics(
+                        button: true,
+                        label: 'Buka catatan cepat observasi klinis',
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                Colors.white.withValues(alpha: 0.15),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            minimumSize: const Size(48, 48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                           ),
+                          icon: const Icon(Icons.edit_note_rounded, size: 18),
+                          label: Text(
+                            'Catatan (${session.realTimeNotes.length})',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          onPressed: () =>
+                              _showQuickNotesDrawer(context, session),
                         ),
-                        icon: const Icon(Icons.edit_note_rounded, size: 16),
-                        label: Text('Catatan (${session.realTimeNotes.length})', style: const TextStyle(fontSize: 12)),
-                        onPressed: () => _showQuickNotesDrawer(context, session),
                       ),
                     ],
                   ),
-                  if (_isPatientPresent && !session.isExtended && session.isExtensionApproved == null) ...[
-                    const SizedBox(height: 6),
-                    GestureDetector(
-                      key: const Key('simulate_extension_btn'),
-                      onTap: () {
-                        ref
-                            .read(videoCallControllerProvider(_initialSession).notifier)
-                            .triggerExtensionRequest();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  const SizedBox(height: 8),
+
+                  // Jadwal & Quality Controls
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      // JADWAL CHIP
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF2563EB),
+                          color: Colors.black.withValues(alpha: 0.55),
                           borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.2)),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.hourglass_bottom_rounded, size: 12, color: Colors.white),
-                            SizedBox(width: 5),
+                            const Icon(Icons.event_available_rounded,
+                                size: 12, color: Colors.white70),
+                            const SizedBox(width: 5),
                             Text(
-                              'Simulasi Mnt-25 (Minta Tambah +30m)',
-                              style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              'Jadwal: ${widget.scheduledTime ?? "14:00 - 14:30 WIB"}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ],
                         ),
                       ),
-                    ),
-                  ],
-                  const SizedBox(height: 8),
 
-                  // JADWAL VC CHIP
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.event_available_rounded, size: 12, color: Colors.white70),
-                        const SizedBox(width: 5),
-                        Text(
-                          'Jadwal Sesi: ${widget.scheduledTime ?? "14:00 - 14:30 WIB"}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
+                      // QUALITY SELECTOR PILL
+                      Semantics(
+                        button: true,
+                        label: 'Pilih resolusi kualitas video',
+                        child: GestureDetector(
+                          onTap: () =>
+                              _showQualityPresetSelector(context, session),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E2333),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.6),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.tune_rounded,
+                                    size: 12, color: AppColors.primary),
+                                const SizedBox(width: 4),
+                                Text(
+                                  session.qualityPreset.label,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 6),
 
-                  // TIMER / STATUS BADGE (STANDBY vs MENUNGGU vs AKTIF)
+                  // TIMER / STATUS BADGE (Non-color-only accessible status)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: _isPatientPresent
-                          ? AppColors.verifiedGreen.withValues(alpha: 0.85)
-                          : (widget.isEarlyEntry
-                              ? const Color(0xFF2563EB).withValues(alpha: 0.85)
-                              : AppColors.pendingAmber.withValues(alpha: 0.85)),
+                      color: isPatientConnected
+                          ? AppColors.verifiedGreen.withValues(alpha: 0.9)
+                          : (session.isPatientReconnecting
+                              ? AppColors.pendingAmber.withValues(alpha: 0.9)
+                              : const Color(0xFF2563EB)
+                                  .withValues(alpha: 0.9)),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
+                        Icon(
+                          isPatientConnected
+                              ? Icons.check_circle_rounded
+                              : (session.isPatientReconnecting
+                                  ? Icons.sync_problem_rounded
+                                  : Icons.hourglass_top_rounded),
+                          size: 14,
+                          color: Colors.white,
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          _isPatientPresent
+                          isPatientConnected
                               ? 'Sesi Aktif: ${_formatDuration(session.callDuration)} / ${session.isExtended ? "60:00" : "30:00"}'
-                              : (widget.isEarlyEntry
-                                  ? 'Standby Lebih Awal • Menunggu Jam Jadwal'
-                                  : 'Menunggu Pasien Masuk...'),
+                              : (session.isPatientReconnecting
+                                  ? 'Menghubungkan Ulang...'
+                                  : 'Menunggu Pasien...'),
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -381,7 +513,8 @@ class _VideoConsultationScreenState
                         if (session.isExtended) ...[
                           const SizedBox(width: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 1),
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.25),
                               borderRadius: BorderRadius.circular(6),
@@ -403,72 +536,190 @@ class _VideoConsultationScreenState
               ),
             ),
 
-            // 4. Bottom Control Bar (Mute, Camera, Flip, End)
+            // 4. Permission Gate Notice (Non-blocking fallback)
+            if (!session.isCameraPermissionGranted ||
+                !session.isMicPermissionGranted)
+              Positioned(
+                top: 155,
+                left: 20,
+                right: 20,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E2333),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.pendingAmber.withValues(alpha: 0.8),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded,
+                          color: AppColors.pendingAmber, size: 22),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text(
+                          'Izin kamera/mikrofon belum aktif. Gunakan Audio-Only atau izinkan di pengaturan.',
+                          style: TextStyle(color: Colors.white70, fontSize: 11),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => openAppSettings(),
+                        child: const Text('Pengaturan',
+                            style: TextStyle(
+                                color: AppColors.primary, fontSize: 11)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // 5. Reconnection & Auto ICE Restart Banner
+            if (session.isPatientReconnecting ||
+                session.status == VideoCallStatus.reconnecting)
+              Positioned(
+                top: 160,
+                left: 20,
+                right: 20,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2A2016),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.pendingAmber,
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation(AppColors.pendingAmber),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          session.patientStatusMessage ??
+                              'Pasien sedang menghubungkan ulang...',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      Semantics(
+                        button: true,
+                        label: 'Hubungkan ulang panggilan WebRTC sekarang',
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.pendingAmber,
+                            foregroundColor: Colors.black,
+                            minimumSize: const Size(48, 36),
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: () => controller.manualIceRestart(),
+                          child: const Text(
+                            'Hubungkan Ulang',
+                            style: TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // 6. Bottom Control Bar (Mute, Video, Speaker, Flip, End)
             Positioned(
               bottom: 24,
               left: 20,
               right: 20,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: const Color(0xDD1E2333),
                   borderRadius: BorderRadius.circular(32),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                  border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.15)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     // Mic Toggle
                     _buildRoundCallButton(
+                      semanticLabel: session.isMicMuted
+                          ? 'Nyalakan Mikrofon'
+                          : 'Matikan Mikrofon',
                       icon: session.isMicMuted ? Icons.mic_off : Icons.mic,
                       isActive: !session.isMicMuted,
-                      onTap: () {
-                        ref
-                            .read(videoCallControllerProvider(_initialSession).notifier)
-                            .toggleMic();
-                      },
+                      onTap: () => controller.toggleMic(),
                     ),
 
                     // Video Camera Toggle
                     _buildRoundCallButton(
+                      semanticLabel: session.isVideoDisabled
+                          ? 'Nyalakan Kamera'
+                          : 'Matikan Kamera',
                       icon: session.isVideoDisabled
                           ? Icons.videocam_off
                           : Icons.videocam,
                       isActive: !session.isVideoDisabled,
-                      onTap: () {
-                        ref
-                            .read(videoCallControllerProvider(_initialSession).notifier)
-                            .toggleVideo();
-                      },
+                      onTap: () => controller.toggleVideo(),
+                    ),
+
+                    // Speakerphone Toggle
+                    _buildRoundCallButton(
+                      semanticLabel: session.isSpeakerOn
+                          ? 'Alihkan ke Earpiece'
+                          : 'Alihkan ke Speaker',
+                      icon: session.isSpeakerOn
+                          ? Icons.volume_up_rounded
+                          : Icons.phone_in_talk_rounded,
+                      isActive: session.isSpeakerOn,
+                      onTap: () => controller.toggleSpeaker(),
                     ),
 
                     // Flip Camera
                     _buildRoundCallButton(
+                      semanticLabel: 'Putar Kamera Depan/Belakang',
                       icon: Icons.flip_camera_ios,
                       isActive: false,
-                      onTap: () {
-                        ref
-                            .read(videoCallControllerProvider(_initialSession).notifier)
-                            .flipCamera();
-                      },
+                      onTap: () => controller.flipCamera(),
                     ),
 
                     // End Call (Red)
-                    GestureDetector(
-                      onTap: () {
-                        ref
-                            .read(videoCallControllerProvider(_initialSession).notifier)
-                            .endCall();
-                        Navigator.of(context).pop(true);
-                      },
-                      child: Container(
-                        width: 52,
-                        height: 52,
-                        decoration: const BoxDecoration(
-                          color: AppColors.error,
-                          shape: BoxShape.circle,
+                    Semantics(
+                      button: true,
+                      label: 'Akhiri Panggilan Konsultasi',
+                      child: GestureDetector(
+                        onTap: () {
+                          controller.endCall();
+                          Navigator.of(context).pop(true);
+                        },
+                        child: Container(
+                          width: 52,
+                          height: 52,
+                          decoration: const BoxDecoration(
+                            color: AppColors.error,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.call_end,
+                              color: Colors.white, size: 26),
                         ),
-                        child: const Icon(Icons.call_end, color: Colors.white, size: 26),
                       ),
                     ),
                   ],
@@ -476,7 +727,7 @@ class _VideoConsultationScreenState
               ),
             ),
 
-            // 5. In-Call 30-Min Extension Request Dialog / Overlay
+            // 7. In-Call 30-Min Extension Request Dialog / Overlay
             if (session.isExtensionRequested)
               Positioned(
                 top: 90,
@@ -551,12 +802,14 @@ class _VideoConsultationScreenState
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.info_outline, size: 14, color: Color(0xFF93C5FD)),
+                            Icon(Icons.info_outline,
+                                size: 14, color: Color(0xFF93C5FD)),
                             SizedBox(width: 6),
                             Expanded(
                               child: Text(
                                 'Jika disetujui, durasi panggilan bertambah menjadi 60 menit tanpa memutus sambungan video.',
-                                style: TextStyle(color: Color(0xFF93C5FD), fontSize: 10),
+                                style: TextStyle(
+                                    color: Color(0xFF93C5FD), fontSize: 10),
                               ),
                             ),
                           ],
@@ -572,22 +825,24 @@ class _VideoConsultationScreenState
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                minimumSize: const Size(48, 44),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10),
                               ),
                               onPressed: () {
-                                ref
-                                    .read(videoCallControllerProvider(_initialSession).notifier)
-                                    .rejectExtension();
+                                controller.rejectExtension();
                                 TopToast.show(
                                   context,
                                   title: 'Perpanjangan Ditolak',
-                                  message: 'Pasien akan diarahkan untuk reservasi sesi berikutnya.',
+                                  message:
+                                      'Pasien akan diarahkan untuk reservasi sesi berikutnya.',
                                   type: ToastType.info,
                                 );
                               },
                               child: const Text(
                                 'Tolak',
-                                style: TextStyle(color: Colors.white70, fontSize: 12),
+                                style: TextStyle(
+                                    color: Colors.white70, fontSize: 12),
                               ),
                             ),
                           ),
@@ -597,27 +852,30 @@ class _VideoConsultationScreenState
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.verifiedGreen,
                                 foregroundColor: Colors.white,
+                                minimumSize: const Size(48, 44),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10),
                               ),
                               onPressed: () async {
-                                final success = await ref
-                                    .read(videoCallControllerProvider(_initialSession).notifier)
-                                    .approveExtension();
+                                final success =
+                                    await controller.approveExtension();
                                 if (success && context.mounted) {
                                   TopToast.show(
                                     context,
                                     title: 'Sesi Diperpanjang! 🎉',
-                                    message: 'Konsultasi diperpanjang +30 menit (total 60:00).',
+                                    message:
+                                        'Konsultasi diperpanjang +30 menit (total 60:00).',
                                     type: ToastType.success,
                                   );
                                 }
                               },
                               child: const Text(
                                 'Terima (+30 Mnt)',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 12),
                               ),
                             ),
                           ),
@@ -633,10 +891,8 @@ class _VideoConsultationScreenState
     );
   }
 
-  // WAITING / STANDBY STATE WIDGET (BELUM HADIR)
+  // WAITING ROOM STATE WIDGET
   Widget _buildWaitingPatientView(VideoCallSessionEntity session) {
-    final isEarly = widget.isEarlyEntry;
-
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -652,7 +908,7 @@ class _VideoConsultationScreenState
                   height: 110,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: (isEarly ? const Color(0xFF2563EB) : AppColors.primary).withValues(alpha: 0.15),
+                    color: AppColors.primary.withValues(alpha: 0.15),
                   ),
                 ),
                 Container(
@@ -661,28 +917,34 @@ class _VideoConsultationScreenState
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: isEarly ? const Color(0xFF60A5FA) : AppColors.pendingAmber,
+                      color: AppColors.pendingAmber,
                       width: 2,
                     ),
                     color: const Color(0xFF1E2333),
                   ),
                   child: Center(
-                    child: isEarly
-                        ? const Icon(Icons.hourglass_top_rounded, size: 36, color: Color(0xFF93C5FD))
-                        : Text(
-                            session.patientName.substring(0, 1),
-                            style: const TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
+                    child: Text(
+                      session.patientName.isNotEmpty
+                          ? session.patientName[0].toUpperCase()
+                          : 'P',
+                      style: const TextStyle(
+                        fontSize: 34,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
             Text(
-              isEarly
-                  ? 'Ruang Standby Pra-Konseling'
-                  : 'Menunggu ${session.patientName} Hadir...',
-              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              'Menunggu ${session.patientName} Masuk...',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
@@ -698,10 +960,11 @@ class _VideoConsultationScreenState
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.access_time_rounded, size: 14, color: Color(0xFF93C5FD)),
+                  const Icon(Icons.access_time_rounded,
+                      size: 14, color: Color(0xFF93C5FD)),
                   const SizedBox(width: 6),
                   Text(
-                    'Jadwal Sesi: ${widget.scheduledTime ?? "14:00 - 14:50 WIB"}',
+                    'Jadwal Sesi: ${widget.scheduledTime ?? "14:00 - 14:30 WIB"}',
                     style: const TextStyle(
                       color: Color(0xFF93C5FD),
                       fontSize: 12,
@@ -713,7 +976,7 @@ class _VideoConsultationScreenState
             ),
             const SizedBox(height: 14),
 
-            // Card Penjelasan & Cek Perangkat
+            // Card Kesiapan Perangkat & Enkripsi
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -723,17 +986,19 @@ class _VideoConsultationScreenState
               ),
               child: Column(
                 children: [
-                  Row(
+                  const Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFF93C5FD)),
-                      const SizedBox(width: 8),
+                      Icon(Icons.lock_outline_rounded,
+                          size: 16, color: Color(0xFF93C5FD)),
+                      SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          isEarly
-                              ? 'Anda masuk lebih awal dari jam jadwal. Ruang sesi sudah aktif & terenkripsi. Durasi 50 menit baru akan berjalan saat pasien resmi masuk pada jam jadwal.'
-                              : 'Ruang telekonsultasi aktif. Penghitung durasi 50 menit akan berjalan otomatis saat pasien masuk ke dalam panggilan.',
-                          style: const TextStyle(color: Colors.white70, fontSize: 11, height: 1.45),
+                          'Ruang konsultasi aktif dan terenkripsi secara klinis. Durasi konsultasi resmi berjalan tepat setelah pasien bergabung.',
+                          style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                              height: 1.45),
                         ),
                       ),
                     ],
@@ -749,12 +1014,15 @@ class _VideoConsultationScreenState
                           Icon(
                             session.isMicMuted ? Icons.mic_off : Icons.mic,
                             size: 14,
-                            color: session.isMicMuted ? AppColors.error : const Color(0xFF4ADE80),
+                            color: session.isMicMuted
+                                ? AppColors.error
+                                : const Color(0xFF4ADE80),
                           ),
                           const SizedBox(width: 5),
                           Text(
-                            session.isMicMuted ? 'Mic Mati' : 'Mic Aktif',
-                            style: const TextStyle(color: Colors.white70, fontSize: 11),
+                            session.isMicMuted ? 'Mic Mati' : 'Mic Siap',
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 11),
                           ),
                         ],
                       ),
@@ -762,14 +1030,21 @@ class _VideoConsultationScreenState
                       Row(
                         children: [
                           Icon(
-                            session.isVideoDisabled ? Icons.videocam_off : Icons.videocam,
+                            session.isVideoDisabled
+                                ? Icons.videocam_off
+                                : Icons.videocam,
                             size: 14,
-                            color: session.isVideoDisabled ? AppColors.error : const Color(0xFF4ADE80),
+                            color: session.isVideoDisabled
+                                ? AppColors.error
+                                : const Color(0xFF4ADE80),
                           ),
                           const SizedBox(width: 5),
                           Text(
-                            session.isVideoDisabled ? 'Kamera Mati' : 'Kamera Aktif',
-                            style: const TextStyle(color: Colors.white70, fontSize: 11),
+                            session.isVideoDisabled
+                                ? 'Kamera Mati'
+                                : 'Kamera Siap',
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 11),
                           ),
                         ],
                       ),
@@ -780,27 +1055,12 @@ class _VideoConsultationScreenState
             ),
             const SizedBox(height: 20),
 
-            // Tombol Simulasi Masuk Pasien
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-              icon: const Icon(Icons.person_add_rounded, size: 16),
-              label: Text(
-                isEarly ? 'Simulasikan Pasien Hadir Lebih Awal' : 'Simulasikan Pasien Masuk',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-              ),
-              onPressed: _connectPatient,
-            ),
-            const SizedBox(height: 10),
-
             // Tombol Keluar Standby
             TextButton.icon(
-              icon: const Icon(Icons.arrow_back, size: 14, color: Colors.white60),
-              label: const Text('Keluar & Kembali Nanti', style: TextStyle(color: Colors.white60, fontSize: 12)),
+              icon:
+                  const Icon(Icons.arrow_back, size: 14, color: Colors.white60),
+              label: const Text('Keluar & Kembali Nanti',
+                  style: TextStyle(color: Colors.white60, fontSize: 12)),
               onPressed: () => Navigator.of(context).pop(),
             ),
             const SizedBox(height: 80),
@@ -810,8 +1070,20 @@ class _VideoConsultationScreenState
     );
   }
 
-  // CONNECTED STATE WIDGET (SUDAH HADIR)
-  Widget _buildConnectedPatientView(VideoCallSessionEntity session) {
+  // CONNECTED PATIENT VIEW (LIVE STREAM OR FALLBACK)
+  Widget _buildPatientVideoView(
+      VideoCallController controller, VideoCallSessionEntity session) {
+    if (AppConfig.useMockData || !controller.peerManager.isInitialized) {
+      return _buildConnectedPatientPlaceholder(session);
+    }
+
+    return RTCVideoView(
+      controller.peerManager.remoteRenderer,
+      objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+    );
+  }
+
+  Widget _buildConnectedPatientPlaceholder(VideoCallSessionEntity session) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -823,19 +1095,15 @@ class _VideoConsultationScreenState
             border: Border.all(color: AppColors.verifiedGreen, width: 3),
             color: const Color(0xFF2B3245),
           ),
-          child: ClipOval(
-            child: Image.network(
-              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Center(
-                child: Text(
-                  session.patientName.isNotEmpty ? session.patientName[0] : 'P',
-                  style: const TextStyle(
-                    fontSize: 42,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
+          child: Center(
+            child: Text(
+              session.patientName.isNotEmpty
+                  ? session.patientName[0].toUpperCase()
+                  : 'P',
+              style: const TextStyle(
+                fontSize: 42,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
           ),
@@ -859,11 +1127,15 @@ class _VideoConsultationScreenState
           child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.shield_outlined, size: 12, color: AppColors.verifiedGreen),
+              Icon(Icons.shield_outlined,
+                  size: 12, color: AppColors.verifiedGreen),
               SizedBox(width: 6),
               Text(
-                'Terenkripsi Klinis End-to-End',
-                style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w500),
+                'Terenkripsi Klinis End-to-End • WebRTC P2P',
+                style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -872,24 +1144,64 @@ class _VideoConsultationScreenState
     );
   }
 
+  // LOCAL PIP VIDEO VIEW
+  Widget _buildLocalVideo(
+      VideoCallController controller, VideoCallSessionEntity session) {
+    if (session.isVideoDisabled ||
+        session.qualityPreset == VideoQualityPreset.audioOnly) {
+      return const Center(
+        child: Icon(Icons.videocam_off, color: Colors.white54, size: 24),
+      );
+    }
+
+    if (AppConfig.useMockData || !controller.peerManager.isInitialized) {
+      return Container(
+        color: const Color(0xFF2B3245),
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.person, color: Colors.white, size: 30),
+              SizedBox(height: 4),
+              Text('Anda (Psikolog)',
+                  style: TextStyle(color: Colors.white70, fontSize: 10)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return RTCVideoView(
+      controller.peerManager.localRenderer,
+      mirror: session.isFrontCamera,
+      objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+    );
+  }
+
   Widget _buildRoundCallButton({
     required IconData icon,
     required bool isActive,
     required VoidCallback onTap,
+    required String semanticLabel,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: isActive ? Colors.white.withValues(alpha: 0.2) : Colors.white10,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          color: isActive ? Colors.white : Colors.white60,
-          size: 22,
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color:
+                isActive ? Colors.white.withValues(alpha: 0.2) : Colors.white10,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            color: isActive ? Colors.white : Colors.white60,
+            size: 22,
+          ),
         ),
       ),
     );

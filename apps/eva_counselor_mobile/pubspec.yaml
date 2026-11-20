@@ -17,6 +17,13 @@ dependencies:
   http: ^1.2.2
   shared_preferences: ^2.3.2
   url_launcher: ^6.3.1
+  flutter_webrtc: ^1.6.3
+  permission_handler: ^13.0.2
+  wakelock_plus: ^1.8.2
+  web_socket_channel: ^3.0.3
+
+  webrtc_client:
+    path: ../../packages/webrtc_client
 
 dev_dependencies:
   flutter_test:

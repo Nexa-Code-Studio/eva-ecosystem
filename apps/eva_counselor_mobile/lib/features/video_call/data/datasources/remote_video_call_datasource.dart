@@ -11,12 +11,33 @@ class RemoteVideoCallDataSource implements VideoCallDataSource {
 
   @override
   Future<VideoSessionResponseDto> fetchSessionDetails(String sessionId) async {
+    try {
+      final tokenResponse =
+          await _client.post(ApiEndpoints.videoToken(sessionId));
+      if (tokenResponse is Map<String, dynamic>) {
+        return VideoSessionResponseDto.fromJson(tokenResponse);
+      }
+    } catch (_) {
+      // Fallback to sessionDetail if videoToken endpoint is handled through sessions
+    }
+
     final response = await _client.get(ApiEndpoints.sessionDetail(sessionId));
     return VideoSessionResponseDto.fromJson(response as Map<String, dynamic>);
   }
 
   @override
   Future<bool> initiateCall(String sessionId) async {
+    try {
+      await _client.post(
+        ApiEndpoints.updateCallStatus(sessionId),
+        body: {
+          'status': 'connected',
+          'message': 'Counselor connected via WebRTC Offerer',
+        },
+      );
+    } catch (_) {
+      // Fallback to startSession
+    }
     final response = await _client.post(ApiEndpoints.startSession(sessionId));
     return (response as Map<String, dynamic>?)?['success'] as bool? ?? true;
   }
@@ -24,6 +45,16 @@ class RemoteVideoCallDataSource implements VideoCallDataSource {
   @override
   Future<bool> terminateCall(
       String sessionId, int durationSeconds, List<String> notes) async {
+    try {
+      await _client.post(
+        ApiEndpoints.updateCallStatus(sessionId),
+        body: {
+          'status': 'completed',
+          'message': 'Session completed normally by counselor',
+        },
+      );
+    } catch (_) {}
+
     final response = await _client.post(
       ApiEndpoints.endSession(sessionId),
       body: {
@@ -37,7 +68,7 @@ class RemoteVideoCallDataSource implements VideoCallDataSource {
   @override
   Future<bool> extendSession(String sessionId, int extendMinutes) async {
     final response = await _client.post(
-      '/sessions/$sessionId/extend',
+      ApiEndpoints.extendSession(sessionId),
       body: {
         'extend_minutes': extendMinutes,
         'counselor_approved': true,
@@ -52,7 +83,7 @@ class RemoteVideoCallDataSource implements VideoCallDataSource {
   @override
   Future<bool> rejectExtension(String sessionId) async {
     await _client.post(
-      '/sessions/$sessionId/extend',
+      ApiEndpoints.extendSession(sessionId),
       body: {
         'extend_minutes': 0,
         'counselor_approved': false,

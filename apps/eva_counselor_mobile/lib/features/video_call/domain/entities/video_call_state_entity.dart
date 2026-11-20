@@ -1,5 +1,8 @@
+import 'package:webrtc_client/webrtc_client.dart';
+
 enum VideoCallStatus {
   idle,
+  waiting,
   connecting,
   connected,
   reconnecting,
@@ -17,7 +20,25 @@ class VideoCallSessionEntity {
   final bool isMicMuted;
   final bool isVideoDisabled;
   final bool isFrontCamera;
+  final bool isSpeakerOn;
+  final VideoQualityPreset qualityPreset;
   final List<String> realTimeNotes;
+  final List<String> liveChatMessages;
+
+  // Connection & Waiting states
+  final bool isWaitingForPatient;
+  final bool isPatientReconnecting;
+  final String? patientStatusMessage;
+
+  // Permissions
+  final bool isCameraPermissionGranted;
+  final bool isMicPermissionGranted;
+
+  // Credentials
+  final String? signalingToken;
+  final String? channelName;
+  final String? wsUrl;
+  final List<IceServerConfig> iceServers;
 
   // In-call 30-min extension fields
   final bool isExtended;
@@ -35,7 +56,19 @@ class VideoCallSessionEntity {
     this.isMicMuted = false,
     this.isVideoDisabled = false,
     this.isFrontCamera = true,
+    this.isSpeakerOn = true,
+    this.qualityPreset = VideoQualityPreset.hd720p,
     this.realTimeNotes = const [],
+    this.liveChatMessages = const [],
+    this.isWaitingForPatient = true,
+    this.isPatientReconnecting = false,
+    this.patientStatusMessage,
+    this.isCameraPermissionGranted = true,
+    this.isMicPermissionGranted = true,
+    this.signalingToken,
+    this.channelName,
+    this.wsUrl,
+    this.iceServers = const [],
     this.isExtended = false,
     this.isExtensionRequested = false,
     this.maxDuration = const Duration(minutes: 30),
@@ -52,7 +85,20 @@ class VideoCallSessionEntity {
     bool? isMicMuted,
     bool? isVideoDisabled,
     bool? isFrontCamera,
+    bool? isSpeakerOn,
+    VideoQualityPreset? qualityPreset,
     List<String>? realTimeNotes,
+    List<String>? liveChatMessages,
+    bool? isWaitingForPatient,
+    bool? isPatientReconnecting,
+    String? patientStatusMessage,
+    bool clearPatientStatusMessage = false,
+    bool? isCameraPermissionGranted,
+    bool? isMicPermissionGranted,
+    String? signalingToken,
+    String? channelName,
+    String? wsUrl,
+    List<IceServerConfig>? iceServers,
     bool? isExtended,
     bool? isExtensionRequested,
     Duration? maxDuration,
@@ -68,7 +114,23 @@ class VideoCallSessionEntity {
       isMicMuted: isMicMuted ?? this.isMicMuted,
       isVideoDisabled: isVideoDisabled ?? this.isVideoDisabled,
       isFrontCamera: isFrontCamera ?? this.isFrontCamera,
+      isSpeakerOn: isSpeakerOn ?? this.isSpeakerOn,
+      qualityPreset: qualityPreset ?? this.qualityPreset,
       realTimeNotes: realTimeNotes ?? this.realTimeNotes,
+      liveChatMessages: liveChatMessages ?? this.liveChatMessages,
+      isWaitingForPatient: isWaitingForPatient ?? this.isWaitingForPatient,
+      isPatientReconnecting: isPatientReconnecting ?? this.isPatientReconnecting,
+      patientStatusMessage: clearPatientStatusMessage
+          ? null
+          : (patientStatusMessage ?? this.patientStatusMessage),
+      isCameraPermissionGranted:
+          isCameraPermissionGranted ?? this.isCameraPermissionGranted,
+      isMicPermissionGranted:
+          isMicPermissionGranted ?? this.isMicPermissionGranted,
+      signalingToken: signalingToken ?? this.signalingToken,
+      channelName: channelName ?? this.channelName,
+      wsUrl: wsUrl ?? this.wsUrl,
+      iceServers: iceServers ?? this.iceServers,
       isExtended: isExtended ?? this.isExtended,
       isExtensionRequested: isExtensionRequested ?? this.isExtensionRequested,
       maxDuration: maxDuration ?? this.maxDuration,

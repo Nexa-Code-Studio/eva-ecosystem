@@ -15,6 +15,7 @@ lib/
 !apps/eva_mobile/lib/
 !apps/eva_counselor_mobile/lib/
 !apps/web/src/lib/
+!packages/*/lib/
 lib64/
 parts/
 sdist/

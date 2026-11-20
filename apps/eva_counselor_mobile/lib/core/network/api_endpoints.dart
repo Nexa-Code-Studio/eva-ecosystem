@@ -27,6 +27,9 @@ class ApiEndpoints {
   // Video Call & Teleconsultation Sessions
   static const String activeSessions = '/sessions';
   static String sessionDetail(String id) => '/sessions/$id';
+  static String videoToken(String id) => '/care/sessions/$id/video-token';
+  static String careWebSocket(String id, String token) => '/care/ws/$id?token=$token';
+  static String updateCallStatus(String id) => '/care/sessions/$id/status';
   static String sessionExtensionAvailability(String id) =>
       '/sessions/$id/extension-availability';
   static String extendSession(String id) => '/sessions/$id/extend';
