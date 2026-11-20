@@ -110,8 +110,16 @@
   "86": {
     "issue": 86,
     "branch": "feat/86-counselor-drive-backup",
+    "state": "Done",
+    "updated_at": 1795151718,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/88"
+  },
+  "89": {
+    "issue": 89,
+    "branch": "feat/89-counselor-register-dashboard-realcase",
     "state": "In Progress",
-    "updated_at": 1795148642,
+    "updated_at": 1795151922,
     "evidence_summary": "Evidence accepted: active task branch verified."
   }
 }

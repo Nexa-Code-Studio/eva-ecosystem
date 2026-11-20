@@ -43,69 +43,14 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
       final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
       final isWeekend = index >= 5;
 
-      List<Map<String, dynamic>> sessions = [];
-      if (isToday) {
-        sessions = [
-          {
-            'time': '10:00 - 10:30 WIB',
-            'patientName': 'Rian Pratama (24 Thn)',
-            'chiefComplaint': 'Kecemasan akademik & insomnia',
-            'status': 'Sesi Siap Dimulai (Live)',
-            'isLive': true,
-            'patientId': 'patient-001',
-            'sessionId': 'session-live-001',
-          },
-          {
-            'time': '14:00 - 14:30 WIB',
-            'patientName': 'Dinda Kirana (23 Thn)',
-            'chiefComplaint': 'Burnout & serangan panik akut',
-            'status': 'Perhatian Krisis 🚨',
-            'isHighRisk': true,
-            'patientId': 'patient-002',
-          },
-        ];
-      } else if (!isWeekend) {
-        if (index == 0) {
-          sessions = [
-            {
-              'time': '10:00 - 10:30 WIB',
-              'patientName': 'Aditya Nugraha',
-              'chiefComplaint': 'Regulasi emosi & relasi sosial',
-              'status': 'Selesai',
-              'isCompleted': true,
-              'patientId': 'patient-003',
-            },
-          ];
-        } else if (index == 2 || index == 3) {
-          sessions = [
-            {
-              'time': '11:00 - 11:30 WIB',
-              'patientName': 'Maya Lestari (21 Thn)',
-              'chiefComplaint': 'Quarter-life crisis & eksplorasi karier',
-              'status': 'Terkonfirmasi',
-              'patientId': 'patient-004',
-            },
-          ];
-        } else if (index == 4) {
-          sessions = [
-            {
-              'time': '13:30 - 14:00 WIB',
-              'patientName': 'Budi Santoso',
-              'chiefComplaint': 'Konseling evaluasi lanjutan',
-              'status': 'Terkonfirmasi',
-              'patientId': 'patient-001',
-            },
-          ];
-        }
-      }
-
+      final List<Map<String, dynamic>> sessions = [];
       return {
         'day': dayNames[index],
         'date': '${date.day}',
         'fullDate': date,
         'isToday': isToday,
-        'hasSession': sessions.isNotEmpty,
-        'isHighRisk': sessions.any((s) => s['isHighRisk'] == true),
+        'hasSession': isToday,
+        'isHighRisk': false,
         'isOffDay': isWeekend,
         'sessions': sessions,
       };
@@ -119,10 +64,48 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
     final authState = ref.watch(authStateProvider);
     final user = authState.value;
     final patientsAsync = ref.watch(patientsListProvider);
+    final patients = patientsAsync.value ?? [];
 
     final selectedDayData = _calendarDays[_selectedCalendarIndex];
-    final selectedSessions = (selectedDayData['sessions'] as List<dynamic>?) ?? [];
+    final isSelectedDayToday =
+        _selectedCalendarIndex == (DateTime.now().weekday - 1);
+
+    // Dynamically derive today's sessions from real patient data
+    final List<Map<String, dynamic>> realTodaySessions = [];
+    for (final p in patients) {
+      if (p.upcomingSchedule != null) {
+        realTodaySessions.add({
+          'time': 'Jadwal Aktif (${p.upcomingSchedule!.timeRange})',
+          'patientName': '${p.name} (${p.age} Thn)',
+          'chiefComplaint': p.chiefComplaint,
+          'status': 'Sesi Siap Dimulai (Live)',
+          'isLive': true,
+          'patientId': p.id,
+          'sessionId': p.upcomingSchedule!.sessionId,
+        });
+      } else if (p.totalCompletedSessions > 0) {
+        realTodaySessions.add({
+          'time': 'Sesi Selesai Sebelumnya',
+          'patientName': '${p.name} (${p.age} Thn)',
+          'chiefComplaint': p.chiefComplaint,
+          'status': 'Selesai',
+          'isCompleted': true,
+          'patientId': p.id,
+          'sessionId': 'session-prev-${p.id}',
+        });
+      }
+    }
+
+    final selectedSessions = isSelectedDayToday && realTodaySessions.isNotEmpty
+        ? realTodaySessions
+        : (selectedDayData['sessions'] as List<dynamic>? ?? []);
     final isSelectedDayOff = selectedDayData['isOffDay'] == true;
+
+    // Upcoming consultation patient (real active patient with upcoming session)
+    final upcomingPatient = patients.where((p) => p.upcomingSchedule != null).isNotEmpty
+        ? patients.firstWhere((p) => p.upcomingSchedule != null)
+        : null;
+    final highRiskPatients = patients.where((p) => p.isHighRisk).toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
@@ -399,173 +382,227 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
               ),
               const SizedBox(height: 18),
 
-              // 3. UPCOMING TELECONSULTATION HERO CARD (No Overflows, Soft Gradient)
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF4B53BB),
-                      Color(0xFF6B72E5),
+              // 3. UPCOMING TELECONSULTATION HERO CARD (Dynamic or Clean Empty State)
+              if (upcomingPatient == null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.divider),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
                     ],
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF4B53BB).withValues(alpha: 0.28),
-                      blurRadius: 24,
-                      offset: const Offset(0, 10),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.event_available_rounded,
+                          color: AppColors.primary,
+                          size: 26,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Tidak Ada Sesi Telekonsultasi Aktif',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Jadwal konsultasi baru dari pasien yang terdaftar akan otomatis tampil di sini saat mendekati waktu sesi.',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFF4B53BB),
+                        Color(0xFF6B72E5),
+                      ],
                     ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Top Badges
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.18),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.access_time_rounded, color: Colors.white, size: 12),
-                                SizedBox(width: 5),
-                                Flexible(
-                                  child: Text(
-                                    'Mulai dalam 15 Mnt • 10:00 WIB',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF4B53BB).withValues(alpha: 0.28),
+                        blurRadius: 24,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Top Badges
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.access_time_rounded, color: Colors.white, size: 12),
+                                  const SizedBox(width: 5),
+                                  Flexible(
+                                    child: Text(
+                                      upcomingPatient.upcomingSchedule?.formattedTime ??
+                                          'Sesi Konsultasi Terjadwal Hari Ini',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Patient Photo + Info
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 66,
+                            height: 72,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(18),
+                              color: Colors.white.withValues(alpha: 0.2),
+                              image: const DecorationImage(
+                                image: NetworkImage(
+                                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+                                ),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${upcomingPatient.name} (${upcomingPatient.age} Thn)',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  upcomingPatient.chiefComplaint,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'Durasi 30 Menit • Video Call',
+                                  style: TextStyle(color: Colors.white60, fontSize: 11),
                                 ),
                               ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
 
-                    // Patient Photo + Info
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 66,
-                          height: 72,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(18),
-                            color: Colors.white.withValues(alpha: 0.2),
-                            image: const DecorationImage(
-                              image: NetworkImage(
-                                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+                      // Actions
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.white54),
+                                padding: const EdgeInsets.symmetric(vertical: 11),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Rian Pratama (24 Thn)',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              SizedBox(height: 3),
-                              Text(
-                                'Generalized Anxiety & Insomnia',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(color: Colors.white70, fontSize: 12),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'Durasi 30 Menit • Video Call',
-                                style: TextStyle(color: Colors.white60, fontSize: 11),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Actions
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.white54),
-                              padding: const EdgeInsets.symmetric(vertical: 11),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            onPressed: () {
-                              Navigator.of(context).pushNamed(
-                                '/counselor-patient-detail',
-                                arguments: 'patient-001',
-                              );
-                            },
-                            child: const Text(
-                              'Rekam Medis',
-                              style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 3,
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: AppColors.primary,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 11),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            icon: const Icon(Icons.videocam_rounded, size: 17),
-                            label: const Text(
-                              'Masuk Sesi VC',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                            ),
-                            onPressed: () async {
-                              final finished = await Navigator.of(context).pushNamed(
-                                '/counselor-video-call',
-                                arguments: 'session-live-001',
-                              );
-                              if (finished == true && context.mounted) {
+                              onPressed: () {
                                 Navigator.of(context).pushNamed(
                                   '/counselor-patient-detail',
-                                  arguments: 'patient-001',
+                                  arguments: upcomingPatient.id,
                                 );
-                              }
-                            },
+                              },
+                              child: const Text(
+                                'Rekam Medis',
+                                style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                          const SizedBox(width: 8),
+                          Expanded(
+                            flex: 3,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: AppColors.primary,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(vertical: 11),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              icon: const Icon(Icons.videocam_rounded, size: 17),
+                              label: const Text(
+                                'Masuk Sesi VC',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                              ),
+                              onPressed: () async {
+                                final sessionId = upcomingPatient.upcomingSchedule?.sessionId ?? 'session-live-001';
+                                final finished = await Navigator.of(context).pushNamed(
+                                  '/counselor-video-call',
+                                  arguments: sessionId,
+                                );
+                                if (finished == true && context.mounted) {
+                                  Navigator.of(context).pushNamed(
+                                    '/counselor-patient-detail',
+                                    arguments: upcomingPatient.id,
+                                  );
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
               const SizedBox(height: 18),
 
               // 5. HORIZONTAL SCHEDULE MINI-CALENDAR STRIP (LENGKAP 7 HARI, MERAH JIKA LIBUR)
@@ -996,7 +1033,14 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        Navigator.of(context).pushNamed('/counselor-patient-detail', arguments: 'patient-002');
+                        if (highRiskPatients.isNotEmpty) {
+                          Navigator.of(context).pushNamed(
+                            '/counselor-patient-detail',
+                            arguments: highRiskPatients.first.id,
+                          );
+                        } else {
+                          ref.read(counselorBottomNavIndexProvider.notifier).state = 1;
+                        }
                       },
                       child: Container(
                         padding: const EdgeInsets.all(14),
@@ -1025,14 +1069,34 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child: const Text('Perhatian', style: TextStyle(color: AppColors.highRiskRed, fontSize: 9, fontWeight: FontWeight.bold)),
+                                  child: Text(
+                                    highRiskPatients.isNotEmpty ? 'Perhatian' : 'Aman',
+                                    style: TextStyle(
+                                      color: highRiskPatients.isNotEmpty ? AppColors.highRiskRed : AppColors.verifiedGreen,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 10),
-                            const Text('1 Pasien', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.highRiskRed)),
+                            Text(
+                              '${highRiskPatients.length} Pasien',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: highRiskPatients.isNotEmpty ? AppColors.highRiskRed : AppColors.verifiedGreen,
+                              ),
+                            ),
                             const SizedBox(height: 2),
-                            const Text('Peringatan Berisiko', style: TextStyle(fontSize: 11, color: AppColors.highRiskRed)),
+                            Text(
+                              highRiskPatients.isNotEmpty ? 'Peringatan Berisiko' : 'Risiko Terkendali',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: highRiskPatients.isNotEmpty ? AppColors.highRiskRed : AppColors.verifiedGreen,
+                              ),
+                            ),
                           ],
                         ),
                       ),
