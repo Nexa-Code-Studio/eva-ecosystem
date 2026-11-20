@@ -84,5 +84,12 @@
     "updated_at": 1795050752,
     "evidence_summary": "Evidence accepted: completion and merge/approval verified.",
     "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/75"
+  },
+  "81": {
+    "issue": 81,
+    "branch": "feat/81-counselor-live-api-integration",
+    "state": "In Progress",
+    "updated_at": 1795143382,
+    "evidence_summary": "Evidence accepted: active task branch verified."
   }
 }

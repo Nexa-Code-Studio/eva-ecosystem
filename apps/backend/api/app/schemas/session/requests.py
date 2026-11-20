@@ -30,4 +30,14 @@ class RequestConsentRequest(BaseModel):
 
 
 class UpdateConsentStatusRequest(BaseModel):
-    status: str = Field(..., pattern="^(granted|revoked)$")
+    status: str = Field(..., pattern="^(granted|revoked|pending)$")
+
+
+class CreateClinicalNoteRequest(BaseModel):
+    patient_id: str
+    session_id: str | None = None
+    subjective: str = Field(default="", max_length=5000)
+    objective: str = Field(default="", max_length=5000)
+    assessment: str = Field(default="", max_length=5000)
+    plan: str = Field(default="", max_length=5000)
+    recommended_tasks: list[str] = Field(default_factory=list)

@@ -1,5 +1,6 @@
 import asyncio
 from datetime import date, datetime, timedelta, UTC
+from decimal import Decimal
 import logging
 from sqlalchemy import select
 
@@ -7,10 +8,25 @@ from app.db.session import AsyncSessionLocal, engine
 from app.core.security import hash_password
 from app.core.tz import get_wib_today
 from app.models.base import BaseModel
+from app.models.counselor import (
+    ConsultationSession,
+    CounselorTransaction,
+    PatientConsent,
+    PlatformPricingConfig,
+    PsychologistProfile,
+)
 from app.models.conversation import Conversation, Message
 from app.models.diary import DiaryEntry
 from app.models.coping_activity import CopingActivity, UserActivityCompletion
-from app.models.enums import ConversationStatus, MessageType
+from app.models.enums import (
+    ConsultationSessionStatus,
+    ConversationStatus,
+    MessageType,
+    PricingConfigStatus,
+    PsychologistVerificationStatus,
+    TransactionStatus,
+    TransactionType,
+)
 from app.models.recommendation import RecommendationItem
 from app.models.user import EmergencyContact, User
 
@@ -394,7 +410,191 @@ async def seed_master_data() -> User:
         # 5. Conversations & Messages (Skipped: Start with 0 conversations for clean user state)
         logger.info("Skipping conversation seeding for 100% clean conversation history.")
 
+        # 6. Seed Psychologist & Counselor Master Data
+        await seed_counselor_master_data(session, user)
+
         return user
+
+
+async def seed_counselor_master_data(session: AsyncSessionLocal, patient_user: User) -> PsychologistProfile:
+    """Seed certified professional psychologist, platform pricing, and realistic consultation history."""
+    # 1. Platform Pricing Config
+    query_pricing = select(PlatformPricingConfig).where(
+        PlatformPricingConfig.status == PricingConfigStatus.ACTIVE.value
+    )
+    res_pricing = await session.execute(query_pricing)
+    pricing = res_pricing.scalars().first()
+    if not pricing:
+        pricing = PlatformPricingConfig(
+            session_duration_minutes=30,
+            price_per_session=Decimal("150000.00"),
+            counselor_share_percentage=Decimal("80.00"),
+            platform_fee_percentage=Decimal("20.00"),
+            extension_price_per_session=Decimal("75000.00"),
+            status=PricingConfigStatus.ACTIVE.value,
+        )
+        session.add(pricing)
+        await session.commit()
+        await session.refresh(pricing)
+        logger.info("Seeded Platform Pricing Config.")
+
+    # 2. Seed Psychologist User Account
+    counselor_email = "psikolog.mandiri@eva.id"
+    query_c_user = select(User).where(User.email == counselor_email)
+    res_c_user = await session.execute(query_c_user)
+    counselor_user = res_c_user.scalar_one_or_none()
+
+    if not counselor_user:
+        counselor_user = User(
+            email=counselor_email,
+            username="dr_sarah_amelia",
+            display_name="dr. Sarah Amelia, M.Psi., Psikolog",
+            password_hash=hash_password("password123"),
+            is_active=True,
+            is_verified=True,
+        )
+        session.add(counselor_user)
+        await session.commit()
+        await session.refresh(counselor_user)
+        logger.info(f"Seeded Counselor User: {counselor_email}")
+    else:
+        counselor_user.display_name = "dr. Sarah Amelia, M.Psi., Psikolog"
+        counselor_user.password_hash = hash_password("password123")
+        await session.commit()
+
+    # 3. Seed PsychologistProfile
+    query_prof = select(PsychologistProfile).where(PsychologistProfile.user_id == counselor_user.id)
+    res_prof = await session.execute(query_prof)
+    profile = res_prof.scalar_one_or_none()
+
+    if not profile:
+        profile = PsychologistProfile(
+            user_id=counselor_user.id,
+            full_name="dr. Sarah Amelia, M.Psi., Psikolog",
+            title_degree="M.Psi., Psikolog Klinis",
+            str_number="STR-PSI-19940822-2024",
+            sip_number="SIP-PK-2024-0089",
+            association="Himpunan Psikologi Indonesia (HIMPSI)",
+            specializations=["Anxiety & Stress", "Trauma & PTSD", "Depression", "Family & Relationship"],
+            years_of_experience=7,
+            verification_status=PsychologistVerificationStatus.VERIFIED.value,
+            is_online=True,
+            bio="Psikolog klinis spesialis regulasi emosi, trauma, dan manajemen kecemasan.",
+            bank_name="BCA",
+            bank_account_number="8830192831",
+            bank_account_holder="dr. Sarah Amelia",
+            wallet_balance=Decimal("360000.00"),
+        )
+        session.add(profile)
+        await session.commit()
+        await session.refresh(profile)
+        logger.info("Seeded Verified Psychologist Profile.")
+    else:
+        profile.verification_status = PsychologistVerificationStatus.VERIFIED.value
+        profile.wallet_balance = Decimal("360000.00")
+        profile.is_online = True
+        await session.commit()
+
+    # 4. Patient Consent
+    query_consent = select(PatientConsent).where(
+        PatientConsent.patient_id == patient_user.id,
+        PatientConsent.counselor_id == profile.id,
+    )
+    res_consent = await session.execute(query_consent)
+    if not res_consent.scalar_one_or_none():
+        consent = PatientConsent(
+            patient_id=patient_user.id,
+            counselor_id=profile.id,
+            status="granted",
+            granted_at=datetime.now(UTC),
+        )
+        session.add(consent)
+        await session.commit()
+        logger.info("Seeded Patient Consent between Samsul & Sarah Amelia.")
+
+    # 5. Consultation Sessions & SOAP Notes
+    query_sess = select(ConsultationSession).where(
+        ConsultationSession.counselor_id == profile.id,
+        ConsultationSession.patient_id == patient_user.id,
+    )
+    res_sess = await session.execute(query_sess)
+    existing_sessions = res_sess.scalars().all()
+
+    if not existing_sessions:
+        now = datetime.now(UTC)
+        past_session = ConsultationSession(
+            session_code="EVA-20261120-001",
+            patient_id=patient_user.id,
+            counselor_id=profile.id,
+            pricing_config_id=pricing.id if pricing else None,
+            scheduled_start_time=now - timedelta(days=2),
+            scheduled_end_time=now - timedelta(days=2, minutes=-30),
+            actual_start_time=now - timedelta(days=2),
+            actual_end_time=now - timedelta(days=2, minutes=-30),
+            duration_minutes=30,
+            status=ConsultationSessionStatus.COMPLETED.value,
+            total_price=Decimal("150000.00"),
+            counselor_earning=Decimal("120000.00"),
+            platform_fee=Decimal("30000.00"),
+            soap_notes={
+                "subjective": "Pasien merasa cemas dan kesulitan tidur karena beban pekerjaan meningkat.",
+                "objective": "Kontak mata baik, respon afektif cemas ringan, skor DASS kecemasan sedang.",
+                "assessment": "Mild Generalized Anxiety Disorder yang dipicu oleh stres lingkungan kerja.",
+                "plan": "Latihan pernapasan 4-7-8, pembatasan kafein setelah jam 4 sore, dan evaluasi dalam 1 minggu.",
+                "recommended_tasks": ["Latihan napas 4-7-8 pagi & malam", "Jurnal pemicu kecemasan harian"],
+            },
+        )
+        upcoming_session = ConsultationSession(
+            session_code="EVA-20261120-002",
+            patient_id=patient_user.id,
+            counselor_id=profile.id,
+            pricing_config_id=pricing.id if pricing else None,
+            scheduled_start_time=now + timedelta(hours=3),
+            scheduled_end_time=now + timedelta(hours=3, minutes=30),
+            duration_minutes=30,
+            status=ConsultationSessionStatus.SCHEDULED.value,
+            total_price=Decimal("150000.00"),
+            counselor_earning=Decimal("120000.00"),
+            platform_fee=Decimal("30000.00"),
+        )
+        session.add_all([past_session, upcoming_session])
+        await session.commit()
+        await session.refresh(past_session)
+        logger.info("Seeded Consultation Sessions (Completed & Scheduled).")
+
+        # 6. Counselor Transactions
+        tx1 = CounselorTransaction(
+            counselor_id=profile.id,
+            session_id=past_session.id,
+            transaction_type=TransactionType.EARNING.value,
+            status=TransactionStatus.COMPLETED.value,
+            amount=Decimal("120000.00"),
+            description="Honorarium Sesi Konsultasi #EVA-20261120-001 (Samsul)",
+            reference_number="TX-20261118-001",
+        )
+        tx2 = CounselorTransaction(
+            counselor_id=profile.id,
+            session_id=None,
+            transaction_type=TransactionType.EARNING.value,
+            status=TransactionStatus.COMPLETED.value,
+            amount=Decimal("120000.00"),
+            description="Honorarium Sesi Konsultasi Sebelumnya",
+            reference_number="TX-20261115-002",
+        )
+        tx3 = CounselorTransaction(
+            counselor_id=profile.id,
+            session_id=None,
+            transaction_type=TransactionType.EARNING.value,
+            status=TransactionStatus.COMPLETED.value,
+            amount=Decimal("120000.00"),
+            description="Honorarium Sesi Konseling Kelompok",
+            reference_number="TX-20261110-003",
+        )
+        session.add_all([tx1, tx2, tx3])
+        await session.commit()
+        logger.info("Seeded Counselor Transactions.")
+
+    return profile
 
 
 def main() -> None:

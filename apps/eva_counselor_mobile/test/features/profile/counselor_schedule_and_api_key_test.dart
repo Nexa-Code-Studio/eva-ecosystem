@@ -7,12 +7,18 @@ import 'package:eva_counselor_mobile/features/auth/presentation/providers/auth_p
 import 'package:eva_counselor_mobile/features/profile/presentation/screens/counselor_profile_screen.dart';
 import 'package:eva_counselor_mobile/features/profile/presentation/screens/counselor_schedule_settings_screen.dart';
 import 'package:eva_counselor_mobile/features/profile/presentation/widgets/counselor_profile_schedule_card.dart';
+import 'package:eva_counselor_mobile/core/config/app_config.dart';
 import 'package:eva_counselor_mobile/features/profile/presentation/widgets/counselor_external_api_key_modal.dart';
 
 void main() {
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized();
     SharedPreferences.setMockInitialValues({});
+    AppConfig.useMockData = true;
+  });
+
+  tearDown(() {
+    AppConfig.useMockData = false;
   });
 
   group('Psychologist Schedule & External API Key Tests', () {

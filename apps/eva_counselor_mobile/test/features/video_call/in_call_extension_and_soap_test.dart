@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:eva_counselor_mobile/core/config/app_config.dart';
 import 'package:eva_counselor_mobile/features/auth/domain/entities/psychologist_user_entity.dart';
 import 'package:eva_counselor_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:eva_counselor_mobile/features/profile/presentation/widgets/counselor_bank_account_modal.dart';
@@ -17,6 +18,7 @@ void main() {
     late VideoCallSessionEntity initialSession;
 
     setUp(() {
+      AppConfig.useMockData = true;
       mockDataSource = MockVideoCallDataSource();
       repository = VideoCallRepositoryImpl(dataSource: mockDataSource);
       initialSession = VideoCallSessionEntity(
@@ -25,6 +27,10 @@ void main() {
         patientName: 'Rian Pratama',
         scheduledTime: DateTime.now(),
       );
+    });
+
+    tearDown(() {
+      AppConfig.useMockData = false;
     });
 
     test('VideoCallSessionEntity default duration is 30 minutes', () {
