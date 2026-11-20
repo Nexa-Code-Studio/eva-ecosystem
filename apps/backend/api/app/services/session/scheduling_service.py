@@ -164,13 +164,15 @@ class SchedulingService:
                 detail="Psikolog sedang tidak aktif atau belum terverifikasi untuk menerima konsultasi.",
             )
 
-        # 2. Slot Interval Calculation (Fixed 30 Minutes)
+        # 2. Slot Interval Calculation (Supports Multi-Session e.g. 1=30m, 2=60m, 3=90m)
+        session_count = payload.session_count
+        duration_minutes = session_count * 30
         start_time = payload.scheduled_start_time
         if start_time.tzinfo is None:
             start_time = start_time.replace(tzinfo=UTC)
-        end_time = start_time + timedelta(minutes=30)
+        end_time = start_time + timedelta(minutes=duration_minutes)
 
-        # 3. Anti-Collision Lock & Check (respecting counselor buffer time)
+        # 3. Anti-Collision Lock & Check (respecting counselor buffer time across full block)
         buffer_delta = timedelta(minutes=counselor.buffer_time_minutes)
         collision_query = select(ConsultationSession).where(
             ConsultationSession.counselor_id == payload.counselor_id,
@@ -185,12 +187,12 @@ class SchedulingService:
         if collision_res.scalars().first():
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"Slot waktu bertabrakan dengan jadwal konsultasi lain atau jeda buffer ({counselor.buffer_time_minutes} menit). Silakan pilih slot waktu berikutnya.",
+                detail=f"Slot waktu ({duration_minutes} menit) bertabrakan dengan jadwal konsultasi lain atau jeda buffer ({counselor.buffer_time_minutes} menit). Silakan pilih slot waktu berikutnya.",
             )
 
         # 4. Snapshot Pricing Policy
         pricing = await self.pricing_service.get_active_pricing()
-        total_price = pricing.price_per_session
+        total_price = pricing.price_per_session * Decimal(str(session_count))
         counselor_share = (total_price * pricing.counselor_share_percentage) / Decimal("100.0")
         platform_fee = (total_price * pricing.platform_fee_percentage) / Decimal("100.0")
 
@@ -207,7 +209,7 @@ class SchedulingService:
             pricing_config_id=pricing.id,
             scheduled_start_time=start_time,
             scheduled_end_time=end_time,
-            duration_minutes=30,
+            duration_minutes=duration_minutes,
             status=ConsultationSessionStatus.SCHEDULED.value,
             is_extended=False,
             total_price=total_price,
@@ -225,7 +227,7 @@ class SchedulingService:
             transaction_type=TransactionType.EARNING.value,
             status=TransactionStatus.COMPLETED.value,
             amount=counselor_share,
-            description=f"Honorarium telekonsultasi 30 menit (Sesi: {session_code})",
+            description=f"Honorarium telekonsultasi {duration_minutes} menit ({session_count} sesi: {session_code})",
             reference_number=f"TX-{uuid.uuid4().hex[:10].upper()}",
         )
         self.db.add(transaction)
