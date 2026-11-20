@@ -22,14 +22,13 @@ class _PsychologistRegistrationScreenState
 
   // Controllers
   final _fullNameCtrl = TextEditingController();
-  final _degreeCtrl = TextEditingController(text: 'M.Psi., Psikolog Klinis');
+  final _degreeCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _confirmPasswordCtrl = TextEditingController();
   final _strCtrl = TextEditingController();
   final _sipCtrl = TextEditingController();
-  final _associationCtrl =
-      TextEditingController(text: 'Himpunan Psikologi Indonesia (HIMPSI)');
+  final _associationCtrl = TextEditingController();
 
   // Durasi paten platform
   static const int _sessionDurationMinutes = 30;
@@ -39,9 +38,7 @@ class _PsychologistRegistrationScreenState
   bool _isLoading = false;
 
   // Multi-document uploads
-  final List<String> _uploadedFiles = [
-    'Scan_STR_KTKI_2026.pdf',
-  ];
+  final List<String> _uploadedFiles = [];
 
   final List<String> _availableSpecializations = [
     'Kecemasan Dewasa',
@@ -52,10 +49,7 @@ class _PsychologistRegistrationScreenState
     'Trauma & Regulasi Emosi',
     'Quarter-life Crisis',
   ];
-  final Set<String> _selectedSpecializations = {
-    'Kecemasan Dewasa',
-    'Manajemen Stres & Burnout',
-  };
+  final Set<String> _selectedSpecializations = {};
 
   @override
   void dispose() {
@@ -250,6 +244,16 @@ class _PsychologistRegistrationScreenState
 
   void _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_selectedSpecializations.isEmpty) {
+      TopToast.show(
+        context,
+        title: 'Spesialisasi Belum Dipilih',
+        message: 'Mohon pilih minimal 1 bidang fokus / spesialisasi praktik Anda.',
+        type: ToastType.error,
+      );
+      return;
+    }
 
     if (_uploadedFiles.isEmpty) {
       TopToast.show(
@@ -737,9 +741,7 @@ class _PsychologistRegistrationScreenState
                           if (val) {
                             _selectedSpecializations.add(spec);
                           } else {
-                            if (_selectedSpecializations.length > 1) {
-                              _selectedSpecializations.remove(spec);
-                            }
+                            _selectedSpecializations.remove(spec);
                           }
                         });
                       },

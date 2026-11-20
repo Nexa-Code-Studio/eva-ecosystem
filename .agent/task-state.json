@@ -118,9 +118,8 @@
   "89": {
     "issue": 89,
     "branch": "feat/89-counselor-register-dashboard-realcase",
-    "state": "In Review",
-    "updated_at": 1795152638,
-    "evidence_summary": "Evidence accepted: PR and test verification documented.",
-    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/90"
+    "state": "Done",
+    "updated_at": 1795156778,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified."
   }
 }
