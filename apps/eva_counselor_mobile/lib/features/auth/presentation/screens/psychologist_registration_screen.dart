@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/google_drive_service.dart';
@@ -99,147 +100,48 @@ class _PsychologistRegistrationScreenState
     }
   }
 
-  void _handleAddDocument(String docName) {
-    if (_uploadedFiles.contains(docName)) {
+  void _handlePickFiles() async {
+    try {
+      final files = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      );
+      if (files.isNotEmpty) {
+        int addedCount = 0;
+        setState(() {
+          for (final f in files) {
+            if (!_uploadedFiles.contains(f.name)) {
+              _uploadedFiles.add(f.name);
+              addedCount++;
+            }
+          }
+        });
+        if (!mounted) return;
+        if (addedCount > 0) {
+          TopToast.show(
+            context,
+            title: 'Berkas Ditambahkan 📄',
+            message: '$addedCount berkas berhasil dilampirkan dari perangkat.',
+            type: ToastType.success,
+          );
+        } else {
+          TopToast.show(
+            context,
+            title: 'Berkas Sudah Ada',
+            message: 'Berkas yang dipilih sudah ada dalam daftar lampiran.',
+            type: ToastType.info,
+          );
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
       TopToast.show(
         context,
-        title: 'Berkas Sudah Ada',
-        message: 'Dokumen $docName sudah ada dalam daftar berkas.',
-        type: ToastType.info,
+        title: 'Gagal Memilih Berkas',
+        message: 'Tidak dapat mengakses berkas: $e',
+        type: ToastType.error,
       );
-      return;
     }
-    setState(() {
-      _uploadedFiles.add(docName);
-    });
-    TopToast.show(
-      context,
-      title: 'Berkas Ditambahkan 📄',
-      message: '$docName berhasil dilampirkan.',
-      type: ToastType.success,
-    );
-  }
-
-  void _showDocumentPickerModal() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFCBD5E1),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const Text(
-                'Pilih Jenis Dokumen Legalitas Tambahan',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Lampirkan dokumen pendukung untuk kelengkapan verifikasi:',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 16),
-              _buildDocOption(
-                icon: Icons.badge_outlined,
-                title: 'Scan STR Aktif KTKI',
-                subtitle: 'Surat Tanda Registrasi Tenaga Psikologi Klinis',
-                docName: 'Scan_STR_KTKI_${DateTime.now().year}.pdf',
-              ),
-              _buildDocOption(
-                icon: Icons.assignment_outlined,
-                title: 'Scan SIPP / Surat Izin Praktik',
-                subtitle: 'Izin praktik psikologi klinis Dinkes/DPMPTSP',
-                docName: 'Scan_SIPP_Praktik_${DateTime.now().year}.pdf',
-              ),
-              _buildDocOption(
-                icon: Icons.card_membership_rounded,
-                title: 'Scan Kartu Anggota HIMPSI',
-                subtitle: 'KTA Himpunan Psikologi Indonesia',
-                docName: 'Scan_KTA_HIMPSI.pdf',
-              ),
-              _buildDocOption(
-                icon: Icons.school_outlined,
-                title: 'Scan Ijazah S2 Profesi Psikologi',
-                subtitle: 'Ijazah Magister Psikologi Profesi',
-                docName: 'Scan_Ijazah_S2_Profesi.pdf',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDocOption({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required String docName,
-  }) {
-    final alreadyAdded = _uploadedFiles.contains(docName);
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: alreadyAdded
-              ? const Color(0xFFE8F5E9)
-              : AppColors.primaryContainer.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(
-          alreadyAdded ? Icons.check_circle_rounded : icon,
-          color: alreadyAdded ? AppColors.verifiedGreen : AppColors.primary,
-          size: 20,
-        ),
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 13,
-          color: alreadyAdded ? AppColors.verifiedGreen : AppColors.textPrimary,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-      ),
-      trailing: alreadyAdded
-          ? const Text(
-              'Terlampir',
-              style: TextStyle(
-                fontSize: 11,
-                color: AppColors.verifiedGreen,
-                fontWeight: FontWeight.bold,
-              ),
-            )
-          : const Icon(
-              Icons.add_circle_outline_rounded,
-              color: AppColors.primary,
-              size: 20,
-            ),
-      onTap: () {
-        Navigator.pop(context);
-        _handleAddDocument(docName);
-      },
-    );
   }
 
   void _handleSubmit() async {
@@ -782,11 +684,60 @@ class _PsychologistRegistrationScreenState
                 ),
                 const SizedBox(height: 12),
 
-                // DAFTAR BERKAS TERLAMPIR
-                if (_uploadedFiles.isNotEmpty) ...[
+                // DAFTAR BERKAS TERLAMPIR / DROPZONE REAL PICKER
+                if (_uploadedFiles.isEmpty) ...[
+                  InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: _handlePickFiles,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.primaryLight.withValues(alpha: 0.5),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: const BoxDecoration(
+                              color: AppColors.primaryContainer,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.cloud_upload_outlined,
+                              color: AppColors.primary,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Pilih Berkas Legalitas dari Perangkat',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Klik di sini untuk memilih Scan STR, SIPP, KTA HIMPSI, atau Ijazah (PDF/JPG/PNG)',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ] else ...[
                   ..._uploadedFiles.asMap().entries.map((entry) {
                     final idx = entry.key;
                     final fileName = entry.value;
+                    final isPdf = fileName.toLowerCase().endsWith('.pdf');
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -800,13 +751,13 @@ class _PsychologistRegistrationScreenState
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE8F5E9),
+                              color: isPdf ? const Color(0xFFE8F5E9) : const Color(0xFFE0F2FE),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(
-                              Icons.picture_as_pdf_rounded,
+                            child: Icon(
+                              isPdf ? Icons.picture_as_pdf_rounded : Icons.image_rounded,
                               size: 18,
-                              color: AppColors.verifiedGreen,
+                              color: isPdf ? AppColors.verifiedGreen : AppColors.primary,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -846,29 +797,27 @@ class _PsychologistRegistrationScreenState
                     );
                   }),
                   const SizedBox(height: 6),
-                ],
-
-                // BUTTON TAMBAH DOKUMEN LAINNYA
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.primary, width: 1.2),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      padding: const EdgeInsets.symmetric(vertical: 13),
-                    ),
-                    icon: const Icon(Icons.add_circle_outline_rounded, size: 18, color: AppColors.primary),
-                    label: const Text(
-                      'Tambah Berkas Dokumen Legalitas +',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.primary, width: 1.2),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
                       ),
+                      icon: const Icon(Icons.add_circle_outline_rounded, size: 18, color: AppColors.primary),
+                      label: const Text(
+                        'Tambah Berkas dari Perangkat +',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      onPressed: _handlePickFiles,
                     ),
-                    onPressed: _showDocumentPickerModal,
                   ),
-                ),
+                ],
                 const SizedBox(height: 28),
 
                 // CTA SUBMIT BUTTON

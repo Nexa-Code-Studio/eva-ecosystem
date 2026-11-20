@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -20,16 +21,33 @@ class _VerificationRejectedScreenState
   String? _newFileName;
   bool _isUploading = false;
 
-  void _handlePickFile() {
-    setState(() {
-      _newFileName = 'STR_Perbaikan_${DateTime.now().year}_scan.pdf';
-    });
-    TopToast.show(
-      context,
-      title: 'Berkas Dipilih 📄',
-      message: 'File berkas perbaikan siap diunggah: $_newFileName',
-      type: ToastType.info,
-    );
+  void _handlePickFile() async {
+    try {
+      final file = await FilePicker.pickFile(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      );
+      if (file != null) {
+        setState(() {
+          _newFileName = file.name;
+        });
+        if (!mounted) return;
+        TopToast.show(
+          context,
+          title: 'Berkas Dipilih 📄',
+          message: 'File berkas perbaikan siap diunggah: ${file.name}',
+          type: ToastType.success,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      TopToast.show(
+        context,
+        title: 'Gagal Memilih Berkas',
+        message: 'Tidak dapat mengakses berkas: $e',
+        type: ToastType.error,
+      );
+    }
   }
 
   void _handleSubmitRevision() async {
