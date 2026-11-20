@@ -12,6 +12,23 @@ class PsychologistUserEntity {
   final String titleDegree; // e.g., 'S.Psi., M.Psi., Psikolog' or 'Relawan Sebaya'
   final String email;
   final String strNumber; // Surat Tanda Registrasi
+  final String? sipNumber; // Surat Izin Praktik / SIPP
+  final String documentType; // 'str', 'sip', 'both'
+  final String issuingInstitution; // Fallback umum
+  final String documentExpiryDate; // Fallback umum
+  final String lastEducation; // e.g. 'S2 Magister Psikologi Profesi'
+
+  // Granular STR / SIP metadata
+  final String? strIssuingInstitution;
+  final String? strExpiryDate;
+  final String? strDocUrl;
+  final String? sipIssuingInstitution;
+  final String? sipExpiryDate;
+  final String? sipDocUrl;
+
+  // Scheduled Break Window (Replacing ad-hoc toggle)
+  final String breakStartTime;
+  final String breakEndTime;
   final String association; // e.g. 'HIMPSI'
   final List<String> specializations;
   final int yearsOfExperience;
@@ -61,6 +78,19 @@ class PsychologistUserEntity {
     required this.titleDegree,
     required this.email,
     required this.strNumber,
+    this.sipNumber,
+    this.documentType = 'str',
+    this.issuingInstitution = 'Kemenkes RI',
+    this.documentExpiryDate = 'Seumur Hidup',
+    this.lastEducation = 'S2 Magister Psikologi Profesi',
+    this.strIssuingInstitution,
+    this.strExpiryDate,
+    this.strDocUrl,
+    this.sipIssuingInstitution,
+    this.sipExpiryDate,
+    this.sipDocUrl,
+    this.breakStartTime = '12:00',
+    this.breakEndTime = '13:00',
     required this.association,
     required this.specializations,
     required this.yearsOfExperience,
@@ -120,6 +150,19 @@ class PsychologistUserEntity {
     String? titleDegree,
     String? email,
     String? strNumber,
+    String? sipNumber,
+    String? documentType,
+    String? issuingInstitution,
+    String? documentExpiryDate,
+    String? lastEducation,
+    String? strIssuingInstitution,
+    String? strExpiryDate,
+    String? strDocUrl,
+    String? sipIssuingInstitution,
+    String? sipExpiryDate,
+    String? sipDocUrl,
+    String? breakStartTime,
+    String? breakEndTime,
     String? association,
     List<String>? specializations,
     int? yearsOfExperience,
@@ -162,6 +205,19 @@ class PsychologistUserEntity {
       titleDegree: titleDegree ?? this.titleDegree,
       email: email ?? this.email,
       strNumber: strNumber ?? this.strNumber,
+      sipNumber: sipNumber ?? this.sipNumber,
+      documentType: documentType ?? this.documentType,
+      issuingInstitution: issuingInstitution ?? this.issuingInstitution,
+      documentExpiryDate: documentExpiryDate ?? this.documentExpiryDate,
+      lastEducation: lastEducation ?? this.lastEducation,
+      strIssuingInstitution: strIssuingInstitution ?? this.strIssuingInstitution,
+      strExpiryDate: strExpiryDate ?? this.strExpiryDate,
+      strDocUrl: strDocUrl ?? this.strDocUrl,
+      sipIssuingInstitution: sipIssuingInstitution ?? this.sipIssuingInstitution,
+      sipExpiryDate: sipExpiryDate ?? this.sipExpiryDate,
+      sipDocUrl: sipDocUrl ?? this.sipDocUrl,
+      breakStartTime: breakStartTime ?? this.breakStartTime,
+      breakEndTime: breakEndTime ?? this.breakEndTime,
       association: association ?? this.association,
       specializations: specializations ?? this.specializations,
       yearsOfExperience: yearsOfExperience ?? this.yearsOfExperience,

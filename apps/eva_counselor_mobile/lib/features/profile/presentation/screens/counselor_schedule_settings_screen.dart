@@ -22,9 +22,11 @@ class _CounselorScheduleSettingsScreenState
   late Set<String> _onlineDays;
   late TimeOfDay _startTime;
   late TimeOfDay _endTime;
+  late TimeOfDay _breakStartTime;
+  late TimeOfDay _breakEndTime;
   static const int _sessionDuration = 30; // Sesi Paten Eva: 30 Menit
   late int _bufferTime;
-  late bool _isVacationMode;
+  bool _isVacationMode = false;
   bool _isInitialized = false;
 
   @override
@@ -33,8 +35,9 @@ class _CounselorScheduleSettingsScreenState
     _onlineDays = {'Sen', 'Sel', 'Rab', 'Kam', 'Jum'};
     _startTime = const TimeOfDay(hour: 9, minute: 0);
     _endTime = const TimeOfDay(hour: 17, minute: 0);
+    _breakStartTime = const TimeOfDay(hour: 12, minute: 0);
+    _breakEndTime = const TimeOfDay(hour: 13, minute: 0);
     _bufferTime = 10;
-    _isVacationMode = false;
   }
 
   @override
@@ -43,7 +46,14 @@ class _CounselorScheduleSettingsScreenState
     if (!_isInitialized) {
       final user = ref.read(authStateProvider).value;
       if (user != null) {
-        _isVacationMode = !user.isOnline;
+        if (user.breakStartTime.contains(':')) {
+          final parts = user.breakStartTime.split(':');
+          _breakStartTime = TimeOfDay(hour: int.tryParse(parts[0]) ?? 12, minute: int.tryParse(parts[1]) ?? 0);
+        }
+        if (user.breakEndTime.contains(':')) {
+          final parts = user.breakEndTime.split(':');
+          _breakEndTime = TimeOfDay(hour: int.tryParse(parts[0]) ?? 13, minute: int.tryParse(parts[1]) ?? 0);
+        }
       }
       _isInitialized = true;
     }
@@ -57,20 +67,37 @@ class _CounselorScheduleSettingsScreenState
     return '$sH:$sM - $eH:$eM WIB';
   }
 
+  String get _breakHoursDisplay {
+    final sH = _breakStartTime.hour.toString().padLeft(2, '0');
+    final sM = _breakStartTime.minute.toString().padLeft(2, '0');
+    final eH = _breakEndTime.hour.toString().padLeft(2, '0');
+    final eM = _breakEndTime.minute.toString().padLeft(2, '0');
+    return '$sH:$sM - $eH:$eM WIB';
+  }
+
   void _handleSave() {
+    final bSH = _breakStartTime.hour.toString().padLeft(2, '0');
+    final bSM = _breakStartTime.minute.toString().padLeft(2, '0');
+    final bEH = _breakEndTime.hour.toString().padLeft(2, '0');
+    final bEM = _breakEndTime.minute.toString().padLeft(2, '0');
+    final breakStartStr = '$bSH:$bSM';
+    final breakEndStr = '$bEH:$bEM';
+
     ScheduleStorage.markConfigured();
     ref.read(authStateProvider.notifier).updateSessionSettings(
           sessionDurationMinutes: _sessionDuration,
           coinsPerSession: 0,
+          breakStartTime: breakStartStr,
+          breakEndTime: breakEndStr,
         );
 
-    ref.read(authStateProvider.notifier).updateAvailability(!_isVacationMode);
+    ref.read(authStateProvider.notifier).updateAvailability(true);
 
     TopToast.show(
       context,
       title: 'Jadwal Berhasil Disimpan! 📅',
       message:
-          'Jadwal telekonseling ($_sessionDuration mnt + buffer $_bufferTime mnt) telah diperbarui.',
+          'Jadwal telekonseling ($_sessionDuration mnt + buffer $_bufferTime mnt) dan jam istirahat ($breakStartStr - $breakEndStr WIB) telah diperbarui.',
       type: ToastType.success,
     );
     Navigator.pop(context);
@@ -173,79 +200,141 @@ class _CounselorScheduleSettingsScreenState
               ),
               const SizedBox(height: 14),
 
-              // STATUS PRAKTIK INTERACTIVE TOGGLE (Sama dengan di Beranda Dashboard)
+              // JAM ISTIRAHAT TERJADWAL OTOMATIS (Bukan toggle manual, terjadwal jam istirahatnya)
+              _buildSectionTitle('Jam Istirahat Praktik (Terjadwal)', Icons.coffee_rounded),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: !_isVacationMode
-                        ? const Color(0xFFECEFF8)
-                        : AppColors.pendingAmber.withValues(alpha: 0.3),
-                  ),
+                  border: Border.all(color: const Color(0xFFECEFF8)),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: !_isVacationMode
-                                ? AppColors.verifiedGreen
-                                : AppColors.pendingAmber,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        const Row(
                           children: [
+                            Icon(Icons.access_time_rounded, size: 16, color: Color(0xFFD97706)),
+                            SizedBox(width: 8),
                             Text(
-                              !_isVacationMode
-                                  ? 'Status Praktik: Online'
-                                  : 'Status Praktik: Istirahat',
-                              style: const TextStyle(
+                              'Rentang Jam Istirahat:',
+                              style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
                                 color: AppColors.textPrimary,
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              !_isVacationMode
-                                  ? 'Menerima sesi telekonseling'
-                                  : 'Sesi dijeda, pasien tidak dapat booking',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
                           ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _breakHoursDisplay,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFB45309),
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    Switch.adaptive(
-                      value: !_isVacationMode,
-                      activeTrackColor: AppColors.primary,
-                      onChanged: (val) {
-                        setState(() {
-                          _isVacationMode = !val;
-                        });
-                        ref.read(authStateProvider.notifier).updateAvailability(val);
-                        TopToast.show(
-                          context,
-                          title: val ? 'Status Praktik: Aktif 🟢' : 'Status Praktik: Istirahat ⏸️',
-                          message: val
-                              ? 'Anda siap menerima jadwal telekonsultasi 30 menit.'
-                              : 'Jadwal Anda dijeda, pasien baru tidak dapat booking sesi.',
-                          type: val ? ToastType.success : ToastType.info,
-                        );
-                      },
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Sistem secara otomatis menutup slot booking pasien selama jam istirahat ini.',
+                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () async {
+                              final picked = await showTimePicker(
+                                context: context,
+                                initialTime: _breakStartTime,
+                              );
+                              if (picked != null) {
+                                setState(() => _breakStartTime = picked);
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Mulai Istirahat', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${_breakStartTime.hour.toString().padLeft(2, '0')}:${_breakStartTime.minute.toString().padLeft(2, '0')}',
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+                                      ),
+                                    ],
+                                  ),
+                                  const Icon(Icons.edit_outlined, size: 16, color: AppColors.primary),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () async {
+                              final picked = await showTimePicker(
+                                context: context,
+                                initialTime: _breakEndTime,
+                              );
+                              if (picked != null) {
+                                setState(() => _breakEndTime = picked);
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Selesai Istirahat', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${_breakEndTime.hour.toString().padLeft(2, '0')}:${_breakEndTime.minute.toString().padLeft(2, '0')}',
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+                                      ),
+                                    ],
+                                  ),
+                                  const Icon(Icons.edit_outlined, size: 16, color: AppColors.primary),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

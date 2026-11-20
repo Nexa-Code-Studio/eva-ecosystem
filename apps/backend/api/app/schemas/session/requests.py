@@ -6,6 +6,12 @@ from pydantic import BaseModel, Field
 class BookSessionRequest(BaseModel):
     counselor_id: uuid.UUID
     scheduled_start_time: datetime
+    session_count: int = Field(
+        default=1,
+        ge=1,
+        le=4,
+        description="Jumlah sesi berurutan (misal: 1=30m, 2=60m, 3=90m)",
+    )
 
 
 class ExtendSessionRequest(BaseModel):

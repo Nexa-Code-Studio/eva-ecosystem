@@ -4,8 +4,8 @@ import '../../../../core/storage/schedule_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/image_helper.dart';
-import '../../../../core/widgets/top_toast.dart';
 import '../../../../core/widgets/status_badge.dart';
+import '../../../auth/domain/entities/psychologist_user_entity.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../finances/presentation/providers/finance_provider.dart';
 import '../../../patients/presentation/providers/patient_provider.dart';
@@ -89,17 +89,17 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
     for (final p in patients) {
       if (p.upcomingSchedule != null) {
         realTodaySessions.add({
-          'time': 'Jadwal Aktif (${p.upcomingSchedule!.timeRange})',
+          'time': p.upcomingSchedule!.timeRange,
           'patientName': '${p.name} (${p.age} Thn)',
           'chiefComplaint': p.chiefComplaint,
-          'status': 'Sesi Siap Dimulai (Live)',
+          'status': 'Siap Dimulai (Live)',
           'isLive': true,
           'patientId': p.id,
           'sessionId': p.upcomingSchedule!.sessionId,
         });
       } else if (p.totalCompletedSessions > 0) {
         realTodaySessions.add({
-          'time': 'Sesi Selesai Sebelumnya',
+          'time': 'Selesai',
           'patientName': '${p.name} (${p.age} Thn)',
           'chiefComplaint': p.chiefComplaint,
           'status': 'Selesai',
@@ -339,82 +339,64 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
               ),
               const SizedBox(height: 8),
 
-              // STATUS INFO PILL (Online / Menerima Konsultasi - Interactive Toggle)
-              InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: () {
-                  final currentlyOnline = user?.isOnline ?? false;
-                  ref.read(authStateProvider.notifier).updateAvailability(!currentlyOnline);
-                  TopToast.show(
-                    context,
-                    title: !currentlyOnline ? 'Status: Online 🟢' : 'Status: Istirahat ⏸️',
-                    message: !currentlyOnline
-                        ? 'Anda siap menerima jadwal telekonsultasi 30 menit.'
-                        : 'Jadwal Anda dijeda, pasien baru tidak dapat booking sesi.',
-                    type: !currentlyOnline ? ToastType.success : ToastType.info,
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: (user?.isOnline ?? false)
-                          ? const Color(0xFFECEFF8)
-                          : AppColors.pendingAmber.withValues(alpha: 0.3),
+              // STATUS PRAKTIK OTOMATIS (Berdasarkan Jam Operasional & Jam Istirahat Terjadwal)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFECEFF8)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.verifiedGreen,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: (user?.isOnline ?? false)
-                                  ? AppColors.verifiedGreen
-                                  : AppColors.pendingAmber,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            (user?.isOnline ?? false)
-                                ? 'Online (Menerima Konsultasi)'
-                                : 'Istirahat (Sesi Dijeda)',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: (user?.isOnline ?? false)
-                              ? AppColors.primary
-                              : const Color(0xFF94A3B8),
-                          borderRadius: BorderRadius.circular(10),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Aktif • Istirahat ${user?.breakStartTime ?? '12:00'}-${user?.breakEndTime ?? '13:00'}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const CounselorScheduleSettingsScreen(),
+                          ),
+                        );
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                         child: Text(
-                          (user?.isOnline ?? false) ? 'Aktif' : 'Istirahat',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
+                          'Ubah',
+                          style: TextStyle(
+                            fontSize: 11.5,
                             fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
+              _buildDailyTimelineProgressBar(user),
+              const SizedBox(height: 16),
 
               // 3. UPCOMING TELECONSULTATION HERO CARD (Hidden if no session scheduled today)
               if (upcomingPatient != null) ...[
@@ -763,14 +745,30 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                 const SizedBox(height: 18),
               ],
 
-              // 5. HORIZONTAL SCHEDULE MINI-CALENDAR STRIP (LENGKAP 7 HARI, MERAH JIKA LIBUR)
+              // 5. HORIZONTAL SCHEDULE MINI-CALENDAR STRIP (LENGKAP 7 HARI)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Jadwal Praktik Mingguan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                  Text(
-                    _monthYearLabel,
-                    style: AppTypography.bodySmall.copyWith(fontSize: 11, fontWeight: FontWeight.w600),
+                  Expanded(
+                    child: Text(
+                      'Jadwal Praktik • $_monthYearLabel',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  TextButton.icon(
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    icon: const Icon(Icons.calendar_month_rounded, size: 14, color: AppColors.primary),
+                    label: const Text(
+                      'Lihat Semua',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pushNamed('/counselor-full-schedule');
+                    },
                   ),
                 ],
               ),
@@ -1401,6 +1399,130 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDailyTimelineProgressBar(PsychologistUserEntity? user) {
+    final breakStart = user?.breakStartTime ?? '12:00';
+    final breakEnd = user?.breakEndTime ?? '13:00';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFECEFF8)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.access_time_filled_rounded, size: 16, color: AppColors.primary),
+                  SizedBox(width: 6),
+                  Text(
+                    'Timeline Jam Praktik Hari Ini',
+                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  '09:00 - 17:00 WIB',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              height: 14,
+              child: Row(
+                children: [
+                  // Selesai (1 session completed earlier)
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      color: const Color(0xFF10B981),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  // Terjadwal Live / Upcoming
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      color: const Color(0xFF2563EB),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  // Jam Istirahat Terjadwal
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      color: const Color(0xFFF59E0B),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  // Slot Tersedia (Available)
+                  Expanded(
+                    flex: 6,
+                    child: Container(
+                      color: const Color(0xFFE2E8F0),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Legend / Indicators (Wrap prevents RenderFlex overflow on small screens)
+          Wrap(
+            spacing: 12,
+            runSpacing: 6,
+            children: [
+              _buildLegendDot(const Color(0xFF10B981), 'Selesai'),
+              _buildLegendDot(const Color(0xFF2563EB), 'Terjadwal'),
+              _buildLegendDot(const Color(0xFFF59E0B), 'Istirahat ($breakStart-$breakEnd)'),
+              _buildLegendDot(const Color(0xFF94A3B8), 'Tersedia'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegendDot(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 10, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+        ),
+      ],
     );
   }
 }

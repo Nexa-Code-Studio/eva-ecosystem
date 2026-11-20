@@ -43,16 +43,28 @@ class CounselorService:
                 detail="Email sudah terdaftar di sistem Eva.",
             )
 
-        # Check existing STR
-        str_query = select(PsychologistProfile).where(
-            PsychologistProfile.str_number == payload.str_number.strip()
-        )
-        str_res = await self.db.execute(str_query)
-        if str_res.scalar_one_or_none():
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Nomor STR sudah terdaftar di sistem kredensial Eva.",
+        # Check existing STR / SIP
+        effective_str = (payload.str_number or payload.sip_number or f"REG-{uuid.uuid4().hex[:8].upper()}").strip()
+        if payload.str_number and payload.str_number.strip():
+            str_query = select(PsychologistProfile).where(
+                PsychologistProfile.str_number == payload.str_number.strip()
             )
+            str_res = await self.db.execute(str_query)
+            if str_res.scalar_one_or_none():
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Nomor STR sudah terdaftar di sistem kredensial Eva.",
+                )
+        if payload.sip_number and payload.sip_number.strip():
+            sip_query = select(PsychologistProfile).where(
+                PsychologistProfile.sip_number == payload.sip_number.strip()
+            )
+            sip_res = await self.db.execute(sip_query)
+            if sip_res.scalar_one_or_none():
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Nomor SIP / SIPP sudah terdaftar di sistem kredensial Eva.",
+                )
 
         # 1. Create base User account
         new_user = User(
@@ -66,17 +78,25 @@ class CounselorService:
         await self.db.flush()
 
         # 2. Create PsychologistProfile linked to User
+        str_inst = payload.str_issuing_institution or payload.issuing_institution or "-"
+        str_exp = payload.str_expiry_date or payload.document_expiry_date or "-"
+        sip_inst = payload.sip_issuing_institution or "-"
+        sip_exp = payload.sip_expiry_date or "-"
+        bio_info = payload.bio.strip() if payload.bio else (
+            f"Pendidikan: {payload.last_education or '-'} | STR: {str_inst} ({str_exp}) | SIP: {sip_inst} ({sip_exp})"
+        )
+        effective_cert_url = payload.str_doc_url or payload.sip_doc_url or payload.certificate_doc_url
         profile = PsychologistProfile(
             user_id=new_user.id,
             full_name=payload.full_name.strip(),
             title_degree=payload.title_degree.strip(),
-            str_number=payload.str_number.strip(),
+            str_number=effective_str,
             sip_number=payload.sip_number.strip() if payload.sip_number else None,
             association=payload.association.strip(),
             specializations=payload.specializations,
             years_of_experience=payload.years_of_experience,
-            bio=payload.bio.strip() if payload.bio else None,
-            certificate_doc_url=payload.certificate_doc_url,
+            bio=bio_info,
+            certificate_doc_url=effective_cert_url,
             verification_status=PsychologistVerificationStatus.PENDING.value,
             is_online=True,
             buffer_time_minutes=10,

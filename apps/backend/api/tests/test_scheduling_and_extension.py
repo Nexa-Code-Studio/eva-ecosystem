@@ -88,6 +88,21 @@ class TestSchedulingAndSlotGeneration(unittest.TestCase):
         # Pasien booking 11:25 - 11:55 -> Cukup buffer 10 menit sebelum 12:05 (Diterima)
         self.assertFalse(is_overlap_with_buffer(datetime(2026, 11, 20, 11, 25, tzinfo=UTC), datetime(2026, 11, 20, 11, 55, tzinfo=UTC)))
 
+    def test_multi_session_consecutive_booking_calculation(self):
+        # User booking 3 sesi sekaligus: 30x3 = 90 menit
+        session_count = 3
+        duration_minutes = session_count * 30
+        self.assertEqual(duration_minutes, 90)
+
+        start_time = datetime(2026, 11, 20, 13, 0, tzinfo=UTC)
+        end_time = start_time + timedelta(minutes=duration_minutes)
+        self.assertEqual(end_time.strftime("%H:%M"), "14:30")
+
+        # Snapshot pricing policy calculation
+        price_per_session = Decimal("150000.00")
+        total_price = price_per_session * Decimal(str(session_count))
+        self.assertEqual(total_price, Decimal("450000.00"))
+
 
 class TestInCallSessionExtension(unittest.TestCase):
     def test_extension_math_and_duration_increase(self):

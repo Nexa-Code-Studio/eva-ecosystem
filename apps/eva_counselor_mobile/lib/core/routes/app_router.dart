@@ -10,6 +10,7 @@ import '../../features/video_call/presentation/screens/video_consultation_screen
 import '../../features/finances/presentation/screens/transaction_history_screen.dart';
 import '../../features/dashboard/presentation/screens/counselor_notification_screen.dart';
 import '../../features/profile/presentation/screens/counselor_schedule_settings_screen.dart';
+import '../../features/dashboard/presentation/screens/counselor_full_schedule_screen.dart';
 import 'app_route_transitions.dart';
 
 class AppRouter {
@@ -112,6 +113,12 @@ class AppRouter {
       case '/counselor-schedule-settings':
         return FadeThroughPageRoute(
           page: const CounselorScheduleSettingsScreen(),
+          settings: settings,
+        );
+
+      case '/counselor-full-schedule':
+        return FadeThroughPageRoute(
+          page: const CounselorFullScheduleScreen(),
           settings: settings,
         );
 

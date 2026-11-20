@@ -141,7 +141,18 @@ class _TestAuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEn
     required String titleDegree,
     required String email,
     required String password,
-    required String strNumber,
+    String strNumber = '',
+    String? sipNumber,
+    String documentType = 'str',
+    String issuingInstitution = 'Kemenkes RI',
+    String documentExpiryDate = 'Seumur Hidup',
+    String lastEducation = 'S2 Magister Psikologi Profesi',
+    String? strIssuingInstitution,
+    String? strExpiryDate,
+    String? strDocFileName,
+    String? sipIssuingInstitution,
+    String? sipExpiryDate,
+    String? sipDocFileName,
     required String association,
     required List<String> specializations,
     required int yearsOfExperience,
@@ -196,6 +207,8 @@ class _TestAuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEn
   void updateSessionSettings({
     required int sessionDurationMinutes,
     required int coinsPerSession,
+    String? breakStartTime,
+    String? breakEndTime,
   }) {}
 
   @override
