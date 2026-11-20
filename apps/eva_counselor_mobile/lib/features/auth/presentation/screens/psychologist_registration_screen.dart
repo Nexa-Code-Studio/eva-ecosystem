@@ -572,14 +572,17 @@ class _PsychologistRegistrationScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                  color: AppColors.textPrimary,
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12.5,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
@@ -587,7 +590,7 @@ class _PsychologistRegistrationScreenState
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  isAttached ? 'Terlampir ✓' : 'Belum Ada Berkas',
+                  isAttached ? 'Terlampir ✓' : 'Belum Ada',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
@@ -1375,23 +1378,25 @@ class _PsychologistRegistrationScreenState
                             child: const Icon(Icons.timer_outlined, size: 18, color: Color(0xFF2563EB)),
                           ),
                           const SizedBox(width: 12),
-                          const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Durasi Paten 30 Menit / Sesi',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                  color: AppColors.textPrimary,
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Durasi Paten 30 Menit / Sesi',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: AppColors.textPrimary,
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Termasuk buffer jeda istirahat otomatis antar sesi',
-                                style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                              ),
-                            ],
+                                SizedBox(height: 2),
+                                Text(
+                                  'Termasuk buffer jeda istirahat otomatis antar sesi',
+                                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -1424,23 +1429,25 @@ class _PsychologistRegistrationScreenState
                             child: const Icon(Icons.savings_outlined, size: 18, color: Color(0xFF059669)),
                           ),
                           const SizedBox(width: 12),
-                          const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Tarif & Bagi Hasil Terkelola',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                  color: AppColors.textPrimary,
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Tarif & Bagi Hasil Terkelola',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: AppColors.textPrimary,
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Honorarium otomatis masuk ke dompet & rekening bank Anda',
-                                style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                              ),
-                            ],
+                                SizedBox(height: 2),
+                                Text(
+                                  'Honorarium otomatis masuk ke dompet & rekening bank Anda',
+                                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
