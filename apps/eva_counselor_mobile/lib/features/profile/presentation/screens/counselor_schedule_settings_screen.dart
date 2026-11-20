@@ -169,6 +169,85 @@ class _CounselorScheduleSettingsScreenState
                   ],
                 ),
               ),
+              const SizedBox(height: 14),
+
+              // STATUS PRAKTIK INTERACTIVE TOGGLE (Sama dengan di Beranda Dashboard)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: !_isVacationMode
+                        ? const Color(0xFFECEFF8)
+                        : AppColors.pendingAmber.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: !_isVacationMode
+                                ? AppColors.verifiedGreen
+                                : AppColors.pendingAmber,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              !_isVacationMode
+                                  ? 'Status Praktik: Online'
+                                  : 'Status Praktik: Istirahat',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              !_isVacationMode
+                                  ? 'Menerima sesi telekonseling'
+                                  : 'Sesi dijeda, pasien tidak dapat booking',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Switch.adaptive(
+                      value: !_isVacationMode,
+                      activeTrackColor: AppColors.primary,
+                      onChanged: (val) {
+                        setState(() {
+                          _isVacationMode = !val;
+                        });
+                        ref.read(authStateProvider.notifier).updateAvailability(val);
+                        TopToast.show(
+                          context,
+                          title: val ? 'Status Praktik: Aktif 🟢' : 'Status Praktik: Istirahat ⏸️',
+                          message: val
+                              ? 'Anda siap menerima jadwal telekonsultasi 30 menit.'
+                              : 'Jadwal Anda dijeda, pasien baru tidak dapat booking sesi.',
+                          type: val ? ToastType.success : ToastType.info,
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 16),
 
               // 2. HARI & JAM OPERASIONAL

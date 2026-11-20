@@ -125,8 +125,9 @@
   "91": {
     "issue": 91,
     "branch": "feat/91-counselor-first-time-ux-profile",
-    "state": "In Progress",
-    "updated_at": 1795159879,
-    "evidence_summary": "Evidence accepted: active task branch verified."
+    "state": "In Review",
+    "updated_at": 1795161178,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/92"
   }
 }

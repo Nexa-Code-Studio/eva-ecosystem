@@ -144,17 +144,6 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                 iconBg: AppColors.primaryContainer,
                 title: 'Jadwal Telekonseling Online',
                 subtitle: '${_activeDays.join(", ")} • $_workingHours (Sesi Paten 30 Mnt)',
-                trailingBadge: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryContainer,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    'Online 100% 💻',
-                    style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 10),
-                  ),
-                ),
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -173,24 +162,6 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                 iconBg: const Color(0xFFFFF7ED),
                 title: 'Tarif & Kebijakan Bagi Hasil',
                 subtitle: 'Sesi Paten 30 Menit • Bagi hasil terkelola transparan oleh platform Eva',
-                trailingBadge: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF7ED),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Terkelola ⚡',
-                        style: TextStyle(color: Color(0xFFC2410C), fontWeight: FontWeight.bold, fontSize: 10),
-                      ),
-                      SizedBox(width: 4),
-                      Icon(Icons.info_outline, size: 12, color: Color(0xFFC2410C)),
-                    ],
-                  ),
-                ),
                 onTap: () => CounselorRateModal.show(
                   context: context,
                   user: user,
@@ -205,21 +176,6 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                 subtitle: hasBank
                     ? '${user!.bankName} • ****${user.bankAccountNumber.length >= 4 ? user.bankAccountNumber.substring(user.bankAccountNumber.length - 4) : user.bankAccountNumber}'
                     : 'Belum diatur • Ketuk untuk mendaftarkan rekening',
-                trailingBadge: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: hasBank ? AppColors.verifiedBg : const Color(0xFFFEF3C7),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    hasBank ? 'Tersimpan ✅' : 'Belum Diatur',
-                    style: TextStyle(
-                      color: hasBank ? AppColors.verifiedGreen : const Color(0xFFB45309),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 10,
-                    ),
-                  ),
-                ),
                 onTap: () => CounselorBankAccountModal.show(context, ref: ref),
               ),
               const SizedBox(height: 16),
@@ -275,17 +231,6 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                 iconBg: const Color(0xFFFEF3C7),
                 title: 'Sertifikat Penghargaan & Pencapaian',
                 subtitle: '${userCerts.length} Sertifikat Resmi Diraih • Siap Diunduh (PDF)',
-                trailingBadge: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFEF3C7),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '${userCerts.length} Sertif 🏆',
-                    style: const TextStyle(color: Color(0xFFB45309), fontWeight: FontWeight.bold, fontSize: 10),
-                  ),
-                ),
                 onTap: () => CounselorCertificatesModal.showGallery(context, user),
               ),
               const SizedBox(height: 16),
@@ -298,14 +243,6 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                 iconBg: AppColors.verifiedBg,
                 title: 'Kredensial SIPP & STR Psikolog',
                 subtitle: 'STR #${(user?.strNumber != null && user!.strNumber.isNotEmpty) ? user.strNumber : "Belum diisi"} • KTKI & HIMPSI',
-                trailingBadge: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.verifiedBg,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text('Aktif', style: TextStyle(color: AppColors.verifiedGreen, fontWeight: FontWeight.bold, fontSize: 10)),
-                ),
                 onTap: () => CounselorStrCredentialsModal.show(context, user: user, ref: ref),
               ),
               CounselorProfileMenuCard(
@@ -314,7 +251,6 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                 iconBg: const Color(0xFFFEF3C7),
                 title: 'Panduan Etik & SOP HIMPSI',
                 subtitle: 'Kode etik layanan telekonseling & penanganan krisis',
-                trailingBadge: const SizedBox.shrink(),
                 onTap: () => CounselorGuidelinesModal.showProfessional(context),
               ),
               const SizedBox(height: 16),
@@ -327,14 +263,6 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                 iconBg: AppColors.secondary,
                 title: 'Keamanan Rekam Medis & Privasi',
                 subtitle: 'Biometrik FaceID & Enkripsi AES-256',
-                trailingBadge: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryContainer,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text('2FA Aktif', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 10)),
-                ),
                 onTap: () => CounselorSecurityModal.show(context),
               ),
               CounselorProfileMenuCard(
@@ -343,14 +271,6 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                 iconBg: const Color(0xFFEEF2FF),
                 title: 'Tur Panduan Aplikasi Konselor',
                 subtitle: 'Pelajari alur tiap menu, rekam medis & backup Drive',
-                trailingBadge: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEEF2FF),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text('Buka Tur 🧭', style: TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.bold, fontSize: 10)),
-                ),
                 onTap: () => ref.read(triggerCounselorSpotlightTourProvider.notifier).state++,
               ),
               const SizedBox(height: 24),

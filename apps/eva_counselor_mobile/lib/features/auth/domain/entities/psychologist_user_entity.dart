@@ -90,9 +90,9 @@ class PsychologistUserEntity {
     this.externalApiKeyCreatedAt,
     this.externalApiLastSyncAt,
     this.externalSyncCount = 0,
-    this.bankName = 'BCA (Bank Central Asia)',
-    this.bankAccountNumber = '8192039182',
-    this.bankAccountHolder = 'Khoirotun Nisa, M.Psi',
+    this.bankName = '',
+    this.bankAccountNumber = '',
+    this.bankAccountHolder = '',
   });
 
   String get effectiveGoogleDriveEmail =>

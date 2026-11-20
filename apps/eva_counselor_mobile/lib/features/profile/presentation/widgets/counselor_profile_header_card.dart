@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/image_helper.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../auth/domain/entities/psychologist_user_entity.dart';
 import 'counselor_edit_profile_modal.dart';
@@ -67,12 +68,8 @@ class CounselorProfileHeaderCard extends StatelessWidget {
                     CircleAvatar(
                       radius: 34,
                       backgroundColor: AppColors.primaryContainer,
-                      backgroundImage: user?.profilePhotoUrl != null &&
-                              user!.profilePhotoUrl!.startsWith('http')
-                          ? NetworkImage(user!.profilePhotoUrl!)
-                          : null,
-                      child: user?.profilePhotoUrl == null ||
-                              !user!.profilePhotoUrl!.startsWith('http')
+                      backgroundImage: getProfileImageProvider(user?.profilePhotoUrl),
+                      child: getProfileImageProvider(user?.profilePhotoUrl) == null
                           ? const Icon(Icons.person,
                               size: 34, color: AppColors.primary)
                           : null,

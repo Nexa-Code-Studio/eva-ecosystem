@@ -18,7 +18,7 @@ class PatientDetailConsentScreen extends ConsumerStatefulWidget {
 
 class _PatientDetailConsentScreenState
     extends ConsumerState<PatientDetailConsentScreen> {
-  int _activeTabIndex = 0; // 0 = Rekam Emosional, 1 = Catatan SOAP
+  int _activeTabIndex = 0; // 0 = Memori Klinis & DASS, 1 = Catatan SOAP
   bool _isRequestingConsent = false;
   bool _sessionUnlocked = false;
   bool _showTranscript = true;
@@ -410,7 +410,7 @@ class _PatientDetailConsentScreenState
                                   : null,
                             ),
                             child: Text(
-                              'Rekam Emosional',
+                              'Memori Klinis & DASS',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 12,
@@ -503,13 +503,13 @@ class _PatientDetailConsentScreenState
           ),
           const SizedBox(height: 16),
           const Text(
-            'Rekam Emosional Terlindungi',
+            'Memori Klinis Pasien Terlindungi',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           const Text(
-            'Berdasarkan regulasi privasi kesehatan mental, riwayat skrining DASS-21 dan ringkasan jurnal emosional harian Eva AI hanya dapat diakses setelah pasien memberikan persetujuan (Consent).',
+            'Berdasarkan regulasi privasi rekam medis psikologi, data skrining DASS-21 serta memori riwayat keluhan klinis pasien hanya dapat diakses setelah pasien memberikan persetujuan (Consent Gate).',
             style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.5),
             textAlign: TextAlign.center,
           ),
@@ -601,7 +601,21 @@ class _PatientDetailConsentScreenState
           }).toList(),
 
         const SizedBox(height: 16),
-        const Text('Ringkasan Jurnal Emosi Eva AI (Dibagikan Pasien)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        const Row(
+          children: [
+            Icon(Icons.history_edu_rounded, size: 18, color: AppColors.primary),
+            SizedBox(width: 6),
+            Text(
+              'Memori Riwayat Keluhan & Diagnosa (SQLite Lokal)',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Catatan keluhan utama dan evaluasi sesi tersimpan terenkripsi secara lokal di perangkat.',
+          style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+        ),
         const SizedBox(height: 10),
         if (patient.sharedDiarySummaries != null)
           ...patient.sharedDiarySummaries!.map((s) {
@@ -616,7 +630,14 @@ class _PatientDetailConsentScreenState
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.auto_awesome, color: AppColors.primary, size: 16),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.psychology_outlined, color: AppColors.primary, size: 16),
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(

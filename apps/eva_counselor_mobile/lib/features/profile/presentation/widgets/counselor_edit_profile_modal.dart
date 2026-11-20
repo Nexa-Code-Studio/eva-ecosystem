@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/image_helper.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 import '../../../../core/widgets/top_toast.dart';
@@ -145,13 +146,8 @@ class _EditProfileContentState extends ConsumerState<_EditProfileContent> {
                   CircleAvatar(
                     radius: 44,
                     backgroundColor: AppColors.primaryContainer,
-                    backgroundImage: _selectedPhotoPath != null
-                        ? (_selectedPhotoPath!.startsWith('http')
-                            ? NetworkImage(_selectedPhotoPath!)
-                            : null)
-                        : null,
-                    child: _selectedPhotoPath == null ||
-                            !_selectedPhotoPath!.startsWith('http')
+                    backgroundImage: getProfileImageProvider(_selectedPhotoPath),
+                    child: getProfileImageProvider(_selectedPhotoPath) == null
                         ? const Icon(Icons.person,
                             size: 44, color: AppColors.primary)
                         : null,

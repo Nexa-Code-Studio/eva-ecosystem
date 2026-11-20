@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/bank_constants.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 import '../../../../core/widgets/top_toast.dart';
@@ -33,7 +34,8 @@ class _BankAccountModalContent extends ConsumerStatefulWidget {
 class _BankAccountModalContentState
     extends ConsumerState<_BankAccountModalContent> {
   bool _isEditing = false;
-  late TextEditingController _bankNameCtrl;
+  String? _selectedBank;
+  late TextEditingController _customBankCtrl;
   late TextEditingController _accountNumberCtrl;
   late TextEditingController _accountHolderCtrl;
 
@@ -43,7 +45,18 @@ class _BankAccountModalContentState
     final user = (widget.ref ?? ref).read(authStateProvider).value;
     final hasExistingBank = user?.bankName != null && user!.bankName.isNotEmpty;
     _isEditing = !hasExistingBank;
-    _bankNameCtrl = TextEditingController(text: user?.bankName ?? '');
+    
+    final existingBank = user?.bankName ?? '';
+    if (existingBank.isNotEmpty) {
+      if (kIndonesianBanks.contains(existingBank)) {
+        _selectedBank = existingBank;
+      } else {
+        _selectedBank = 'Lainnya';
+      }
+    }
+    _customBankCtrl = TextEditingController(
+      text: _selectedBank == 'Lainnya' ? existingBank : '',
+    );
     _accountNumberCtrl =
         TextEditingController(text: user?.bankAccountNumber ?? '');
     _accountHolderCtrl = TextEditingController(
@@ -52,27 +65,32 @@ class _BankAccountModalContentState
 
   @override
   void dispose() {
-    _bankNameCtrl.dispose();
+    _customBankCtrl.dispose();
     _accountNumberCtrl.dispose();
     _accountHolderCtrl.dispose();
     super.dispose();
   }
 
   void _saveBankDetails() {
-    if (_bankNameCtrl.text.trim().isEmpty ||
+    final selected = _selectedBank;
+    final finalBankName = selected == 'Lainnya'
+        ? _customBankCtrl.text.trim()
+        : (selected ?? '');
+
+    if (finalBankName.isEmpty ||
         _accountNumberCtrl.text.trim().isEmpty ||
         _accountHolderCtrl.text.trim().isEmpty) {
       TopToast.show(
         context,
         title: 'Form Belum Lengkap',
-        message: 'Mohon isi nama bank, nomor rekening, dan nama pemilik.',
+        message: 'Mohon pilih bank, isi nomor rekening, dan nama pemilik.',
         type: ToastType.error,
       );
       return;
     }
 
     (widget.ref ?? ref).read(authStateProvider.notifier).updateBankDetails(
-          bankName: _bankNameCtrl.text.trim(),
+          bankName: finalBankName,
           accountNumber: _accountNumberCtrl.text.trim(),
           accountHolder: _accountHolderCtrl.text.trim(),
         );
@@ -90,7 +108,9 @@ class _BankAccountModalContentState
   @override
   Widget build(BuildContext context) {
     final user = (widget.ref ?? ref).watch(authStateProvider).value;
-    final bankName = user?.bankName ?? _bankNameCtrl.text;
+    final bankName = (user?.bankName != null && user!.bankName.isNotEmpty)
+        ? user.bankName
+        : (_selectedBank == 'Lainnya' ? _customBankCtrl.text : (_selectedBank ?? ''));
     final accountNumber = user?.bankAccountNumber ?? _accountNumberCtrl.text;
     final accountHolder = user?.bankAccountHolder ?? _accountHolderCtrl.text;
 
@@ -291,11 +311,68 @@ class _BankAccountModalContentState
               ),
             ] else ...[
               // EDIT FORM
-              CustomTextField(
-                label: 'Nama Bank (e.g. BCA, Mandiri, BNI, BRI)',
-                hint: 'Masukkan nama bank',
-                controller: _bankNameCtrl,
-                prefixIcon: Icons.account_balance_outlined,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Pilih Bank Tujuan Pencairan',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedBank,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white,
+                      prefixIcon: const Icon(Icons.account_balance_outlined,
+                          color: AppColors.primary, size: 20),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide:
+                            const BorderSide(color: Color(0xFFD6D9E4)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide:
+                            const BorderSide(color: Color(0xFFD6D9E4)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                            color: AppColors.primary, width: 1.5),
+                      ),
+                    ),
+                    hint: const Text('Pilih Nama Bank',
+                        style: TextStyle(
+                            fontSize: 13, color: AppColors.textLight)),
+                    items: kIndonesianBanks
+                        .map((b) => DropdownMenuItem(
+                            value: b,
+                            child: Text(b,
+                                style: const TextStyle(fontSize: 13))))
+                        .toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedBank = val;
+                      });
+                    },
+                  ),
+                  if (_selectedBank == 'Lainnya') ...[
+                    const SizedBox(height: 10),
+                    CustomTextField(
+                      label: 'Nama Bank Lainnya',
+                      hint: 'Ketik nama bank Anda',
+                      controller: _customBankCtrl,
+                      prefixIcon: Icons.edit_note_rounded,
+                    ),
+                  ],
+                ],
               ),
               const SizedBox(height: 12),
               CustomTextField(

@@ -2,7 +2,7 @@ import '../models/psychologist_auth_dto.dart';
 import 'auth_datasource.dart';
 
 class MockAuthDataSource implements AuthDataSource {
-  bool _mockOnlineState = true;
+  bool _mockOnlineState = false;
   final Map<String, PsychologistProfileResponseDto> _registeredAccounts = {};
 
   @override
