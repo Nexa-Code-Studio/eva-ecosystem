@@ -412,7 +412,7 @@ class _TransactionHistoryScreenState
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          const Column(
+                          Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text('Menunggu Selesai SOAP', style: TextStyle(color: Colors.white70, fontSize: 10)),
