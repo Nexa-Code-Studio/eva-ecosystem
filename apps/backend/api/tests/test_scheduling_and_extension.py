@@ -67,6 +67,27 @@ class TestSchedulingAndSlotGeneration(unittest.TestCase):
         # Non-overlapping slot after
         self.assertFalse(is_overlap(datetime(2026, 11, 20, 9, 30, tzinfo=UTC), datetime(2026, 11, 20, 10, 0, tzinfo=UTC)))
 
+    def test_anti_collision_with_buffer_window(self):
+        # User scenario: Sesi 12:05 - 12:35, buffer 10 menit
+        existing_start = datetime(2026, 11, 20, 12, 5, tzinfo=UTC)
+        existing_end = datetime(2026, 11, 20, 12, 35, tzinfo=UTC)
+        buffer_minutes = 10
+        buffer_delta = timedelta(minutes=buffer_minutes)
+
+        def is_overlap_with_buffer(new_start, new_end):
+            return (existing_start < new_end + buffer_delta) and (existing_end > new_start - buffer_delta)
+
+        # Pasien coba booking tepat selesai sesi 12:35 - 13:05 -> Kena Buffer (Ditolak)
+        self.assertTrue(is_overlap_with_buffer(datetime(2026, 11, 20, 12, 35, tzinfo=UTC), datetime(2026, 11, 20, 13, 5, tzinfo=UTC)))
+        # Pasien coba booking 12:40 - 13:10 -> Kena Buffer (Ditolak)
+        self.assertTrue(is_overlap_with_buffer(datetime(2026, 11, 20, 12, 40, tzinfo=UTC), datetime(2026, 11, 20, 13, 10, tzinfo=UTC)))
+        # Pasien booking di 12:45 - 13:15 -> Aman setelah jeda buffer 10 menit (Diterima)
+        self.assertFalse(is_overlap_with_buffer(datetime(2026, 11, 20, 12, 45, tzinfo=UTC), datetime(2026, 11, 20, 13, 15, tzinfo=UTC)))
+        # Pasien coba booking sebelum sesi 11:30 - 12:00 -> Jeda cuma 5 menit ke 12:05 (Ditolak)
+        self.assertTrue(is_overlap_with_buffer(datetime(2026, 11, 20, 11, 30, tzinfo=UTC), datetime(2026, 11, 20, 12, 0, tzinfo=UTC)))
+        # Pasien booking 11:25 - 11:55 -> Cukup buffer 10 menit sebelum 12:05 (Diterima)
+        self.assertFalse(is_overlap_with_buffer(datetime(2026, 11, 20, 11, 25, tzinfo=UTC), datetime(2026, 11, 20, 11, 55, tzinfo=UTC)))
+
 
 class TestInCallSessionExtension(unittest.TestCase):
     def test_extension_math_and_duration_increase(self):

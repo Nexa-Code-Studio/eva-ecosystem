@@ -258,6 +258,10 @@ class _VideoConsultationScreenState
         ref.read(videoCallControllerProvider(widget.sessionId).notifier);
     final isPatientConnected =
         !session.isWaitingForPatient && session.status == VideoCallStatus.connected;
+    final totalSeconds = (session.isExtended ? 60 : 30) * 60;
+    final remainingSeconds = totalSeconds - session.callDuration.inSeconds;
+    final isNearEnd = isPatientConnected && remainingSeconds <= 300 && remainingSeconds > 0;
+    final isUrgentEnd = isPatientConnected && remainingSeconds <= 120 && remainingSeconds > 0;
 
     return Scaffold(
       backgroundColor: const Color(0xFF101318),
@@ -478,7 +482,11 @@ class _VideoConsultationScreenState
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: isPatientConnected
-                          ? AppColors.verifiedGreen.withValues(alpha: 0.9)
+                          ? (isUrgentEnd
+                              ? const Color(0xFFDC2626)
+                              : (isNearEnd
+                                  ? const Color(0xFFD97706)
+                                  : AppColors.verifiedGreen.withValues(alpha: 0.9)))
                           : (session.isPatientReconnecting
                               ? AppColors.pendingAmber.withValues(alpha: 0.9)
                               : const Color(0xFF2563EB)
@@ -490,7 +498,7 @@ class _VideoConsultationScreenState
                       children: [
                         Icon(
                           isPatientConnected
-                              ? Icons.check_circle_rounded
+                              ? (isNearEnd ? Icons.alarm_rounded : Icons.check_circle_rounded)
                               : (session.isPatientReconnecting
                                   ? Icons.sync_problem_rounded
                                   : Icons.hourglass_top_rounded),
@@ -500,7 +508,9 @@ class _VideoConsultationScreenState
                         const SizedBox(width: 6),
                         Text(
                           isPatientConnected
-                              ? 'Sesi Aktif: ${_formatDuration(session.callDuration)} / ${session.isExtended ? "60:00" : "30:00"}'
+                              ? (isNearEnd
+                                  ? '⏱️ Sisa ${_formatDuration(Duration(seconds: remainingSeconds))} (${_formatDuration(session.callDuration)}/${session.isExtended ? "60:00" : "30:00"})'
+                                  : 'Sesi Aktif: ${_formatDuration(session.callDuration)} / ${session.isExtended ? "60:00" : "30:00"}')
                               : (session.isPatientReconnecting
                                   ? 'Menghubungkan Ulang...'
                                   : 'Menunggu Pasien...'),
@@ -880,6 +890,67 @@ class _VideoConsultationScreenState
                             ),
                           ),
                         ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // 8. Warning Banner: Time Is Running Out (<= 5 Mins & <= 2 Mins)
+            if (isNearEnd && !session.isExtensionRequested)
+              Positioned(
+                top: 86,
+                left: 20,
+                right: 20,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isUrgentEnd
+                        ? const Color(0xFFDC2626)
+                        : const Color(0xFFD97706),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isUrgentEnd
+                            ? Icons.alarm_rounded
+                            : Icons.warning_amber_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              isUrgentEnd
+                                  ? '⏰ Waktu Sesi Tersisa ${_formatDuration(Duration(seconds: remainingSeconds))}!'
+                                  : '⚠️ Waktu Sesi Tersisa ${_formatDuration(Duration(seconds: remainingSeconds))}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              isUrgentEnd
+                                  ? 'Sesi segera berakhir. Mohon bersiap menyelesaikan konsultasi & mengisi SOAP.'
+                                  : 'Mulai rangkum evaluasi sesi bersama pasien sebelum sesi berakhir.',
+                              style: const TextStyle(color: Colors.white70, fontSize: 10),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/top_toast.dart';
+import '../../../profile/presentation/providers/privacy_settings_provider.dart';
 import '../providers/counselor_notification_provider.dart';
 
 class CounselorNotificationScreen extends ConsumerStatefulWidget {
@@ -19,6 +21,7 @@ class _CounselorNotificationScreenState
   @override
   Widget build(BuildContext context) {
     final notifications = ref.watch(counselorNotificationsProvider);
+    final privacy = ref.watch(privacySettingsProvider);
 
     final filtered = notifications.where((n) {
       if (_selectedFilter == 'Semua') return true;
@@ -43,11 +46,11 @@ class _CounselorNotificationScreenState
               ref
                   .read(counselorNotificationsProvider.notifier)
                   .markAllAsRead();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Semua notifikasi ditandai sebagai dibaca.'),
-                  backgroundColor: AppColors.primary,
-                ),
+              TopToast.show(
+                context,
+                title: 'Notifikasi Dibaca',
+                message: 'Semua notifikasi ditandai sebagai dibaca.',
+                type: ToastType.info,
               );
             },
             child: const Text(
@@ -251,7 +254,7 @@ class _CounselorNotificationScreenState
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            notif.title,
+                                            privacy.maskText(notif.title),
                                             style: AppTypography.headingSmall
                                                 .copyWith(
                                               fontSize: 14,
@@ -276,7 +279,7 @@ class _CounselorNotificationScreenState
                                 ),
                                 const SizedBox(height: 10),
                                 Text(
-                                  notif.body,
+                                  privacy.maskText(notif.body),
                                   style: AppTypography.bodySmall.copyWith(
                                     fontSize: 12,
                                     color: AppColors.textPrimary

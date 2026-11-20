@@ -46,7 +46,7 @@ class PsychologistRegisterRequestDto {
     required this.certificateDocFileName,
     this.counselorRole = 'professional_independent',
     this.partnerName,
-    this.sessionDurationMinutes = 50,
+    this.sessionDurationMinutes = 30,
     this.coinsPerSession = 150,
   });
 
@@ -104,6 +104,9 @@ class PsychologistProfileResponseDto {
   final DateTime? externalApiKeyCreatedAt;
   final DateTime? externalApiLastSyncAt;
   final int externalSyncCount;
+  final String bankName;
+  final String bankAccountNumber;
+  final String bankAccountHolder;
 
   const PsychologistProfileResponseDto({
     required this.id,
@@ -122,7 +125,7 @@ class PsychologistProfileResponseDto {
     this.token,
     this.counselorRole = 'professional_independent',
     this.partnerName,
-    this.sessionDurationMinutes = 50,
+    this.sessionDurationMinutes = 30,
     this.coinsPerSession = 150,
     this.coinBalance = 0,
     this.googleDriveEmail,
@@ -140,6 +143,9 @@ class PsychologistProfileResponseDto {
     this.externalApiKeyCreatedAt,
     this.externalApiLastSyncAt,
     this.externalSyncCount = 0,
+    this.bankName = '',
+    this.bankAccountNumber = '',
+    this.bankAccountHolder = '',
   });
 
   factory PsychologistProfileResponseDto.fromJson(Map<String, dynamic> json) {
@@ -165,9 +171,12 @@ class PsychologistProfileResponseDto {
       token: json['token']?.toString(),
       counselorRole: json['counselor_role']?.toString() ?? 'professional_independent',
       partnerName: json['partner_name']?.toString(),
-      sessionDurationMinutes: json['session_duration_minutes'] as int? ?? 50,
+      sessionDurationMinutes: json['session_duration_minutes'] as int? ?? 30,
       coinsPerSession: json['coins_per_session'] as int? ?? 150,
-      coinBalance: json['coin_balance'] as int? ?? 0,
+      coinBalance: (json['coin_balance'] as num?)?.toInt() ??
+          (json['wallet_balance'] != null
+              ? ((json['wallet_balance'] as num) / 1000).toInt()
+              : 0),
       googleDriveEmail: json['google_drive_email']?.toString(),
       employeeNip: json['employee_nip']?.toString() ?? '',
       isOnlinePracticeEnabled: json['is_online_practice_enabled'] as bool? ?? false,
@@ -190,6 +199,9 @@ class PsychologistProfileResponseDto {
           ? DateTime.tryParse(json['external_api_last_sync_at'].toString())
           : null,
       externalSyncCount: json['external_sync_count'] as int? ?? 0,
+      bankName: json['bank_name']?.toString() ?? '',
+      bankAccountNumber: json['bank_account_number']?.toString() ?? '',
+      bankAccountHolder: json['bank_account_holder']?.toString() ?? '',
     );
   }
 
@@ -230,6 +242,9 @@ class PsychologistProfileResponseDto {
         if (externalApiLastSyncAt != null)
           'external_api_last_sync_at': externalApiLastSyncAt!.toIso8601String(),
         'external_sync_count': externalSyncCount,
+        'bank_name': bankName,
+        'bank_account_number': bankAccountNumber,
+        'bank_account_holder': bankAccountHolder,
       };
 
   PsychologistProfileResponseDto copyWith({
@@ -267,6 +282,9 @@ class PsychologistProfileResponseDto {
     DateTime? externalApiKeyCreatedAt,
     DateTime? externalApiLastSyncAt,
     int? externalSyncCount,
+    String? bankName,
+    String? bankAccountNumber,
+    String? bankAccountHolder,
   }) {
     return PsychologistProfileResponseDto(
       id: id ?? this.id,
@@ -309,6 +327,9 @@ class PsychologistProfileResponseDto {
       externalApiLastSyncAt:
           externalApiLastSyncAt ?? this.externalApiLastSyncAt,
       externalSyncCount: externalSyncCount ?? this.externalSyncCount,
+      bankName: bankName ?? this.bankName,
+      bankAccountNumber: bankAccountNumber ?? this.bankAccountNumber,
+      bankAccountHolder: bankAccountHolder ?? this.bankAccountHolder,
     );
   }
 
@@ -381,6 +402,10 @@ class PsychologistProfileResponseDto {
       externalApiKeyCreatedAt: externalApiKeyCreatedAt,
       externalApiLastSyncAt: externalApiLastSyncAt,
       externalSyncCount: externalSyncCount,
+      bankName: bankName,
+      bankAccountNumber: bankAccountNumber,
+      bankAccountHolder: bankAccountHolder,
+      isScheduleConfigured: isOnlinePracticeEnabled || (offlineScheduleDays.isNotEmpty),
     );
   }
 }

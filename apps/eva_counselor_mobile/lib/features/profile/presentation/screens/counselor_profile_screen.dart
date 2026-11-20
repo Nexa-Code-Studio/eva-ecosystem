@@ -263,7 +263,7 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                 iconBg: AppColors.secondary,
                 title: 'Keamanan Rekam Medis & Privasi',
                 subtitle: 'Biometrik FaceID & Enkripsi AES-256',
-                onTap: () => CounselorSecurityModal.show(context),
+                onTap: () => CounselorSecurityModal.show(context, ref),
               ),
               CounselorProfileMenuCard(
                 icon: Icons.explore_rounded,
@@ -277,12 +277,7 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
 
               // 8. Logout
               GestureDetector(
-                onTap: () async {
-                  await ref.read(authStateProvider.notifier).logout();
-                  if (context.mounted) {
-                    Navigator.of(context).pushReplacementNamed('/counselor-login');
-                  }
-                },
+                onTap: _confirmLogout,
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
@@ -308,5 +303,47 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
         ),
       ),
     );
+  }
+
+  Future<void> _confirmLogout() async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 24),
+            SizedBox(width: 10),
+            Text('Keluar Akun?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: const Text(
+          'Apakah Anda yakin ingin keluar dari akun konselor? Anda perlu masuk kembali untuk mengakses jadwal dan data sesi.',
+          style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Batal', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Ya, Keluar', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout == true && mounted) {
+      await ref.read(authStateProvider.notifier).logout();
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed('/counselor-login');
+    }
   }
 }

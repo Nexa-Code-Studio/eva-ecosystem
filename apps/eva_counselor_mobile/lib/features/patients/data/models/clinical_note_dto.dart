@@ -54,16 +54,22 @@ class ClinicalNoteResponseDto {
   });
 
   factory ClinicalNoteResponseDto.fromJson(Map<String, dynamic> json) {
+    final soap = json['soap_notes'] as Map<String, dynamic>?;
     return ClinicalNoteResponseDto(
-      id: json['id']?.toString() ?? '',
+      id: json['id']?.toString() ?? json['session_id']?.toString() ?? '',
       patientId: json['patient_id']?.toString() ?? '',
       sessionId: json['session_id']?.toString() ?? '',
-      createdAt: json['created_at']?.toString() ?? DateTime.now().toIso8601String(),
-      subjective: json['subjective']?.toString() ?? '',
-      objective: json['objective']?.toString() ?? '',
-      assessment: json['assessment']?.toString() ?? '',
-      plan: json['plan']?.toString() ?? '',
+      createdAt: json['created_at']?.toString() ??
+          json['scheduled_start_time']?.toString() ??
+          DateTime.now().toIso8601String(),
+      subjective: json['subjective']?.toString() ?? soap?['subjective']?.toString() ?? '',
+      objective: json['objective']?.toString() ?? soap?['objective']?.toString() ?? '',
+      assessment: json['assessment']?.toString() ?? soap?['assessment']?.toString() ?? '',
+      plan: json['plan']?.toString() ?? soap?['plan']?.toString() ?? '',
       recommendedTasks: (json['recommended_tasks'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          (soap?['recommended_tasks'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],

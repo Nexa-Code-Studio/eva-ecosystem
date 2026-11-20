@@ -60,9 +60,23 @@ class AppRouter {
         );
 
       case '/counselor-patient-detail':
-        final patientId = settings.arguments as String? ?? 'patient-001';
+        String patientId = 'patient-001';
+        bool initialSessionUnlocked = false;
+        String? activeSessionId;
+        if (settings.arguments is String) {
+          patientId = settings.arguments as String;
+        } else if (settings.arguments is Map<String, dynamic>) {
+          final args = settings.arguments as Map<String, dynamic>;
+          patientId = args['patientId'] as String? ?? 'patient-001';
+          initialSessionUnlocked = args['sessionFinished'] as bool? ?? false;
+          activeSessionId = args['sessionId'] as String?;
+        }
         return FadeThroughPageRoute(
-          page: PatientDetailConsentScreen(patientId: patientId),
+          page: PatientDetailConsentScreen(
+            patientId: patientId,
+            initialSessionUnlocked: initialSessionUnlocked,
+            activeSessionId: activeSessionId,
+          ),
           settings: settings,
         );
 

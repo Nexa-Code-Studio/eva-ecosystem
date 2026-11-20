@@ -116,11 +116,11 @@ class SchedulingService:
             slot_start = curr
             slot_end = curr + slot_duration
 
-            # Check collision with existing sessions (inclusive of buffer)
+            # Check collision with existing sessions (inclusive of buffer before and after)
             is_conflict = False
             for bs in booked_sessions:
-                # Interval collision check
-                if (slot_start < bs.scheduled_end_time + buffer_delta) and (slot_end > bs.scheduled_start_time):
+                # Interval collision check respecting buffer time
+                if (slot_start < bs.scheduled_end_time + buffer_delta) and (slot_end + buffer_delta > bs.scheduled_start_time):
                     is_conflict = True
                     break
 
@@ -170,21 +170,22 @@ class SchedulingService:
             start_time = start_time.replace(tzinfo=UTC)
         end_time = start_time + timedelta(minutes=30)
 
-        # 3. Anti-Collision Lock & Check
+        # 3. Anti-Collision Lock & Check (respecting counselor buffer time)
+        buffer_delta = timedelta(minutes=counselor.buffer_time_minutes)
         collision_query = select(ConsultationSession).where(
             ConsultationSession.counselor_id == payload.counselor_id,
             ConsultationSession.status.in_([
                 ConsultationSessionStatus.SCHEDULED.value,
                 ConsultationSessionStatus.LIVE.value,
             ]),
-            ConsultationSession.scheduled_start_time < end_time,
-            ConsultationSession.scheduled_end_time > start_time,
+            ConsultationSession.scheduled_start_time < (end_time + buffer_delta),
+            ConsultationSession.scheduled_end_time > (start_time - buffer_delta),
         )
         collision_res = await self.db.execute(collision_query)
         if collision_res.scalars().first():
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Slot waktu ini telah dipesan oleh pasien lain. Silakan pilih slot waktu berikutnya.",
+                detail=f"Slot waktu bertabrakan dengan jadwal konsultasi lain atau jeda buffer ({counselor.buffer_time_minutes} menit). Silakan pilih slot waktu berikutnya.",
             )
 
         # 4. Snapshot Pricing Policy
@@ -441,6 +442,7 @@ class SchedulingService:
                 soap_notes=session.soap_notes,
             )
             for session, counselor_name in rows
+            if session.soap_notes and any(str(v).strip() for v in session.soap_notes.values() if v is not None)
         ]
 
     async def get_consent_status(

@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/google_drive_service.dart';
+import '../../../../core/storage/schedule_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/custom_button.dart';
@@ -168,6 +169,7 @@ class _PsychologistRegistrationScreenState
     }
 
     setState(() => _isLoading = true);
+    await ScheduleStorage.resetForNewRegistration();
 
     await ref.read(authStateProvider.notifier).register(
           fullName: _fullNameCtrl.text,

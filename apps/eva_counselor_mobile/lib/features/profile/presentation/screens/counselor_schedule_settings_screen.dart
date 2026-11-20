@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/storage/schedule_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/top_toast.dart';
@@ -57,6 +58,7 @@ class _CounselorScheduleSettingsScreenState
   }
 
   void _handleSave() {
+    ScheduleStorage.markConfigured();
     ref.read(authStateProvider.notifier).updateSessionSettings(
           sessionDurationMinutes: _sessionDuration,
           coinsPerSession: 0,

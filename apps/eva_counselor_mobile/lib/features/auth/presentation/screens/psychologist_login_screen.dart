@@ -32,26 +32,53 @@ class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScree
   }
 
   void _handleLogin() async {
+    final rawEmail = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (rawEmail.isEmpty || password.isEmpty) {
+      TopToast.show(
+        context,
+        title: 'Input Belum Lengkap',
+        message: 'Mohon masukkan email atau username dan kata sandi.',
+        type: ToastType.error,
+      );
+      return;
+    }
+
+    final email = (rawEmail.contains('@') ? rawEmail : '$rawEmail@gmail.com').toLowerCase().trim();
+
     setState(() => _isLoading = true);
     await ref
         .read(authStateProvider.notifier)
-        .login(_emailController.text, _passwordController.text);
+        .login(email, password);
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    final user = ref.read(authStateProvider).value;
-    if (user != null) {
-      if (user.verificationStatus == VerificationStatus.pending) {
-        Navigator.of(context)
-            .pushReplacementNamed('/counselor-verification-pending');
-        return;
-      } else if (user.verificationStatus == VerificationStatus.rejected ||
-          user.verificationStatus == VerificationStatus.needRevision) {
-        Navigator.of(context)
-            .pushReplacementNamed('/counselor-verification-rejected');
-        return;
-      }
+    final authState = ref.read(authStateProvider);
+    final user = authState.value;
+
+    if (authState.hasError || user == null) {
+      final err = authState.error?.toString() ?? 'Email atau kata sandi tidak valid.';
+      TopToast.show(
+        context,
+        title: 'Gagal Masuk',
+        message: err.replaceFirst(RegExp(r'^Exception:\s*'), ''),
+        type: ToastType.error,
+      );
+      return;
     }
+
+    if (user.verificationStatus == VerificationStatus.pending) {
+      Navigator.of(context)
+          .pushReplacementNamed('/counselor-verification-pending');
+      return;
+    } else if (user.verificationStatus == VerificationStatus.rejected ||
+        user.verificationStatus == VerificationStatus.needRevision) {
+      Navigator.of(context)
+          .pushReplacementNamed('/counselor-verification-rejected');
+      return;
+    }
+
     Navigator.of(context).pushReplacementNamed('/counselor-shell');
   }
 
@@ -237,6 +264,38 @@ class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScree
                           ),
                         ),
                         onPressed: _isLoading ? null : _handleGoogleSignIn,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _emailController.text = 'khoirotunnisa2507@gmail.com';
+                          _passwordController.text = 'password123';
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryContainer.withValues(alpha: 0.35),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.touch_app_outlined, size: 13, color: AppColors.primary),
+                            SizedBox(width: 4),
+                            Text(
+                              'Akun Uji: khoirotunnisa2507 (dr. Sarah)',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/storage/schedule_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/image_helper.dart';
@@ -23,11 +24,20 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
   int _selectedCalendarIndex = 0;
   late List<Map<String, dynamic>> _calendarDays;
   late String _monthYearLabel;
+  bool _isSchedulePersistentlyConfigured = true;
 
   @override
   void initState() {
     super.initState();
     _initDynamicCalendar();
+    _checkPersistedSchedule();
+  }
+
+  Future<void> _checkPersistedSchedule() async {
+    final isConfigured = await ScheduleStorage.isConfigured();
+    if (mounted) {
+      setState(() => _isSchedulePersistentlyConfigured = isConfigured);
+    }
   }
 
   void _initDynamicCalendar() {
@@ -565,7 +575,11 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                                 if (finished == true && context.mounted) {
                                   Navigator.of(context).pushNamed(
                                     '/counselor-patient-detail',
-                                    arguments: upcomingPatient.id,
+                                    arguments: {
+                                      'patientId': upcomingPatient.id,
+                                      'sessionFinished': true,
+                                      'sessionId': sessionId,
+                                    },
                                   );
                                 }
                               },
@@ -577,7 +591,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 18),
-              ] else ...[
+              ] else if (!_isSchedulePersistentlyConfigured && user?.isScheduleConfigured != true && user?.isOnlinePracticeEnabled != true) ...[
                 // Onboarding Banner: Setup Practice Schedule
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -646,6 +660,90 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                                 label: const Text(
                                   'Atur Jadwal Sekarang',
                                   style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                ),
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const CounselorScheduleSettingsScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+              ] else ...[
+                // Clean Active Schedule State: No session scheduled today
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.verifiedBg,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.event_available_rounded,
+                          color: AppColors.verifiedGreen,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Tidak Ada Sesi Konsultasi Hari Ini',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            const Text(
+                              'Jadwal telekonseling Anda aktif. Sesi akan otomatis terisi saat pasien melakukan booking.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                                height: 1.35,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              height: 30,
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Color(0xFFD0D4E5)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                ),
+                                icon: const Icon(Icons.tune_rounded, size: 13, color: AppColors.primary),
+                                label: const Text(
+                                  'Kelola Jam Praktik',
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
                                 ),
                                 onPressed: () {
                                   Navigator.of(context).push(

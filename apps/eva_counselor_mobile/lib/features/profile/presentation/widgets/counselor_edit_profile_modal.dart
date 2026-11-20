@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -60,13 +61,26 @@ class _EditProfileContentState extends ConsumerState<_EditProfileContent> {
       allowedExtensions: ['jpg', 'jpeg', 'png', 'webp'],
     );
     if (file != null) {
-      setState(() {
-        _selectedPhotoPath = file.path ?? file.name;
-      });
+      String? resolved;
+      try {
+        final bytes = await file.readAsBytes();
+        final ext = file.extension?.toLowerCase() ?? 'png';
+        final mime = (ext == 'jpg' || ext == 'jpeg') ? 'image/jpeg' : 'image/$ext';
+        resolved = 'data:$mime;base64,${base64Encode(bytes)}';
+      } catch (_) {
+        if (file.path != null && file.path!.isNotEmpty) {
+          resolved = file.path;
+        }
+      }
+      if (resolved != null && mounted) {
+        setState(() {
+          _selectedPhotoPath = resolved;
+        });
+      }
     }
   }
 
-  void _saveProfile() {
+  Future<void> _saveProfile() async {
     final newName = _nameCtrl.text.trim();
     final newDegree = _degreeCtrl.text.trim();
 
@@ -82,20 +96,33 @@ class _EditProfileContentState extends ConsumerState<_EditProfileContent> {
 
     setState(() => _isLoading = true);
 
-    ref.read(authStateProvider.notifier).updateProfile(
-          fullName: newName,
-          titleDegree: newDegree.isNotEmpty ? newDegree : 'M.Psi., Psikolog',
-          profilePhotoUrl: _selectedPhotoPath,
+    try {
+      await ref.read(authStateProvider.notifier).updateProfile(
+            fullName: newName,
+            titleDegree: newDegree.isNotEmpty ? newDegree : 'M.Psi., Psikolog',
+            profilePhotoUrl: _selectedPhotoPath,
+          );
+
+      if (mounted) {
+        Navigator.pop(context);
+        TopToast.show(
+          context,
+          title: 'Profil Diperbarui',
+          message: 'Perubahan data profil Anda berhasil disimpan.',
+          type: ToastType.success,
         );
-
-    Navigator.pop(context);
-
-    TopToast.show(
-      context,
-      title: 'Profil Diperbarui',
-      message: 'Perubahan data profil Anda berhasil disimpan.',
-      type: ToastType.success,
-    );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        TopToast.show(
+          context,
+          title: 'Gagal Menyimpan',
+          message: 'Gagal memperbarui profil: $e',
+          type: ToastType.error,
+        );
+      }
+    }
   }
 
   @override

@@ -9,54 +9,66 @@ class CounselorCertificatesModal {
     if (user == null || user.verificationStatus != VerificationStatus.verified) {
       return [];
     }
-    // New counselors start with 0 earned milestone certificates
-    if ((user.coinBalance <= 0) && (user.yearsOfExperience <= 1)) {
-      return [];
-    }
-
+    // Milestone certificates are awarded based on verified completed sessions (Managed in Web Admin #93)
+    final completedSessions = user.coinBalance > 0 ? (user.coinBalance ~/ 120) : 0;
+    final List<EvaCertificateEntity> earned = [];
     final name = user.displayName;
 
-    return [
-      EvaCertificateEntity(
-        id: 'CERT-PRO-01',
-        title: 'SERTIFIKAT PRAKTIK TELEKONSELING KLINIS',
-        subtitle: 'Clinical Tele-Psychology Excellence & Competence',
-        recipientName: name,
-        milestoneCriteria: 'Penyelesaian 25 Sesi Klinis Terverifikasi',
-        certificateNumber: 'EVA/CERT/2026/PRO/00341',
-        issueDate: '20 Oktober 2026',
-        categoryLabel: 'Psikolog Mandiri',
-        description:
-            'Diberikan atas dedikasi dan kompetensi klinis prima dalam menyelenggarakan telekonsultasi kesehatan mental dengan standar etika tertinggi.',
-        badgeColor: const Color(0xFF2563EB),
-      ),
-      EvaCertificateEntity(
-        id: 'CERT-PRO-02',
-        title: 'SERTIFIKAT KEPATUHAN REKAM MEDIS SOAP',
-        subtitle: 'Certified Clinical Medical Record Standard',
-        recipientName: name,
-        milestoneCriteria: 'Kepatuhan Rekam SOAP 100% pada 50 Sesi',
-        certificateNumber: 'EVA/CERT/2026/PRO/00512',
-        issueDate: '02 November 2026',
-        categoryLabel: 'Psikolog Mandiri',
-        description:
-            'Diberikan atas komitmen integritas dokumentasi SOAP klinis (Subjective, Objective, Assessment, Plan) yang terenkripsi aman demi keselamatan pasien.',
-        badgeColor: const Color(0xFFD97706),
-      ),
-      EvaCertificateEntity(
-        id: 'CERT-PRO-03',
-        title: 'SERTIFIKAT KONSELOR TELADAN EVA 2026',
-        subtitle: 'Distinguished Clinical Practitioner 2026',
-        recipientName: name,
-        milestoneCriteria: '100+ Sesi Terlaksana dengan Rating Kepuasan 4.9+',
-        certificateNumber: 'EVA/CERT/2026/PRO/00789',
-        issueDate: '06 November 2026',
-        categoryLabel: 'Psikolog Mandiri',
-        description:
-            'Penghargaan tertinggi platform Eva atas loyalitas pelayanan intervensi krisis, kepuasan pasien bintang lima, dan kontribusi nyata pada kesehatan jiwa bangsa.',
-        badgeColor: const Color(0xFF7E22CE),
-      ),
-    ];
+    if (completedSessions >= 25) {
+      earned.add(
+        EvaCertificateEntity(
+          id: 'CERT-PRO-01',
+          title: 'SERTIFIKAT PRAKTIK TELEKONSELING KLINIS',
+          subtitle: 'Clinical Tele-Psychology Excellence & Competence',
+          recipientName: name,
+          milestoneCriteria: 'Penyelesaian 25 Sesi Klinis Terverifikasi',
+          certificateNumber: 'EVA/CERT/2026/PRO/00341',
+          issueDate: '20 Oktober 2026',
+          categoryLabel: 'Psikolog Mandiri',
+          description:
+              'Diberikan atas dedikasi dan kompetensi klinis prima dalam menyelenggarakan telekonsultasi kesehatan mental dengan standar etika tertinggi.',
+          badgeColor: const Color(0xFF2563EB),
+        ),
+      );
+    }
+
+    if (completedSessions >= 50) {
+      earned.add(
+        EvaCertificateEntity(
+          id: 'CERT-PRO-02',
+          title: 'SERTIFIKAT KEPATUHAN REKAM MEDIS SOAP',
+          subtitle: 'Certified Clinical Medical Record Standard',
+          recipientName: name,
+          milestoneCriteria: 'Kepatuhan Rekam SOAP 100% pada 50 Sesi',
+          certificateNumber: 'EVA/CERT/2026/PRO/00512',
+          issueDate: '02 November 2026',
+          categoryLabel: 'Psikolog Mandiri',
+          description:
+              'Diberikan atas komitmen integritas dokumentasi SOAP klinis (Subjective, Objective, Assessment, Plan) yang terenkripsi aman demi keselamatan pasien.',
+          badgeColor: const Color(0xFFD97706),
+        ),
+      );
+    }
+
+    if (completedSessions >= 100) {
+      earned.add(
+        EvaCertificateEntity(
+          id: 'CERT-PRO-03',
+          title: 'SERTIFIKAT KONSELOR TELADAN EVA 2026',
+          subtitle: 'Distinguished Clinical Practitioner 2026',
+          recipientName: name,
+          milestoneCriteria: '100+ Sesi Terlaksana dengan Rating Kepuasan 4.9+',
+          certificateNumber: 'EVA/CERT/2026/PRO/00789',
+          issueDate: '06 November 2026',
+          categoryLabel: 'Psikolog Mandiri',
+          description:
+              'Penghargaan tertinggi platform Eva atas loyalitas pelayanan intervensi krisis, kepuasan pasien bintang lima, dan kontribusi nyata pada kesehatan jiwa bangsa.',
+          badgeColor: const Color(0xFF7E22CE),
+        ),
+      );
+    }
+
+    return earned;
   }
 
   static void showGallery(BuildContext context, PsychologistUserEntity? user) {

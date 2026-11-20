@@ -55,6 +55,38 @@ class RemoteAuthDataSource implements AuthDataSource {
   }
 
   @override
+  Future<PsychologistProfileResponseDto> updateProfile({
+    String? fullName,
+    String? titleDegree,
+    String? profilePhotoUrl,
+  }) async {
+    final body = <String, dynamic>{};
+    if (fullName != null) body['full_name'] = fullName;
+    if (titleDegree != null) body['title_degree'] = titleDegree;
+    if (profilePhotoUrl != null) body['profile_photo_url'] = profilePhotoUrl;
+
+    final response = await _client.put(ApiEndpoints.updateProfile, body: body);
+    return PsychologistProfileResponseDto.fromJson(response as Map<String, dynamic>);
+  }
+
+  @override
+  Future<PsychologistProfileResponseDto> updateBankDetails({
+    required String bankName,
+    required String accountNumber,
+    required String accountHolder,
+  }) async {
+    final response = await _client.put(
+      ApiEndpoints.bankDetails,
+      body: {
+        'bank_name': bankName,
+        'bank_account_number': accountNumber,
+        'bank_account_holder': accountHolder,
+      },
+    );
+    return PsychologistProfileResponseDto.fromJson(response as Map<String, dynamic>);
+  }
+
+  @override
   Future<bool> updateAvailability(bool isOnline) async {
     final response = await _client.patch(
       ApiEndpoints.availability,

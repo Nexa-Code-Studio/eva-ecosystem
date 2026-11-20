@@ -71,7 +71,7 @@ class _BankAccountModalContentState
     super.dispose();
   }
 
-  void _saveBankDetails() {
+  Future<void> _saveBankDetails() async {
     final selected = _selectedBank;
     final finalBankName = selected == 'Lainnya'
         ? _customBankCtrl.text.trim()
@@ -89,20 +89,21 @@ class _BankAccountModalContentState
       return;
     }
 
-    (widget.ref ?? ref).read(authStateProvider.notifier).updateBankDetails(
+    await (widget.ref ?? ref).read(authStateProvider.notifier).updateBankDetails(
           bankName: finalBankName,
           accountNumber: _accountNumberCtrl.text.trim(),
           accountHolder: _accountHolderCtrl.text.trim(),
         );
 
-    setState(() => _isEditing = false);
-
-    TopToast.show(
-      context,
-      title: 'Rekening Tersimpan! 💳',
-      message: 'Rekening pencairan dana berhasil diperbarui.',
-      type: ToastType.success,
-    );
+    if (mounted) {
+      setState(() => _isEditing = false);
+      TopToast.show(
+        context,
+        title: 'Rekening Tersimpan! 💳',
+        message: 'Rekening pencairan dana berhasil diperbarui.',
+        type: ToastType.success,
+      );
+    }
   }
 
   @override

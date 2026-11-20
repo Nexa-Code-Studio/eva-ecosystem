@@ -42,6 +42,7 @@ class PsychologistUserEntity {
   final List<String> offlineScheduleDays; // Hari praktik offline aktif (e.g. ['Sel', 'Kam', 'Sab'])
   final String offlineStartTime; // Jam mulai offline (e.g. '10:00')
   final String offlineEndTime; // Jam selesai offline (e.g. '16:00')
+  final bool isScheduleConfigured; // Status apakah jadwal praktik utama sudah ditentukan
 
   // External Offline Schedule Sync (GitHub-style Personal Access Token / API Key)
   final String? externalApiKey; // API Key / PAT untuk integrasi kalender/SIMRS eksternal
@@ -70,7 +71,7 @@ class PsychologistUserEntity {
     this.certificateDocUrl,
     this.role = CounselorRole.professionalIndependent,
     this.partnerName,
-    this.sessionDurationMinutes = 50,
+    this.sessionDurationMinutes = 30,
     this.coinsPerSession = 150,
     this.coinBalance = 0,
     this.googleDriveEmail,
@@ -93,6 +94,7 @@ class PsychologistUserEntity {
     this.bankName = '',
     this.bankAccountNumber = '',
     this.bankAccountHolder = '',
+    this.isScheduleConfigured = false,
   });
 
   String get effectiveGoogleDriveEmail =>
@@ -152,6 +154,7 @@ class PsychologistUserEntity {
     String? bankName,
     String? bankAccountNumber,
     String? bankAccountHolder,
+    bool? isScheduleConfigured,
   }) {
     return PsychologistUserEntity(
       id: id ?? this.id,
@@ -200,6 +203,7 @@ class PsychologistUserEntity {
       bankName: bankName ?? this.bankName,
       bankAccountNumber: bankAccountNumber ?? this.bankAccountNumber,
       bankAccountHolder: bankAccountHolder ?? this.bankAccountHolder,
+      isScheduleConfigured: isScheduleConfigured ?? this.isScheduleConfigured,
     );
   }
 }
