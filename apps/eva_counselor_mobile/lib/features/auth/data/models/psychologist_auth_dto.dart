@@ -28,6 +28,12 @@ class PsychologistRegisterRequestDto {
   final String issuingInstitution;
   final String documentExpiryDate;
   final String lastEducation;
+  final String? strIssuingInstitution;
+  final String? strExpiryDate;
+  final String? strDocUrl;
+  final String? sipIssuingInstitution;
+  final String? sipExpiryDate;
+  final String? sipDocUrl;
   final String association;
   final List<String> specializations;
   final int yearsOfExperience;
@@ -37,6 +43,9 @@ class PsychologistRegisterRequestDto {
   final String? partnerName;
   final int sessionDurationMinutes;
   final int coinsPerSession;
+
+  String? get strDocFileName => strDocUrl;
+  String? get sipDocFileName => sipDocUrl;
 
   const PsychologistRegisterRequestDto({
     required this.fullName,
@@ -49,6 +58,14 @@ class PsychologistRegisterRequestDto {
     this.issuingInstitution = 'Kemenkes RI',
     this.documentExpiryDate = 'Seumur Hidup',
     this.lastEducation = 'S2 Magister Psikologi Profesi',
+    this.strIssuingInstitution,
+    this.strExpiryDate,
+    String? strDocFileName,
+    String? strDocUrl,
+    this.sipIssuingInstitution,
+    this.sipExpiryDate,
+    String? sipDocFileName,
+    String? sipDocUrl,
     required this.association,
     required this.specializations,
     required this.yearsOfExperience,
@@ -58,7 +75,8 @@ class PsychologistRegisterRequestDto {
     this.partnerName,
     this.sessionDurationMinutes = 30,
     this.coinsPerSession = 150,
-  });
+  })  : strDocUrl = strDocUrl ?? strDocFileName,
+        sipDocUrl = sipDocUrl ?? sipDocFileName;
 
   Map<String, dynamic> toJson() => {
         'full_name': fullName,
@@ -71,6 +89,12 @@ class PsychologistRegisterRequestDto {
         'issuing_institution': issuingInstitution,
         'document_expiry_date': documentExpiryDate,
         'last_education': lastEducation,
+        if (strIssuingInstitution != null) 'str_issuing_institution': strIssuingInstitution,
+        if (strExpiryDate != null) 'str_expiry_date': strExpiryDate,
+        if (strDocUrl != null) 'str_doc_url': strDocUrl,
+        if (sipIssuingInstitution != null) 'sip_issuing_institution': sipIssuingInstitution,
+        if (sipExpiryDate != null) 'sip_expiry_date': sipExpiryDate,
+        if (sipDocUrl != null) 'sip_doc_url': sipDocUrl,
         'association': association,
         'specializations': specializations,
         'years_of_experience': yearsOfExperience,
@@ -95,6 +119,12 @@ class PsychologistProfileResponseDto {
   final String issuingInstitution;
   final String documentExpiryDate;
   final String lastEducation;
+  final String? strIssuingInstitution;
+  final String? strExpiryDate;
+  final String? strDocUrl;
+  final String? sipIssuingInstitution;
+  final String? sipExpiryDate;
+  final String? sipDocUrl;
   final String association;
   final List<String> specializations;
   final int yearsOfExperience;
@@ -128,6 +158,9 @@ class PsychologistProfileResponseDto {
   final String bankAccountNumber;
   final String bankAccountHolder;
 
+  String? get strDocFileName => strDocUrl;
+  String? get sipDocFileName => sipDocUrl;
+
   const PsychologistProfileResponseDto({
     required this.id,
     required this.fullName,
@@ -139,6 +172,14 @@ class PsychologistProfileResponseDto {
     this.issuingInstitution = 'Kemenkes RI',
     this.documentExpiryDate = 'Seumur Hidup',
     this.lastEducation = 'S2 Magister Psikologi Profesi',
+    this.strIssuingInstitution,
+    this.strExpiryDate,
+    String? strDocFileName,
+    String? strDocUrl,
+    this.sipIssuingInstitution,
+    this.sipExpiryDate,
+    String? sipDocFileName,
+    String? sipDocUrl,
     required this.association,
     required this.specializations,
     required this.yearsOfExperience,
@@ -171,7 +212,8 @@ class PsychologistProfileResponseDto {
     this.bankName = '',
     this.bankAccountNumber = '',
     this.bankAccountHolder = '',
-  });
+  })  : strDocUrl = strDocUrl ?? strDocFileName,
+        sipDocUrl = sipDocUrl ?? sipDocFileName;
 
   factory PsychologistProfileResponseDto.fromJson(Map<String, dynamic> json) {
     return PsychologistProfileResponseDto(
@@ -185,6 +227,12 @@ class PsychologistProfileResponseDto {
       issuingInstitution: json['issuing_institution']?.toString() ?? 'Kemenkes RI',
       documentExpiryDate: json['document_expiry_date']?.toString() ?? 'Seumur Hidup',
       lastEducation: json['last_education']?.toString() ?? 'S2 Magister Psikologi Profesi',
+      strIssuingInstitution: json['str_issuing_institution']?.toString(),
+      strExpiryDate: json['str_expiry_date']?.toString(),
+      strDocUrl: json['str_doc_url']?.toString(),
+      sipIssuingInstitution: json['sip_issuing_institution']?.toString(),
+      sipExpiryDate: json['sip_expiry_date']?.toString(),
+      sipDocUrl: json['sip_doc_url']?.toString(),
       association: json['association']?.toString() ?? 'HIMPSI',
       specializations: (json['specializations'] as List<dynamic>?)
               ?.map((e) => e.toString())
@@ -246,6 +294,12 @@ class PsychologistProfileResponseDto {
         'issuing_institution': issuingInstitution,
         'document_expiry_date': documentExpiryDate,
         'last_education': lastEducation,
+        if (strIssuingInstitution != null) 'str_issuing_institution': strIssuingInstitution,
+        if (strExpiryDate != null) 'str_expiry_date': strExpiryDate,
+        if (strDocUrl != null) 'str_doc_url': strDocUrl,
+        if (sipIssuingInstitution != null) 'sip_issuing_institution': sipIssuingInstitution,
+        if (sipExpiryDate != null) 'sip_expiry_date': sipExpiryDate,
+        if (sipDocUrl != null) 'sip_doc_url': sipDocUrl,
         'association': association,
         'specializations': specializations,
         'years_of_experience': yearsOfExperience,
@@ -424,6 +478,12 @@ class PsychologistProfileResponseDto {
       issuingInstitution: issuingInstitution,
       documentExpiryDate: documentExpiryDate,
       lastEducation: lastEducation,
+      strIssuingInstitution: strIssuingInstitution,
+      strExpiryDate: strExpiryDate,
+      strDocUrl: strDocUrl ?? certificateDocUrl,
+      sipIssuingInstitution: sipIssuingInstitution,
+      sipExpiryDate: sipExpiryDate,
+      sipDocUrl: sipDocUrl,
       association: association,
       specializations: specializations,
       yearsOfExperience: yearsOfExperience,

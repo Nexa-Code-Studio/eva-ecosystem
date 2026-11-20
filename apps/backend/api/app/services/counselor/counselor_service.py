@@ -78,9 +78,14 @@ class CounselorService:
         await self.db.flush()
 
         # 2. Create PsychologistProfile linked to User
+        str_inst = payload.str_issuing_institution or payload.issuing_institution or "-"
+        str_exp = payload.str_expiry_date or payload.document_expiry_date or "-"
+        sip_inst = payload.sip_issuing_institution or "-"
+        sip_exp = payload.sip_expiry_date or "-"
         bio_info = payload.bio.strip() if payload.bio else (
-            f"Pendidikan: {payload.last_education or '-'} | Penerbit: {payload.issuing_institution or '-'} | Masa Berlaku: {payload.document_expiry_date or '-'}"
+            f"Pendidikan: {payload.last_education or '-'} | STR: {str_inst} ({str_exp}) | SIP: {sip_inst} ({sip_exp})"
         )
+        effective_cert_url = payload.str_doc_url or payload.sip_doc_url or payload.certificate_doc_url
         profile = PsychologistProfile(
             user_id=new_user.id,
             full_name=payload.full_name.strip(),
@@ -91,7 +96,7 @@ class CounselorService:
             specializations=payload.specializations,
             years_of_experience=payload.years_of_experience,
             bio=bio_info,
-            certificate_doc_url=payload.certificate_doc_url,
+            certificate_doc_url=effective_cert_url,
             verification_status=PsychologistVerificationStatus.PENDING.value,
             is_online=True,
             buffer_time_minutes=10,

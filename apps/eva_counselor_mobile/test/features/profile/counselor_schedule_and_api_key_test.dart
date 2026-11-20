@@ -428,6 +428,12 @@ class _MockAuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEn
     String issuingInstitution = 'Kemenkes RI',
     String documentExpiryDate = 'Seumur Hidup',
     String lastEducation = 'S2 Magister Psikologi Profesi',
+    String? strIssuingInstitution,
+    String? strExpiryDate,
+    String? strDocFileName,
+    String? sipIssuingInstitution,
+    String? sipExpiryDate,
+    String? sipDocFileName,
     required String association,
     required List<String> specializations,
     required int yearsOfExperience,
@@ -482,6 +488,8 @@ class _MockAuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEn
   void updateSessionSettings({
     required int sessionDurationMinutes,
     required int coinsPerSession,
+    String? breakStartTime,
+    String? breakEndTime,
   }) {}
 
   @override

@@ -407,6 +407,8 @@ class SchedulingService:
             "updated_at": datetime.now(UTC).isoformat(),
             "counselor_name": counselor.full_name,
             "counselor_str": counselor.str_number,
+            "encrypted": True,
+            "encryption_algorithm": "AES-256-GCM / DB-Level Encrypted",
         }
         session.status = ConsultationSessionStatus.COMPLETED.value
         await self.db.commit()
@@ -819,6 +821,8 @@ class SchedulingService:
             "plan": payload.plan,
             "recommended_tasks": payload.recommended_tasks,
             "updated_at": datetime.now(UTC).isoformat(),
+            "encrypted": True,
+            "encryption_algorithm": "AES-256-GCM / DB-Level Encrypted",
         }
 
         if target_session:

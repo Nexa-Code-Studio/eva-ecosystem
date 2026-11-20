@@ -96,14 +96,17 @@ class CounselorNotificationNotifier
     try {
       final prefs = await SharedPreferences.getInstance();
       final readIds = prefs.getStringList(_prefsKey) ?? [];
-      if (readIds.isNotEmpty) {
-        state = state.map((item) {
-          if (readIds.contains(item.id)) {
-            return item.copyWith(isRead: true);
-          }
-          return item;
-        }).toList();
-      }
+      final isScheduleConfigured = prefs.getBool('eva_counselor_schedule_configured_persistent') ?? true;
+
+      state = state.map((item) {
+        if (item.id == 'notif-welcome-01' && (isScheduleConfigured || readIds.contains(item.id))) {
+          return item.copyWith(isRead: true);
+        }
+        if (readIds.contains(item.id)) {
+          return item.copyWith(isRead: true);
+        }
+        return item;
+      }).toList();
     } catch (_) {}
   }
 

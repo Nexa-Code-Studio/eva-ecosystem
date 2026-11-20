@@ -60,6 +60,12 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
     String issuingInstitution = 'Kemenkes RI',
     String documentExpiryDate = 'Seumur Hidup',
     String lastEducation = 'S2 Magister Psikologi Profesi',
+    String? strIssuingInstitution,
+    String? strExpiryDate,
+    String? strDocFileName,
+    String? sipIssuingInstitution,
+    String? sipExpiryDate,
+    String? sipDocFileName,
     required String association,
     required List<String> specializations,
     required int yearsOfExperience,
@@ -83,6 +89,12 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
         issuingInstitution: issuingInstitution,
         documentExpiryDate: documentExpiryDate,
         lastEducation: lastEducation,
+        strIssuingInstitution: strIssuingInstitution,
+        strExpiryDate: strExpiryDate,
+        strDocFileName: strDocFileName,
+        sipIssuingInstitution: sipIssuingInstitution,
+        sipExpiryDate: sipExpiryDate,
+        sipDocFileName: sipDocFileName,
         association: association,
         specializations: specializations,
         yearsOfExperience: yearsOfExperience,
@@ -232,6 +244,8 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
   void updateSessionSettings({
     required int sessionDurationMinutes,
     required int coinsPerSession,
+    String? breakStartTime,
+    String? breakEndTime,
   }) {
     final current = state.value;
     if (current == null) return;
@@ -240,6 +254,8 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
       coinsPerSession: coinsPerSession,
       isOnlinePracticeEnabled: true,
       isScheduleConfigured: true,
+      breakStartTime: breakStartTime ?? current.breakStartTime,
+      breakEndTime: breakEndTime ?? current.breakEndTime,
     ));
     _repository.setOnlineAvailability(true);
   }

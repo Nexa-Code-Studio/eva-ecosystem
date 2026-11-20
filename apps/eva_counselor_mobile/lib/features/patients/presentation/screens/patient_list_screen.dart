@@ -200,7 +200,7 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
                                   ),
                                   const SizedBox(height: 12),
 
-                                  // Chief Complaint Box (Soft light background)
+                                  // Fokus / Topik Konseling Pasien
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                     decoration: BoxDecoration(
@@ -209,7 +209,7 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
                                     ),
                                     child: Row(
                                       children: [
-                                        const Icon(Icons.chat_bubble_outline_rounded,
+                                        const Icon(Icons.psychology_outlined,
                                             size: 14, color: AppColors.primary),
                                         const SizedBox(width: 8),
                                         Expanded(

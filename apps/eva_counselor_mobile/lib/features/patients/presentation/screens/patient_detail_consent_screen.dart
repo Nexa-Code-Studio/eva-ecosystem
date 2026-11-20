@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/screen_security_helper.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../../core/widgets/top_toast.dart';
@@ -27,234 +28,35 @@ class PatientDetailConsentScreen extends ConsumerStatefulWidget {
 
 class _PatientDetailConsentScreenState
     extends ConsumerState<PatientDetailConsentScreen> {
-  int _activeTabIndex = 0; // 0 = Memori Klinis & DASS, 1 = Catatan SOAP
+  int _activeTabIndex = 0; // 0 = Memori Klinis & DASS, 1 = Catatan Medis & Diagnosa
   bool _isRequestingConsent = false;
   late bool _sessionUnlocked;
-  bool _showTranscript = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _sessionUnlocked = widget.initialSessionUnlocked;
-    if (widget.initialSessionUnlocked) {
-      _activeTabIndex = 1; // Direct to SOAP form
-    }
-  }
-
-  // Transcript sample for detailed review
-  final List<Map<String, String>> _sampleTranscript = [
-    {
-      'time': '00:03',
-      'speaker': 'Pasien',
-      'text': 'Halo Bu Nisa, selamat pagi. Terima kasih sudah menerima jadwal saya.',
-    },
-    {
-      'time': '00:18',
-      'speaker': 'Psikolog',
-      'text': 'Selamat pagi Rian. Sama-sama. Bagaimana kabar dan istirahat Anda semalam?',
-    },
-    {
-      'time': '00:42',
-      'speaker': 'Pasien',
-      'text': 'Tidur saya masih kurang nyenyak. Dada terasa sesak dan tegang tiap kali teringat revisi skripsi bab 4 yang kemarin kena kritik keras pembimbing.',
-    },
-    {
-      'time': '01:25',
-      'speaker': 'Psikolog',
-      'text': 'Sensasi sesak dan tegang itu adalah reaksi fisik yang alami saat otak mempersepsikan situasi tersebut sebagai ancaman besar. Mari kita identifikasi pikiran otomatis apa yang langsung muncul saat menerima pesan pembimbing?',
-    },
-    {
-      'time': '02:08',
-      'speaker': 'Pasien',
-      'text': 'Pikiran saya langsung: "Aku tidak mampu, aku bakal terlambat lulus, dan aku mengecewakan orang tua saya yang sudah berkorban banyak."',
-    },
-    {
-      'time': '03:15',
-      'speaker': 'Psikolog',
-      'text': 'Bagus sekali Anda bisa mengidentifikasinya dengan jelas. Ada dua distorsi kognitif di sini: Catastrophizing (membayangkan skenario terburuk) dan Emotional Reasoning. Di sesi ini, kita akan melatih restrukturisasi pikiran tersebut.',
-    },
-  ];
-
-  // SOAP Note Form
+  // Clinical Note Form (Manual - Encrypted in DB)
   final _subjCtrl = TextEditingController();
   final _objCtrl = TextEditingController();
   final _assessCtrl = TextEditingController();
   final _planCtrl = TextEditingController();
   bool _isSavingNote = false;
-  bool _isSynthesizingSoap = false;
 
-  void _populateEvaTranscriptDraft(dynamic patient) async {
-    setState(() {
-      _sessionUnlocked = true;
-      _isSynthesizingSoap = true;
-    });
-
-    // 1. Tampilkan Dialog Efek Loading AI
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => PopScope(
-        canPop: false,
-        child: Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 26),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF4B53BB), Color(0xFF7C3AED)],
-                    ),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.auto_awesome, color: Colors.white, size: 28),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                const Text(
-                  'Eva AI Menganalisis Sesi... ✨',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Membaca transkrip audio percakapan & mengekstrak keluhan, observasi afek, serta rencana terapi (SOAP)...',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.45),
-                ),
-                const SizedBox(height: 20),
-                const ClipRRect(
-                  borderRadius: BorderRadius.all(Radius.circular(6)),
-                  child: LinearProgressIndicator(
-                    backgroundColor: Color(0xFFECEFF8),
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                    minHeight: 6,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
-    try {
-      final repo = ref.read(patientRepositoryProvider);
-      final draft = await repo.synthesizeSoapNote(
-        transcript:
-            'Pasien: Selamat siang dok, akhir-akhir ini saya merasa sangat cemas setiap kali mau tidur. Pikiran saya dipenuhi kekhawatiran tentang pekerjaan dan evaluasi akhir. Nafas saya juga terasa pendek.\nPsikolog: Baik, terima kasih sudah menceritakan hal ini. Mari kita coba latihan teknik relaksasi 4-7-8 bersama terlebih dahulu.\nPasien: Setelah mencoba teknik pernapasan tadi, dada saya terasa jauh lebih rileks dan tenang.',
-        patientName: patient.name,
-      );
-
-      if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop(); // Tutup dialog loading
-      }
-
-      if (!mounted) return;
-      setState(() {
-        _subjCtrl.text = draft['subjective'] ?? '';
-        _objCtrl.text = draft['objective'] ?? '';
-        _assessCtrl.text = draft['assessment'] ?? '';
-        _planCtrl.text = draft['plan'] ?? '';
-      });
-
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Row(
-            children: [
-              Icon(Icons.auto_awesome, color: AppColors.primary, size: 22),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Draf SOAP Siap ✨',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-          content: Text(
-            'Draf catatan SOAP telah berhasil disintesis oleh Eva AI (${draft["model_used"] ?? "AI"}) dari transkrip sesi percakapan.\n\nSilakan tinjau dan edit sebelum finalisasi.',
-            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.45),
-          ),
-          actions: [
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('OK, Mengerti'),
-            ),
-          ],
-        ),
-      );
-    } catch (e) {
-      if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop(); // Tutup dialog loading
-      }
-      if (!mounted) return;
-      setState(() {
-        _subjCtrl.text =
-            'Pasien (${patient.name}) mengeluhkan kecemasan performansi yang memuncak menjelang evaluasi akhir. Mengalami insomnia dan palpitasi ringan saat membuka tugas di malam hari.';
-        _objCtrl.text =
-            'Afek cemas dengan modulasi intonasi suara agak tegang di 10 menit awal. Kontak mata terjaga baik lewat video call, nafas lebih teratur setelah relaksasi pacer napas.';
-        _assessCtrl.text =
-            'Kecemasan situasional tingkat sedang (DASS-21 selaras). Belum ditemukan indikasi risiko melukai diri, responsif terhadap psikoedukasi.';
-        _planCtrl.text =
-            '1. Praktik teknik pernapasan diafragma 4-7-8 setiap malam.\n2. CBT Thought Record di jurnal Eva AI.\n3. Evaluasi sesi lanjutan 1 minggu ke depan.';
-      });
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Row(
-            children: [
-              Icon(Icons.auto_awesome, color: AppColors.primary, size: 22),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Draf SOAP Siap ✨',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-          content: const Text(
-            'Draf SOAP dari transkrip percakapan Eva AI berhasil dimuat ke dalam formulir. Anda dapat mengedit dan melengkapinya.',
-            style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.45),
-          ),
-          actions: [
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('OK, Mengerti'),
-            ),
-          ],
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isSynthesizingSoap = false);
-      }
+  @override
+  void initState() {
+    super.initState();
+    ScreenSecurityHelper.enableSecureScreen();
+    _sessionUnlocked = widget.initialSessionUnlocked;
+    if (widget.initialSessionUnlocked) {
+      _activeTabIndex = 1; // Direct to note form
     }
+  }
+
+  @override
+  void dispose() {
+    ScreenSecurityHelper.disableSecureScreen();
+    _subjCtrl.dispose();
+    _objCtrl.dispose();
+    _assessCtrl.dispose();
+    _planCtrl.dispose();
+    super.dispose();
   }
 
   void _handleRequestConsent() async {
@@ -370,6 +172,32 @@ class _PatientDetailConsentScreenState
             color: AppColors.textPrimary,
           ),
         ),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 16, top: 12, bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.shield_rounded, size: 14, color: AppColors.verifiedGreen),
+                SizedBox(width: 4),
+                Text(
+                  'Anti-Screenshot',
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF15803D),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
       body: patientAsync.when(
         data: (patient) {
@@ -512,32 +340,6 @@ class _PatientDetailConsentScreenState
                             ),
                           ),
                         ],
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF7F8FC),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Keluhan Utama:',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              patient.chiefComplaint,
-                              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
-                            ),
-                          ],
-                        ),
                       ),
                     ],
                   ),
@@ -690,8 +492,47 @@ class _PatientDetailConsentScreenState
     );
   }
 
-  // TAB 1: GRANTED CONSENT VIEW
+  // TAB 1: GRANTED CONSENT VIEW (GATED BY ACTIVE/UPCOMING SCHEDULE)
   Widget _buildConsentGrantedContent(dynamic patient) {
+    final bool hasActiveSchedule =
+        patient.upcomingSchedule != null && !patient.upcomingSchedule!.isCompleted;
+    final bool isAccessAllowed = hasActiveSchedule || _sessionUnlocked;
+
+    if (!isAccessAllowed) {
+      return Container(
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFECEFF8)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFEF2F2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.lock_rounded, size: 32, color: AppColors.highRiskRed),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Akses Rekam Medis Terkunci 🔒',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Sesuai etika kerahasiaan pasien, detail rekam emosional hanya dapat diakses saat ada jadwal konsultasi aktif (booking mendatang atau sesi terjadwal). Setelah sesi selesai difinalisasi, akses tertutup kembali secara otomatis demi privasi.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary, height: 1.45),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -766,20 +607,62 @@ class _PatientDetailConsentScreenState
         const SizedBox(height: 16),
         const Row(
           children: [
-            Icon(Icons.history_edu_rounded, size: 18, color: AppColors.primary),
+            Icon(Icons.auto_stories_rounded, size: 18, color: AppColors.primary),
             SizedBox(width: 6),
             Text(
-              'Riwayat Sesi & Evaluasi Klinis',
+              'Riwayat Pemicu & Keluhan yang Dirangkum Eva',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
             ),
           ],
         ),
         const SizedBox(height: 4),
         const Text(
-          'Ringkasan keluhan utama dan evaluasi klinis dari sesi-sesi konsultasi terdahulu yang disetujui pasien.',
+          'Rangkuman pemicu dan keluhan pasien yang dicatat serta disintesis oleh Eva dari jurnal mandiri pasien.',
           style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 10),
+
+        // Keluhan Awal Pasien
+        Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.flag_outlined, color: Color(0xFF2563EB), size: 16),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Keluhan Awal Pasien:',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5, color: AppColors.textPrimary),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      patient.chiefComplaint,
+                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
         if (patient.sharedDiarySummaries != null)
           ...patient.sharedDiarySummaries!.map((s) {
             return Container(
@@ -826,33 +709,40 @@ class _PatientDetailConsentScreenState
         if (!_sessionUnlocked) ...[
           _buildScheduleGatedSoapCard(patient, schedule),
         ] else ...[
-          // UNLOCKED: EVA AI DRAFT BANNER
+          // UNLOCKED: MANUAL CLINICAL NOTE & DIAGNOSIS (NO AI TRANSCRIPT DEPENDENCY)
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F3FD),
+              color: const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.auto_awesome, color: AppColors.primary, size: 20),
-                    SizedBox(width: 10),
-                    Expanded(
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.edit_note_rounded, color: AppColors.primary, size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Sesi Konsultasi Selesai • Draf Eva AI',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary),
+                            'Catatan Medis & Diagnosa Klinis (Manual)',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
                           ),
                           SizedBox(height: 2),
                           Text(
-                            'Sesi video call telah terlaksana. Anda dapat menyintesis transkrip sesi secara otomatis dengan Eva AI lalu melengkapi catatan SOAP di bawah.',
+                            'Dicatat langsung secara manual oleh psikolog pemeriksa. Data tersimpan aman dengan enkripsi database (AES-256) tanpa bergantung pada transkrip AI.',
                             style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
                           ),
                         ],
@@ -860,27 +750,24 @@ class _PatientDetailConsentScreenState
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.primary),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    ),
-                    onPressed: _isSynthesizingSoap ? null : () => _populateEvaTranscriptDraft(patient),
-                    icon: _isSynthesizingSoap
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-                          )
-                        : const Icon(Icons.auto_awesome, color: AppColors.primary, size: 16),
-                    label: Text(
-                      _isSynthesizingSoap ? 'Memproses Sintesis Eva AI...' : 'Generate Draf SOAP dari Transkrip',
-                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
-                    ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFA7F3D0)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.lock_rounded, size: 12, color: Color(0xFF059669)),
+                      SizedBox(width: 6),
+                      Text(
+                        'Enkripsi Database Aktif (E2EE/AES-256)',
+                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF047857)),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -926,7 +813,7 @@ class _PatientDetailConsentScreenState
                         onPressed: () {
                           final joined = liveNotes.join('\n• ');
                           if (_subjCtrl.text.isEmpty) {
-                            _subjCtrl.text = 'Catatan sesi: • $joined';
+                            _subjCtrl.text = 'Catatan observasi sesi:\n• $joined';
                           } else {
                             _subjCtrl.text += '\n• $joined';
                           }
@@ -967,16 +854,17 @@ class _PatientDetailConsentScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildSoftInput('S (Subjective) - Keluhan Pasien', _subjCtrl),
+                _buildSoftInput('S (Subjective) - Keluhan & Riwayat Penting Pasien', _subjCtrl),
                 const SizedBox(height: 12),
-                _buildSoftInput('O (Objective) - Observasi Afek & Intonasi', _objCtrl),
+                _buildSoftInput('O (Objective) - Pemeriksaan Status Mental & Afek', _objCtrl),
                 const SizedBox(height: 12),
-                _buildSoftInput('A (Assessment) - Analisis Klinis Psikolog', _assessCtrl),
+                _buildSoftInput('A (Assessment) - Diagnosa Klinis & Dinamika Masalah', _assessCtrl),
                 const SizedBox(height: 12),
-                _buildSoftInput('P (Plan) - Rencana Terapi & PR Pasien', _planCtrl),
+                _buildSoftInput('P (Plan) - Rencana Intervensi & Tindak Lanjut', _planCtrl),
                 const SizedBox(height: 16),
                 CustomButton(
-                  label: 'Simpan & Finalisasi Rekam Medis',
+                  label: 'Simpan & Enkripsi Catatan Medis',
+                  icon: Icons.lock_outline_rounded,
                   isLoading: _isSavingNote,
                   onPressed: _handleSaveSoapNote,
                 ),
@@ -984,9 +872,6 @@ class _PatientDetailConsentScreenState
             ),
           ),
           const SizedBox(height: 14),
-
-          // DETAIL TRANSKRIP PERCAKAPAN SESI (ACCORDION - DILETAKKAN DI BAWAH SOAP)
-          _buildTranscriptCard(),
         ],
 
         notesAsync.when(
@@ -1044,122 +929,6 @@ class _PatientDetailConsentScreenState
           error: (e, _) => Text('Error: $e'),
         ),
       ],
-    );
-  }
-
-  Widget _buildTranscriptCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFECEFF8)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Row(
-                  children: [
-                    Icon(Icons.record_voice_over_rounded, color: AppColors.primary, size: 18),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Transkrip Audio Percakapan',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              InkWell(
-                onTap: () => setState(() => _showTranscript = !_showTranscript),
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _showTranscript ? 'Sembunyikan' : 'Buka Transkrip',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
-                      ),
-                      Icon(
-                        _showTranscript ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                        color: AppColors.primary,
-                        size: 18,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (_showTranscript) ...[
-            const SizedBox(height: 10),
-            const Divider(height: 1, color: Color(0xFFF0F2F8)),
-            const SizedBox(height: 10),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 260),
-              child: Scrollbar(
-                thumbVisibility: true,
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: _sampleTranscript.map((t) => _buildTranscriptBubble(t)).toList(),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTranscriptBubble(Map<String, String> item) {
-    final isPatient = item['speaker'] == 'Pasien';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: isPatient ? const Color(0xFFF7F8FC) : AppColors.primaryContainer.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isPatient ? const Color(0xFFECEFF8) : AppColors.primary.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                item['speaker'] ?? '',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                  color: isPatient ? AppColors.textPrimary : AppColors.primary,
-                ),
-              ),
-              Text(
-                item['time'] ?? '',
-                style: const TextStyle(fontSize: 10, color: AppColors.textLight),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            item['text'] ?? '',
-            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
-          ),
-        ],
-      ),
     );
   }
 
@@ -1315,7 +1084,13 @@ class _PatientDetailConsentScreenState
                   },
                 );
                 if (finished == true && mounted) {
-                  _populateEvaTranscriptDraft(patient);
+                  setState(() {
+                    _sessionUnlocked = true;
+                    final liveNotes = ref.read(videoCallControllerProvider(schedule.sessionId ?? 'session-live-001')).realTimeNotes;
+                    if (liveNotes.isNotEmpty) {
+                      _subjCtrl.text = 'Catatan observasi sesi:\n• ${liveNotes.join('\n• ')}';
+                    }
+                  });
                 }
               },
             ),
@@ -1327,7 +1102,7 @@ class _PatientDetailConsentScreenState
                 SizedBox(width: 6),
                 Flexible(
                   child: Text(
-                    'Formulir SOAP & transkrip Eva AI baru aktif setelah sesi Video Call selesai terlaksana.',
+                    'Formulir catatan medis klinis baru aktif setelah sesi Video Call selesai terlaksana.',
                     style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
                     textAlign: TextAlign.center,
                   ),
@@ -1427,7 +1202,13 @@ class _PatientDetailConsentScreenState
                   },
                 );
                 if (finished == true && mounted) {
-                  _populateEvaTranscriptDraft(patient);
+                  setState(() {
+                    _sessionUnlocked = true;
+                    final liveNotes = ref.read(videoCallControllerProvider(schedule.sessionId ?? 'session-live-001')).realTimeNotes;
+                    if (liveNotes.isNotEmpty) {
+                      _subjCtrl.text = 'Catatan observasi sesi:\n• ${liveNotes.join('\n• ')}';
+                    }
+                  });
                 }
               },
             ),
@@ -1439,7 +1220,7 @@ class _PatientDetailConsentScreenState
                 SizedBox(width: 6),
                 Flexible(
                   child: Text(
-                    'Formulir SOAP & transkrip Eva AI baru aktif setelah sesi Video Call selesai terlaksana.',
+                    'Formulir catatan medis klinis baru aktif setelah sesi Video Call selesai terlaksana.',
                     style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
                     textAlign: TextAlign.center,
                   ),

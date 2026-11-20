@@ -7,7 +7,13 @@ class RegisterPsychologistRequest(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8)
     str_number: str | None = Field(default=None, max_length=100)
+    str_issuing_institution: str | None = Field(default=None, max_length=150)
+    str_expiry_date: str | None = Field(default=None, max_length=50)
+    str_doc_url: str | None = None
     sip_number: str | None = Field(default=None, max_length=100)
+    sip_issuing_institution: str | None = Field(default=None, max_length=150)
+    sip_expiry_date: str | None = Field(default=None, max_length=50)
+    sip_doc_url: str | None = None
     document_type: str = Field(default="str", max_length=20)
     issuing_institution: str | None = Field(default="Kemenkes RI", max_length=150)
     document_expiry_date: str | None = Field(default="Seumur Hidup", max_length=50)

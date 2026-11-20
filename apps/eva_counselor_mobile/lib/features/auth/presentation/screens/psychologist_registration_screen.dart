@@ -30,9 +30,11 @@ class _PsychologistRegistrationScreenState
   final _confirmPasswordCtrl = TextEditingController();
   final _strCtrl = TextEditingController();
   final _sipCtrl = TextEditingController();
-  final _customInstitutionCtrl = TextEditingController();
+  final _customStrInstitutionCtrl = TextEditingController();
+  final _customSipInstitutionCtrl = TextEditingController();
   final _customAssociationCtrl = TextEditingController();
-  final _expiryCtrl = TextEditingController(text: 'Seumur Hidup (UU Kesehatan No. 17/2023)');
+  final _strExpiryCtrl = TextEditingController(text: 'Seumur Hidup (UU Kesehatan No. 17/2023)');
+  final _sipExpiryCtrl = TextEditingController(text: '${DateTime.now().year + 5}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}');
 
   // Dokumen Legalitas: 'both', 'str', 'sip'
   String _documentType = 'both';
@@ -46,15 +48,23 @@ class _PsychologistRegistrationScreenState
   ];
   String? _selectedEducation;
 
-  // Dropdown Instansi Penerbit (Dropdown seperti Pendidikan)
-  final List<String> _institutionOptions = [
+  // Dropdown Instansi Penerbit STR
+  final List<String> _strInstitutionOptions = [
     'Kemenkes RI / KTKI (Konsil Tenaga Kesehatan Indonesia)',
-    'Dinas Kesehatan Provinsi / Kab / Kota',
-    'HIMPSI (Himpunan Psikologi Indonesia)',
+    'KKI (Konsil Kedokteran Indonesia)',
     'Kementerian Kesehatan RI',
-    'Instansi Lainnya (Ketik Manual)',
+    'Instansi STR Lainnya (Ketik Manual)',
   ];
-  String? _selectedInstitution;
+  String? _selectedStrInstitution;
+
+  // Dropdown Instansi Penerbit SIP
+  final List<String> _sipInstitutionOptions = [
+    'Dinas Kesehatan Kabupaten / Kota',
+    'DPMPTSP (Dinas Penanaman Modal & Pelayanan Terpadu Satu Pintu)',
+    'Dinas Kesehatan Provinsi',
+    'Instansi SIP Lainnya (Ketik Manual)',
+  ];
+  String? _selectedSipInstitution;
 
   // Dropdown Organisasi Profesi (Dropdown seperti Pendidikan)
   final List<String> _associationOptions = [
@@ -74,9 +84,12 @@ class _PsychologistRegistrationScreenState
   ];
   int _selectedExperienceYears = 3;
 
-  // Masa Berlaku Toggle
-  bool _isLifetimeExpiry = true;
-  DateTime _customExpiryDate = DateTime.now().add(const Duration(days: 365 * 5));
+  // Masa Berlaku STR
+  bool _isStrLifetime = true;
+  DateTime _customStrExpiryDate = DateTime.now().add(const Duration(days: 365 * 5));
+
+  // Masa Berlaku SIP
+  DateTime _customSipExpiryDate = DateTime.now().add(const Duration(days: 365 * 5));
 
   // Durasi paten platform
   static const int _sessionDurationMinutes = 30;
@@ -110,9 +123,11 @@ class _PsychologistRegistrationScreenState
     _confirmPasswordCtrl.dispose();
     _strCtrl.dispose();
     _sipCtrl.dispose();
-    _customInstitutionCtrl.dispose();
+    _customStrInstitutionCtrl.dispose();
+    _customSipInstitutionCtrl.dispose();
     _customAssociationCtrl.dispose();
-    _expiryCtrl.dispose();
+    _strExpiryCtrl.dispose();
+    _sipExpiryCtrl.dispose();
     super.dispose();
   }
 
@@ -151,11 +166,11 @@ class _PsychologistRegistrationScreenState
     }
   }
 
-  Future<void> _handlePickExpiryDate() async {
+  Future<void> _handlePickStrExpiryDate() async {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: _customExpiryDate.isBefore(now) ? now : _customExpiryDate,
+      initialDate: _customStrExpiryDate.isBefore(now) ? now : _customStrExpiryDate,
       firstDate: now,
       lastDate: DateTime(now.year + 15),
       builder: (context, child) {
@@ -174,11 +189,42 @@ class _PsychologistRegistrationScreenState
 
     if (picked != null) {
       setState(() {
-        _customExpiryDate = picked;
-        _isLifetimeExpiry = false;
+        _customStrExpiryDate = picked;
+        _isStrLifetime = false;
         final d = picked.day.toString().padLeft(2, '0');
         final m = picked.month.toString().padLeft(2, '0');
-        _expiryCtrl.text = '$d/$m/${picked.year}';
+        _strExpiryCtrl.text = '$d/$m/${picked.year}';
+      });
+    }
+  }
+
+  Future<void> _handlePickSipExpiryDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _customSipExpiryDate.isBefore(now) ? now : _customSipExpiryDate,
+      firstDate: now,
+      lastDate: DateTime(now.year + 15),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _customSipExpiryDate = picked;
+        final d = picked.day.toString().padLeft(2, '0');
+        final m = picked.month.toString().padLeft(2, '0');
+        _sipExpiryCtrl.text = '$d/$m/${picked.year}';
       });
     }
   }
@@ -254,20 +300,6 @@ class _PsychologistRegistrationScreenState
       return;
     }
 
-    final effectiveInstitution = _selectedInstitution == 'Instansi Lainnya (Ketik Manual)'
-        ? _customInstitutionCtrl.text.trim()
-        : _selectedInstitution;
-
-    if (effectiveInstitution == null || effectiveInstitution.isEmpty) {
-      TopToast.show(
-        context,
-        title: 'Instansi Penerbit Belum Dipilih',
-        message: 'Mohon tentukan instansi penerbit dokumen izin praktik Anda.',
-        type: ToastType.error,
-      );
-      return;
-    }
-
     final effectiveAssociation = _selectedAssociation == 'Organisasi Lainnya (Ketik Manual)'
         ? _customAssociationCtrl.text.trim()
         : _selectedAssociation;
@@ -282,8 +314,12 @@ class _PsychologistRegistrationScreenState
       return;
     }
 
-    // Validasi Nomor Dokumen sesuai pilihan
-    if (_documentType == 'str' || _documentType == 'both') {
+    final hasStr = _documentType == 'str' || _documentType == 'both';
+    final hasSip = _documentType == 'sip' || _documentType == 'both';
+
+    String? effectiveStrInst;
+    String? effectiveStrExp;
+    if (hasStr) {
       if (_strCtrl.text.trim().isEmpty) {
         TopToast.show(
           context,
@@ -293,6 +329,19 @@ class _PsychologistRegistrationScreenState
         );
         return;
       }
+      effectiveStrInst = _selectedStrInstitution == 'Instansi STR Lainnya (Ketik Manual)'
+          ? _customStrInstitutionCtrl.text.trim()
+          : _selectedStrInstitution;
+      if (effectiveStrInst == null || effectiveStrInst.isEmpty) {
+        TopToast.show(
+          context,
+          title: 'Instansi Penerbit STR Belum Dipilih',
+          message: 'Mohon pilih instansi penerbit STR Anda.',
+          type: ToastType.error,
+        );
+        return;
+      }
+      effectiveStrExp = _isStrLifetime ? 'Seumur Hidup (UU Kesehatan No. 17/2023)' : _strExpiryCtrl.text.trim();
       if (_strFileName == null) {
         TopToast.show(
           context,
@@ -304,12 +353,36 @@ class _PsychologistRegistrationScreenState
       }
     }
 
-    if (_documentType == 'sip' || _documentType == 'both') {
+    String? effectiveSipInst;
+    String? effectiveSipExp;
+    if (hasSip) {
       if (_sipCtrl.text.trim().isEmpty) {
         TopToast.show(
           context,
           title: 'Nomor SIP / SIPP Wajib Diisi',
           message: 'Mohon masukkan nomor SIP / SIPP aktif Anda.',
+          type: ToastType.error,
+        );
+        return;
+      }
+      effectiveSipInst = _selectedSipInstitution == 'Instansi SIP Lainnya (Ketik Manual)'
+          ? _customSipInstitutionCtrl.text.trim()
+          : _selectedSipInstitution;
+      if (effectiveSipInst == null || effectiveSipInst.isEmpty) {
+        TopToast.show(
+          context,
+          title: 'Instansi Penerbit SIP Belum Dipilih',
+          message: 'Mohon pilih instansi penerbit SIP Anda.',
+          type: ToastType.error,
+        );
+        return;
+      }
+      effectiveSipExp = _sipExpiryCtrl.text.trim();
+      if (effectiveSipExp.isEmpty) {
+        TopToast.show(
+          context,
+          title: 'Masa Berlaku SIP Wajib Ditentukan',
+          message: 'Mohon tentukan masa berlaku SIP Anda.',
           type: ToastType.error,
         );
         return;
@@ -338,14 +411,14 @@ class _PsychologistRegistrationScreenState
     setState(() => _isLoading = true);
     await ScheduleStorage.resetForNewRegistration();
 
-    final strVal = _documentType == 'sip' ? '' : _strCtrl.text.trim();
-    final sipVal = _documentType == 'str' ? null : _sipCtrl.text.trim();
+    final strVal = hasStr ? _strCtrl.text.trim() : '';
+    final sipVal = hasSip ? _sipCtrl.text.trim() : null;
 
     final uploadedList = <String>[];
-    if (_strFileName != null && (_documentType == 'str' || _documentType == 'both')) {
+    if (_strFileName != null && hasStr) {
       uploadedList.add('STR: $_strFileName');
     }
-    if (_sipFileName != null && (_documentType == 'sip' || _documentType == 'both')) {
+    if (_sipFileName != null && hasSip) {
       uploadedList.add('SIP: $_sipFileName');
     }
 
@@ -357,9 +430,15 @@ class _PsychologistRegistrationScreenState
           strNumber: strVal,
           sipNumber: sipVal,
           documentType: _documentType,
-          issuingInstitution: effectiveInstitution,
-          documentExpiryDate: _expiryCtrl.text.trim(),
+          issuingInstitution: hasStr ? effectiveStrInst! : effectiveSipInst!,
+          documentExpiryDate: hasStr ? effectiveStrExp! : effectiveSipExp!,
           lastEducation: _selectedEducation!,
+          strIssuingInstitution: effectiveStrInst,
+          strExpiryDate: effectiveStrExp,
+          strDocFileName: _strFileName,
+          sipIssuingInstitution: effectiveSipInst,
+          sipExpiryDate: effectiveSipExp,
+          sipDocFileName: _sipFileName,
           association: effectiveAssociation,
           specializations: _selectedSpecializations.toList(),
           yearsOfExperience: _selectedExperienceYears,
@@ -1079,203 +1158,293 @@ class _PsychologistRegistrationScreenState
                       ),
                       const SizedBox(height: 16),
 
-                      // Input Nomor Registrasi sesuai pilihan
+                      // ================= STR SECTION =================
                       if (_documentType == 'str' || _documentType == 'both') ...[
-                        CustomTextField(
-                          label: 'Nomor STR (Surat Tanda Registrasi)',
-                          hint: 'cth: STR-PK-198827364-2026',
-                          controller: _strCtrl,
-                          prefixIcon: Icons.badge_outlined,
-                          validator: (v) {
-                            if (_documentType == 'str' || _documentType == 'both') {
-                              return (v == null || v.isEmpty) ? 'Nomor STR wajib diisi' : null;
-                            }
-                            return null;
-                          },
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEFF6FF),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(Icons.badge_outlined, color: Color(0xFF2563EB), size: 16),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Dokumen STR (Surat Tanda Registrasi)',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              CustomTextField(
+                                label: 'Nomor STR',
+                                hint: 'cth: STR-PK-198827364-2026',
+                                controller: _strCtrl,
+                                prefixIcon: Icons.badge_outlined,
+                                validator: (v) {
+                                  if (_documentType == 'str' || _documentType == 'both') {
+                                    return (v == null || v.isEmpty) ? 'Nomor STR wajib diisi' : null;
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              _buildDropdownCard<String>(
+                                label: 'Instansi Penerbit STR',
+                                value: _selectedStrInstitution,
+                                hintText: 'Pilih Instansi Penerbit STR',
+                                items: _strInstitutionOptions.map((inst) {
+                                  return DropdownMenuItem<String>(
+                                    value: inst,
+                                    child: Text(inst, style: const TextStyle(fontSize: 12.5, color: AppColors.textPrimary)),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) setState(() => _selectedStrInstitution = val);
+                                },
+                              ),
+                              if (_selectedStrInstitution == 'Instansi STR Lainnya (Ketik Manual)') ...[
+                                const SizedBox(height: 10),
+                                CustomTextField(
+                                  label: 'Nama Instansi Penerbit STR Lainnya',
+                                  hint: 'cth: Konsil Tenaga Kesehatan Indonesia',
+                                  controller: _customStrInstitutionCtrl,
+                                  prefixIcon: Icons.account_balance_outlined,
+                                  validator: (v) =>
+                                      _selectedStrInstitution == 'Instansi STR Lainnya (Ketik Manual)' && (v == null || v.isEmpty)
+                                          ? 'Nama instansi STR wajib diisi'
+                                          : null,
+                                ),
+                              ],
+                              const SizedBox(height: 12),
+                              const Text(
+                                'Masa Berlaku STR',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: () {
+                                        setState(() {
+                                          _isStrLifetime = true;
+                                          _strExpiryCtrl.text = 'Seumur Hidup (UU Kesehatan No. 17/2023)';
+                                        });
+                                      },
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                                        decoration: BoxDecoration(
+                                          color: _isStrLifetime ? AppColors.primaryContainer : Colors.white,
+                                          borderRadius: BorderRadius.circular(10),
+                                          border: Border.all(
+                                            color: _isStrLifetime ? AppColors.primary : const Color(0xFFE2E8F0),
+                                            width: _isStrLifetime ? 1.5 : 1.0,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.all_inclusive_rounded,
+                                              size: 16,
+                                              color: _isStrLifetime ? AppColors.primary : AppColors.textSecondary,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              'Seumur Hidup',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: _isStrLifetime ? FontWeight.bold : FontWeight.w500,
+                                                color: _isStrLifetime ? AppColors.primary : AppColors.textPrimary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: _handlePickStrExpiryDate,
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                                        decoration: BoxDecoration(
+                                          color: !_isStrLifetime ? AppColors.primaryContainer : Colors.white,
+                                          borderRadius: BorderRadius.circular(10),
+                                          border: Border.all(
+                                            color: !_isStrLifetime ? AppColors.primary : const Color(0xFFE2E8F0),
+                                            width: !_isStrLifetime ? 1.5 : 1.0,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.calendar_month_outlined,
+                                              size: 16,
+                                              color: !_isStrLifetime ? AppColors.primary : AppColors.textSecondary,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              !_isStrLifetime ? _strExpiryCtrl.text : 'Pilih Tanggal',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: !_isStrLifetime ? FontWeight.bold : FontWeight.w500,
+                                                color: !_isStrLifetime ? AppColors.primary : AppColors.textPrimary,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              _buildUploadBox(
+                                title: 'Scan Berkas STR Asli',
+                                subtitle: 'Scan sertifikat kompetensi / STR resmi dari Kemenkes/KTKI',
+                                fileName: _strFileName,
+                                onPick: _handlePickStrFile,
+                                onRemove: () => setState(() => _strFileName = null),
+                              ),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 16),
                       ],
 
+                      // ================= SIP SECTION =================
                       if (_documentType == 'sip' || _documentType == 'both') ...[
-                        CustomTextField(
-                          label: 'Nomor SIP / SIPP (Surat Izin Praktik)',
-                          hint: 'cth: 503/SIP-PSI/DKS/2024',
-                          controller: _sipCtrl,
-                          prefixIcon: Icons.assignment_outlined,
-                          validator: (v) {
-                            if (_documentType == 'sip' || _documentType == 'both') {
-                              return (v == null || v.isEmpty) ? 'Nomor SIP/SIPP wajib diisi' : null;
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 14),
-                      ],
-
-                      // Dropdown Instansi Penerbit (Sesuai Permintaan User: Dropdown seperti Pendidikan)
-                      _buildDropdownCard<String>(
-                        label: 'Instansi Penerbit Dokumen',
-                        value: _selectedInstitution,
-                        hintText: 'Pilih Instansi Penerbit',
-                        items: _institutionOptions.map((inst) {
-                          return DropdownMenuItem<String>(
-                            value: inst,
-                            child: Text(
-                              inst,
-                              style: const TextStyle(fontSize: 12.5, color: AppColors.textPrimary),
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          if (val != null) setState(() => _selectedInstitution = val);
-                        },
-                      ),
-
-                      if (_selectedInstitution == 'Instansi Lainnya (Ketik Manual)') ...[
-                        const SizedBox(height: 10),
-                        CustomTextField(
-                          label: 'Nama Instansi Penerbit Lainnya',
-                          hint: 'cth: Dinas Penanaman Modal & Pelayanan Terpadu Satu Pintu',
-                          controller: _customInstitutionCtrl,
-                          prefixIcon: Icons.account_balance_outlined,
-                          validator: (v) =>
-                              _selectedInstitution == 'Instansi Lainnya (Ketik Manual)' &&
-                                      (v == null || v.isEmpty)
-                                  ? 'Nama instansi wajib diisi'
-                                  : null,
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-
-                      // Masa Berlaku Dokumen
-                      const Text(
-                        'Masa Berlaku Dokumen',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: InkWell(
-                              onTap: () {
-                                setState(() {
-                                  _isLifetimeExpiry = true;
-                                  _expiryCtrl.text = 'Seumur Hidup (UU Kesehatan No. 17/2023)';
-                                });
-                              },
-                              borderRadius: BorderRadius.circular(10),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                                decoration: BoxDecoration(
-                                  color: _isLifetimeExpiry ? AppColors.primaryContainer : const Color(0xFFF8FAFC),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: _isLifetimeExpiry ? AppColors.primary : const Color(0xFFE2E8F0),
-                                    width: _isLifetimeExpiry ? 1.5 : 1.0,
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF0FDF4),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(Icons.assignment_outlined, color: Color(0xFF059669), size: 16),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Dokumen SIP / SIPP (Surat Izin Praktik)',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              CustomTextField(
+                                label: 'Nomor SIP / SIPP',
+                                hint: 'cth: 503/SIP-PSI/DKS/2024',
+                                controller: _sipCtrl,
+                                prefixIcon: Icons.assignment_outlined,
+                                validator: (v) {
+                                  if (_documentType == 'sip' || _documentType == 'both') {
+                                    return (v == null || v.isEmpty) ? 'Nomor SIP/SIPP wajib diisi' : null;
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              _buildDropdownCard<String>(
+                                label: 'Instansi Penerbit SIP',
+                                value: _selectedSipInstitution,
+                                hintText: 'Pilih Instansi Penerbit SIP',
+                                items: _sipInstitutionOptions.map((inst) {
+                                  return DropdownMenuItem<String>(
+                                    value: inst,
+                                    child: Text(inst, style: const TextStyle(fontSize: 12.5, color: AppColors.textPrimary)),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) setState(() => _selectedSipInstitution = val);
+                                },
+                              ),
+                              if (_selectedSipInstitution == 'Instansi SIP Lainnya (Ketik Manual)') ...[
+                                const SizedBox(height: 10),
+                                CustomTextField(
+                                  label: 'Nama Instansi Penerbit SIP Lainnya',
+                                  hint: 'cth: DPMPTSP Kabupaten Tangerang',
+                                  controller: _customSipInstitutionCtrl,
+                                  prefixIcon: Icons.account_balance_outlined,
+                                  validator: (v) =>
+                                      _selectedSipInstitution == 'Instansi SIP Lainnya (Ketik Manual)' && (v == null || v.isEmpty)
+                                          ? 'Nama instansi SIP wajib diisi'
+                                          : null,
+                                ),
+                              ],
+                              const SizedBox(height: 12),
+                              const Text(
+                                'Masa Berlaku SIP',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                              ),
+                              const SizedBox(height: 6),
+                              InkWell(
+                                onTap: _handlePickSipExpiryDate,
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.calendar_month_outlined, size: 16, color: Color(0xFF059669)),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _sipExpiryCtrl.text.isNotEmpty ? 'Masa Berlaku s/d: ${_sipExpiryCtrl.text}' : 'Pilih Tanggal Masa Berlaku SIP',
+                                          style: const TextStyle(fontSize: 12, color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                      const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.textSecondary),
+                                    ],
                                   ),
                                 ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.all_inclusive_rounded,
-                                      size: 16,
-                                      color: _isLifetimeExpiry ? AppColors.primary : AppColors.textSecondary,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      'Seumur Hidup',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: _isLifetimeExpiry ? FontWeight.bold : FontWeight.w500,
-                                        color: _isLifetimeExpiry ? AppColors.primary : AppColors.textPrimary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
                               ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: InkWell(
-                              onTap: _handlePickExpiryDate,
-                              borderRadius: BorderRadius.circular(10),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                                decoration: BoxDecoration(
-                                  color: !_isLifetimeExpiry ? AppColors.primaryContainer : const Color(0xFFF8FAFC),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: !_isLifetimeExpiry ? AppColors.primary : const Color(0xFFE2E8F0),
-                                    width: !_isLifetimeExpiry ? 1.5 : 1.0,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.calendar_month_outlined,
-                                      size: 16,
-                                      color: !_isLifetimeExpiry ? AppColors.primary : AppColors.textSecondary,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      !_isLifetimeExpiry ? _expiryCtrl.text : 'Pilih Tanggal',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: !_isLifetimeExpiry ? FontWeight.bold : FontWeight.w500,
-                                        color: !_isLifetimeExpiry ? AppColors.primary : AppColors.textPrimary,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
+                              const SizedBox(height: 12),
+                              _buildUploadBox(
+                                title: 'Scan Berkas SIP / SIPP Asli',
+                                subtitle: 'Scan surat izin praktik resmi dari Dinas Kesehatan / DPMPTSP',
+                                fileName: _sipFileName,
+                                onPick: _handlePickSipFile,
+                                onRemove: () => setState(() => _sipFileName = null),
                               ),
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-
-                      // UNGGAH BERKAS SCAN (DIPISAH: STR SENDIRI, SIP SENDIRI)
-                      const Text(
-                        'Lampiran Dokumen Resmi',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Lampirkan scan asli berformat PDF, JPG, atau PNG (Maks. 5 MB) agar proses verifikasi kredensial akurat.',
-                        style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Box Upload STR (Jika STR atau Both)
-                      if (_documentType == 'str' || _documentType == 'both')
-                        _buildUploadBox(
-                          title: '1. Scan Berkas STR (Surat Tanda Registrasi)',
-                          subtitle: 'Scan sertifikat kompetensi / STR resmi dari Kemenkes/KTKI',
-                          fileName: _strFileName,
-                          onPick: _handlePickStrFile,
-                          onRemove: () => setState(() => _strFileName = null),
                         ),
-
-                      // Box Upload SIP (Jika SIP atau Both)
-                      if (_documentType == 'sip' || _documentType == 'both')
-                        _buildUploadBox(
-                          title: _documentType == 'both'
-                              ? '2. Scan Berkas SIP / SIPP (Surat Izin Praktik)'
-                              : '1. Scan Berkas SIP / SIPP (Surat Izin Praktik)',
-                          subtitle: 'Scan surat izin praktik dari Dinas Kesehatan atau HIMPSI',
-                          fileName: _sipFileName,
-                          onPick: _handlePickSipFile,
-                          onRemove: () => setState(() => _sipFileName = null),
-                        ),
+                      ],
                     ],
                   ),
                 ),
