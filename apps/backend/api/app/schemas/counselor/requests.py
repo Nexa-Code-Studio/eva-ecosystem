@@ -6,8 +6,12 @@ class RegisterPsychologistRequest(BaseModel):
     title_degree: str = Field(default="M.Psi., Psikolog", max_length=100)
     email: EmailStr
     password: str = Field(..., min_length=8)
-    str_number: str = Field(..., min_length=3, max_length=100)
+    str_number: str | None = Field(default=None, max_length=100)
     sip_number: str | None = Field(default=None, max_length=100)
+    document_type: str = Field(default="str", max_length=20)
+    issuing_institution: str | None = Field(default="Kemenkes RI", max_length=150)
+    document_expiry_date: str | None = Field(default="Seumur Hidup", max_length=50)
+    last_education: str | None = Field(default="S2 Magister Psikologi Profesi", max_length=150)
     association: str = Field(default="Himpunan Psikologi Indonesia (HIMPSI)", max_length=150)
     specializations: list[str] = Field(default_factory=list)
     years_of_experience: int = Field(default=1, ge=0)

@@ -23,6 +23,11 @@ class PsychologistRegisterRequestDto {
   final String email;
   final String password;
   final String strNumber;
+  final String? sipNumber;
+  final String documentType; // 'str', 'sip', 'both'
+  final String issuingInstitution;
+  final String documentExpiryDate;
+  final String lastEducation;
   final String association;
   final List<String> specializations;
   final int yearsOfExperience;
@@ -38,7 +43,12 @@ class PsychologistRegisterRequestDto {
     required this.titleDegree,
     required this.email,
     required this.password,
-    required this.strNumber,
+    this.strNumber = '',
+    this.sipNumber,
+    this.documentType = 'str',
+    this.issuingInstitution = 'Kemenkes RI',
+    this.documentExpiryDate = 'Seumur Hidup',
+    this.lastEducation = 'S2 Magister Psikologi Profesi',
     required this.association,
     required this.specializations,
     required this.yearsOfExperience,
@@ -56,6 +66,11 @@ class PsychologistRegisterRequestDto {
         'email': email,
         'password': password,
         'str_number': strNumber,
+        if (sipNumber != null) 'sip_number': sipNumber,
+        'document_type': documentType,
+        'issuing_institution': issuingInstitution,
+        'document_expiry_date': documentExpiryDate,
+        'last_education': lastEducation,
         'association': association,
         'specializations': specializations,
         'years_of_experience': yearsOfExperience,
@@ -75,6 +90,11 @@ class PsychologistProfileResponseDto {
   final String titleDegree;
   final String email;
   final String strNumber;
+  final String? sipNumber;
+  final String documentType;
+  final String issuingInstitution;
+  final String documentExpiryDate;
+  final String lastEducation;
   final String association;
   final List<String> specializations;
   final int yearsOfExperience;
@@ -114,6 +134,11 @@ class PsychologistProfileResponseDto {
     required this.titleDegree,
     required this.email,
     required this.strNumber,
+    this.sipNumber,
+    this.documentType = 'str',
+    this.issuingInstitution = 'Kemenkes RI',
+    this.documentExpiryDate = 'Seumur Hidup',
+    this.lastEducation = 'S2 Magister Psikologi Profesi',
     required this.association,
     required this.specializations,
     required this.yearsOfExperience,
@@ -155,6 +180,11 @@ class PsychologistProfileResponseDto {
       titleDegree: json['title_degree']?.toString() ?? 'M.Psi., Psikolog',
       email: json['email']?.toString() ?? '',
       strNumber: json['str_number']?.toString() ?? '',
+      sipNumber: json['sip_number']?.toString(),
+      documentType: json['document_type']?.toString() ?? 'str',
+      issuingInstitution: json['issuing_institution']?.toString() ?? 'Kemenkes RI',
+      documentExpiryDate: json['document_expiry_date']?.toString() ?? 'Seumur Hidup',
+      lastEducation: json['last_education']?.toString() ?? 'S2 Magister Psikologi Profesi',
       association: json['association']?.toString() ?? 'HIMPSI',
       specializations: (json['specializations'] as List<dynamic>?)
               ?.map((e) => e.toString())
@@ -211,6 +241,11 @@ class PsychologistProfileResponseDto {
         'title_degree': titleDegree,
         'email': email,
         'str_number': strNumber,
+        if (sipNumber != null) 'sip_number': sipNumber,
+        'document_type': documentType,
+        'issuing_institution': issuingInstitution,
+        'document_expiry_date': documentExpiryDate,
+        'last_education': lastEducation,
         'association': association,
         'specializations': specializations,
         'years_of_experience': yearsOfExperience,
@@ -253,6 +288,11 @@ class PsychologistProfileResponseDto {
     String? titleDegree,
     String? email,
     String? strNumber,
+    String? sipNumber,
+    String? documentType,
+    String? issuingInstitution,
+    String? documentExpiryDate,
+    String? lastEducation,
     String? association,
     List<String>? specializations,
     int? yearsOfExperience,
@@ -292,6 +332,11 @@ class PsychologistProfileResponseDto {
       titleDegree: titleDegree ?? this.titleDegree,
       email: email ?? this.email,
       strNumber: strNumber ?? this.strNumber,
+      sipNumber: sipNumber ?? this.sipNumber,
+      documentType: documentType ?? this.documentType,
+      issuingInstitution: issuingInstitution ?? this.issuingInstitution,
+      documentExpiryDate: documentExpiryDate ?? this.documentExpiryDate,
+      lastEducation: lastEducation ?? this.lastEducation,
       association: association ?? this.association,
       specializations: specializations ?? this.specializations,
       yearsOfExperience: yearsOfExperience ?? this.yearsOfExperience,
@@ -374,6 +419,11 @@ class PsychologistProfileResponseDto {
       titleDegree: titleDegree,
       email: email,
       strNumber: strNumber,
+      sipNumber: sipNumber,
+      documentType: documentType,
+      issuingInstitution: issuingInstitution,
+      documentExpiryDate: documentExpiryDate,
+      lastEducation: lastEducation,
       association: association,
       specializations: specializations,
       yearsOfExperience: yearsOfExperience,

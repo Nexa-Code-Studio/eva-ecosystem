@@ -12,6 +12,11 @@ class PsychologistUserEntity {
   final String titleDegree; // e.g., 'S.Psi., M.Psi., Psikolog' or 'Relawan Sebaya'
   final String email;
   final String strNumber; // Surat Tanda Registrasi
+  final String? sipNumber; // Surat Izin Praktik / SIPP
+  final String documentType; // 'str', 'sip', 'both'
+  final String issuingInstitution; // e.g. 'Kemenkes RI / KTKI', 'Dinas Kesehatan'
+  final String documentExpiryDate; // e.g. 'Seumur Hidup', '2029-12-31'
+  final String lastEducation; // e.g. 'S2 Magister Psikologi Profesi'
   final String association; // e.g. 'HIMPSI'
   final List<String> specializations;
   final int yearsOfExperience;
@@ -61,6 +66,11 @@ class PsychologistUserEntity {
     required this.titleDegree,
     required this.email,
     required this.strNumber,
+    this.sipNumber,
+    this.documentType = 'str',
+    this.issuingInstitution = 'Kemenkes RI',
+    this.documentExpiryDate = 'Seumur Hidup',
+    this.lastEducation = 'S2 Magister Psikologi Profesi',
     required this.association,
     required this.specializations,
     required this.yearsOfExperience,
@@ -120,6 +130,11 @@ class PsychologistUserEntity {
     String? titleDegree,
     String? email,
     String? strNumber,
+    String? sipNumber,
+    String? documentType,
+    String? issuingInstitution,
+    String? documentExpiryDate,
+    String? lastEducation,
     String? association,
     List<String>? specializations,
     int? yearsOfExperience,
@@ -162,6 +177,11 @@ class PsychologistUserEntity {
       titleDegree: titleDegree ?? this.titleDegree,
       email: email ?? this.email,
       strNumber: strNumber ?? this.strNumber,
+      sipNumber: sipNumber ?? this.sipNumber,
+      documentType: documentType ?? this.documentType,
+      issuingInstitution: issuingInstitution ?? this.issuingInstitution,
+      documentExpiryDate: documentExpiryDate ?? this.documentExpiryDate,
+      lastEducation: lastEducation ?? this.lastEducation,
       association: association ?? this.association,
       specializations: specializations ?? this.specializations,
       yearsOfExperience: yearsOfExperience ?? this.yearsOfExperience,
