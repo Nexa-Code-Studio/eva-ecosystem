@@ -87,9 +87,16 @@
   },
   "81": {
     "issue": 81,
-    "branch": "feat/81-counselor-live-api-integration",
+    "branch": "main",
+    "state": "Done",
+    "updated_at": 1795144702,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified."
+  },
+  "83": {
+    "issue": 83,
+    "branch": "fix/83-separate-pages-deploy-jobs",
     "state": "In Progress",
-    "updated_at": 1795143382,
+    "updated_at": 1795146179,
     "evidence_summary": "Evidence accepted: active task branch verified."
   }
 }
