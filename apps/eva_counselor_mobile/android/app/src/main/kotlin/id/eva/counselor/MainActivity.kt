@@ -1,4 +1,4 @@
-package com.example.eva_mobile
+package id.eva.counselor
 
 import io.flutter.embedding.android.FlutterActivity
 
