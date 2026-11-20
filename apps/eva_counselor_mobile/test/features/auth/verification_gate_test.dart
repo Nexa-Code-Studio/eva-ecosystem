@@ -222,6 +222,13 @@ class _TestAuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEn
   void setVerificationStatus(VerificationStatus status) {}
 
   @override
+  void updateProfile({
+    String? fullName,
+    String? titleDegree,
+    String? profilePhotoUrl,
+  }) {}
+
+  @override
   void updateBankDetails({
     required String bankName,
     required String accountNumber,

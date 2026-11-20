@@ -287,6 +287,20 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
     state = AsyncValue.data(current.copyWith(verificationStatus: status));
   }
 
+  void updateProfile({
+    String? fullName,
+    String? titleDegree,
+    String? profilePhotoUrl,
+  }) {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncValue.data(current.copyWith(
+      fullName: fullName ?? current.fullName,
+      titleDegree: titleDegree ?? current.titleDegree,
+      profilePhotoUrl: profilePhotoUrl ?? current.profilePhotoUrl,
+    ));
+  }
+
   void updateBankDetails({
     required String bankName,
     required String accountNumber,

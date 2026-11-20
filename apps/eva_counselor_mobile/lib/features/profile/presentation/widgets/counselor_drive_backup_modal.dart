@@ -85,7 +85,32 @@ class CounselorDriveBackupModal {
                   'Rekam medis terenkripsi dicadangkan ke Google Drive pribadi Anda:',
                   style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.cloud_outlined,
+                          size: 18, color: Color(0xFF1D4ED8)),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Integrasi cloud OAuth Google Drive saat ini dalam tahap uji coba terbatas. Rekam medis lokal Anda tetap aman terlindungi dengan enkripsi AES-256.',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF1E40AF),
+                              height: 1.35),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
                 const Text(
                   'Frekuensi Pencadangan:',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),

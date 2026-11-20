@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/image_helper.dart';
 import '../../../../core/widgets/top_toast.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../finances/presentation/providers/finance_provider.dart';
 import '../../../patients/presentation/providers/patient_provider.dart';
+import '../../../profile/presentation/screens/counselor_schedule_settings_screen.dart';
 import '../providers/counselor_nav_provider.dart';
+import '../providers/counselor_notification_provider.dart';
 
 class CounselorHomeScreen extends ConsumerStatefulWidget {
   const CounselorHomeScreen({super.key});
@@ -50,7 +53,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
         'date': '${date.day}',
         'fullDate': date,
         'isToday': isToday,
-        'hasSession': isToday,
+        'hasSession': false,
         'isHighRisk': false,
         'isOffDay': isWeekend,
         'sessions': sessions,
@@ -97,10 +100,18 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
       }
     }
 
+    final todayWeekdayIndex = DateTime.now().weekday - 1;
+    if (todayWeekdayIndex >= 0 && todayWeekdayIndex < _calendarDays.length) {
+      _calendarDays[todayWeekdayIndex]['hasSession'] = realTodaySessions.isNotEmpty;
+    }
+
     final selectedSessions = isSelectedDayToday && realTodaySessions.isNotEmpty
         ? realTodaySessions
         : (selectedDayData['sessions'] as List<dynamic>? ?? []);
     final isSelectedDayOff = selectedDayData['isOffDay'] == true;
+
+    // Unread notifications count
+    final unreadNotifs = ref.watch(unreadNotificationsCountProvider);
 
     // Upcoming consultation patient (real active patient with upcoming session)
     final upcomingPatient = patients.where((p) => p.upcomingSchedule != null).isNotEmpty
@@ -115,7 +126,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
     final completedSessionsCount =
         patients.fold<int>(0, (sum, p) => sum + p.totalCompletedSessions);
     final balanceAmount = finances?.availableBalance ??
-        (user?.coinBalance != null ? (user!.coinBalance * 1000) : 360000);
+        (user?.coinBalance != null ? (user!.coinBalance * 1000) : 0);
     final balanceFormatted = 'Rp ${balanceAmount.toString().replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]}.',
@@ -223,22 +234,23 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                             size: 20,
                           ),
                         ),
-                        Positioned(
-                          right: -2,
-                          top: -2,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppColors.error,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.white, width: 1.5),
-                            ),
-                            child: const Text(
-                              '2',
-                              style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                        if (unreadNotifs > 0)
+                          Positioned(
+                            right: -2,
+                            top: -2,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.error,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.white, width: 1.5),
+                              ),
+                              child: Text(
+                                '$unreadNotifs',
+                                style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ),
@@ -268,10 +280,8 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                         CircleAvatar(
                           radius: 24,
                           backgroundColor: AppColors.primaryContainer,
-                          backgroundImage: user?.profilePhotoUrl != null
-                              ? NetworkImage(user!.profilePhotoUrl!)
-                              : null,
-                          child: user?.profilePhotoUrl == null
+                          backgroundImage: getProfileImageProvider(user?.profilePhotoUrl),
+                          child: getProfileImageProvider(user?.profilePhotoUrl) == null
                               ? const Icon(Icons.person, color: AppColors.primary)
                               : null,
                         ),
@@ -308,7 +318,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               StatusBadge.proIndependent('Psikolog Mandiri'),
-                              StatusBadge.coins(user?.coinBalance ?? 1250),
+                              StatusBadge.coins(user?.coinBalance ?? 0),
                             ],
                           ),
                         ],
@@ -323,7 +333,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
               InkWell(
                 borderRadius: BorderRadius.circular(14),
                 onTap: () {
-                  final currentlyOnline = user?.isOnline ?? true;
+                  final currentlyOnline = user?.isOnline ?? false;
                   ref.read(authStateProvider.notifier).updateAvailability(!currentlyOnline);
                   TopToast.show(
                     context,
@@ -340,7 +350,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: (user?.isOnline ?? true)
+                      color: (user?.isOnline ?? false)
                           ? const Color(0xFFECEFF8)
                           : AppColors.pendingAmber.withValues(alpha: 0.3),
                     ),
@@ -354,7 +364,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                             width: 8,
                             height: 8,
                             decoration: BoxDecoration(
-                              color: (user?.isOnline ?? true)
+                              color: (user?.isOnline ?? false)
                                   ? AppColors.verifiedGreen
                                   : AppColors.pendingAmber,
                               shape: BoxShape.circle,
@@ -362,7 +372,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            (user?.isOnline ?? true)
+                            (user?.isOnline ?? false)
                                 ? 'Online (Menerima Konsultasi)'
                                 : 'Istirahat (Sesi Dijeda)',
                             style: const TextStyle(
@@ -376,13 +386,13 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                         decoration: BoxDecoration(
-                          color: (user?.isOnline ?? true)
+                          color: (user?.isOnline ?? false)
                               ? AppColors.primary
                               : const Color(0xFF94A3B8),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          (user?.isOnline ?? true) ? 'Aktif' : 'Istirahat',
+                          (user?.isOnline ?? false) ? 'Aktif' : 'Istirahat',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 11,
@@ -562,6 +572,92 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                             ),
                           ),
                         ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+              ] else ...[
+                // Onboarding Banner: Setup Practice Schedule
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryContainer,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.edit_calendar_rounded,
+                          color: AppColors.primary,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Atur Jadwal Praktik Anda',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            const Text(
+                              'Pasien belum dapat booking sesi sebelum Anda menentukan hari & jam praktik.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                                height: 1.35,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              height: 32,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.tune_rounded, size: 14),
+                                label: const Text(
+                                  'Atur Jadwal Sekarang',
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                ),
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const CounselorScheduleSettingsScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -1111,6 +1207,33 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
               const SizedBox(height: 10),
               patientsAsync.when(
                 data: (patients) {
+                  if (patients.isEmpty) {
+                    return Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFFECEFF8)),
+                      ),
+                      child: const Column(
+                        children: [
+                          Icon(Icons.people_outline_rounded, size: 36, color: AppColors.textLight),
+                          SizedBox(height: 8),
+                          Text(
+                            'Belum Ada Pasien Terdaftar',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Pasien yang menjadwalkan sesi telekonsultasi akan otomatis muncul di sini.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
                   return Column(
                     children: patients.take(3).map((p) {
                       return Container(
