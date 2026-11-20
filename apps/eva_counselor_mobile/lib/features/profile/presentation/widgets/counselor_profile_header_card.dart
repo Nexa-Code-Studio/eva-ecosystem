@@ -60,7 +60,7 @@ class CounselorProfileHeaderCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      user?.email ?? 'psikolog.mandiri@eva.id',
+                      user?.email ?? 'khoirotunnisa2507@gmail.com',
                       style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 6),

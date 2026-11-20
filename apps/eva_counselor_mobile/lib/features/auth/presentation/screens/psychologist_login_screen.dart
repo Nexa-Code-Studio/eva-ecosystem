@@ -18,9 +18,17 @@ class PsychologistLoginScreen extends ConsumerStatefulWidget {
 
 class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScreen> {
   final _emailController =
-      TextEditingController(text: 'psikolog.mandiri@eva.id');
+      TextEditingController(text: 'khoirotunnisa2507@gmail.com');
   final _passwordController = TextEditingController(text: 'password123');
   bool _isLoading = false;
+  bool _isPasswordVisible = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   void _handleLogin() async {
     setState(() => _isLoading = true);
@@ -94,45 +102,9 @@ class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScree
                 textAlign: TextAlign.center,
                 style: AppTypography.bodyMedium,
               ),
-              const SizedBox(height: 20),
-
-              // Quick Account Preset Selector
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFECEFF8)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.touch_app_rounded, size: 16, color: AppColors.primary),
-                        SizedBox(width: 6),
-                        Text(
-                          'Pilih Cepat Akun Demo (Pengujian Fungsional)',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        _presetChip('Psikolog Mandiri (Terverifikasi)', 'psikolog.mandiri@eva.id', AppColors.primary),
-                        _presetChip('Menunggu Verifikasi STR', 'pending.dimas@psikolog.eva.id', const Color(0xFFB45309)),
-                        _presetChip('Perbaikan Berkas STR', 'revisi.clara@psikolog.eva.id', AppColors.error),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               GlassCard(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(22),
                 child: Column(
                   children: [
                     CustomTextField(
@@ -147,8 +119,28 @@ class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScree
                       label: 'Kata Sandi',
                       hint: '••••••••',
                       controller: _passwordController,
-                      obscureText: true,
+                      obscureText: !_isPasswordVisible,
                       prefixIcon: Icons.lock_outline_rounded,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _isPasswordVisible
+                              ? Icons.visibility_rounded
+                              : Icons.visibility_off_rounded,
+                          color: _isPasswordVisible
+                              ? AppColors.primary
+                              : AppColors.textLight,
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isPasswordVisible = !_isPasswordVisible;
+                          });
+                        },
+                        splashRadius: 20,
+                        tooltip: _isPasswordVisible
+                            ? 'Sembunyikan Kata Sandi'
+                            : 'Tampilkan Kata Sandi',
+                      ),
                     ),
                     const SizedBox(height: 24),
                     CustomButton(
@@ -189,16 +181,28 @@ class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScree
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
+                  color: AppColors.primaryContainer.withValues(alpha: 0.35),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                  ),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.verified_user_outlined,
-                        size: 20, color: AppColors.primary),
-                    SizedBox(width: 12),
-                    Expanded(
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.verified_user_outlined,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
                       child: Text(
                         'Layanan resmi telekonseling berizin. Setiap praktisi wajib memiliki STR & SIPP aktif.',
                         style: TextStyle(
@@ -212,38 +216,6 @@ class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScree
                 ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _presetChip(String label, String email, Color color) {
-    final isSelected = _emailController.text == email;
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: () {
-        setState(() {
-          _emailController.text = email;
-          _passwordController.text = 'password123';
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.12) : const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? color : const Color(0xFFCBD5E1),
-            width: isSelected ? 1.5 : 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? color : AppColors.textSecondary,
           ),
         ),
       ),

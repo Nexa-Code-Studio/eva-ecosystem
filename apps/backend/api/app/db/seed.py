@@ -439,24 +439,36 @@ async def seed_counselor_master_data(session: AsyncSessionLocal, patient_user: U
         logger.info("Seeded Platform Pricing Config.")
 
     # 2. Seed Psychologist User Account
-    counselor_email = "psikolog.mandiri@eva.id"
+    counselor_email = "khoirotunnisa2507@gmail.com"
     query_c_user = select(User).where(User.email == counselor_email)
     res_c_user = await session.execute(query_c_user)
     counselor_user = res_c_user.scalar_one_or_none()
 
     if not counselor_user:
-        counselor_user = User(
-            email=counselor_email,
-            username="dr_sarah_amelia",
-            display_name="dr. Sarah Amelia, M.Psi., Psikolog",
-            password_hash=hash_password("password123"),
-            is_active=True,
-            is_verified=True,
-        )
-        session.add(counselor_user)
-        await session.commit()
-        await session.refresh(counselor_user)
-        logger.info(f"Seeded Counselor User: {counselor_email}")
+        # Check if legacy demo counselor email exists and migrate to user's real email
+        old_user_query = select(User).where(User.email == "psikolog.mandiri@eva.id")
+        old_res = await session.execute(old_user_query)
+        old_user = old_res.scalar_one_or_none()
+        if old_user:
+            counselor_user = old_user
+            counselor_user.email = counselor_email
+            counselor_user.display_name = "dr. Sarah Amelia, M.Psi., Psikolog"
+            counselor_user.password_hash = hash_password("password123")
+            await session.commit()
+            logger.info(f"Migrated legacy demo counselor email to {counselor_email}")
+        else:
+            counselor_user = User(
+                email=counselor_email,
+                username="dr_sarah_amelia",
+                display_name="dr. Sarah Amelia, M.Psi., Psikolog",
+                password_hash=hash_password("password123"),
+                is_active=True,
+                is_verified=True,
+            )
+            session.add(counselor_user)
+            await session.commit()
+            await session.refresh(counselor_user)
+            logger.info(f"Seeded Counselor User: {counselor_email}")
     else:
         counselor_user.display_name = "dr. Sarah Amelia, M.Psi., Psikolog"
         counselor_user.password_hash = hash_password("password123")
