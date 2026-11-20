@@ -41,12 +41,13 @@ class _BankAccountModalContentState
   void initState() {
     super.initState();
     final user = (widget.ref ?? ref).read(authStateProvider).value;
-    _bankNameCtrl = TextEditingController(
-        text: user?.bankName ?? 'BCA (Bank Central Asia)');
+    final hasExistingBank = user?.bankName != null && user!.bankName.isNotEmpty;
+    _isEditing = !hasExistingBank;
+    _bankNameCtrl = TextEditingController(text: user?.bankName ?? '');
     _accountNumberCtrl =
-        TextEditingController(text: user?.bankAccountNumber ?? '8192039182');
+        TextEditingController(text: user?.bankAccountNumber ?? '');
     _accountHolderCtrl = TextEditingController(
-        text: user?.bankAccountHolder ?? user?.displayName ?? 'Psikolog Mandiri');
+        text: user?.bankAccountHolder ?? user?.displayName ?? '');
   }
 
   @override
@@ -137,7 +138,32 @@ class _BankAccountModalContentState
               'Rekening terdaftar untuk pencairan otomatis honorarium telekonsultasi Eva AI:',
               style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline_rounded,
+                      size: 18, color: Color(0xFFB45309)),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Fitur autodebit pembayaran saat ini sedang dalam integrasi terbatas. Rekening Anda diamankan untuk pencairan honorarium berkala.',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF92400E),
+                          height: 1.35),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
 
             if (!_isEditing) ...[
               // ATM / Debit Card Visual

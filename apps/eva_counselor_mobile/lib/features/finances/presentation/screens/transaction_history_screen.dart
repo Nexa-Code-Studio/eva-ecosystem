@@ -22,10 +22,10 @@ class _TransactionHistoryScreenState
 
   void _showRedeemCoinModal(BuildContext context, int availableCoins) {
     final authUser = ref.read(authStateProvider).value;
-    final coinAmountCtrl = TextEditingController(text: '150');
-    final bankCtrl = TextEditingController(text: authUser?.bankName ?? 'BCA');
-    final accountCtrl = TextEditingController(text: authUser?.bankAccountNumber ?? '8192039182');
-    final nameCtrl = TextEditingController(text: authUser?.bankAccountHolder ?? authUser?.displayName ?? 'Psikolog Mandiri');
+    final coinAmountCtrl = TextEditingController(text: availableCoins >= 50 ? '$availableCoins' : '');
+    final bankCtrl = TextEditingController(text: authUser?.bankName ?? '');
+    final accountCtrl = TextEditingController(text: authUser?.bankAccountNumber ?? '');
+    final nameCtrl = TextEditingController(text: authUser?.bankAccountHolder ?? authUser?.displayName ?? '');
     bool isSubmitting = false;
 
     showModalBottomSheet(
@@ -112,15 +112,16 @@ class _TransactionHistoryScreenState
                 _buildModalInput(
                   'Jumlah Koin yang Ditukar (Min. 50 Koin)',
                   coinAmountCtrl,
+                  hintText: 'Contoh: 150',
                   isNumber: true,
                   onChanged: (_) => setModalState(() {}),
                 ),
                 const SizedBox(height: 10),
-                _buildModalInput('Nama Bank Tujuan', bankCtrl),
+                _buildModalInput('Nama Bank Tujuan', bankCtrl, hintText: 'Contoh: BCA, Mandiri, BNI'),
                 const SizedBox(height: 10),
-                _buildModalInput('Nomor Rekening', accountCtrl, isNumber: true),
+                _buildModalInput('Nomor Rekening', accountCtrl, hintText: 'Masukkan nomor rekening', isNumber: true),
                 const SizedBox(height: 10),
-                _buildModalInput('Nama Pemilik Rekening (Sesuai KTP)', nameCtrl),
+                _buildModalInput('Nama Pemilik Rekening (Sesuai KTP)', nameCtrl, hintText: 'Nama pemilik rekening bank'),
                 const SizedBox(height: 20),
 
                 CustomButton(
@@ -174,6 +175,7 @@ class _TransactionHistoryScreenState
   Widget _buildModalInput(
     String label,
     TextEditingController ctrl, {
+    String? hintText,
     bool isNumber = false,
     ValueChanged<String>? onChanged,
   }) {
@@ -199,9 +201,11 @@ class _TransactionHistoryScreenState
             keyboardType: isNumber ? TextInputType.number : TextInputType.text,
             onChanged: onChanged,
             style: const TextStyle(fontSize: 13),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              hintText: hintText,
+              hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             ),
           ),
         ),
@@ -222,7 +226,7 @@ class _TransactionHistoryScreenState
     final txListAsync = ref.watch(transactionsListProvider);
 
     // KASUS 3: PROFESIONAL MANDIRI (SISTEM KOIN & REDEEM RUPIAH)
-    final coins = authUser?.coinBalance ?? 1250;
+    final coins = authUser?.coinBalance ?? 0;
     final rateCoins = authUser?.coinsPerSession ?? 150;
     final sessionMins = authUser?.sessionDurationMinutes ?? 30;
 

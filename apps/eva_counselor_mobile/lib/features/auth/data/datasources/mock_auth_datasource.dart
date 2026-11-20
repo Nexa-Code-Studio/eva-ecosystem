@@ -58,7 +58,7 @@ class MockAuthDataSource implements AuthDataSource {
       partnerName: null,
       sessionDurationMinutes: 30,
       coinsPerSession: 150,
-      coinBalance: 1250,
+      coinBalance: 0,
       googleDriveEmail: request.email,
       employeeNip: '199807252026012001',
       isOnlinePracticeEnabled: true,
@@ -100,7 +100,7 @@ class MockAuthDataSource implements AuthDataSource {
       partnerName: null,
       sessionDurationMinutes: request.sessionDurationMinutes,
       coinsPerSession: request.coinsPerSession,
-      coinBalance: 1250,
+      coinBalance: 0,
       googleDriveEmail: request.email,
     );
 
@@ -132,7 +132,7 @@ class MockAuthDataSource implements AuthDataSource {
       counselorRole: 'professional_independent',
       sessionDurationMinutes: 50,
       coinsPerSession: 150,
-      coinBalance: 1250,
+      coinBalance: 0,
       googleDriveEmail: 'khoirotunnisa2507@gmail.com',
       employeeNip: '199807252026012001',
       isOnlinePracticeEnabled: true,

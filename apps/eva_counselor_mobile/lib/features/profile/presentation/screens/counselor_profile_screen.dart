@@ -8,6 +8,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../dashboard/presentation/screens/counselor_main_shell_screen.dart';
 import '../widgets/counselor_bank_account_modal.dart';
 import '../widgets/counselor_certificates_modal.dart';
+import '../widgets/counselor_edit_profile_modal.dart';
 import '../widgets/counselor_guidelines_modal.dart';
 import '../widgets/counselor_profile_drive_card.dart';
 import '../widgets/counselor_profile_header_card.dart';
@@ -118,6 +119,7 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
     final authState = ref.watch(authStateProvider);
     final user = authState.value;
     final userCerts = CounselorCertificatesModal.getCertificatesForUser(user);
+    final hasBank = (user?.bankName ?? '').isNotEmpty;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
@@ -128,7 +130,10 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Profile Banner Card
-              CounselorProfileHeaderCard(user: user),
+              CounselorProfileHeaderCard(
+                user: user,
+                onEditProfile: () => CounselorEditProfileModal.show(context, user: user),
+              ),
               const SizedBox(height: 16),
 
               // 2. Jadwal Praktik Telekonseling
@@ -197,14 +202,23 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                 iconColor: const Color(0xFF2563EB),
                 iconBg: const Color(0xFFEFF6FF),
                 title: 'Rekening Bank Pencairan Dana',
-                subtitle: 'BCA • ****8192 (${user?.bankAccountHolder ?? user?.displayName ?? "Psikolog Mandiri"})',
+                subtitle: hasBank
+                    ? '${user!.bankName} • ****${user.bankAccountNumber.length >= 4 ? user.bankAccountNumber.substring(user.bankAccountNumber.length - 4) : user.bankAccountNumber}'
+                    : 'Belum diatur • Ketuk untuk mendaftarkan rekening',
                 trailingBadge: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.verifiedBg,
+                    color: hasBank ? AppColors.verifiedBg : const Color(0xFFFEF3C7),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text('Terverifikasi ✅', style: TextStyle(color: AppColors.verifiedGreen, fontWeight: FontWeight.bold, fontSize: 10)),
+                  child: Text(
+                    hasBank ? 'Tersimpan ✅' : 'Belum Diatur',
+                    style: TextStyle(
+                      color: hasBank ? AppColors.verifiedGreen : const Color(0xFFB45309),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                  ),
                 ),
                 onTap: () => CounselorBankAccountModal.show(context, ref: ref),
               ),
@@ -283,16 +297,16 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                 iconColor: AppColors.verifiedGreen,
                 iconBg: AppColors.verifiedBg,
                 title: 'Kredensial SIPP & STR Psikolog',
-                subtitle: 'STR #4192-PSI-2024 • KTKI & HIMPSI',
+                subtitle: 'STR #${(user?.strNumber != null && user!.strNumber.isNotEmpty) ? user.strNumber : "Belum diisi"} • KTKI & HIMPSI',
                 trailingBadge: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppColors.verifiedBg,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text('Aktif 2029', style: TextStyle(color: AppColors.verifiedGreen, fontWeight: FontWeight.bold, fontSize: 10)),
+                  child: const Text('Aktif', style: TextStyle(color: AppColors.verifiedGreen, fontWeight: FontWeight.bold, fontSize: 10)),
                 ),
-                onTap: () => CounselorStrCredentialsModal.show(context),
+                onTap: () => CounselorStrCredentialsModal.show(context, user: user, ref: ref),
               ),
               CounselorProfileMenuCard(
                 icon: Icons.menu_book_outlined,
