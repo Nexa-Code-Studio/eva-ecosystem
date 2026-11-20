@@ -545,10 +545,10 @@ async def seed_counselor_master_data(session: AsyncSessionLocal, patient_user: U
             patient_id=patient_user.id,
             counselor_id=profile.id,
             pricing_config_id=pricing.id if pricing else None,
-            scheduled_start_time=now - timedelta(days=2),
-            scheduled_end_time=now - timedelta(days=2, minutes=-30),
-            actual_start_time=now - timedelta(days=2),
-            actual_end_time=now - timedelta(days=2, minutes=-30),
+            scheduled_start_time=now - timedelta(hours=3),
+            scheduled_end_time=now - timedelta(hours=2, minutes=30),
+            actual_start_time=now - timedelta(hours=3),
+            actual_end_time=now - timedelta(hours=2, minutes=30),
             duration_minutes=30,
             status=ConsultationSessionStatus.COMPLETED.value,
             total_price=Decimal("150000.00"),
@@ -578,7 +578,7 @@ async def seed_counselor_master_data(session: AsyncSessionLocal, patient_user: U
         session.add_all([past_session, upcoming_session])
         await session.commit()
         await session.refresh(past_session)
-        logger.info("Seeded Consultation Sessions (Completed & Scheduled).")
+        logger.info("Seeded Consultation Sessions (Completed & Scheduled for today Nov 20).")
 
         # 6. Counselor Transactions
         tx1 = CounselorTransaction(
@@ -611,6 +611,16 @@ async def seed_counselor_master_data(session: AsyncSessionLocal, patient_user: U
         session.add_all([tx1, tx2, tx3])
         await session.commit()
         logger.info("Seeded Counselor Transactions.")
+    else:
+        now = datetime.now(UTC)
+        for s in existing_sessions:
+            if s.session_code == "EVA-20261120-001":
+                s.scheduled_start_time = now - timedelta(hours=3)
+                s.scheduled_end_time = now - timedelta(hours=2, minutes=30)
+                s.actual_start_time = now - timedelta(hours=3)
+                s.actual_end_time = now - timedelta(hours=2, minutes=30)
+        await session.commit()
+        logger.info("Updated existing sessions for today Nov 20, 2026.")
 
     return profile
 

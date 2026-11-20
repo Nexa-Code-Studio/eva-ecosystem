@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../patients/domain/entities/patient_entity.dart';
 import '../../../patients/presentation/providers/patient_provider.dart';
 
 class CounselorFullScheduleScreen extends ConsumerStatefulWidget {
@@ -216,8 +217,17 @@ class _CounselorFullScheduleScreenState
                         final isToday = _isSameDay(cellDate, now);
                         final isSunday = cellDate.weekday == 7;
 
-                        // Mock sessions check: today or day 20/22/25 has active bookings
-                        final hasSession = (isToday) || (dayNumber == 20 || dayNumber == 22 || dayNumber == 25);
+                        // Dynamic session check from real patients data (no hardcoded dates)
+                        final patientsList = patientsAsync.value ?? [];
+                        final hasSession = patientsList.any((p) {
+                          if (_isSameDay(cellDate, p.lastSessionDate) && p.totalCompletedSessions > 0) {
+                            return true;
+                          }
+                          if (_isSameDay(cellDate, now) && p.upcomingSchedule != null) {
+                            return true;
+                          }
+                          return false;
+                        });
 
                         return GestureDetector(
                           onTap: () {
@@ -301,12 +311,29 @@ class _CounselorFullScheduleScreenState
               // SESSION CARDS FOR SELECTED DAY
               patientsAsync.when(
                 data: (patients) {
-                  final daySessions = patients.where((p) {
-                    if (_isSameDay(_selectedDate, now)) {
-                      return p.upcomingSchedule != null;
+                  final daySessions = <Map<String, dynamic>>[];
+                  for (final p in patients) {
+                    // Sesi Terjadwal (Upcoming)
+                    if (_isSameDay(_selectedDate, now) && p.upcomingSchedule != null) {
+                      daySessions.add({
+                        'patient': p,
+                        'isCompleted': false,
+                        'time': p.upcomingSchedule?.timeRange ?? p.upcomingSchedule?.formattedTime ?? '10:00 - 10:30 WIB',
+                        'statusText': p.upcomingSchedule?.statusText ?? 'Terjadwal',
+                      });
                     }
-                    return false;
-                  }).toList();
+                    // Sesi Selesai (Completed, e.g. Samsul)
+                    if (_isSameDay(_selectedDate, p.lastSessionDate) && p.totalCompletedSessions > 0) {
+                      final hour = p.lastSessionDate.hour.toString().padLeft(2, '0');
+                      final minute = p.lastSessionDate.minute.toString().padLeft(2, '0');
+                      daySessions.add({
+                        'patient': p,
+                        'isCompleted': true,
+                        'time': 'Selesai ($hour:$minute WIB)',
+                        'statusText': 'Selesai',
+                      });
+                    }
+                  }
 
                   if (daySessions.isEmpty) {
                     return Container(
@@ -336,8 +363,11 @@ class _CounselorFullScheduleScreenState
                   }
 
                   return Column(
-                    children: daySessions.map((patient) {
-                      final schedule = patient.upcomingSchedule;
+                    children: daySessions.map((item) {
+                      final patient = item['patient'] as PatientEntity;
+                      final isCompleted = item['isCompleted'] == true;
+                      final timeLabel = item['time'] as String;
+
                       return Container(
                         margin: const EdgeInsets.only(bottom: 10),
                         padding: const EdgeInsets.all(14),
@@ -359,12 +389,18 @@ class _CounselorFullScheduleScreenState
                               radius: 20,
                               backgroundColor: patient.isHighRisk
                                   ? AppColors.highRiskBg
-                                  : AppColors.primaryContainer,
+                                  : (isCompleted
+                                      ? const Color(0xFFECFDF5)
+                                      : AppColors.primaryContainer),
                               child: Text(
                                 patient.name.substring(0, 1),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: patient.isHighRisk ? AppColors.highRiskRed : AppColors.primary,
+                                  color: patient.isHighRisk
+                                      ? AppColors.highRiskRed
+                                      : (isCompleted
+                                          ? const Color(0xFF10B981)
+                                          : AppColors.primary),
                                 ),
                               ),
                             ),
@@ -373,25 +409,57 @@ class _CounselorFullScheduleScreenState
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    patient.name,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          patient.name,
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: isCompleted
+                                              ? const Color(0xFFECFDF5)
+                                              : AppColors.primaryContainer,
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          isCompleted ? 'Selesai' : 'Terjadwal',
+                                          style: TextStyle(
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.bold,
+                                            color: isCompleted
+                                                ? const Color(0xFF10B981)
+                                                : AppColors.primary,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Pukul ${schedule?.formattedTime ?? '10:00 - 10:30 WIB'} • 30 Menit',
+                                    'Pukul $timeLabel • 30 Menit',
                                     style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
                                   ),
                                 ],
                               ),
                             ),
+                            const SizedBox(width: 8),
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
+                                backgroundColor: isCompleted
+                                    ? const Color(0xFFF1F5F9)
+                                    : AppColors.primary,
+                                foregroundColor: isCompleted
+                                    ? AppColors.textPrimary
+                                    : Colors.white,
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                               ),
                               onPressed: () {
                                 Navigator.of(context).pushNamed(
@@ -399,7 +467,10 @@ class _CounselorFullScheduleScreenState
                                   arguments: patient.id,
                                 );
                               },
-                              child: const Text('Buka Rekam', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                              child: Text(
+                                isCompleted ? 'Lihat Rekam' : 'Buka Rekam',
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ],
                         ),

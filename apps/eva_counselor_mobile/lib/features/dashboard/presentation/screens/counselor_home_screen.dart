@@ -89,17 +89,17 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
     for (final p in patients) {
       if (p.upcomingSchedule != null) {
         realTodaySessions.add({
-          'time': 'Jadwal Aktif (${p.upcomingSchedule!.timeRange})',
+          'time': p.upcomingSchedule!.timeRange,
           'patientName': '${p.name} (${p.age} Thn)',
           'chiefComplaint': p.chiefComplaint,
-          'status': 'Sesi Siap Dimulai (Live)',
+          'status': 'Siap Dimulai (Live)',
           'isLive': true,
           'patientId': p.id,
           'sessionId': p.upcomingSchedule!.sessionId,
         });
       } else if (p.totalCompletedSessions > 0) {
         realTodaySessions.add({
-          'time': 'Sesi Selesai Sebelumnya',
+          'time': 'Selesai',
           'patientName': '${p.name} (${p.age} Thn)',
           'chiefComplaint': p.chiefComplaint,
           'status': 'Selesai',
@@ -746,19 +746,22 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Jadwal Praktik • $_monthYearLabel',
-                    style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: Text(
+                      'Jadwal Praktik • $_monthYearLabel',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   TextButton.icon(
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                       visualDensity: VisualDensity.compact,
                     ),
                     icon: const Icon(Icons.calendar_month_rounded, size: 14, color: AppColors.primary),
                     label: const Text(
-                      'Lihat Semua Jadwal',
-                      style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.primary),
+                      'Lihat Semua',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
                     ),
                     onPressed: () {
                       Navigator.of(context).pushNamed('/counselor-full-schedule');
@@ -1486,9 +1489,10 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          // Legend / Indicators
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Legend / Indicators (Wrap prevents RenderFlex overflow on small screens)
+          Wrap(
+            spacing: 12,
+            runSpacing: 6,
             children: [
               _buildLegendDot(const Color(0xFF10B981), 'Selesai'),
               _buildLegendDot(const Color(0xFF2563EB), 'Terjadwal'),

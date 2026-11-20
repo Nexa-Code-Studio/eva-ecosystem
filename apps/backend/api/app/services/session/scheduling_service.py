@@ -687,11 +687,13 @@ class SchedulingService:
             else (sessions[0].scheduled_start_time.isoformat() if sessions else datetime.now(UTC).isoformat())
         )
 
-        chief_complaint = "Konsultasi Kesehatan Mental"
+        chief_complaint = "Konseling Manajemen Stres & Regulasi Emosi"
         if completed_sessions and completed_sessions[0].soap_notes:
-            subj = completed_sessions[0].soap_notes.get("subjective", "")
-            if subj:
-                chief_complaint = subj[:80] + ("..." if len(subj) > 80 else "")
+            assessment = completed_sessions[0].soap_notes.get("assessment", "")
+            if "Anxiety" in assessment or "Kecemasan" in assessment:
+                chief_complaint = "Kecemasan & Manajemen Stres Lingkungan Kerja"
+            elif assessment:
+                chief_complaint = assessment[:60] + ("..." if len(assessment) > 60 else "")
 
         # Upcoming schedule
         now = datetime.now(UTC)
