@@ -265,7 +265,13 @@ class SchedulingService:
         next_start = session.scheduled_end_time
         next_end = next_start + timedelta(minutes=30)
 
-        # Check for conflicts
+        # Counselor buffer delta
+        c_query = select(PsychologistProfile).where(PsychologistProfile.id == session.counselor_id)
+        c_res = await self.db.execute(c_query)
+        counselor = c_res.scalar_one_or_none()
+        buffer_delta = timedelta(minutes=counselor.buffer_time_minutes) if counselor else timedelta(minutes=10)
+
+        # Check for conflicts including buffer time after extension
         collision_query = select(ConsultationSession).where(
             ConsultationSession.counselor_id == session.counselor_id,
             ConsultationSession.id != session_id,
@@ -273,7 +279,7 @@ class SchedulingService:
                 ConsultationSessionStatus.SCHEDULED.value,
                 ConsultationSessionStatus.LIVE.value,
             ]),
-            ConsultationSession.scheduled_start_time < next_end,
+            ConsultationSession.scheduled_start_time < (next_end + buffer_delta),
             ConsultationSession.scheduled_end_time > next_start,
         )
         collision_res = await self.db.execute(collision_query)
