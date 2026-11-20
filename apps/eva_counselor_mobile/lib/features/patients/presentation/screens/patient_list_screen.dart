@@ -182,52 +182,27 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              '${p.name}, ${p.age} thn',
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                              '${p.name} • ${p.gender}',
+                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
-                                              '${p.totalCompletedSessions} Sesi Selesai • ${p.gender}',
-                                              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                              '${p.totalCompletedSessions} Sesi Selesai • ${p.age} thn',
+                                              style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ],
                                         ),
                                       ),
+                                      const SizedBox(width: 8),
                                       p.hasConsent
                                           ? StatusBadge.consentGranted('Akses Aktif')
                                           : StatusBadge.consentLocked('Terkunci'),
                                     ],
                                   ),
-                                  const SizedBox(height: 12),
-
-                                  // Fokus / Topik Konseling Pasien
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF7F8FC),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.psychology_outlined,
-                                            size: 14, color: AppColors.primary),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            p.chiefComplaint,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: AppColors.textPrimary,
-                                            ),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
                                   if (p.isHighRisk) ...[
-                                    const SizedBox(height: 10),
+                                    const SizedBox(height: 8),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                       decoration: BoxDecoration(

@@ -348,29 +348,29 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                   border: Border.all(color: const Color(0xFFECEFF8)),
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: AppColors.verifiedGreen,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Status: Aktif Melayani • Istirahat Terjadwal (${user?.breakStartTime ?? '12:00'} - ${user?.breakEndTime ?? '13:00'})',
-                          style: const TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      ],
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.verifiedGreen,
+                        shape: BoxShape.circle,
+                      ),
                     ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Aktif • Istirahat ${user?.breakStartTime ?? '12:00'}-${user?.breakEndTime ?? '13:00'}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     InkWell(
                       onTap: () {
                         Navigator.of(context).push(
@@ -379,12 +379,15 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                           ),
                         );
                       },
-                      child: const Text(
-                        'Ubah',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        child: Text(
+                          'Ubah',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
                         ),
                       ),
                     ),
