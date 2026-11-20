@@ -19,6 +19,16 @@ abstract class IAuthRepository {
     int coinsPerSession = 150,
   });
   Future<PsychologistUserEntity?> getCurrentProfile();
+  Future<PsychologistUserEntity> updateProfile({
+    String? fullName,
+    String? titleDegree,
+    String? profilePhotoUrl,
+  });
+  Future<PsychologistUserEntity> updateBankDetails({
+    required String bankName,
+    required String accountNumber,
+    required String accountHolder,
+  });
   Future<bool> setOnlineAvailability(bool isOnline);
   Future<void> logout();
 }

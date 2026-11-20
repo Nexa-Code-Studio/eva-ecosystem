@@ -183,11 +183,11 @@ class _LocalTestAuthNotifier extends StateNotifier<AsyncValue<PsychologistUserEn
       : super(AsyncValue.data(user));
 
   @override
-  void updateBankDetails({
+  Future<void> updateBankDetails({
     required String bankName,
     required String accountNumber,
     required String accountHolder,
-  }) {
+  }) async {
     final cur = state.value;
     if (cur != null) {
       state = AsyncValue.data(cur.copyWith(

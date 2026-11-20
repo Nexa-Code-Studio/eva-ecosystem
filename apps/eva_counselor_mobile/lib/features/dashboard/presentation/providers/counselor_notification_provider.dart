@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CounselorNotificationItem {
   final String id;
@@ -54,22 +55,68 @@ class CounselorNotificationItem {
 
 class CounselorNotificationNotifier
     extends StateNotifier<List<CounselorNotificationItem>> {
-  CounselorNotificationNotifier()
-      : super([
-          const CounselorNotificationItem(
-            id: 'notif-welcome-01',
-            title: 'Selamat Datang di Eva Konselor! 👋',
-            body:
-                'Akun Anda telah terdaftar. Silakan atur jadwal telekonseling dan lengkapi profil praktik Anda agar pasien dapat mulai menjadwalkan sesi.',
-            category: 'Sistem',
-            time: 'Baru saja',
-            isRead: false,
-            actionLabel: 'Atur Jadwal Praktik',
-          ),
-        ]);
+  static const String _prefsKey = 'eva_counselor_read_notification_ids';
+
+  static final List<CounselorNotificationItem> _initialNotifications = [
+    const CounselorNotificationItem(
+      id: 'notif-welcome-01',
+      title: 'Selamat Datang di Eva Konselor! 👋',
+      body:
+          'Akun Anda telah terdaftar. Silakan atur jadwal telekonseling dan lengkapi profil praktik Anda agar pasien dapat mulai menjadwalkan sesi.',
+      category: 'Sistem',
+      time: 'Hari Ini, 09:15 WIB',
+      isRead: false,
+      actionLabel: 'Atur Jadwal Praktik',
+    ),
+    const CounselorNotificationItem(
+      id: 'notif-earning-01',
+      title: 'Honorarium Sesi Masuk 🪙',
+      body:
+          '+120 Koin berhasil dikreditkan ke dompet Anda dari sesi telekonsultasi #EVA-20261120-001.',
+      category: 'Keuangan',
+      time: 'Kemarin, 16:45 WIB',
+      isRead: true,
+    ),
+    const CounselorNotificationItem(
+      id: 'notif-system-01',
+      title: 'Verifikasi Profil & STR Berhasil ✅',
+      body:
+          'Kredensial psikolog klinis Anda telah diverifikasi resmi oleh platform Eva.',
+      category: 'Sistem',
+      time: '18 Nov 2026',
+      isRead: true,
+    ),
+  ];
+
+  CounselorNotificationNotifier() : super(_initialNotifications) {
+    _loadPersistedReadStatus();
+  }
+
+  Future<void> _loadPersistedReadStatus() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final readIds = prefs.getStringList(_prefsKey) ?? [];
+      if (readIds.isNotEmpty) {
+        state = state.map((item) {
+          if (readIds.contains(item.id)) {
+            return item.copyWith(isRead: true);
+          }
+          return item;
+        }).toList();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _persistReadIds(List<String> ids) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_prefsKey, ids);
+    } catch (_) {}
+  }
 
   void markAllAsRead() {
     state = state.map((item) => item.copyWith(isRead: true)).toList();
+    _persistReadIds(state.map((e) => e.id).toList());
   }
 
   void markAsRead(String id) {
@@ -79,6 +126,8 @@ class CounselorNotificationNotifier
       }
       return item;
     }).toList();
+    final readIds = state.where((item) => item.isRead).map((e) => e.id).toList();
+    _persistReadIds(readIds);
   }
 
   void addNotification(CounselorNotificationItem item) {
@@ -91,6 +140,7 @@ class CounselorNotificationNotifier
 
   void clearAll() {
     state = [];
+    _persistReadIds([]);
   }
 }
 

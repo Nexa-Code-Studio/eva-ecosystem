@@ -222,18 +222,18 @@ class _TestAuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEn
   void setVerificationStatus(VerificationStatus status) {}
 
   @override
-  void updateProfile({
+  Future<void> updateProfile({
     String? fullName,
     String? titleDegree,
     String? profilePhotoUrl,
-  }) {}
+  }) async {}
 
   @override
-  void updateBankDetails({
+  Future<void> updateBankDetails({
     required String bankName,
     required String accountNumber,
     required String accountHolder,
-  }) {}
+  }) async {}
 
   @override
   Future<void> toggleAvailability(bool isOnline) async {}

@@ -412,12 +412,12 @@ class _TransactionHistoryScreenState
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          Column(
+                          const Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Menunggu Selesai SOAP', style: TextStyle(color: Colors.white70, fontSize: 10)),
-                              const SizedBox(height: 2),
-                              Text('${isFreshAccount ? 0 : 150} Koin', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                              Text('Menunggu Selesai SOAP', style: TextStyle(color: Colors.white70, fontSize: 10)),
+                              SizedBox(height: 2),
+                              Text('0 Koin', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                             ],
                           ),
                           Container(width: 1, height: 24, color: Colors.white24),
@@ -585,30 +585,30 @@ class _TransactionHistoryScreenState
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Flexible(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          isPayout ? '-$coinsEarned Koin' : '+$coinsEarned Koin',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 12,
-                            color: isPayout ? const Color(0xFFC2410C) : AppColors.verifiedGreen,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        isPayout ? '-$coinsEarned Koin' : '+$coinsEarned Koin',
+                        textAlign: TextAlign.end,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                          color: isPayout ? const Color(0xFFC2410C) : AppColors.verifiedGreen,
                         ),
-                        if (isPayout)
-                          Text(
-                            'Rp ${_formatRp(t.netEarnings)}',
-                            style: const TextStyle(fontSize: 10, color: Color(0xFFC2410C), fontWeight: FontWeight.w600),
-                          ),
-                        const SizedBox(height: 3),
-                        isPayout
-                            ? StatusBadge.pending('Ditransfer')
-                            : StatusBadge.verified('SOAP Terisi'),
-                      ],
-                    ),
+                      ),
+                      if (isPayout)
+                        Text(
+                          'Rp ${_formatRp(t.netEarnings)}',
+                          textAlign: TextAlign.end,
+                          style: const TextStyle(fontSize: 10, color: Color(0xFFC2410C), fontWeight: FontWeight.w600),
+                        ),
+                      const SizedBox(height: 4),
+                      isPayout
+                          ? StatusBadge.pending('Ditransfer')
+                          : StatusBadge.verified('SOAP Terisi'),
+                    ],
                   ),
                 ],
               ),

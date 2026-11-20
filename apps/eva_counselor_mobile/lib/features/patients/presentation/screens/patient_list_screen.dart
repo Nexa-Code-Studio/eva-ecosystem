@@ -55,7 +55,7 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: ['Semua', 'Akses Terbuka', 'Akses Terkunci', 'Krisis Darurat'].map((filter) {
+                  children: ['Semua', 'Belum Selesai', 'Sudah Lewat', 'Krisis Darurat'].map((filter) {
                     final isSelected = _selectedFilter == filter;
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
@@ -94,8 +94,12 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
                         p.chiefComplaint.toLowerCase().contains(_searchQuery);
                     if (!matchesSearch) return false;
 
-                    if (_selectedFilter == 'Akses Terbuka') return p.hasConsent;
-                    if (_selectedFilter == 'Akses Terkunci') return !p.hasConsent;
+                    if (_selectedFilter == 'Belum Selesai') {
+                      return p.upcomingSchedule != null;
+                    }
+                    if (_selectedFilter == 'Sudah Lewat') {
+                      return p.totalCompletedSessions > 0 && p.upcomingSchedule == null;
+                    }
                     if (_selectedFilter == 'Krisis Darurat') return p.isHighRisk;
                     return true;
                   }).toList();

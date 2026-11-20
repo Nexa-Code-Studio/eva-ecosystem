@@ -228,7 +228,10 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
     state = AsyncValue.data(current.copyWith(
       sessionDurationMinutes: sessionDurationMinutes,
       coinsPerSession: coinsPerSession,
+      isOnlinePracticeEnabled: true,
+      isScheduleConfigured: true,
     ));
+    _repository.setOnlineAvailability(true);
   }
 
   void upgradeToProfessional({
@@ -287,32 +290,50 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
     state = AsyncValue.data(current.copyWith(verificationStatus: status));
   }
 
-  void updateProfile({
+  Future<void> updateProfile({
     String? fullName,
     String? titleDegree,
     String? profilePhotoUrl,
-  }) {
+  }) async {
     final current = state.value;
     if (current == null) return;
-    state = AsyncValue.data(current.copyWith(
-      fullName: fullName ?? current.fullName,
-      titleDegree: titleDegree ?? current.titleDegree,
-      profilePhotoUrl: profilePhotoUrl ?? current.profilePhotoUrl,
-    ));
+    try {
+      final updated = await _repository.updateProfile(
+        fullName: fullName,
+        titleDegree: titleDegree,
+        profilePhotoUrl: profilePhotoUrl,
+      );
+      state = AsyncValue.data(updated);
+    } catch (_) {
+      state = AsyncValue.data(current.copyWith(
+        fullName: fullName ?? current.fullName,
+        titleDegree: titleDegree ?? current.titleDegree,
+        profilePhotoUrl: profilePhotoUrl ?? current.profilePhotoUrl,
+      ));
+    }
   }
 
-  void updateBankDetails({
+  Future<void> updateBankDetails({
     required String bankName,
     required String accountNumber,
     required String accountHolder,
-  }) {
+  }) async {
     final current = state.value;
     if (current == null) return;
-    state = AsyncValue.data(current.copyWith(
-      bankName: bankName,
-      bankAccountNumber: accountNumber,
-      bankAccountHolder: accountHolder,
-    ));
+    try {
+      final updated = await _repository.updateBankDetails(
+        bankName: bankName,
+        accountNumber: accountNumber,
+        accountHolder: accountHolder,
+      );
+      state = AsyncValue.data(updated);
+    } catch (_) {
+      state = AsyncValue.data(current.copyWith(
+        bankName: bankName,
+        bankAccountNumber: accountNumber,
+        bankAccountHolder: accountHolder,
+      ));
+    }
   }
 
   Future<void> loadProfile() async {
@@ -335,10 +356,13 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
   Future<void> toggleAvailability(bool isOnline) async {
     final current = state.value;
     if (current == null) return;
+    // Optimistic UI update to ensure instantaneous response
+    state = AsyncValue.data(current.copyWith(isOnline: isOnline));
     try {
       await _repository.setOnlineAvailability(isOnline);
-      state = AsyncValue.data(current.copyWith(isOnline: isOnline));
-    } catch (_) {}
+    } catch (_) {
+      state = AsyncValue.data(current);
+    }
   }
 
   Future<void> logout() async {

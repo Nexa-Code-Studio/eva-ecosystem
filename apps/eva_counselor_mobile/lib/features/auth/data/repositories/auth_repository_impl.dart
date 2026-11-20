@@ -82,6 +82,36 @@ class AuthRepositoryImpl implements IAuthRepository {
   }
 
   @override
+  Future<PsychologistUserEntity> updateProfile({
+    String? fullName,
+    String? titleDegree,
+    String? profilePhotoUrl,
+  }) async {
+    final dto = await _dataSource.updateProfile(
+      fullName: fullName,
+      titleDegree: titleDegree,
+      profilePhotoUrl: profilePhotoUrl,
+    );
+    await TokenStorage.saveProfileJson(jsonEncode(dto.toJson()));
+    return dto.toEntity();
+  }
+
+  @override
+  Future<PsychologistUserEntity> updateBankDetails({
+    required String bankName,
+    required String accountNumber,
+    required String accountHolder,
+  }) async {
+    final dto = await _dataSource.updateBankDetails(
+      bankName: bankName,
+      accountNumber: accountNumber,
+      accountHolder: accountHolder,
+    );
+    await TokenStorage.saveProfileJson(jsonEncode(dto.toJson()));
+    return dto.toEntity();
+  }
+
+  @override
   Future<bool> setOnlineAvailability(bool isOnline) async {
     return await _dataSource.updateAvailability(isOnline);
   }

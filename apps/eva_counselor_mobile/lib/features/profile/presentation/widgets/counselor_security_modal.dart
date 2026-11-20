@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/top_toast.dart';
+import '../providers/privacy_settings_provider.dart';
 
 class CounselorSecurityModal {
-  static void show(BuildContext context) {
-    bool biometric = true;
-    bool twoFactor = true;
-    bool maskPatient = true;
+  static void show(BuildContext context, [WidgetRef? ref]) {
+    final currentPrivacy = ref?.read(privacySettingsProvider) ?? const PrivacySettingsState();
+    bool biometric = currentPrivacy.isBiometricEnabled;
+    bool twoFactor = currentPrivacy.isTwoFactorEnabled;
+    bool maskPatient = currentPrivacy.isPatientNameMasked;
 
     showModalBottomSheet(
       context: context,
@@ -71,11 +74,16 @@ class CounselorSecurityModal {
                   elevation: 0,
                 ),
                 onPressed: () {
+                  if (ref != null) {
+                    ref.read(privacySettingsProvider.notifier).setBiometric(biometric);
+                    ref.read(privacySettingsProvider.notifier).setTwoFactor(twoFactor);
+                    ref.read(privacySettingsProvider.notifier).setMaskPatientName(maskPatient);
+                  }
                   Navigator.pop(ctx);
                   TopToast.show(
                     context,
                     title: 'Keamanan Diperbarui',
-                    message: 'Pengaturan keamanan rekam medis berhasil disimpan.',
+                    message: 'Pengaturan keamanan rekam medis & masking notifikasi berhasil disimpan.',
                     type: ToastType.success,
                   );
                 },

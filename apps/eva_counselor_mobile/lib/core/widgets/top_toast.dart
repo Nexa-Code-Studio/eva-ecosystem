@@ -3,13 +3,19 @@ import 'package:flutter/material.dart';
 enum ToastType { success, warning, error, info }
 
 class TopToast {
+  static OverlayEntry? _currentEntry;
+
   static void show(
     BuildContext context, {
     required String message,
     String? title,
     ToastType type = ToastType.success,
   }) {
-    final overlay = Overlay.of(context);
+    _currentEntry?.remove();
+    _currentEntry = null;
+
+    final overlay = Overlay.maybeOf(context);
+    if (overlay == null) return;
     late OverlayEntry entry;
 
     Color bg;
@@ -46,10 +52,16 @@ class TopToast {
         backgroundColor: bg,
         icon: icon,
         iconColor: iconColor,
-        onDismiss: () => entry.remove(),
+        onDismiss: () {
+          if (_currentEntry == entry) {
+            _currentEntry = null;
+          }
+          entry.remove();
+        },
       ),
     );
 
+    _currentEntry = entry;
     overlay.insert(entry);
   }
 }
