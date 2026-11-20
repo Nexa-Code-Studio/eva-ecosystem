@@ -24,27 +24,46 @@ class _PsychologistRegistrationScreenState
 
   // Controllers
   final _fullNameCtrl = TextEditingController();
-  final _degreeCtrl = TextEditingController(text: 'M.Psi., Psikolog');
+  final _degreeCtrl = TextEditingController(); // Kosong di awal, hanya placeholder
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _confirmPasswordCtrl = TextEditingController();
   final _strCtrl = TextEditingController();
   final _sipCtrl = TextEditingController();
-  final _institutionCtrl = TextEditingController(text: 'Kemenkes RI / KTKI');
+  final _customInstitutionCtrl = TextEditingController();
+  final _customAssociationCtrl = TextEditingController();
   final _expiryCtrl = TextEditingController(text: 'Seumur Hidup (UU Kesehatan No. 17/2023)');
-  final _associationCtrl = TextEditingController(text: 'HIMPSI');
 
   // Dokumen Legalitas: 'both', 'str', 'sip'
   String _documentType = 'both';
 
-  // Pendidikan Terakhir
+  // Dropdown Pendidikan Terakhir (Kosong di awal)
   final List<String> _educationLevels = [
     'S2 Magister Psikologi Profesi (Psikolog Klinis)',
     'S2 Magister Psikologi Terapan',
     'S1 Sarjana Psikologi',
     'S3 Doktor Psikologi',
   ];
-  late String _selectedEducation;
+  String? _selectedEducation;
+
+  // Dropdown Instansi Penerbit (Dropdown seperti Pendidikan)
+  final List<String> _institutionOptions = [
+    'Kemenkes RI / KTKI (Konsil Tenaga Kesehatan Indonesia)',
+    'Dinas Kesehatan Provinsi / Kab / Kota',
+    'HIMPSI (Himpunan Psikologi Indonesia)',
+    'Kementerian Kesehatan RI',
+    'Instansi Lainnya (Ketik Manual)',
+  ];
+  String? _selectedInstitution;
+
+  // Dropdown Organisasi Profesi (Dropdown seperti Pendidikan)
+  final List<String> _associationOptions = [
+    'HIMPSI (Himpunan Psikologi Indonesia)',
+    'IPK Indonesia (Ikatan Psikolog Klinis Indonesia)',
+    'APPI (Asosiasi Psikologi Positif Indonesia)',
+    'Organisasi Lainnya (Ketik Manual)',
+  ];
+  String? _selectedAssociation;
 
   // Pengalaman Klinis
   final List<Map<String, dynamic>> _experienceOptions = [
@@ -59,14 +78,6 @@ class _PsychologistRegistrationScreenState
   bool _isLifetimeExpiry = true;
   DateTime _customExpiryDate = DateTime.now().add(const Duration(days: 365 * 5));
 
-  // Instansi Penerbit Preset
-  final List<String> _commonInstitutions = [
-    'Kemenkes RI / KTKI',
-    'Dinas Kesehatan Kab/Kota',
-    'HIMPSI (Himpunan Psikologi)',
-    'Kementerian Kesehatan RI',
-  ];
-
   // Durasi paten platform
   static const int _sessionDurationMinutes = 30;
 
@@ -74,9 +85,11 @@ class _PsychologistRegistrationScreenState
   bool _isConfirmPasswordVisible = false;
   bool _isLoading = false;
 
-  // Multi-document uploads
-  final List<String> _uploadedFiles = [];
+  // Berkas Dokumen Terpisah: STR & SIP
+  String? _strFileName;
+  String? _sipFileName;
 
+  // Spesialisasi (Kosong di awal, tidak ada default terpilih)
   final List<String> _availableSpecializations = [
     'Kecemasan Dewasa',
     'Depresi & Suasana Hati',
@@ -86,16 +99,7 @@ class _PsychologistRegistrationScreenState
     'Trauma & Regulasi Emosi',
     'Quarter-life Crisis',
   ];
-  final Set<String> _selectedSpecializations = {
-    'Kecemasan Dewasa',
-    'Manajemen Stres & Burnout',
-  };
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedEducation = _educationLevels[0];
-  }
+  final Set<String> _selectedSpecializations = {};
 
   @override
   void dispose() {
@@ -106,9 +110,9 @@ class _PsychologistRegistrationScreenState
     _confirmPasswordCtrl.dispose();
     _strCtrl.dispose();
     _sipCtrl.dispose();
-    _institutionCtrl.dispose();
+    _customInstitutionCtrl.dispose();
+    _customAssociationCtrl.dispose();
     _expiryCtrl.dispose();
-    _associationCtrl.dispose();
     super.dispose();
   }
 
@@ -179,44 +183,58 @@ class _PsychologistRegistrationScreenState
     }
   }
 
-  void _handlePickFiles() async {
+  Future<void> _handlePickStrFile() async {
     try {
       final files = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
       );
       if (files.isNotEmpty) {
-        int addedCount = 0;
         setState(() {
-          for (final f in files) {
-            if (!_uploadedFiles.contains(f.name)) {
-              _uploadedFiles.add(f.name);
-              addedCount++;
-            }
-          }
+          _strFileName = files.first.name;
         });
         if (!mounted) return;
-        if (addedCount > 0) {
-          TopToast.show(
-            context,
-            title: 'Berkas Ditambahkan 📄',
-            message: '$addedCount berkas berhasil dilampirkan dari perangkat.',
-            type: ToastType.success,
-          );
-        } else {
-          TopToast.show(
-            context,
-            title: 'Berkas Sudah Ada',
-            message: 'Berkas yang dipilih sudah ada dalam daftar lampiran.',
-            type: ToastType.info,
-          );
-        }
+        TopToast.show(
+          context,
+          title: 'Berkas STR Terpilih 📄',
+          message: '${files.first.name} berhasil dilampirkan.',
+          type: ToastType.success,
+        );
       }
     } catch (e) {
       if (!mounted) return;
       TopToast.show(
         context,
-        title: 'Gagal Memilih Berkas',
+        title: 'Gagal Memilih Berkas STR',
+        message: 'Tidak dapat mengakses berkas: $e',
+        type: ToastType.error,
+      );
+    }
+  }
+
+  Future<void> _handlePickSipFile() async {
+    try {
+      final files = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      );
+      if (files.isNotEmpty) {
+        setState(() {
+          _sipFileName = files.first.name;
+        });
+        if (!mounted) return;
+        TopToast.show(
+          context,
+          title: 'Berkas SIP Terpilih 📄',
+          message: '${files.first.name} berhasil dilampirkan.',
+          type: ToastType.success,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      TopToast.show(
+        context,
+        title: 'Gagal Memilih Berkas SIP',
         message: 'Tidak dapat mengakses berkas: $e',
         type: ToastType.error,
       );
@@ -226,6 +244,44 @@ class _PsychologistRegistrationScreenState
   void _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_selectedEducation == null) {
+      TopToast.show(
+        context,
+        title: 'Pendidikan Terakhir Belum Dipilih',
+        message: 'Mohon pilih jenjang pendidikan terakhir Anda.',
+        type: ToastType.error,
+      );
+      return;
+    }
+
+    final effectiveInstitution = _selectedInstitution == 'Instansi Lainnya (Ketik Manual)'
+        ? _customInstitutionCtrl.text.trim()
+        : _selectedInstitution;
+
+    if (effectiveInstitution == null || effectiveInstitution.isEmpty) {
+      TopToast.show(
+        context,
+        title: 'Instansi Penerbit Belum Dipilih',
+        message: 'Mohon tentukan instansi penerbit dokumen izin praktik Anda.',
+        type: ToastType.error,
+      );
+      return;
+    }
+
+    final effectiveAssociation = _selectedAssociation == 'Organisasi Lainnya (Ketik Manual)'
+        ? _customAssociationCtrl.text.trim()
+        : _selectedAssociation;
+
+    if (effectiveAssociation == null || effectiveAssociation.isEmpty) {
+      TopToast.show(
+        context,
+        title: 'Organisasi Profesi Belum Dipilih',
+        message: 'Mohon tentukan organisasi profesi Anda.',
+        type: ToastType.error,
+      );
+      return;
+    }
+
     // Validasi Nomor Dokumen sesuai pilihan
     if (_documentType == 'str' || _documentType == 'both') {
       if (_strCtrl.text.trim().isEmpty) {
@@ -233,6 +289,15 @@ class _PsychologistRegistrationScreenState
           context,
           title: 'Nomor STR Wajib Diisi',
           message: 'Mohon masukkan nomor STR aktif Anda.',
+          type: ToastType.error,
+        );
+        return;
+      }
+      if (_strFileName == null) {
+        TopToast.show(
+          context,
+          title: 'Berkas Scan STR Belum Diunggah',
+          message: 'Mohon lampirkan scan asli dokumen STR Anda.',
           type: ToastType.error,
         );
         return;
@@ -249,26 +314,22 @@ class _PsychologistRegistrationScreenState
         );
         return;
       }
+      if (_sipFileName == null) {
+        TopToast.show(
+          context,
+          title: 'Berkas Scan SIP Belum Diunggah',
+          message: 'Mohon lampirkan scan asli dokumen SIP / SIPP Anda.',
+          type: ToastType.error,
+        );
+        return;
+      }
     }
 
     if (_selectedSpecializations.isEmpty) {
       TopToast.show(
         context,
-        title: 'Spesialisasi Belum Dipilih',
-        message: 'Mohon pilih minimal 1 bidang fokus / spesialisasi praktik Anda.',
-        type: ToastType.error,
-      );
-      return;
-    }
-
-    if (_uploadedFiles.isEmpty) {
-      final docLabel = _documentType == 'both'
-          ? 'STR / SIP'
-          : (_documentType == 'str' ? 'STR' : 'SIP');
-      TopToast.show(
-        context,
-        title: 'Dokumen Legalitas Belum Dilampirkan',
-        message: 'Mohon lampirkan minimal 1 berkas scan $docLabel untuk verifikasi.',
+        title: 'Fokus Peminatan Belum Dipilih',
+        message: 'Mohon pilih minimal 1 bidang fokus / peminatan klinis Anda.',
         type: ToastType.error,
       );
       return;
@@ -280,6 +341,14 @@ class _PsychologistRegistrationScreenState
     final strVal = _documentType == 'sip' ? '' : _strCtrl.text.trim();
     final sipVal = _documentType == 'str' ? null : _sipCtrl.text.trim();
 
+    final uploadedList = <String>[];
+    if (_strFileName != null && (_documentType == 'str' || _documentType == 'both')) {
+      uploadedList.add('STR: $_strFileName');
+    }
+    if (_sipFileName != null && (_documentType == 'sip' || _documentType == 'both')) {
+      uploadedList.add('SIP: $_sipFileName');
+    }
+
     await ref.read(authStateProvider.notifier).register(
           fullName: _fullNameCtrl.text.trim(),
           titleDegree: _degreeCtrl.text.trim(),
@@ -288,14 +357,14 @@ class _PsychologistRegistrationScreenState
           strNumber: strVal,
           sipNumber: sipVal,
           documentType: _documentType,
-          issuingInstitution: _institutionCtrl.text.trim(),
+          issuingInstitution: effectiveInstitution,
           documentExpiryDate: _expiryCtrl.text.trim(),
-          lastEducation: _selectedEducation,
-          association: _associationCtrl.text.trim(),
+          lastEducation: _selectedEducation!,
+          association: effectiveAssociation,
           specializations: _selectedSpecializations.toList(),
           yearsOfExperience: _selectedExperienceYears,
           consultationRate: 150000,
-          certificateDocFileName: _uploadedFiles.join(', '),
+          certificateDocFileName: uploadedList.join(', '),
           counselorRole: 'professional_independent',
           partnerName: null,
           sessionDurationMinutes: _sessionDurationMinutes,
@@ -427,6 +496,204 @@ class _PsychologistRegistrationScreenState
           const Divider(height: 1, color: Color(0xFFF1F5F9)),
           const SizedBox(height: 16),
           child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDropdownCard<T>({
+    required String label,
+    required T? value,
+    required String hintText,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?> onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<T>(
+              value: value,
+              hint: Text(
+                hintText,
+                style: const TextStyle(fontSize: 12.5, color: AppColors.textLight),
+              ),
+              isExpanded: true,
+              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary),
+              items: items,
+              onChanged: onChanged,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUploadBox({
+    required String title,
+    required String subtitle,
+    required String? fileName,
+    required VoidCallback onPick,
+    required VoidCallback onRemove,
+  }) {
+    final isAttached = fileName != null && fileName.isNotEmpty;
+    final isPdf = isAttached && fileName.toLowerCase().endsWith('.pdf');
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isAttached ? AppColors.primary.withValues(alpha: 0.5) : const Color(0xFFE2E8F0),
+          width: isAttached ? 1.4 : 1.0,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: isAttached ? const Color(0xFFE8F5E9) : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  isAttached ? 'Terlampir ✓' : 'Belum Ada Berkas',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: isAttached ? AppColors.verifiedGreen : AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          if (!isAttached) ...[
+            InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: onPick,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.35),
+                    style: BorderStyle.solid,
+                  ),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.cloud_upload_outlined, size: 18, color: AppColors.primary),
+                    SizedBox(width: 8),
+                    Text(
+                      'Pilih Berkas Scan dari Perangkat',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: isPdf ? const Color(0xFFE8F5E9) : const Color(0xFFE0F2FE),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      isPdf ? Icons.picture_as_pdf_rounded : Icons.image_rounded,
+                      size: 16,
+                      color: isPdf ? AppColors.verifiedGreen : AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          fileName,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 1),
+                        const Text(
+                          'Terenkripsi • Siap Ditinjau',
+                          style: TextStyle(fontSize: 10, color: AppColors.verifiedGreen),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.sync_rounded, size: 18, color: AppColors.primary),
+                    tooltip: 'Ganti Berkas',
+                    onPressed: onPick,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.textLight),
+                    tooltip: 'Hapus Berkas',
+                    onPressed: onRemove,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -667,7 +934,7 @@ class _PsychologistRegistrationScreenState
                   ),
                 ),
 
-                // SEKSI 2: PENDIDIKAN & PENGALAMAN KLINIS (BARU)
+                // SEKSI 2: PENDIDIKAN & PENGALAMAN KLINIS (DROPDOWN RAPI)
                 _buildSectionCard(
                   title: 'Pendidikan & Pengalaman Klinis',
                   subtitle: 'Kualifikasi akademik dan rekam jejak praktik',
@@ -676,45 +943,26 @@ class _PsychologistRegistrationScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Dropdown Pendidikan Terakhir
-                      const Text(
-                        'Pendidikan Terakhir',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedEducation,
-                            isExpanded: true,
-                            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary),
-                            items: _educationLevels.map((edu) {
-                              return DropdownMenuItem<String>(
-                                value: edu,
-                                child: Text(
-                                  edu,
-                                  style: const TextStyle(fontSize: 12.5, color: AppColors.textPrimary),
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (val) {
-                              if (val != null) setState(() => _selectedEducation = val);
-                            },
-                          ),
-                        ),
+                      _buildDropdownCard<String>(
+                        label: 'Pendidikan Terakhir',
+                        value: _selectedEducation,
+                        hintText: 'Pilih Pendidikan Terakhir',
+                        items: _educationLevels.map((edu) {
+                          return DropdownMenuItem<String>(
+                            value: edu,
+                            child: Text(
+                              edu,
+                              style: const TextStyle(fontSize: 12.5, color: AppColors.textPrimary),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _selectedEducation = val);
+                        },
                       ),
                       const SizedBox(height: 16),
 
-                      // Pilihan Pengalaman Klinis
+                      // Pilihan Pengalaman Klinis (Chips)
                       const Text(
                         'Pengalaman Praktik Klinis',
                         style: TextStyle(
@@ -761,13 +1009,39 @@ class _PsychologistRegistrationScreenState
                       ),
                       const SizedBox(height: 16),
 
-                      // Organisasi Profesi
-                      CustomTextField(
+                      // Dropdown Organisasi Profesi
+                      _buildDropdownCard<String>(
                         label: 'Organisasi Profesi',
-                        hint: 'cth: HIMPSI / IPK Indonesia',
-                        controller: _associationCtrl,
-                        prefixIcon: Icons.corporate_fare_outlined,
+                        value: _selectedAssociation,
+                        hintText: 'Pilih Organisasi Profesi',
+                        items: _associationOptions.map((assoc) {
+                          return DropdownMenuItem<String>(
+                            value: assoc,
+                            child: Text(
+                              assoc,
+                              style: const TextStyle(fontSize: 12.5, color: AppColors.textPrimary),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _selectedAssociation = val);
+                        },
                       ),
+
+                      if (_selectedAssociation == 'Organisasi Lainnya (Ketik Manual)') ...[
+                        const SizedBox(height: 10),
+                        CustomTextField(
+                          label: 'Nama Organisasi Profesi Lainnya',
+                          hint: 'cth: Ikatan Psikologi Klinis Cabang Surabaya',
+                          controller: _customAssociationCtrl,
+                          prefixIcon: Icons.corporate_fare_outlined,
+                          validator: (v) =>
+                              _selectedAssociation == 'Organisasi Lainnya (Ketik Manual)' &&
+                                      (v == null || v.isEmpty)
+                                  ? 'Nama organisasi profesi wajib diisi'
+                                  : null,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -835,31 +1109,39 @@ class _PsychologistRegistrationScreenState
                         const SizedBox(height: 14),
                       ],
 
-                      // Instansi Penerbit
-                      CustomTextField(
+                      // Dropdown Instansi Penerbit (Sesuai Permintaan User: Dropdown seperti Pendidikan)
+                      _buildDropdownCard<String>(
                         label: 'Instansi Penerbit Dokumen',
-                        hint: 'cth: Kemenkes RI / KTKI / Dinas Kesehatan',
-                        controller: _institutionCtrl,
-                        prefixIcon: Icons.account_balance_outlined,
-                        validator: (v) => v == null || v.isEmpty ? 'Instansi penerbit wajib diisi' : null,
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: _commonInstitutions.map((inst) {
-                          return ActionChip(
-                            label: Text(inst, style: const TextStyle(fontSize: 10)),
-                            backgroundColor: const Color(0xFFF1F5F9),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            onPressed: () {
-                              setState(() {
-                                _institutionCtrl.text = inst;
-                              });
-                            },
+                        value: _selectedInstitution,
+                        hintText: 'Pilih Instansi Penerbit',
+                        items: _institutionOptions.map((inst) {
+                          return DropdownMenuItem<String>(
+                            value: inst,
+                            child: Text(
+                              inst,
+                              style: const TextStyle(fontSize: 12.5, color: AppColors.textPrimary),
+                            ),
                           );
                         }).toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _selectedInstitution = val);
+                        },
                       ),
+
+                      if (_selectedInstitution == 'Instansi Lainnya (Ketik Manual)') ...[
+                        const SizedBox(height: 10),
+                        CustomTextField(
+                          label: 'Nama Instansi Penerbit Lainnya',
+                          hint: 'cth: Dinas Penanaman Modal & Pelayanan Terpadu Satu Pintu',
+                          controller: _customInstitutionCtrl,
+                          prefixIcon: Icons.account_balance_outlined,
+                          validator: (v) =>
+                              _selectedInstitution == 'Instansi Lainnya (Ketik Manual)' &&
+                                      (v == null || v.isEmpty)
+                                  ? 'Nama instansi wajib diisi'
+                                  : null,
+                        ),
+                      ],
                       const SizedBox(height: 16),
 
                       // Masa Berlaku Dokumen
@@ -958,276 +1240,209 @@ class _PsychologistRegistrationScreenState
                       ),
                       const SizedBox(height: 20),
 
-                      // UNGGAH BERKAS SCAN
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            _documentType == 'both'
-                                ? 'Unggah Scan STR & SIP'
-                                : (_documentType == 'str' ? 'Unggah Scan STR' : 'Unggah Scan SIP / SIPP'),
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryContainer,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '${_uploadedFiles.length} Berkas Dilampirkan',
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ),
-                        ],
+                      // UNGGAH BERKAS SCAN (DIPISAH: STR SENDIRI, SIP SENDIRI)
+                      const Text(
+                        'Lampiran Dokumen Resmi',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                       const SizedBox(height: 4),
                       const Text(
-                        'Format file didukung: PDF, JPG, PNG (Maks. 5 MB). Lampirkan scan asli agar proses verifikasi lebih cepat.',
+                        'Lampirkan scan asli berformat PDF, JPG, atau PNG (Maks. 5 MB) agar proses verifikasi kredensial akurat.',
                         style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
 
-                      if (_uploadedFiles.isEmpty) ...[
-                        InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: _handlePickFiles,
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: AppColors.primary.withValues(alpha: 0.35),
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Column(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.primaryContainer,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.cloud_upload_outlined,
-                                    color: AppColors.primary,
-                                    size: 26,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  _documentType == 'both'
-                                      ? 'Pilih Berkas Scan STR & SIP dari Perangkat'
-                                      : (_documentType == 'str'
-                                          ? 'Pilih Berkas Scan STR dari Perangkat'
-                                          : 'Pilih Berkas Scan SIP dari Perangkat'),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12.5,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 3),
-                                const Text(
-                                  'Klik di sini untuk memilih berkas dari memori perangkat',
-                                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                                ),
-                              ],
-                            ),
-                          ),
+                      // Box Upload STR (Jika STR atau Both)
+                      if (_documentType == 'str' || _documentType == 'both')
+                        _buildUploadBox(
+                          title: '1. Scan Berkas STR (Surat Tanda Registrasi)',
+                          subtitle: 'Scan sertifikat kompetensi / STR resmi dari Kemenkes/KTKI',
+                          fileName: _strFileName,
+                          onPick: _handlePickStrFile,
+                          onRemove: () => setState(() => _strFileName = null),
                         ),
-                      ] else ...[
-                        ..._uploadedFiles.asMap().entries.map((entry) {
-                          final idx = entry.key;
-                          final fileName = entry.value;
-                          final isPdf = fileName.toLowerCase().endsWith('.pdf');
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: const Color(0xFFE2E8F0)),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: isPdf ? const Color(0xFFE8F5E9) : const Color(0xFFE0F2FE),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(
-                                    isPdf ? Icons.picture_as_pdf_rounded : Icons.image_rounded,
-                                    size: 18,
-                                    color: isPdf ? AppColors.verifiedGreen : AppColors.primary,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        fileName,
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.textPrimary,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 2),
-                                      const Text(
-                                        'Siap diverifikasi • Terenkripsi',
-                                        style: TextStyle(fontSize: 10, color: AppColors.verifiedGreen),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.textLight),
-                                  onPressed: () {
-                                    setState(() {
-                                      _uploadedFiles.removeAt(idx);
-                                    });
-                                  },
-                                  tooltip: 'Hapus Berkas',
-                                ),
-                              ],
-                            ),
-                          );
-                        }),
-                        const SizedBox(height: 6),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: AppColors.primary, width: 1.2),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            icon: const Icon(Icons.add_circle_outline_rounded, size: 18, color: AppColors.primary),
-                            label: const Text(
-                              'Tambah Berkas dari Perangkat +',
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            onPressed: _handlePickFiles,
-                          ),
+
+                      // Box Upload SIP (Jika SIP atau Both)
+                      if (_documentType == 'sip' || _documentType == 'both')
+                        _buildUploadBox(
+                          title: _documentType == 'both'
+                              ? '2. Scan Berkas SIP / SIPP (Surat Izin Praktik)'
+                              : '1. Scan Berkas SIP / SIPP (Surat Izin Praktik)',
+                          subtitle: 'Scan surat izin praktik dari Dinas Kesehatan atau HIMPSI',
+                          fileName: _sipFileName,
+                          onPick: _handlePickSipFile,
+                          onRemove: () => setState(() => _sipFileName = null),
                         ),
-                      ],
                     ],
                   ),
                 ),
 
-                // SEKSI 4: PEMINATAN KLINIS
+                // SEKSI 4: PEMINATAN KLINIS (KOSONG DI AWAL, PILIH SENDIRI)
                 _buildSectionCard(
                   title: 'Fokus Peminatan Klinis',
-                  subtitle: 'Pilih spesialisasi masalah yang biasa Anda tangani',
+                  subtitle: 'Pilih spesialisasi masalah yang biasa Anda tangani (bisa lebih dari satu)',
                   icon: Icons.psychology_outlined,
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _availableSpecializations.map((spec) {
-                      final isSelected = _selectedSpecializations.contains(spec);
-                      return FilterChip(
-                        selected: isSelected,
-                        label: Text(spec),
-                        backgroundColor: const Color(0xFFF8FAFC),
-                        selectedColor: AppColors.primaryContainer,
-                        checkmarkColor: AppColors.primary,
-                        showCheckmark: isSelected,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(
-                            color: isSelected
-                                ? AppColors.primary.withValues(alpha: 0.4)
-                                : const Color(0xFFECEFF8),
-                            width: 1.0,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (_selectedSpecializations.isNotEmpty) ...[
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryContainer,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '${_selectedSpecializations.length} Spesialisasi Dipilih',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
                           ),
                         ),
-                        labelStyle: TextStyle(
-                          fontSize: 12,
-                          color: isSelected ? AppColors.primary : AppColors.textPrimary,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                        ),
-                        onSelected: (val) {
-                          setState(() {
-                            if (val) {
-                              _selectedSpecializations.add(spec);
-                            } else {
-                              _selectedSpecializations.remove(spec);
-                            }
-                          });
-                        },
-                      );
-                    }).toList(),
+                      ],
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _availableSpecializations.map((spec) {
+                          final isSelected = _selectedSpecializations.contains(spec);
+                          return FilterChip(
+                            selected: isSelected,
+                            label: Text(spec),
+                            backgroundColor: const Color(0xFFF8FAFC),
+                            selectedColor: AppColors.primaryContainer,
+                            checkmarkColor: AppColors.primary,
+                            showCheckmark: isSelected,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(
+                                color: isSelected
+                                    ? AppColors.primary.withValues(alpha: 0.5)
+                                    : const Color(0xFFECEFF8),
+                                width: isSelected ? 1.4 : 1.0,
+                              ),
+                            ),
+                            labelStyle: TextStyle(
+                              fontSize: 12,
+                              color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                            ),
+                            onSelected: (val) {
+                              setState(() {
+                                if (val) {
+                                  _selectedSpecializations.add(spec);
+                                } else {
+                                  _selectedSpecializations.remove(spec);
+                                }
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ],
                   ),
                 ),
 
-                // SEKSI 5: STANDAR SESI TELEKONSELING
+                // SEKSI 5: STANDAR SESI TELEKONSELING (DENGAN LINE WARNA ESTETIK)
                 Container(
                   margin: const EdgeInsets.only(bottom: 24),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(18),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: const Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.timer_outlined, size: 18, color: AppColors.primary),
-                          SizedBox(width: 8),
-                          Text(
-                            'Durasi Paten 30 Menit / Sesi',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: AppColors.textPrimary,
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(10),
                             ),
+                            child: const Icon(Icons.timer_outlined, size: 18, color: Color(0xFF2563EB)),
+                          ),
+                          const SizedBox(width: 12),
+                          const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Durasi Paten 30 Menit / Sesi',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Termasuk buffer jeda istirahat otomatis antar sesi',
+                                style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                      SizedBox(height: 6),
-                      Text(
-                        'Setiap slot telekonseling diatur paten 30 menit dengan buffer istirahat otomatis antar sesi sesuai jadwal buka Anda.',
-                        style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
+
+                      // LINE GARIS PEMISAH BERWARNA (SESUAI PERMINTAAN USER)
+                      Container(
+                        margin: const EdgeInsets.symmetric(vertical: 14),
+                        height: 2,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primary.withValues(alpha: 0.1),
+                              AppColors.primary.withValues(alpha: 0.6),
+                              const Color(0xFF10B981).withValues(alpha: 0.5),
+                              const Color(0xFF10B981).withValues(alpha: 0.1),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
-                      Divider(height: 18),
+
                       Row(
                         children: [
-                          Icon(Icons.savings_outlined, size: 18, color: AppColors.primary),
-                          SizedBox(width: 8),
-                          Text(
-                            'Tarif & Bagi Hasil Terkelola',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: AppColors.textPrimary,
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFECFDF5),
+                              borderRadius: BorderRadius.circular(10),
                             ),
+                            child: const Icon(Icons.savings_outlined, size: 18, color: Color(0xFF059669)),
+                          ),
+                          const SizedBox(width: 12),
+                          const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Tarif & Bagi Hasil Terkelola',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Honorarium otomatis masuk ke dompet & rekening bank Anda',
+                                style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                              ),
+                            ],
                           ),
                         ],
-                      ),
-                      SizedBox(height: 6),
-                      Text(
-                        'Tarif per sesi dan honorarium psikolog disalurkan transparan ke rekening bank Anda setelah sesi diverifikasi.',
-                        style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
                       ),
                     ],
                   ),
