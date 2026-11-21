@@ -30,6 +30,13 @@ class CallPersistenceService:
         if session.is_history_loaded:
             return
 
+        if getattr(session, "privacy_mode", "standard") != "standard":
+            session.is_history_loaded = True
+            logger.info(
+                f"🔒 [PERSISTENCE LOAD SKIPPED] Session {session.session_id}: Mode '{session.privacy_mode}' active. PostgreSQL cross-session recall disabled."
+            )
+            return
+
         try:
             async with AsyncSessionLocal() as db:
                 user = None
@@ -133,6 +140,8 @@ class CallPersistenceService:
         analysis_result: dict[str, Any] | None = None,
     ) -> None:
         """Persist a single voice turn message and trigger ML emotion detection."""
+        if getattr(session, "privacy_mode", "standard") != "standard":
+            return
         if not session.db_conversation_id or not content.strip():
             return
         try:
@@ -204,6 +213,12 @@ class CallPersistenceService:
     @staticmethod
     async def sync_today_diary(session: Any) -> None:
         """Create or Update today's single DiaryEntry ONCE upon disconnecting a voice call session."""
+        if getattr(session, "privacy_mode", "standard") != "standard":
+            logger.info(
+                f"🔒 [PERSISTENCE DIARY SYNC SKIPPED] Session {session.session_id}: Mode '{session.privacy_mode}' active. PostgreSQL diary sync disabled."
+            )
+            return
+
         if not session.user_id:
             return
 
@@ -294,6 +309,12 @@ class CallPersistenceService:
     @staticmethod
     async def sync_today_dass(session: Any) -> None:
         """Extract and update today's DASS-21 assessment upon disconnecting a voice call session."""
+        if getattr(session, "privacy_mode", "standard") != "standard":
+            logger.info(
+                f"🔒 [PERSISTENCE DASS SYNC SKIPPED] Session {session.session_id}: Mode '{session.privacy_mode}' active. PostgreSQL DASS sync disabled."
+            )
+            return
+
         if not session.user_id:
             return
 

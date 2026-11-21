@@ -818,7 +818,7 @@ class MockCareDataSource implements CareDataSource {
     required DateTime preferredDateTime,
     required ConsultationType sessionType,
     String? complaints,
-    bool shareAiChatHistory = true,
+    bool shareAiChatHistory = false,
   }) async {
     await Future.delayed(const Duration(milliseconds: 400));
     final targetPsy = _psychologists.firstWhere(

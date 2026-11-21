@@ -87,3 +87,24 @@ async def test_orchestrator_process_turn_convenience():
     assert "emotion" in result
     assert "symptoms" in result
     assert result["is_crisis"] is False
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_structured_persisted_context():
+    mock_llm = MockLLMProvider()
+    orchestrator = AIOrchestrator(llm_provider=mock_llm)
+
+    context = [
+        {"category": "coping_strategy", "text": "Jalan pagi di taman membantu menenangkan pikiran"},
+        {"category": "interaction_preference", "text": "Lebih suka didengarkan dahulu"},
+    ]
+    turn = await orchestrator.prepare_turn(
+        user_text="Halo Eva, aku mau cerita hari ini.",
+        structured_persisted_context=context,
+    )
+
+    assert "Fakta Konteks Personal Pengguna" in turn.final_system_prompt
+    assert "Jalan pagi di taman membantu menenangkan pikiran" in turn.final_system_prompt
+    assert "Lebih suka didengarkan dahulu" in turn.final_system_prompt
+    assert turn.is_crisis is False
+

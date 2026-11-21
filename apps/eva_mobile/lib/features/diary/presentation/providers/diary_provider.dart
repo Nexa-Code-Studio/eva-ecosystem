@@ -1,22 +1,30 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:eva_mobile/config/app_config.dart';
+import '../../../../features/memory/presentation/providers/memory_provider.dart';
 import '../../domain/repositories/diary_repository.dart';
 import '../../domain/entities/diary_entry_entity.dart';
 import '../../data/datasources/mock_diary_datasource.dart';
-import '../../data/datasources/remote_diary_datasource.dart';
+import '../../data/datasources/local_diary_datasource.dart';
 import '../../data/repositories/diary_repository_impl.dart';
 import '../../data/repositories/fallback_diary_repository.dart';
 
+final localDiaryDataSourceProvider = Provider<LocalDiaryDataSource>((ref) {
+  final localDb = ref.watch(encryptedLocalDatabaseProvider);
+  return LocalDiaryDataSource(localDb);
+});
+
 final diaryRepositoryProvider = Provider<DiaryRepository>((ref) {
   final mockRepo = DiaryRepositoryImpl(MockDiaryDataSource());
-  final remoteRepo = DiaryRepositoryImpl(RemoteDiaryDataSource());
+  final localSource = ref.watch(localDiaryDataSourceProvider);
+  final localRepo = DiaryRepositoryImpl(localSource);
 
   if (AppConfig.useMockData) {
     return mockRepo;
   } else if (AppConfig.useHybridFallback) {
-    return FallbackDiaryRepository(remote: remoteRepo, mock: mockRepo);
+    return FallbackDiaryRepository(remote: localRepo, mock: mockRepo);
   } else {
-    return remoteRepo;
+    // Local encrypted database is the new source of truth for private journal data
+    return localRepo;
   }
 });
 

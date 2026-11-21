@@ -4,7 +4,7 @@ import os
 import time
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from ai.factories.llm_factory import LLMFactory
 from ai.factories.tts_factory import TTSFactory
@@ -196,6 +196,7 @@ class AIOrchestrator:
         dass_scores: Optional[dict[str, Any]] = None,
         user_name: Optional[str] = None,
         persisted_memory: Optional[str] = None,
+        structured_persisted_context: Optional[List[Dict[str, Any]]] = None,
     ) -> str:
         """Menyusun system prompt empati konseling dinamis berdasarkan hasil observasi multi-agent."""
         emotion_guidance_map = {
@@ -234,7 +235,15 @@ class AIOrchestrator:
                 f"DILARANG menyebut nama pengguna berulang-ulang di setiap kalimat agar tidak terasa kaku atau aneh.\n"
             )
 
-        if persisted_memory and persisted_memory.strip():
+        if structured_persisted_context:
+            context_lines = [
+                f"- [{it.get('category', 'konteks')}]: {it.get('text', '').strip()}"
+                for it in structured_persisted_context
+                if it.get("text")
+            ]
+            if context_lines:
+                prompt += "\n[Fakta Konteks Personal Pengguna (SQLCipher Terenkripsi)]:\n" + "\n".join(context_lines) + "\n"
+        elif persisted_memory and persisted_memory.strip():
             prompt += f"\n[Memori Percakapan Terdahulu Pengguna]:\n{persisted_memory.strip()}\n"
 
         if dass_scores:
@@ -300,12 +309,19 @@ class AIOrchestrator:
         dass_scores: Optional[dict[str, Any]] = None,
         user_name: Optional[str] = None,
         persisted_memory: Optional[str] = None,
+        structured_persisted_context: Optional[List[Dict[str, Any]]] = None,
     ) -> str:
         """Menyusun system prompt empati konseling dinamis berlapis untuk ElevenLabs v4 Turbo."""
         prompt_version = getattr(settings, "EVA_PROMPT_VERSION", getattr(settings, "LUNA_PROMPT_VERSION", "v2"))
         if prompt_version == "v1":
             return self._compose_system_prompt_v1(
-                emotion, safety_decision, rag_items, dass_scores, user_name, persisted_memory
+                emotion,
+                safety_decision,
+                rag_items,
+                dass_scores,
+                user_name,
+                persisted_memory,
+                structured_persisted_context,
             )
 
         # Layer 1 — Identitas & Peran Eva
@@ -330,7 +346,17 @@ class AIOrchestrator:
             "3. Pengetahuan Referensial: Gunakan informasi referensi hanya sebagai acuan pendukung ringkas bila relevan. DILARANG KERAS mengutip, membacakan esai, atau mendikte isi artikel panjang tanpa diminta pengguna.",
         ])
 
-        if persisted_memory and persisted_memory.strip():
+        if structured_persisted_context:
+            context_lines = [
+                f"- [{it.get('category', 'konteks')}]: {it.get('text', '').strip()}"
+                for it in structured_persisted_context
+                if it.get("text")
+            ]
+            if context_lines:
+                prompt_parts.append(
+                    "\n[Fakta Konteks Personal Pengguna (SQLCipher Terenkripsi)]:\n" + "\n".join(context_lines)
+                )
+        elif persisted_memory and persisted_memory.strip():
             prompt_parts.append(f"\n[Memori Percakapan Terdahulu Pengguna]:\n{persisted_memory.strip()}")
 
         if rag_items:
@@ -402,6 +428,7 @@ class AIOrchestrator:
         dass_scores: Optional[dict[str, Any]] = None,
         user_name: Optional[str] = None,
         precomputed_emotion: Optional[EmotionDetectionResult] = None,
+        structured_persisted_context: Optional[List[Dict[str, Any]]] = None,
     ) -> OrchestratedTurnResult:
         """Memproses seluruh evaluasi orkestrasi (Emosi -> Gejala -> Risiko -> RAG)
 
@@ -503,6 +530,7 @@ class AIOrchestrator:
             dass_scores=dass_scores,
             user_name=user_name,
             persisted_memory=persisted_memory,
+            structured_persisted_context=structured_persisted_context,
         )
 
         # 7. Siapkan Message History dengan Adaptive History Budgeting

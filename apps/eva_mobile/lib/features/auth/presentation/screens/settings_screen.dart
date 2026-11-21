@@ -1,8 +1,11 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:eva_mobile/features/memory/presentation/providers/memory_provider.dart';
+import 'package:eva_mobile/features/memory/presentation/screens/memory_management_screen.dart';
 import 'package:eva_mobile/theme/app_colors.dart';
 import 'package:eva_mobile/widgets/app_back_button.dart';
 import 'package:eva_mobile/widgets/app_snack_bar.dart';
@@ -10,14 +13,14 @@ import 'package:eva_mobile/widgets/glass_card.dart';
 import 'package:eva_mobile/widgets/skeleton_shimmer.dart';
 import 'package:eva_mobile/widgets/staggered_entrance.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // Voice & AI Preferences
   String _selectedVoiceMode = 'mode_2';
   double _speechRate = 1.0;
@@ -145,12 +148,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 backgroundColor: const Color(0xFFD32F2F),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
               ),
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(context);
-                AppSnackBar.showError(
-                  context,
-                  'Memori lokal percakapan AI berhasil dibersihkan.',
-                );
+                try {
+                  await ref.read(memoryNotifierProvider.notifier).clearAll();
+                  if (context.mounted) {
+                    AppSnackBar.showSuccess(
+                      context,
+                      'Memori lokal percakapan AI berhasil dibersihkan dari penyimpanan terenkripsi.',
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    AppSnackBar.showError(
+                      context,
+                      'Gagal membersihkan memori lokal: $e',
+                    );
+                  }
+                }
               },
               child: Text(
                 'Ya, Hapus',
@@ -490,6 +505,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                             setState(() => _incognitoSessionMode = val);
                                             _saveSetting('settings_incognito', val);
                                           },
+                                        ),
+                                        const Divider(height: 20, thickness: 0.5, color: AppColors.divider),
+                                        _buildActionTile(
+                                          icon: Icons.psychology_outlined,
+                                          iconColor: AppColors.primary,
+                                          title: 'Kelola Memori Personal Luna',
+                                          subtitle: 'Tinjau, aktifkan, atau nonaktifkan fakta ingatan AI lokal',
+                                          onTap: () => Navigator.push(
+                                            context,
+                                            MaterialPageRoute(builder: (_) => const MemoryManagementScreen()),
+                                          ),
                                         ),
                                         const Divider(height: 20, thickness: 0.5, color: AppColors.divider),
                                         _buildActionTile(

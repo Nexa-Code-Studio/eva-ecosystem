@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../diary/presentation/providers/diary_provider.dart';
+import '../../../memory/presentation/providers/memory_provider.dart';
 import '../../data/datasources/voice_call_ws_client.dart';
 import '../../data/services/ai_audio_playback_service.dart';
 import '../../data/services/speech_recognition_service.dart';
@@ -31,10 +33,14 @@ final aiCallControllerProvider =
   final speech = ref.watch(speechRecognitionServiceProvider);
   final playback = ref.watch(aiAudioPlaybackServiceProvider);
   final ws = ref.watch(voiceCallWsClientProvider);
+  final memoryRepo = ref.watch(memoryRepositoryProvider);
+  final diarySource = ref.watch(localDiaryDataSourceProvider);
 
   return AiCallController(
     speechService: speech,
     audioPlaybackService: playback,
     wsClient: ws,
+    memoryRepository: memoryRepo,
+    diaryDataSource: diarySource,
   );
 });

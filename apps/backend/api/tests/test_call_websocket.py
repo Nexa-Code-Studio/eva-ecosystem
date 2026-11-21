@@ -88,3 +88,100 @@ def test_call_websocket_authenticated_mobile_flow():
         assert pong["type"] == "pong"
 
         websocket.send_json({"type": "end_call"})
+
+
+def test_call_websocket_client_context_and_artifacts_flow():
+    """Validates Luna Selective LTM protocol: client_context_v1, context_ack_v1, finalize, and artifacts."""
+    with client.websocket_connect("/api/v1/call/ws/test_ltm_flow_session?privacy_mode=local_private") as ws:
+        connected = ws.receive_json()
+        assert connected["type"] == "call_connected"
+        assert connected["protocol_version"] == 1
+        assert connected["privacy_mode_active"] == "local_private"
+        assert connected["context_supported"] is True
+
+        # Send client_context_v1
+        context_payload = {
+            "type": "client_context_v1",
+            "protocol_version": 1,
+            "client_session_id": "test_ltm_flow_session",
+            "context_request_id": "req-12345",
+            "items": [
+                {
+                    "id": "mem-01",
+                    "category": "coping_strategy",
+                    "text": "Jalan santai di taman membantu meredakan rasa cemas",
+                    "status": "active",
+                },
+                {
+                    "id": "mem-02",
+                    "category": "interaction_preference",
+                    "text": "Dengarkan terlebih dahulu sebelum beri saran praktis",
+                    "status": "active",
+                },
+                {
+                    "id": "mem-03",
+                    "category": "invalid_category_xyz",
+                    "text": "Item dengan kategori invalid",
+                    "status": "active",
+                },
+            ],
+        }
+        ws.send_json(context_payload)
+        ack = ws.receive_json()
+        assert ack["type"] == "context_ack_v1"
+        assert ack["context_request_id"] == "req-12345"
+        assert ack["accepted_count"] == 2
+        assert ack["rejected_count"] == 1
+        assert len(ack["rejection_reasons"]) == 1
+
+        # Request session finalization artifacts
+        ws.send_json({
+            "type": "session_finalize_v1",
+            "client_session_id": "test_ltm_flow_session",
+            "request_id": "fin-9988",
+            "duration_seconds": 120,
+            "request_memory_candidates": True,
+        })
+        artifacts = ws.receive_json()
+        assert artifacts["type"] == "session_artifacts_v1"
+        assert artifacts["request_id"] == "fin-9988"
+        assert "session_summary" in artifacts
+        assert "journal_delta" in artifacts
+        assert "memory_candidates" in artifacts
+        assert "title" in artifacts["journal_delta"]
+
+        # Send session artifacts ACK
+        ws.send_json({
+            "type": "session_artifacts_ack_v1",
+            "request_id": "fin-9988",
+            "status": "committed_locally",
+        })
+        finalized = ws.receive_json()
+        assert finalized["type"] == "session_finalized_v1"
+        assert finalized["request_id"] == "fin-9988"
+        assert finalized["status"] == "closed"
+
+
+def test_call_websocket_incognito_mode():
+    """Validates that Incognito mode rejects all client context items and persists no state."""
+    with client.websocket_connect("/api/v1/call/ws/test_incognito_session?privacy_mode=incognito") as ws:
+        connected = ws.receive_json()
+        assert connected["type"] == "call_connected"
+        assert connected["privacy_mode_active"] == "incognito"
+
+        ws.send_json({
+            "type": "client_context_v1",
+            "context_request_id": "req-incog-1",
+            "items": [
+                {
+                    "id": "mem-01",
+                    "category": "coping_strategy",
+                    "text": "Latihan napas",
+                }
+            ],
+        })
+        ack = ws.receive_json()
+        assert ack["type"] == "context_ack_v1"
+        assert ack["accepted_count"] == 0
+        assert ack["rejected_count"] == 1
+        assert "incognito_mode_active" in ack["rejection_reasons"]

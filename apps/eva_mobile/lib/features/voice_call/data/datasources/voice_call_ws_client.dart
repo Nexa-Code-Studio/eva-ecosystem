@@ -27,10 +27,11 @@ class VoiceCallWsClient {
         : AppConfig.wsUrl;
     final token = await AppConfig.getToken();
     final uriStr = (token != null && token.isNotEmpty)
-        ? '$wsBase/call/ws/$sessionId?token=$token'
-        : '$wsBase/call/ws/$sessionId';
+        ? '$wsBase/call/ws/$sessionId?token=$token&privacy_mode=local_private'
+        : '$wsBase/call/ws/$sessionId?privacy_mode=local_private';
     final uri = Uri.parse(uriStr);
-    debugPrint('🔌 [WS CLIENT] Connecting: $uri');
+    final maskedLog = uriStr.replaceAll(RegExp(r'token=[^&]+'), 'token=***');
+    debugPrint('🔌 [WS CLIENT] Connecting: $maskedLog');
 
     try {
       _channel = WebSocketChannel.connect(uri);
@@ -203,6 +204,50 @@ class VoiceCallWsClient {
       'known_state': knownState,
       'user_turn_id': userTurnId,
       'assistant_turn_id': assistantTurnId,
+    });
+  }
+
+  void sendClientContext({
+    required String clientSessionId,
+    required String contextRequestId,
+    required List<Map<String, dynamic>> items,
+    String privacyMode = 'local_private',
+  }) {
+    _sendJson({
+      'type': 'client_context_v1',
+      'protocol_version': 1,
+      'client_session_id': clientSessionId,
+      'context_request_id': contextRequestId,
+      'privacy_mode': privacyMode,
+      'context_scope': 'conversation_personalization',
+      'items': items,
+    });
+  }
+
+  void sendSessionFinalize({
+    required String clientSessionId,
+    required String requestId,
+    required int durationSeconds,
+    bool requestMemoryCandidates = true,
+  }) {
+    _sendJson({
+      'type': 'session_finalize_v1',
+      'client_session_id': clientSessionId,
+      'request_id': requestId,
+      'duration_seconds': durationSeconds,
+      'request_memory_candidates': requestMemoryCandidates,
+    });
+  }
+
+  void sendSessionArtifactsAck({
+    required String requestId,
+    String status = 'committed_locally',
+  }) {
+    _sendJson({
+      'type': 'session_artifacts_ack_v1',
+      'request_id': requestId,
+      'status': status,
+      'client_committed_at': DateTime.now().toIso8601String(),
     });
   }
 

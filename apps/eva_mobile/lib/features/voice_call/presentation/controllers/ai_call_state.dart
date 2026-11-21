@@ -21,6 +21,8 @@ class AiCallViewState {
   final String? crisisHotlineUrl;
   final bool isCrisisSession;
   final String voiceMode;
+  final List<Map<String, dynamic>> pendingMemoryCandidates;
+  final bool isFinalizing;
 
   const AiCallViewState({
     this.callState = CallState.idle,
@@ -43,6 +45,8 @@ class AiCallViewState {
     this.crisisHotlineUrl,
     this.isCrisisSession = false,
     this.voiceMode = 'mode_2',
+    this.pendingMemoryCandidates = const [],
+    this.isFinalizing = false,
   });
 
   AiCallViewState copyWith({
@@ -66,6 +70,8 @@ class AiCallViewState {
     String? crisisHotlineUrl,
     bool? isCrisisSession,
     String? voiceMode,
+    List<Map<String, dynamic>>? pendingMemoryCandidates,
+    bool? isFinalizing,
     bool clearCrisis = false,
     bool clearError = false,
   }) {
@@ -90,6 +96,8 @@ class AiCallViewState {
       crisisHotlineUrl: clearCrisis ? null : (crisisHotlineUrl ?? this.crisisHotlineUrl),
       isCrisisSession: clearCrisis ? false : (isCrisisSession ?? this.isCrisisSession),
       voiceMode: voiceMode ?? this.voiceMode,
+      pendingMemoryCandidates: pendingMemoryCandidates ?? this.pendingMemoryCandidates,
+      isFinalizing: isFinalizing ?? this.isFinalizing,
     );
   }
 }

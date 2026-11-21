@@ -49,7 +49,7 @@ class ConsultationSessionEntity {
     this.moodAfter,
     this.durationMinutes = 50,
     this.sessionSummary,
-    this.shareAiChatHistory = true,
+    this.shareAiChatHistory = false,
   });
 
   bool get isUpcoming => status == ConsultationStatus.upcoming;

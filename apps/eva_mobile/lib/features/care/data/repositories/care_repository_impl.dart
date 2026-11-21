@@ -41,7 +41,7 @@ class CareRepositoryImpl implements CareRepository {
     required DateTime preferredDateTime,
     required ConsultationType sessionType,
     String? complaints,
-    bool shareAiChatHistory = true,
+    bool shareAiChatHistory = false,
   }) {
     return _dataSource.bookConsultation(
       psychologistId: psychologistId,

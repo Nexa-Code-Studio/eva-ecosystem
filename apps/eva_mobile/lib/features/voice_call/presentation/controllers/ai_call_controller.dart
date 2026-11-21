@@ -9,20 +9,28 @@ import '../../data/datasources/voice_call_ws_client.dart';
 import '../../data/services/ai_audio_playback_service.dart';
 import '../../data/services/speech_recognition_service.dart';
 import '../../domain/entities/call_state.dart';
+import '../../../memory/domain/repositories/memory_repository.dart';
+import '../../../diary/data/datasources/local_diary_datasource.dart';
 import 'ai_call_state.dart';
 
 class AiCallController extends StateNotifier<AiCallViewState> {
   final SpeechRecognitionService _speechService;
   final AiAudioPlaybackService _audioPlaybackService;
   final VoiceCallWsClient _wsClient;
+  final MemoryRepository? _memoryRepository;
+  final LocalDiaryDataSource? _diaryDataSource;
 
   AiCallController({
     required SpeechRecognitionService speechService,
     required AiAudioPlaybackService audioPlaybackService,
     required VoiceCallWsClient wsClient,
+    MemoryRepository? memoryRepository,
+    LocalDiaryDataSource? diaryDataSource,
   })  : _speechService = speechService,
         _audioPlaybackService = audioPlaybackService,
         _wsClient = wsClient,
+        _memoryRepository = memoryRepository,
+        _diaryDataSource = diaryDataSource,
         super(const AiCallViewState());
 
   StreamSubscription? _partialSubscription;
@@ -199,7 +207,31 @@ class AiCallController extends StateNotifier<AiCallViewState> {
 
     debugPrint('📩 [AI CALL CONTROLLER <- WS] $type');
 
-    if (type == 'call_started') {
+    if (type == 'call_connected') {
+      final contextSupported = event['context_supported'] as bool? ?? false;
+      if (contextSupported && _memoryRepository != null) {
+        _sendSelectiveLtmContext();
+      }
+    } else if (type == 'context_ack_v1') {
+      debugPrint('📥 [LTM CONTEXT ACK] Accepted: ${event['accepted_count']}, Rejected: ${event['rejected_count']}');
+    } else if (type == 'session_artifacts_v1') {
+      final requestId = event['request_id'] as String? ?? 'fin_${DateTime.now().millisecondsSinceEpoch}';
+      final sessionSummary = event['session_summary'] as String? ?? '';
+      final journalDelta = event['journal_delta'] as Map<String, dynamic>? ?? {};
+      final candidates = (event['memory_candidates'] as List<dynamic>?)
+          ?.map((e) => Map<String, dynamic>.from(e as Map))
+          .toList() ?? [];
+
+      _handleSessionArtifactsReceived(
+        requestId: requestId,
+        sessionSummary: sessionSummary,
+        journalDelta: journalDelta,
+        candidates: candidates,
+      );
+    } else if (type == 'session_finalized_v1') {
+      state = state.copyWith(isFinalizing: false, callState: CallState.ended);
+      _wsClient.disconnect();
+    } else if (type == 'call_started') {
       final confirmedMode = event['voice_mode'] as String?;
       if (confirmedMode != null && confirmedMode.isNotEmpty) {
         state = state.copyWith(voiceMode: confirmedMode);
@@ -521,8 +553,65 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     await forceCommit();
   }
 
-  /// End Call & Disconnect
+  Future<void> _sendSelectiveLtmContext() async {
+    try {
+      final repo = _memoryRepository;
+      if (repo == null) return;
+      final items = await repo.selectRelevantContext(
+        accountKey: 'current_user_local',
+        maxItems: 5,
+      );
+      if (items.isEmpty) return;
+
+      final payloadItems = items.map((e) => {
+        'id': e.id,
+        'category': e.category.value,
+        'text': e.factText,
+        'status': e.status.value,
+      }).toList();
+
+      _wsClient.sendClientContext(
+        clientSessionId: state.callId,
+        contextRequestId: 'req_${DateTime.now().millisecondsSinceEpoch}',
+        items: payloadItems,
+      );
+    } catch (e) {
+      debugPrint('⚠️ [LTM CONTEXT INJECTION ERROR]: $e');
+    }
+  }
+
+  Future<void> _handleSessionArtifactsReceived({
+    required String requestId,
+    required String sessionSummary,
+    required Map<String, dynamic> journalDelta,
+    required List<Map<String, dynamic>> candidates,
+  }) async {
+    try {
+      final diarySource = _diaryDataSource;
+      if (diarySource != null && (sessionSummary.isNotEmpty || journalDelta.isNotEmpty)) {
+        await diarySource.saveSessionArtifacts(
+          sessionId: state.callId,
+          sessionSummary: sessionSummary,
+          journalDelta: journalDelta,
+        );
+      }
+      _wsClient.sendSessionArtifactsAck(requestId: requestId, status: 'committed_locally');
+    } catch (e) {
+      debugPrint('⚠️ [SESSION ARTIFACTS COMMIT ERROR]: $e');
+    } finally {
+      state = state.copyWith(
+        pendingMemoryCandidates: candidates,
+        isFinalizing: false,
+        callState: CallState.ended,
+      );
+      _wsClient.disconnect();
+    }
+  }
+
+  /// End Call & Disconnect (with post-session artifact finalization)
   Future<void> endCall() async {
+    if (state.isFinalizing || state.callState == CallState.ended) return;
+
     _durationTimer?.cancel();
     _restartTimer?.cancel();
     _thinkingWatchdogTimer?.cancel();
@@ -530,10 +619,28 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     await _speechService.stopListening();
     await _audioPlaybackService.stop();
 
-    _wsClient.sendEndCall(state.callDurationSeconds);
-    _wsClient.disconnect();
+    state = state.copyWith(isFinalizing: true);
 
-    state = state.copyWith(callState: CallState.ended);
+    if (_wsClient.isConnected) {
+      _wsClient.sendSessionFinalize(
+        clientSessionId: state.callId,
+        requestId: 'fin_${DateTime.now().millisecondsSinceEpoch}',
+        durationSeconds: state.callDurationSeconds,
+        requestMemoryCandidates: true,
+      );
+
+      // Fail-safe timeout in case server doesn't respond with session_artifacts_v1
+      Future.delayed(const Duration(seconds: 4), () {
+        if (state.isFinalizing && !_isDisposed) {
+          debugPrint('⏱️ [FINALIZE TIMEOUT] Closing session after timeout');
+          _wsClient.sendEndCall(state.callDurationSeconds);
+          _wsClient.disconnect();
+          state = state.copyWith(isFinalizing: false, callState: CallState.ended);
+        }
+      });
+    } else {
+      state = state.copyWith(isFinalizing: false, callState: CallState.ended);
+    }
   }
 
   void _cancelSubscriptions() {

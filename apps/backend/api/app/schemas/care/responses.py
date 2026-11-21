@@ -1,3 +1,4 @@
+from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -27,6 +28,35 @@ class CallStatusResponse(BaseModel):
     success: bool
     session_id: str
     status: str
+
+
+class ClinicalShareResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    share_receipt_id: str
+    booking_id: str
+    psychologist_id: str
+    status: str
+    authorized_categories: list[str] = Field(default_factory=list)
+    expires_at: str | None = None
+    created_at: str
+
+
+class RevokeClinicalShareResponse(BaseModel):
+    share_receipt_id: str
+    status: str = "revoked"
+    revoked_at: str
+    message: str
+
+
+class SharedClinicalBundleResponse(BaseModel):
+    share_receipt_id: str
+    booking_id: str
+    psychologist_id: str
+    status: str
+    authorized_categories: list[str]
+    items: dict[str, Any]
+    created_at: str
     message: str
 
 
@@ -52,4 +82,33 @@ class SessionActionResponse(BaseModel):
     success: bool
     session_id: str
     status: str
+
+
+class ClinicalShareResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    share_receipt_id: str
+    booking_id: str
+    psychologist_id: str
+    status: str
+    authorized_categories: list[str] = Field(default_factory=list)
+    expires_at: str | None = None
+    created_at: str
+
+
+class RevokeClinicalShareResponse(BaseModel):
+    share_receipt_id: str
+    status: str = "revoked"
+    revoked_at: str
+    message: str
+
+
+class SharedClinicalBundleResponse(BaseModel):
+    share_receipt_id: str
+    booking_id: str
+    psychologist_id: str
+    status: str
+    authorized_categories: list[str]
+    items: dict[str, Any]
+    created_at: str
 

@@ -34,7 +34,7 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
   int _selectedDayOffset = 1; // 1 = Besok, 2 = Lusa
   int _selectedTimeSlot = 0; // Index in slots
   final TextEditingController _notesController = TextEditingController();
-  bool _shareAiChatHistory = true;
+  bool _shareAiChatHistory = false;
   bool _isLoading = false;
 
   final List<String> _timeSlots = [
@@ -477,7 +477,7 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
                               ),
                               const SizedBox(width: 5),
                               Text(
-                                'Bagikan Riwayat Chat AI ke Psikolog',
+                                'Bagikan Ringkasan Klinis Terpilih ke Psikolog',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.w700,
@@ -488,7 +488,7 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            'Saya bersedia mengirimkan riwayat percakapan dengan AI sebagai bahan analisis untuk psikolog.',
+                            'Opsional (Default non-aktif). Mengirimkan keluhan dan diagnosis profesional yang telah Anda konfirmasi tanpa membagikan transkrip suara atau jurnal pribadi.',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 11.5,
                               color: AppColors.textSecondary,

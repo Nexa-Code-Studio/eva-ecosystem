@@ -28,6 +28,6 @@ abstract class CareRepository {
     required DateTime preferredDateTime,
     required ConsultationType sessionType,
     String? complaints,
-    bool shareAiChatHistory = true,
+    bool shareAiChatHistory = false,
   });
 }

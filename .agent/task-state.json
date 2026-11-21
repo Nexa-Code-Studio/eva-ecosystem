@@ -77,5 +77,12 @@
     "updated_at": 1795050752,
     "evidence_summary": "Evidence accepted: completion and merge/approval verified.",
     "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/75"
+  },
+  "96": {
+    "issue": 96,
+    "branch": "refactor/96-luna-local-selective-ltm-sqlcipher",
+    "state": "In Progress",
+    "updated_at": 1795254026,
+    "evidence_summary": "Evidence accepted: active task branch verified."
   }
 }

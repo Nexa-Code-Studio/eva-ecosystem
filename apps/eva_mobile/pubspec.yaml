@@ -40,14 +40,15 @@ dependencies:
   speech_to_text: ^7.0.0
   shared_preferences: ^2.3.2
   url_launcher: ^6.3.1
-
-
-
+  path: ^1.9.0
+  sqflite_sqlcipher: ^3.1.0
+  flutter_secure_storage: ^9.2.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
+  sqflite_common_ffi: ^2.3.4
   flutter_lints: ^6.0.0
 
 flutter:
