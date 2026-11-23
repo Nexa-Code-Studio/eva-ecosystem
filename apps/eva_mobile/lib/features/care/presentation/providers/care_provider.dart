@@ -4,6 +4,7 @@ import '../../domain/entities/psychologist_entity.dart';
 import '../../domain/entities/clinic_entity.dart';
 import '../../domain/entities/community_status_entity.dart';
 import '../../domain/entities/consultation_session_entity.dart';
+import '../../domain/entities/counselor_timeline_entity.dart';
 import '../../domain/entities/psychologist_rating_review.dart';
 import '../../domain/repositories/care_repository.dart';
 import '../../data/datasources/mock_care_datasource.dart';
@@ -53,6 +54,13 @@ final clinicsListProvider = FutureProvider<List<ClinicEntity>>((ref) async {
   final repo = ref.watch(careRepositoryProvider);
   final query = ref.watch(careSearchQueryProvider);
   return repo.getClinics(query: query);
+});
+
+// Counselor Daily Availability Timeline Provider
+final counselorTimelineProvider = FutureProvider.autoDispose
+    .family<CounselorTimelineEntity, ({String counselorId, DateTime date})>((ref, arg) async {
+  final repo = ref.watch(careRepositoryProvider);
+  return repo.getCounselorTimeline(counselorId: arg.counselorId, date: arg.date);
 });
 
 // Community Status Notifier (Handles instant upgrade & state sync)
@@ -114,6 +122,8 @@ class ConsultationSessionsNotifier
     required String psychologistId,
     required DateTime preferredDateTime,
     required ConsultationType sessionType,
+    int sessionCount = 1,
+    int durationMinutes = 30,
     String? complaints,
     bool shareAiChatHistory = true,
   }) async {
@@ -122,6 +132,8 @@ class ConsultationSessionsNotifier
         psychologistId: psychologistId,
         preferredDateTime: preferredDateTime,
         sessionType: sessionType,
+        sessionCount: sessionCount,
+        durationMinutes: durationMinutes,
         complaints: complaints,
         shareAiChatHistory: shareAiChatHistory,
       );

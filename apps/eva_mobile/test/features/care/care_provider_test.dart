@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:eva_mobile/config/app_config.dart';
@@ -13,6 +14,7 @@ import 'package:eva_mobile/features/care/data/repositories/fallback_care_reposit
 import 'package:eva_mobile/features/care/domain/entities/clinic_entity.dart';
 import 'package:eva_mobile/features/care/domain/entities/community_status_entity.dart';
 import 'package:eva_mobile/features/care/domain/entities/consultation_session_entity.dart';
+import 'package:eva_mobile/features/care/domain/entities/counselor_timeline_entity.dart';
 import 'package:eva_mobile/features/care/domain/entities/psychologist_entity.dart';
 import 'package:eva_mobile/features/care/domain/repositories/care_repository.dart';
 import 'package:eva_mobile/features/care/presentation/providers/care_provider.dart';
@@ -444,10 +446,28 @@ class FakeRemoteCareRepository implements CareRepository {
   }
 
   @override
+  Future<CounselorTimelineEntity> getCounselorTimeline({
+    required String counselorId,
+    required DateTime date,
+  }) async {
+    if (shouldThrow404) throw ApiException('Not Found', statusCode: 404);
+    return CounselorTimelineEntity(
+      counselorId: counselorId,
+      date: date,
+      operatingHours: const OperatingHoursEntity(
+        start: TimeOfDay(hour: 8, minute: 0),
+        end: TimeOfDay(hour: 17, minute: 0),
+      ),
+    );
+  }
+
+  @override
   Future<ConsultationSessionEntity> bookConsultation({
     required String psychologistId,
     required DateTime preferredDateTime,
     required ConsultationType sessionType,
+    int sessionCount = 1,
+    int durationMinutes = 30,
     String? complaints,
     bool shareAiChatHistory = true,
   }) async {

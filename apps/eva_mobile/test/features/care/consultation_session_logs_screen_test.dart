@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,8 +9,13 @@ import 'package:eva_mobile/features/care/domain/entities/consultation_session_en
 import 'package:eva_mobile/features/care/domain/entities/psychologist_entity.dart';
 import 'package:eva_mobile/features/care/presentation/screens/consultation_history_screen.dart';
 import 'package:eva_mobile/features/care/presentation/screens/consultation_session_logs_screen.dart';
+import '../../test_helpers/mock_image_http.dart';
 
 void main() {
+  setUpAll(() {
+    HttpOverrides.global = TestHttpOverrides();
+  });
+
   setUp(() {
     AppConfig.useMockData = true;
     SharedPreferences.setMockInitialValues({
@@ -79,6 +85,8 @@ void main() {
         ),
       ),
     );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
     await tester.pumpAndSettle();
 
     // Verify Title & Header
@@ -136,6 +144,8 @@ void main() {
     expect(buttonFinder, findsWidgets);
 
     await tester.tap(buttonFinder.first);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
     await tester.pumpAndSettle();
 
     // Verify that we arrived on the new dedicated ConsultationSessionLogsScreen
@@ -198,6 +208,8 @@ void main() {
         ),
       ),
     );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
     await tester.pumpAndSettle();
 
     // Verify rating prompt is visible
@@ -205,6 +217,8 @@ void main() {
 
     // Tap "Beri Rating"
     await tester.tap(find.text('Beri Rating'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
     await tester.pumpAndSettle();
 
     // Verify on ConsultationRatingScreen with Star, Ulasan Singkat, & Deskripsi (no Baik/Tidak)
@@ -217,10 +231,14 @@ void main() {
 
     // Enter short review form input (within character limit)
     await tester.enterText(find.byType(TextField).first, 'Sangat Sabar & Empati');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
     await tester.pumpAndSettle();
 
     // Submit rating
     await tester.tap(find.text('Kirim Penilaian & Ulasan'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
     await tester.pumpAndSettle();
 
     // Verify back on ConsultationSessionLogsScreen and preview card is visible (without Baik/Tidak badge)

@@ -5,6 +5,7 @@ import '../models/psychologist_model.dart';
 import '../models/clinic_model.dart';
 import '../models/community_status_model.dart';
 import '../models/consultation_session_model.dart';
+import '../models/counselor_timeline_dto.dart';
 import 'care_datasource.dart';
 
 class MockCareDataSource implements CareDataSource {
@@ -813,10 +814,100 @@ class MockCareDataSource implements CareDataSource {
   }
 
   @override
+  Future<CounselorTimelineDto> getCounselorTimeline({
+    required String counselorId,
+    required DateTime date,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 250));
+    final dateString =
+        '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+    final isFriday = date.weekday == DateTime.friday;
+
+    final blockedRanges = isFriday
+        ? const [
+            BlockedRangeDto(
+              start: '09:30',
+              end: '10:30',
+              type: 'booked',
+              label: 'Sesi Pasien Terjadwal',
+            ),
+            BlockedRangeDto(
+              start: '10:30',
+              end: '10:45',
+              type: 'buffer',
+              label: 'Jeda Konseling',
+            ),
+            BlockedRangeDto(
+              start: '11:30',
+              end: '13:00',
+              type: 'break',
+              label: 'Shalat Jumat & Istirahat',
+            ),
+            BlockedRangeDto(
+              start: '15:30',
+              end: '16:00',
+              type: 'break',
+              label: 'Istirahat Sore',
+            ),
+          ]
+        : const [
+            BlockedRangeDto(
+              start: '10:00',
+              end: '11:00',
+              type: 'booked',
+              label: 'Sesi Pasien Terjadwal',
+            ),
+            BlockedRangeDto(
+              start: '11:00',
+              end: '11:15',
+              type: 'buffer',
+              label: 'Jeda Konseling',
+            ),
+            BlockedRangeDto(
+              start: '12:00',
+              end: '13:00',
+              type: 'break',
+              label: 'Istirahat Siang',
+            ),
+            BlockedRangeDto(
+              start: '15:00',
+              end: '15:30',
+              type: 'break',
+              label: 'Coffee Break',
+            ),
+          ];
+
+    final availableWindows = isFriday
+        ? const [
+            TimeRangeDto(start: '08:00', end: '09:30'),
+            TimeRangeDto(start: '10:45', end: '11:30'),
+            TimeRangeDto(start: '13:00', end: '15:30'),
+            TimeRangeDto(start: '16:00', end: '17:00'),
+          ]
+        : const [
+            TimeRangeDto(start: '08:00', end: '10:00'),
+            TimeRangeDto(start: '11:15', end: '12:00'),
+            TimeRangeDto(start: '13:00', end: '15:00'),
+            TimeRangeDto(start: '15:30', end: '17:00'),
+          ];
+
+    return CounselorTimelineDto(
+      counselorId: counselorId,
+      date: dateString,
+      operatingHours: const OperatingHoursDto(start: '08:00', end: '17:00'),
+      blockedRanges: blockedRanges,
+      availableWindows: availableWindows,
+    );
+  }
+
+  @override
   Future<ConsultationSessionModel> bookConsultation({
     required String psychologistId,
     required DateTime preferredDateTime,
     required ConsultationType sessionType,
+    int sessionCount = 1,
+    int durationMinutes = 30,
     String? complaints,
     bool shareAiChatHistory = true,
   }) async {
@@ -832,6 +923,7 @@ class MockCareDataSource implements CareDataSource {
       sessionDateTime: preferredDateTime,
       status: ConsultationStatus.upcoming,
       type: sessionType,
+      durationMinutes: durationMinutes > 0 ? durationMinutes : sessionCount * 30,
       meetingUrl: sessionType == ConsultationType.onlineVideo
           ? 'https://meet.google.com/eva-consult-${DateTime.now().millisecondsSinceEpoch}'
           : null,

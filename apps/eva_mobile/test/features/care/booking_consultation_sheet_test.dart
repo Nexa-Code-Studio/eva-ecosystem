@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,8 +6,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:eva_mobile/config/app_config.dart';
 import 'package:eva_mobile/features/care/domain/entities/psychologist_entity.dart';
 import 'package:eva_mobile/features/care/presentation/widgets/booking_consultation_sheet.dart';
+import '../../test_helpers/mock_image_http.dart';
 
 void main() {
+  setUpAll(() {
+    HttpOverrides.global = TestHttpOverrides();
+  });
+
   const testPsychologist = PsychologistEntity(
     id: 'psy_test_1',
     name: 'Amanda Zahra, M.Psi.',
@@ -51,16 +57,22 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(createWidgetUnderTest());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.pumpAndSettle();
 
     // Tap to open sheet
     await tester.tap(find.text('Open Booking Sheet'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.pumpAndSettle();
 
-    // Verify Psychologist details
+    // Verify Psychologist details and new sections
     expect(find.text('Amanda Zahra, M.Psi.'), findsOneWidget);
     expect(find.text('Pilih Moda Konsultasi'), findsOneWidget);
     expect(find.text('Pilih Hari'), findsOneWidget);
+    expect(find.text('Durasi Pemesanan Sesi'), findsOneWidget);
+    expect(find.text('Ketersediaan & Jam Mulai'), findsOneWidget);
 
     // Verify Consent Checkbox and text exist
     final consentCheckboxFinder = find.byKey(const Key('consent_share_chat_history_checkbox'));
@@ -105,10 +117,14 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(createWidgetUnderTest());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.pumpAndSettle();
 
     // Tap to open sheet
     await tester.tap(find.text('Open Booking Sheet'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.pumpAndSettle();
 
     // Consent checkbox is checked by default
@@ -127,5 +143,48 @@ void main() {
       find.text('Riwayat percakapan AI dilampirkan untuk analisis psikolog'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('Session duration stepper increases and decreases session count', (tester) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(createWidgetUnderTest());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+
+    // Tap to open sheet
+    await tester.tap(find.text('Open Booking Sheet'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+
+    // Initial session is 1 session (30 minutes)
+    expect(find.text('1 Sesi (30 Menit)'), findsOneWidget);
+
+    // Tap [+] to add session
+    final addFinder = find.byIcon(Icons.add);
+    expect(addFinder, findsOneWidget);
+    await tester.tap(addFinder);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+
+    // Verified updated to 2 sessions (60 minutes)
+    expect(find.text('2 Sesi (60 Menit)'), findsOneWidget);
+
+    // Tap [-] to decrease session
+    final removeFinder = find.byIcon(Icons.remove);
+    expect(removeFinder, findsOneWidget);
+    await tester.tap(removeFinder);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+
+    // Verified decreased back to 1 session (30 minutes)
+    expect(find.text('1 Sesi (30 Menit)'), findsOneWidget);
   });
 }
