@@ -132,3 +132,24 @@ class ClinicalNoteDetailResponse(BaseModel):
     assessment: str
     plan: str
     recommended_tasks: list[str] = []
+
+
+class AdminSessionMonitoringResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    session_code: str
+    patient_code: str
+    patient_display_name: str
+    counselor_id: str
+    counselor_name: str
+    counselor_title: str
+    scheduled_start_time: datetime
+    scheduled_end_time: datetime
+    duration_minutes: int
+    is_extended: bool
+    status: str
+    total_price_coins: int
+    counselor_earning_coins: int
+    platform_fee_coins: int
+    clinical_summary: str | None = None

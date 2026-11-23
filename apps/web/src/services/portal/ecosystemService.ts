@@ -11,6 +11,7 @@ import type {
   CoinPackage,
   CoinTopupTransaction,
   CoinTransactionStatus,
+  ConsultationSessionMonitoring,
   CopingQuest,
   CrisisConfig,
   FaqEntry,
@@ -225,6 +226,10 @@ export async function deleteCoinPackage(packageId: string): Promise<void> {
 
 export async function toggleCoinPackageActive(packageId: string): Promise<CoinPackage> {
   return getActivePortalDataSource().toggleCoinPackageActive(packageId)
+}
+
+export async function fetchConsultationSessions(): Promise<ConsultationSessionMonitoring[]> {
+  return getActivePortalDataSource().fetchConsultationSessions()
 }
 
 export async function fetchAdminUsers(): Promise<GeneralAppUser[]> {

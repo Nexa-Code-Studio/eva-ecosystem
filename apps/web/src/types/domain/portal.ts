@@ -80,6 +80,7 @@ export type ConsultationSessionStatus =
   | 'completed'
   | 'extended'
   | 'cancelled'
+  | 'expired'
 
 export interface ConsultationSessionMonitoring {
   id: string
@@ -91,7 +92,7 @@ export interface ConsultationSessionMonitoring {
   counselorTitle: string
   scheduledStartTime: string
   scheduledEndTime: string
-  durationMinutes: 30 | 60
+  durationMinutes: number
   isExtended: boolean
   status: ConsultationSessionStatus
   totalPriceCoins: number

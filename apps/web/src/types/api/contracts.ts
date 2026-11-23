@@ -230,6 +230,25 @@ export interface BackendCoinEconomyConfigDto {
   updated_at: string
 }
 
+export interface BackendAdminSessionDto {
+  id: string
+  session_code: string
+  patient_code: string
+  patient_display_name: string
+  counselor_id: string
+  counselor_name: string
+  counselor_title: string
+  scheduled_start_time: string
+  scheduled_end_time: string
+  duration_minutes: number
+  is_extended: boolean
+  status: string
+  total_price_coins: number
+  counselor_earning_coins: number
+  platform_fee_coins: number
+  clinical_summary?: string | null
+}
+
 export interface BackendAuthTokenResponseDto {
   access_token: string
   refresh_token: string

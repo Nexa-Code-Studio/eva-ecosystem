@@ -1,5 +1,6 @@
 import { buildPsychologistCertificates } from '@/data/mock/psychologists.mock'
 import type {
+  BackendAdminSessionDto,
   BackendAdminUserDto,
   BackendCoinEconomyConfigDto,
   BackendCoinPackageDto,
@@ -14,6 +15,8 @@ import type {
   CoinPaymentMethod,
   CoinTopupTransaction,
   CoinTransactionStatus,
+  ConsultationSessionMonitoring,
+  ConsultationSessionStatus,
   GeneralAppUser,
   PlatformPricingConfig,
   PricingCalculation,
@@ -235,5 +238,50 @@ export function mapBackendCoinEconomyToDomain(
     basePricePerCoinIdr: dto.base_price_per_coin_idr,
     freeTrialCoinsNewUser: dto.free_trial_coins_new_user,
     updatedAt: dto.updated_at.slice(0, 10),
+  }
+}
+
+export function mapBackendSessionStatus(
+  rawStatus: string,
+  isExtended: boolean,
+): ConsultationSessionStatus {
+  const normalized = rawStatus.trim().toLowerCase()
+  if (normalized === 'live') {
+    return isExtended ? 'extended' : 'in_progress'
+  }
+  if (
+    normalized === 'scheduled' ||
+    normalized === 'waiting' ||
+    normalized === 'in_progress' ||
+    normalized === 'completed' ||
+    normalized === 'extended' ||
+    normalized === 'cancelled' ||
+    normalized === 'expired'
+  ) {
+    return normalized
+  }
+  return 'scheduled'
+}
+
+export function mapBackendAdminSessionToDomain(
+  dto: BackendAdminSessionDto,
+): ConsultationSessionMonitoring {
+  return {
+    id: dto.id,
+    sessionCode: dto.session_code,
+    patientCode: dto.patient_code,
+    patientDisplayName: dto.patient_display_name,
+    counselorId: dto.counselor_id,
+    counselorName: dto.counselor_name,
+    counselorTitle: dto.counselor_title,
+    scheduledStartTime: dto.scheduled_start_time,
+    scheduledEndTime: dto.scheduled_end_time,
+    durationMinutes: dto.duration_minutes,
+    isExtended: dto.is_extended,
+    status: mapBackendSessionStatus(dto.status, dto.is_extended),
+    totalPriceCoins: dto.total_price_coins,
+    counselorEarningCoins: dto.counselor_earning_coins,
+    platformFeeCoins: dto.platform_fee_coins,
+    clinicalSummary: dto.clinical_summary ?? undefined,
   }
 }

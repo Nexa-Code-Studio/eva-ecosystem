@@ -23,6 +23,7 @@ import {
 } from '@/components/portal/PortalTopbar'
 import {
   fetchAdminPsychologists,
+  fetchConsultationSessions,
   resetPortalDbToDefault,
   setPortalSession,
   usePortalDb,
@@ -46,6 +47,7 @@ export function AdminDashboardPage() {
       return
     }
     void fetchAdminPsychologists()
+    void fetchConsultationSessions()
   }, [navigate, session])
 
   const counts = useMemo<AdminSummaryCounts>(() => {

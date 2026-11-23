@@ -691,9 +691,9 @@ async def seed_counselor_master_data(session: AsyncSessionLocal, patient_user: U
             actual_end_time=now - timedelta(hours=2, minutes=30),
             duration_minutes=30,
             status=ConsultationSessionStatus.COMPLETED.value,
-            total_price=Decimal("150000.00"),
-            counselor_earning=Decimal("120000.00"),
-            platform_fee=Decimal("30000.00"),
+            total_price=Decimal("150.00"),
+            counselor_earning=Decimal("120.00"),
+            platform_fee=Decimal("30.00"),
             soap_notes={
                 "subjective": "Pasien merasa cemas dan kesulitan tidur karena beban pekerjaan meningkat.",
                 "objective": "Kontak mata baik, respon afektif cemas ringan, skor DASS kecemasan sedang.",
@@ -711,14 +711,32 @@ async def seed_counselor_master_data(session: AsyncSessionLocal, patient_user: U
             scheduled_end_time=now + timedelta(hours=3, minutes=30),
             duration_minutes=30,
             status=ConsultationSessionStatus.SCHEDULED.value,
-            total_price=Decimal("150000.00"),
-            counselor_earning=Decimal("120000.00"),
-            platform_fee=Decimal("30000.00"),
+            total_price=Decimal("150.00"),
+            counselor_earning=Decimal("120.00"),
+            platform_fee=Decimal("30.00"),
         )
-        session.add_all([past_session, upcoming_session])
+        extended_session = ConsultationSession(
+            session_code="EVA-20261120-003",
+            patient_id=patient_user.id,
+            counselor_id=profile.id,
+            pricing_config_id=pricing.id if pricing else None,
+            scheduled_start_time=now - timedelta(days=1, hours=2),
+            scheduled_end_time=now - timedelta(days=1, hours=1),
+            actual_start_time=now - timedelta(days=1, hours=2),
+            actual_end_time=now - timedelta(days=1, hours=1),
+            duration_minutes=60,
+            is_extended=True,
+            extension_requested_at=now - timedelta(days=1, hours=1, minutes=35),
+            extension_granted_at=now - timedelta(days=1, hours=1, minutes=35),
+            status=ConsultationSessionStatus.COMPLETED.value,
+            total_price=Decimal("300.00"),
+            counselor_earning=Decimal("240.00"),
+            platform_fee=Decimal("60.00"),
+        )
+        session.add_all([past_session, upcoming_session, extended_session])
         await session.commit()
         await session.refresh(past_session)
-        logger.info("Seeded Consultation Sessions (Completed & Scheduled for today Nov 20).")
+        logger.info("Seeded Consultation Sessions (Completed, Scheduled, and Extended 60m).")
 
         # 6. Counselor Transactions
         tx1 = CounselorTransaction(
@@ -753,14 +771,40 @@ async def seed_counselor_master_data(session: AsyncSessionLocal, patient_user: U
         logger.info("Seeded Counselor Transactions.")
     else:
         now = datetime.now(UTC)
+        has_extended_sample = any(s.session_code == "EVA-20261120-003" for s in existing_sessions)
         for s in existing_sessions:
             if s.session_code == "EVA-20261120-001":
                 s.scheduled_start_time = now - timedelta(hours=3)
                 s.scheduled_end_time = now - timedelta(hours=2, minutes=30)
                 s.actual_start_time = now - timedelta(hours=3)
                 s.actual_end_time = now - timedelta(hours=2, minutes=30)
+            if s.total_price > Decimal("1000.00"):
+                s.total_price = Decimal("300.00") if s.is_extended else Decimal("150.00")
+                s.counselor_earning = Decimal("240.00") if s.is_extended else Decimal("120.00")
+                s.platform_fee = Decimal("60.00") if s.is_extended else Decimal("30.00")
+        if not has_extended_sample:
+            session.add(
+                ConsultationSession(
+                    session_code="EVA-20261120-003",
+                    patient_id=patient_user.id,
+                    counselor_id=profile.id,
+                    pricing_config_id=pricing.id if pricing else None,
+                    scheduled_start_time=now - timedelta(days=1, hours=2),
+                    scheduled_end_time=now - timedelta(days=1, hours=1),
+                    actual_start_time=now - timedelta(days=1, hours=2),
+                    actual_end_time=now - timedelta(days=1, hours=1),
+                    duration_minutes=60,
+                    is_extended=True,
+                    extension_requested_at=now - timedelta(days=1, hours=1, minutes=35),
+                    extension_granted_at=now - timedelta(days=1, hours=1, minutes=35),
+                    status=ConsultationSessionStatus.COMPLETED.value,
+                    total_price=Decimal("300.00"),
+                    counselor_earning=Decimal("240.00"),
+                    platform_fee=Decimal("60.00"),
+                )
+            )
         await session.commit()
-        logger.info("Updated existing sessions for today Nov 20, 2026.")
+        logger.info("Updated existing sessions and ensured extended 60m sample.")
 
     return profile
 

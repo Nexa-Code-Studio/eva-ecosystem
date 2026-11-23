@@ -3,6 +3,7 @@ import { getEmptyDashboardAnalyticsBaseline } from '@/data/mock/dashboardMetrics
 import type { IPortalDataSource } from '@/services/contracts/portalDataSource'
 import {
   buildDomainPsychologistFromRegister,
+  mapBackendAdminSessionToDomain,
   mapBackendAdminUserToDomain,
   mapBackendCoinEconomyToDomain,
   mapBackendCoinPackageToDomain,
@@ -17,6 +18,7 @@ import type {
   AdminCoinTopupRequestDto,
   AdminCoinTopupResultDto,
   BackendAdminCoinTopupResponseDto,
+  BackendAdminSessionDto,
   BackendAdminUserDto,
   BackendCoinEconomyConfigDto,
   BackendCoinPackageDto,
@@ -404,7 +406,16 @@ export class RemotePortalDataSource implements IPortalDataSource {
   }
 
   async fetchConsultationSessions(): Promise<ConsultationSessionMonitoring[]> {
-    return this.loadSnapshot().consultationSessions
+    const db = this.loadSnapshot()
+    try {
+      const list = await this.requestJson<BackendAdminSessionDto[]>('/admin/sessions')
+      const mapped = list.map(mapBackendAdminSessionToDomain)
+      db.consultationSessions = mapped
+      this.saveSnapshot(db)
+      return mapped
+    } catch {
+      return db.consultationSessions
+    }
   }
 
   async fetchAdminUsers(): Promise<GeneralAppUser[]> {
