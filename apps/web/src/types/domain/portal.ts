@@ -2,7 +2,6 @@ export type PsychologistStatus = 'active' | 'on_leave' | 'inactive'
 export type VerificationStatus =
   | 'pending'
   | 'verified'
-  | 'need_revision'
   | 'rejected'
   | 'suspended'
 
@@ -10,7 +9,7 @@ export type DassSeverity = 'Moderate' | 'Severe' | 'Extreme'
 
 export interface PsychologistCertificate {
   id: string
-  docType: 'STR HIMPSI' | 'SIPP' | 'Ijazah Profesi' | 'Sertifikat Klinis'
+  docType: 'STR HIMPSI' | 'SIPP'
   title: string
   documentNumber: string
   issuedBy: string
@@ -45,7 +44,7 @@ export interface Psychologist {
   verifiedAt?: string | null
   isOnline: boolean
   bufferTimeMinutes: number
-  practiceSchedule: string
+  practiceSchedule?: string
   status: PsychologistStatus
   submittedAt: string
   reviewedAt?: string

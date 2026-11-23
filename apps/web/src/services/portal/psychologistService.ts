@@ -53,7 +53,6 @@ export function resubmitPsychologistApplication(
     strNumber: payload.str_number.trim().toUpperCase(),
     sipNumber: payload.sip_number?.trim().toUpperCase() || null,
     association: payload.association.trim(),
-    city: payload.city?.trim().toUpperCase() || existing.city,
     education: payload.education?.trim() || existing.education,
     verified: false,
   })

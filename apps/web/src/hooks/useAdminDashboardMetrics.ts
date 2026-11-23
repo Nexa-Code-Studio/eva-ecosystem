@@ -50,9 +50,7 @@ export function useAdminDashboardMetrics(db: PortalDatabase, range: DashboardRan
 
     const verifiedPsy = db.psychologists.filter((p) => p.verificationStatus === 'verified').length
     const pendingPsy = db.psychologists.filter((p) => p.verificationStatus === 'pending').length
-    const revisionPsy = db.psychologists.filter(
-      (p) => p.verificationStatus === 'need_revision',
-    ).length
+    const revisionPsy = 0
     const rejectedPsy = db.psychologists.filter(
       (p) => p.verificationStatus === 'rejected' || p.verificationStatus === 'suspended',
     ).length
@@ -148,7 +146,6 @@ export function useAdminDashboardMetrics(db: PortalDatabase, range: DashboardRan
     const psychologistComposition: PsychologistCompositionItem[] = [
       { name: 'Terverifikasi Aktif', value: verifiedPsy, color: '#10b981' },
       { name: 'Menunggu Verifikasi', value: pendingPsy, color: '#f59e0b' },
-      { name: 'Perlu Revisi', value: revisionPsy, color: '#f97316' },
       { name: 'Ditolak / Nonaktif', value: rejectedPsy, color: '#ef4444' },
     ].filter((item) => item.value > 0)
 
@@ -158,25 +155,24 @@ export function useAdminDashboardMetrics(db: PortalDatabase, range: DashboardRan
 
     const actionSummary: ActionSummary = {
       pendingVerifications: pendingPsy,
-      needRevision: revisionPsy,
+      needRevision: 0,
       crisisUsers,
-      total: pendingPsy + revisionPsy + crisisUsers,
+      total: pendingPsy + crisisUsers,
     }
 
     const queue: QueueItem[] = []
 
     db.psychologists
-      .filter((p) => p.verificationStatus === 'pending' || p.verificationStatus === 'need_revision')
+      .filter((p) => p.verificationStatus === 'pending')
       .forEach((p) => {
-        const isRevision = p.verificationStatus === 'need_revision'
         queue.push({
           id: `psy-${p.id}`,
-          kind: isRevision ? 'revision' : 'verification',
+          kind: 'verification',
           title: `${p.fullName}, ${p.titleDegree}`,
-          subtitle: `STR ${p.strNumber} · ${p.city ?? 'Indonesia'} · ${p.documents?.length ?? 0} dokumen`,
+          subtitle: `${p.strNumber ? `STR ${p.strNumber}` : `SIP ${p.sipNumber ?? '-'}`} · ${p.documents?.length ?? 0} dokumen`,
           date: p.submittedAt,
-          timeAgo: isRevision ? 'Revisi' : 'Baru',
-          badgeLabel: isRevision ? 'Perlu Revisi' : 'Verifikasi STR/SIP',
+          timeAgo: 'Baru',
+          badgeLabel: 'Verifikasi STR/SIP',
           targetModule: 'psychologists',
         })
       })

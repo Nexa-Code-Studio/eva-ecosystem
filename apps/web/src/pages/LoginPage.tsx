@@ -6,14 +6,12 @@ import {
   type LoginSubmitState,
   type LoginViewMode,
 } from '@/components/portal/login/LoginFormView'
-import { PsychologistVerificationStatusModal } from '@/components/portal/login/PsychologistVerificationStatusModal'
 import { QuickLoginDevTool } from '@/components/devtools/PortalDevTools'
 import { EMAIL_RE } from '@/constants/portal'
-import { authenticateUser, usePortalDb, type Psychologist } from '@/lib/portalStore'
+import { authenticateUser } from '@/lib/portalStore'
 
 export function LoginPage() {
   const navigate = useNavigate()
-  const { db } = usePortalDb()
 
   const [mode, setMode] = useState<LoginViewMode>('login')
   const [email, setEmail] = useState('')
@@ -26,7 +24,6 @@ export function LoginPage() {
   const [authError, setAuthError] = useState<string | null>(null)
   const [submitState, setSubmitState] = useState<LoginSubmitState>('idle')
 
-  const [statusModalPsy, setStatusModalPsy] = useState<Psychologist | null>(null)
   const [demoMenuOpen, setDemoMenuOpen] = useState(false)
 
   const year = new Date().getFullYear()
@@ -34,15 +31,6 @@ export function LoginPage() {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
-
-  useEffect(() => {
-    if (!statusModalPsy) return
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setStatusModalPsy(null)
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [statusModalPsy])
 
   const switchMode = (nextMode: LoginViewMode) => {
     setMode(nextMode)
@@ -59,7 +47,6 @@ export function LoginPage() {
     setEmailError(null)
     setPasswordError(null)
     setAuthError(null)
-    setStatusModalPsy(null)
     setDemoMenuOpen(false)
   }
 
@@ -98,12 +85,7 @@ export function LoginPage() {
         return
       }
 
-      if (result.role === 'admin') {
-        navigate('/admin')
-        return
-      }
-
-      setStatusModalPsy(result.psychologist)
+      navigate('/admin')
     }, 300)
   }
 
@@ -142,9 +124,7 @@ export function LoginPage() {
             <img src="/eva_logo.png" alt="EVA" className="size-12 object-contain" />
             <span className="text-xl font-bold tracking-[-0.02em] text-ink">EVA</span>
           </Link>
-          <p className="mt-1.5 text-xs text-ink-soft">
-            Panel Admin EVA &amp; Cek Status Verifikasi Psikolog Mandiri
-          </p>
+          <p className="mt-1.5 text-xs text-ink-soft">Panel Administrasi Ekosistem EVA</p>
         </div>
 
         <div className="rounded-[12px] border border-[#E2E8F0] bg-white p-6 shadow-[0_1px_3px_rgba(15,23,42,0.04)] sm:p-8">
@@ -177,18 +157,8 @@ export function LoginPage() {
         </div>
       </main>
 
-      <PsychologistVerificationStatusModal
-        psychologist={statusModalPsy}
-        onClose={() => setStatusModalPsy(null)}
-        onRevise={(psyId) => {
-          setStatusModalPsy(null)
-          navigate(`/daftar-psikolog?revisi=${encodeURIComponent(psyId)}`)
-        }}
-      />
-
       <QuickLoginDevTool
         isOpen={demoMenuOpen}
-        psychologists={db.psychologists}
         onToggleOpen={() => setDemoMenuOpen((v) => !v)}
         onClose={() => setDemoMenuOpen(false)}
         onSelectCredentials={fillDemoCredentials}

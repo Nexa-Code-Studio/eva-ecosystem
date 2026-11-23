@@ -3,11 +3,8 @@ import { useState } from 'react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { reviewPsychologistVerification } from '@/lib/portalStore'
 
-export type VerificationRejectMode = 'need_revision' | 'rejected'
-
 interface PsychologistRejectModalProps {
   isOpen: boolean
-  mode: VerificationRejectMode
   psyId: string
   psyFullName: string
   initialReason?: string | null
@@ -18,7 +15,6 @@ interface PsychologistRejectModalProps {
 
 export function PsychologistRejectModal({
   isOpen,
-  mode,
   psyId,
   psyFullName,
   initialReason = '',
@@ -34,8 +30,6 @@ export function PsychologistRejectModal({
 
   if (!isOpen) return null
 
-  const isRevision = mode === 'need_revision'
-
   const handleConfirm = async () => {
     if (!reason.trim() || reason.trim().length < 10) {
       setError('Tuliskan catatan evaluasi minimal 10 karakter agar psikolog mengetahui alasannya.')
@@ -45,14 +39,10 @@ export function PsychologistRejectModal({
     setSubmitting(true)
     try {
       await reviewPsychologistVerification(psyId, {
-        status: mode,
+        status: 'rejected',
         notes: reason.trim(),
       })
-      onFeedback(
-        isRevision
-          ? `Permintaan revisi berkas untuk "${psyFullName}" telah dikirim.`
-          : `Pendaftaran psikolog "${psyFullName}" ditolak dengan catatan evaluasi.`,
-      )
+      onFeedback(`Pendaftaran psikolog "${psyFullName}" ditolak dengan catatan evaluasi.`)
       onClose()
       onSuccess?.()
     } catch (err) {
@@ -76,7 +66,7 @@ export function PsychologistRejectModal({
               <AlertTriangle className="size-4" />
             </span>
             <h3 id="reject-dialog-title" className="text-sm font-bold">
-              {isRevision ? 'Minta Revisi Berkas STR/SIP' : 'Tolak Pendaftaran Psikolog'}
+              Tolak Pendaftaran Psikolog
             </h3>
           </div>
           <button
@@ -91,7 +81,7 @@ export function PsychologistRejectModal({
 
         <p className="mt-3 text-xs leading-relaxed text-ink-muted">
           Tuliskan catatan evaluasi untuk <strong className="break-words text-ink">{psyFullName}</strong>{' '}
-          (misalnya: foto/scan STR buram, nomor SIPP tidak sesuai, atau masa berlaku dokumen habis).
+          (misalnya: foto/scan STR buram, nomor SIPP tidak sesuai, atau masa berlaku dokumen habis). Psikolog dapat mendaftar ulang melalui aplikasi mobile.
         </p>
 
         <div className="mt-3">
@@ -106,7 +96,7 @@ export function PsychologistRejectModal({
               setReason(e.target.value)
               if (error) setError(null)
             }}
-            placeholder="Contoh: Mohon unggah ulang salinan SIPP halaman depan & belakang dengan resolusi jelas..."
+            placeholder="Contoh: Dokumen SIPP tidak terbaca jelas atau masa berlaku dokumen habis..."
             className="mt-1.5 w-full rounded-[8px] border border-[#CBD5E1] p-3 text-xs text-ink placeholder:text-ink-muted/60 focus:border-[#DC2626] focus:outline-none"
           />
           {error && <p className="mt-1 text-[11px] font-semibold text-[#DC2626]">{error}</p>}
@@ -128,7 +118,7 @@ export function PsychologistRejectModal({
             className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[8px] bg-[#DC2626] px-4 text-xs font-semibold text-white shadow-2xs hover:bg-[#B91C1C] disabled:opacity-60"
           >
             {submitting && <Loader2 className="size-3.5 animate-spin" />}
-            <span>{isRevision ? 'Kirim Permintaan Revisi' : 'Konfirmasi Penolakan'}</span>
+            <span>Konfirmasi Penolakan</span>
           </button>
         </div>
       </div>

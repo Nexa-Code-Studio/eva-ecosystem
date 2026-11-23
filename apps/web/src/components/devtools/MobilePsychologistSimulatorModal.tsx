@@ -1,6 +1,10 @@
 import { X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
-import { CLINICAL_SPECIALIZATIONS, PROFESSIONAL_ASSOCIATIONS } from '@/constants/portal'
+import {
+  CLINICAL_SPECIALIZATIONS,
+  EDUCATION_LEVELS,
+  PROFESSIONAL_ASSOCIATIONS,
+} from '@/constants/portal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { cn } from '@/lib/cn'
 import {
@@ -15,6 +19,13 @@ interface MobilePsychologistSimulatorModalProps {
   onCreated: (created: Psychologist) => void
 }
 
+const EXPERIENCE_OPTIONS = [
+  { label: '1 - 2 Thn', value: 2 },
+  { label: '3 - 5 Thn', value: 3 },
+  { label: '6 - 10 Thn', value: 7 },
+  { label: '> 10 Thn', value: 10 },
+] as const
+
 export function MobilePsychologistSimulatorModal({
   isOpen,
   onClose,
@@ -24,18 +35,29 @@ export function MobilePsychologistSimulatorModal({
 
   const [simFullName, setSimFullName] = useState('')
   const [simTitleDegree, setSimTitleDegree] = useState('M.Psi., Psikolog')
-  const [simStr, setSimStr] = useState('')
-  const [simSipp, setSimSipp] = useState('')
-  const [simAssociation, setSimAssociation] = useState<string>(PROFESSIONAL_ASSOCIATIONS[0])
-  const [simCity, setSimCity] = useState('')
-  const [simEducation, setSimEducation] = useState('')
   const [simEmail, setSimEmail] = useState('')
-  const [simPhone, setSimPhone] = useState('')
-  const [simSchedule, setSimSchedule] = useState('Senin - Jumat (18.00 - 21.00 WIB)')
-  const [simSpecs, setSimSpecs] = useState<string[]>(['Kecemasan & Panik', 'Remaja & Mahasiswa'])
+  const [simEducation, setSimEducation] = useState<string>(EDUCATION_LEVELS[0])
+  const [simAssociation, setSimAssociation] = useState<string>(PROFESSIONAL_ASSOCIATIONS[0])
+  const [simExperienceYears, setSimExperienceYears] = useState<number>(3)
+  const [simDocType, setSimDocType] = useState<'both' | 'str' | 'sip'>('both')
+  const [simStr, setSimStr] = useState('')
+  const [simStrIssuedBy, setSimStrIssuedBy] = useState(
+    'Kemenkes RI / KTKI (Konsil Tenaga Kesehatan Indonesia)',
+  )
+  const [simStrValidUntil, setSimStrValidUntil] = useState('Seumur Hidup (UU Kesehatan No. 17/2023)')
+  const [simSipp, setSimSipp] = useState('')
+  const [simSipIssuedBy, setSimSipIssuedBy] = useState('Dinas Kesehatan Kabupaten / Kota')
+  const [simSipValidUntil, setSimSipValidUntil] = useState('2030-12-31')
+  const [simSpecs, setSimSpecs] = useState<string[]>([
+    CLINICAL_SPECIALIZATIONS[0],
+    CLINICAL_SPECIALIZATIONS[3],
+  ])
   const [simError, setSimError] = useState<string | null>(null)
 
   if (!isDevToolsEnabled() || !isOpen) return null
+
+  const includeStr = simDocType === 'both' || simDocType === 'str'
+  const includeSip = simDocType === 'both' || simDocType === 'sip'
 
   const toggleSpec = (spec: string) => {
     setSimSpecs((prev) =>
@@ -45,33 +67,44 @@ export function MobilePsychologistSimulatorModal({
 
   const handleRegisterSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!simFullName.trim() || !simCity.trim() || !simStr.trim()) {
-      setSimError('Nama lengkap, Kota domisili, dan Nomor STR wajib diisi.')
+    if (!simFullName.trim()) {
+      setSimError('Nama lengkap wajib diisi.')
+      return
+    }
+    if (includeStr && !simStr.trim()) {
+      setSimError('Nomor STR wajib diisi jika memilih dokumen STR.')
+      return
+    }
+    if (includeSip && !simSipp.trim()) {
+      setSimError('Nomor SIP / SIPP wajib diisi jika memilih dokumen SIP.')
+      return
+    }
+    if (simSpecs.length === 0) {
+      setSimError('Pilih minimal 1 fokus layanan klinis.')
       return
     }
 
     const created = simulateMobilePsychologistSubmission({
       fullName: simFullName,
       titleDegree: simTitleDegree,
-      strNumber: simStr.toUpperCase(),
-      sippNumber: simSipp.toUpperCase() || undefined,
+      documentType: simDocType,
+      strNumber: includeStr ? simStr.toUpperCase() : undefined,
+      strIssuedBy: includeStr ? simStrIssuedBy : undefined,
+      strValidUntil: includeStr ? simStrValidUntil : undefined,
+      sippNumber: includeSip ? simSipp.toUpperCase() : undefined,
+      sipIssuedBy: includeSip ? simSipIssuedBy : undefined,
+      sipValidUntil: includeSip ? simSipValidUntil : undefined,
       association: simAssociation,
-      city: simCity.toUpperCase(),
-      education: simEducation || 'Magister Profesi Psikologi Klinis Universitas Gadjah Mada',
+      education: simEducation,
       email: simEmail || `psikolog.${Date.now().toString().slice(-4)}@praktikmandiri.id`,
-      phone: simPhone || '081299887766',
-      practiceSchedule: simSchedule,
-      specializations: simSpecs.length > 0 ? simSpecs : ['Kecemasan & Panik'],
-      yearsOfExperience: 4,
+      specializations: simSpecs,
+      yearsOfExperience: simExperienceYears,
     })
 
     setSimFullName('')
+    setSimEmail('')
     setSimStr('')
     setSimSipp('')
-    setSimCity('')
-    setSimEducation('')
-    setSimEmail('')
-    setSimPhone('')
     setSimError(null)
     onCreated(created)
   }
@@ -93,7 +126,7 @@ export function MobilePsychologistSimulatorModal({
               Pendaftaran Psikolog Profesional Mandiri
             </h2>
             <p className="text-xs text-ink-muted">
-              Simulasikan akun psikolog mandiri baru yang mendaftar melalui aplikasi mobile untuk ditinjau Admin.
+              Field identik dengan form pendaftaran pada aplikasi Eva Counselor Mobile untuk ditinjau Admin.
             </p>
           </div>
           <button
@@ -145,56 +178,22 @@ export function MobilePsychologistSimulatorModal({
             </div>
 
             <div>
-              <label htmlFor="sim-str" className="mb-1 block font-semibold text-ink">
-                Nomor STR *
+              <label htmlFor="sim-email" className="mb-1 block font-semibold text-ink">
+                Email Akun
               </label>
               <input
-                id="sim-str"
-                type="text"
-                placeholder="STR-PK-2025-991023"
-                value={simStr}
-                onChange={(e) => {
-                  setSimStr(e.target.value)
-                  if (simError) setSimError(null)
-                }}
-                className="h-9 w-full rounded-[8px] border border-[#CBD5E1] px-3 font-mono text-xs uppercase text-ink focus:border-primary focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="sim-sipp" className="mb-1 block font-semibold text-ink">
-                Nomor SIP / SIPP
-              </label>
-              <input
-                id="sim-sipp"
-                type="text"
-                placeholder="20250618-2030-01-1402"
-                value={simSipp}
-                onChange={(e) => setSimSipp(e.target.value)}
-                className="h-9 w-full rounded-[8px] border border-[#CBD5E1] px-3 font-mono text-xs uppercase text-ink focus:border-primary focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="sim-city" className="mb-1 block font-semibold text-ink">
-                Kota Domisili *
-              </label>
-              <input
-                id="sim-city"
-                type="text"
-                placeholder="BANDUNG"
-                value={simCity}
-                onChange={(e) => {
-                  setSimCity(e.target.value)
-                  if (simError) setSimError(null)
-                }}
-                className="h-9 w-full rounded-[8px] border border-[#CBD5E1] px-3 text-xs uppercase text-ink focus:border-primary focus:outline-none"
+                id="sim-email"
+                type="email"
+                placeholder="rania.psi@praktikmandiri.id"
+                value={simEmail}
+                onChange={(e) => setSimEmail(e.target.value)}
+                className="h-9 w-full rounded-[8px] border border-[#CBD5E1] px-3 text-xs text-ink focus:border-primary focus:outline-none"
               />
             </div>
 
             <div>
               <label htmlFor="sim-assoc" className="mb-1 block font-semibold text-ink">
-                Asosiasi Profesi
+                Organisasi Profesi
               </label>
               <select
                 id="sim-assoc"
@@ -210,56 +209,172 @@ export function MobilePsychologistSimulatorModal({
               </select>
             </div>
 
-            <div className="sm:col-span-2">
+            <div>
               <label htmlFor="sim-edu" className="mb-1 block font-semibold text-ink">
-                Asal Universitas / Profesi
+                Pendidikan Terakhir
               </label>
-              <input
+              <select
                 id="sim-edu"
-                type="text"
-                placeholder="Magister Profesi Psikologi Klinis Universitas Gadjah Mada"
                 value={simEducation}
                 onChange={(e) => setSimEducation(e.target.value)}
-                className="h-9 w-full rounded-[8px] border border-[#CBD5E1] px-3 text-xs text-ink focus:border-primary focus:outline-none"
-              />
+                className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-2.5 text-xs text-ink focus:border-primary focus:outline-none"
+              >
+                {EDUCATION_LEVELS.map((lvl) => (
+                  <option key={lvl} value={lvl}>
+                    {lvl}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
-              <label htmlFor="sim-email" className="mb-1 block font-semibold text-ink">
-                Email Akun
+              <label htmlFor="sim-exp" className="mb-1 block font-semibold text-ink">
+                Pengalaman Klinis
               </label>
-              <input
-                id="sim-email"
-                type="email"
-                placeholder="rania.psi@praktikmandiri.id"
-                value={simEmail}
-                onChange={(e) => setSimEmail(e.target.value)}
-                className="h-9 w-full rounded-[8px] border border-[#CBD5E1] px-3 text-xs text-ink focus:border-primary focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="sim-schedule" className="mb-1 block font-semibold text-ink">
-                Preferensi Jadwal Online
-              </label>
-              <input
-                id="sim-schedule"
-                type="text"
-                value={simSchedule}
-                onChange={(e) => setSimSchedule(e.target.value)}
-                className="h-9 w-full rounded-[8px] border border-[#CBD5E1] px-3 text-xs text-ink focus:border-primary focus:outline-none"
-              />
+              <select
+                id="sim-exp"
+                value={simExperienceYears}
+                onChange={(e) => setSimExperienceYears(Number(e.target.value))}
+                className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-2.5 text-xs text-ink focus:border-primary focus:outline-none"
+              >
+                {EXPERIENCE_OPTIONS.map((opt) => (
+                  <option key={opt.label} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
           <div>
-            <span className="mb-1.5 block font-semibold text-ink">Spesialisasi Klinis</span>
+            <span className="mb-1.5 block font-semibold text-ink">Dokumen Legalitas yang Dilampirkan</span>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: 'both' as const, label: 'STR & SIP' },
+                { id: 'str' as const, label: 'Hanya STR' },
+                { id: 'sip' as const, label: 'Hanya SIP / SIPP' },
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => {
+                    setSimDocType(opt.id)
+                    if (simError) setSimError(null)
+                  }}
+                  className={cn(
+                    'h-8 cursor-pointer rounded-[8px] border text-[11px] font-semibold transition-colors',
+                    simDocType === opt.id
+                      ? 'border-primary bg-primary text-white'
+                      : 'border-[#CBD5E1] bg-white text-ink-soft hover:border-primary/40',
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {includeStr && (
+            <div className="grid gap-3 rounded-[10px] border border-[#E2E8F0] bg-[#F8FAFC] p-3 sm:grid-cols-3">
+              <div>
+                <label htmlFor="sim-str" className="mb-1 block font-semibold text-ink">
+                  Nomor STR *
+                </label>
+                <input
+                  id="sim-str"
+                  type="text"
+                  placeholder="STR-PK-2025-991023"
+                  value={simStr}
+                  onChange={(e) => {
+                    setSimStr(e.target.value)
+                    if (simError) setSimError(null)
+                  }}
+                  className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-2.5 font-mono text-xs uppercase text-ink focus:border-primary focus:outline-none"
+                />
+              </div>
+              <div>
+                <label htmlFor="sim-str-issuer" className="mb-1 block font-semibold text-ink">
+                  Instansi Penerbit STR
+                </label>
+                <input
+                  id="sim-str-issuer"
+                  type="text"
+                  value={simStrIssuedBy}
+                  onChange={(e) => setSimStrIssuedBy(e.target.value)}
+                  className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-2.5 text-xs text-ink focus:border-primary focus:outline-none"
+                />
+              </div>
+              <div>
+                <label htmlFor="sim-str-exp" className="mb-1 block font-semibold text-ink">
+                  Masa Berlaku STR
+                </label>
+                <input
+                  id="sim-str-exp"
+                  type="text"
+                  value={simStrValidUntil}
+                  onChange={(e) => setSimStrValidUntil(e.target.value)}
+                  className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-2.5 text-xs text-ink focus:border-primary focus:outline-none"
+                />
+              </div>
+            </div>
+          )}
+
+          {includeSip && (
+            <div className="grid gap-3 rounded-[10px] border border-[#E2E8F0] bg-[#F8FAFC] p-3 sm:grid-cols-3">
+              <div>
+                <label htmlFor="sim-sipp" className="mb-1 block font-semibold text-ink">
+                  Nomor SIP / SIPP *
+                </label>
+                <input
+                  id="sim-sipp"
+                  type="text"
+                  placeholder="20250618-2030-01-1402"
+                  value={simSipp}
+                  onChange={(e) => {
+                    setSimSipp(e.target.value)
+                    if (simError) setSimError(null)
+                  }}
+                  className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-2.5 font-mono text-xs uppercase text-ink focus:border-primary focus:outline-none"
+                />
+              </div>
+              <div>
+                <label htmlFor="sim-sip-issuer" className="mb-1 block font-semibold text-ink">
+                  Instansi Penerbit SIP
+                </label>
+                <input
+                  id="sim-sip-issuer"
+                  type="text"
+                  value={simSipIssuedBy}
+                  onChange={(e) => setSimSipIssuedBy(e.target.value)}
+                  className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-2.5 text-xs text-ink focus:border-primary focus:outline-none"
+                />
+              </div>
+              <div>
+                <label htmlFor="sim-sip-exp" className="mb-1 block font-semibold text-ink">
+                  Masa Berlaku SIP
+                </label>
+                <input
+                  id="sim-sip-exp"
+                  type="text"
+                  value={simSipValidUntil}
+                  onChange={(e) => setSimSipValidUntil(e.target.value)}
+                  className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-2.5 text-xs text-ink focus:border-primary focus:outline-none"
+                />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <span className="mb-1.5 block font-semibold text-ink">Fokus Layanan Klinis</span>
             <div className="flex flex-wrap gap-1.5">
               {CLINICAL_SPECIALIZATIONS.map((spec) => (
                 <button
                   key={spec}
                   type="button"
-                  onClick={() => toggleSpec(spec)}
+                  onClick={() => {
+                    toggleSpec(spec)
+                    if (simError) setSimError(null)
+                  }}
                   className={cn(
                     'cursor-pointer rounded-[6px] border px-2.5 py-1 text-[11px] font-medium transition-colors',
                     simSpecs.includes(spec)

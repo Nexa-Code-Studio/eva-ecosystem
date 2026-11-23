@@ -3,10 +3,7 @@ import { useState } from 'react'
 import { CertificatePreviewCard } from './CertificatePreviewCard'
 import { PsychologistModalFooter } from './PsychologistModalFooter'
 import { PsychologistProfileSidebar } from './PsychologistProfileSidebar'
-import {
-  PsychologistRejectModal,
-  type VerificationRejectMode,
-} from './PsychologistRejectModal'
+import { PsychologistRejectModal } from './PsychologistRejectModal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { cn } from '@/lib/cn'
 import {
@@ -36,11 +33,13 @@ export function PsychologistDetailModal({
   const [mobileTab, setMobileTab] = useState<'documents' | 'profile'>('documents')
   const [approvalNote, setApprovalNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [rejectModalMode, setRejectModalMode] = useState<VerificationRejectMode | null>(null)
+  const [rejectModalOpen, setRejectModalOpen] = useState(false)
 
   if (!isOpen || !psy) return null
 
-  const docs: PsychologistCertificate[] = psy.documents ?? []
+  const docs: PsychologistCertificate[] = (psy.documents ?? []).filter(
+    (doc) => doc.docType === 'STR HIMPSI' || doc.docType === 'SIPP',
+  )
   const activeDoc = docs.find((d) => d.id === activeDocId) ?? docs[0] ?? null
   const verifiedCount = docs.filter((d) => d.verified).length
 
@@ -138,10 +137,10 @@ export function PsychologistDetailModal({
             </div>
           )}
 
-          <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-12">
+          <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-12 lg:overflow-hidden">
             <div
               className={cn(
-                'border-b border-[#E2E8F0] bg-[#F8FAFC]/60 p-5 lg:col-span-4 lg:block lg:border-r lg:border-b-0',
+                'border-b border-[#E2E8F0] bg-[#F8FAFC]/60 p-5 lg:col-span-4 lg:block lg:h-full lg:overflow-y-auto lg:border-r lg:border-b-0',
                 mobileTab === 'profile' ? 'block' : 'hidden',
               )}
             >
@@ -150,8 +149,8 @@ export function PsychologistDetailModal({
 
             <div
               className={cn(
-                'flex flex-col space-y-4 p-5 lg:sticky lg:top-0 lg:col-span-8 lg:h-fit lg:self-start lg:p-6',
-                mobileTab === 'documents' ? 'block' : 'hidden',
+                'flex-col space-y-4 p-5 lg:col-span-8 lg:flex lg:h-full lg:overflow-y-auto lg:p-6',
+                mobileTab === 'documents' ? 'flex' : 'hidden',
               )}
             >
               {docs.length > 0 ? (
@@ -229,8 +228,7 @@ export function PsychologistDetailModal({
             submitting={submitting}
             onApprovalNoteChange={setApprovalNote}
             onClose={onClose}
-            onRequestRevision={() => setRejectModalMode('need_revision')}
-            onOpenReject={() => setRejectModalMode('rejected')}
+            onOpenReject={() => setRejectModalOpen(true)}
             onApprove={handleApproveClick}
             onSuspend={handleSuspend}
           />
@@ -238,12 +236,11 @@ export function PsychologistDetailModal({
       </div>
 
       <PsychologistRejectModal
-        isOpen={Boolean(rejectModalMode)}
-        mode={rejectModalMode ?? 'rejected'}
+        isOpen={rejectModalOpen}
         psyId={psy.id}
         psyFullName={psy.fullName}
         initialReason={psy.verificationNotes}
-        onClose={() => setRejectModalMode(null)}
+        onClose={() => setRejectModalOpen(false)}
         onFeedback={onFeedback}
         onSuccess={() => onClose()}
       />

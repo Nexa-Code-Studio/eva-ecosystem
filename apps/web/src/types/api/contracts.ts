@@ -18,7 +18,6 @@ export interface LoginRequestDto {
 
 export type AuthResult =
   | { ok: true; role: 'admin'; accessToken?: string }
-  | { ok: true; role: 'counselor_status'; psychologist: Psychologist }
   | { ok: false; error: string }
 
 export interface RegisterPsychologistRequestDto {
@@ -44,7 +43,7 @@ export type SubmitPsychologistApplicationResultDto =
   | { ok: false; error: string }
 
 export interface VerifyPsychologistRequestDto {
-  status: 'verified' | 'rejected' | 'need_revision'
+  status: 'verified' | 'rejected'
   notes?: string | null
 }
 
@@ -95,18 +94,18 @@ export interface BackendPricingConfigResponseDto {
 export interface SimulateMobilePsychologistInput {
   fullName: string
   titleDegree?: string
+  documentType?: 'both' | 'str' | 'sip'
+  strNumber?: string
+  strIssuedBy?: string
+  strValidUntil?: string
   sippNumber?: string
-  strNumber: string
+  sipIssuedBy?: string
+  sipValidUntil?: string
   association?: string
-  city: string
   education: string
   email: string
-  phone: string
-  practiceSchedule: string
   specializations: string[]
   yearsOfExperience?: number
-  bio?: string
-  sippValidUntil?: string
 }
 
 export interface UpdateGeneralUserStatusRequestDto {

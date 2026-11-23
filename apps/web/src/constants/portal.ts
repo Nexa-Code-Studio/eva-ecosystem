@@ -1,16 +1,24 @@
 export const CLINICAL_SPECIALIZATIONS = [
-  'Kecemasan & Panik',
-  'Depresi & Mood',
-  'Remaja & Mahasiswa',
-  'Regulasi Emosi & Stres Akademik',
-  'Trauma & Krisis',
-  'Relasi & Keluarga',
+  'Kecemasan Dewasa',
+  'Depresi & Suasana Hati',
+  'Manajemen Stres & Burnout',
+  'Konseling Remaja & Akademik',
+  'Hubungan & Komunikasi',
+  'Trauma & Regulasi Emosi',
+  'Quarter-life Crisis',
 ] as const
 
 export const PROFESSIONAL_ASSOCIATIONS = [
   'Himpunan Psikologi Indonesia (HIMPSI)',
   'Ikatan Psikolog Klinis (IPK) Indonesia',
   'Asosiasi Psikologi Pendidikan Indonesia (APPI)',
+] as const
+
+export const EDUCATION_LEVELS = [
+  'S2 Magister Psikologi Profesi (Psikolog Klinis)',
+  'S2 Magister Psikologi Terapan',
+  'S1 Sarjana Psikologi',
+  'S3 Doktor Psikologi',
 ] as const
 
 export const STANDARD_SESSION_DURATION_MINUTES = 30
