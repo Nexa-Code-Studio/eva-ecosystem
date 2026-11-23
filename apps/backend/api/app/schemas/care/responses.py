@@ -1,6 +1,14 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class IceServerConfig(BaseModel):
+    """WebRTC ICE server configuration supporting STUN and TURN credentials."""
+
+    urls: list[str] | str
+    username: str | None = None
+    credential: str | None = None
+
+
 class VideoTokenResponse(BaseModel):
     """Response containing room signaling credentials and ICE servers for WebRTC video call."""
 
@@ -17,6 +25,8 @@ class VideoTokenResponse(BaseModel):
             "stun:stun1.l.google.com:19302",
         ]
     )
+    ice_server_configs: list[IceServerConfig] = Field(default_factory=list)
+    ws_url: str | None = None
 
 
 class CallStatusResponse(BaseModel):
@@ -42,6 +52,11 @@ class CounselorSessionDetailResponse(BaseModel):
     status: str
     signaling_token: str | None = None
     channel_name: str | None = None
+    ice_servers: list[str] = Field(
+        default_factory=lambda: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"]
+    )
+    ice_server_configs: list[IceServerConfig] = Field(default_factory=list)
+    ws_url: str | None = None
 
 
 class SessionActionResponse(BaseModel):

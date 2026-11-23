@@ -1,15 +1,19 @@
 import uuid
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, WebSocket, status
 
-from app.api.dependencies import get_care_service, get_current_user
+from app.api.dependencies import (
+    get_care_service,
+    get_current_user,
+    get_webrtc_signaling_manager,
+)
 from app.models.user import User
 from app.schemas.care import (
     CallStatusResponse,
     UpdateCallStatusRequest,
     VideoTokenResponse,
 )
-from app.services.care import CareService
+from app.services.care import CareService, WebRtcSignalingManager
 
 router = APIRouter(prefix="/care", tags=["Care"])
 
@@ -37,3 +41,14 @@ async def update_call_status(
 ) -> CallStatusResponse:
     """Update call session connection status, duration, and completion event."""
     return await service.update_call_status(session_id, user.id, payload)
+
+
+@router.websocket("/ws/{session_id}")
+async def care_webrtc_signaling_ws(
+    websocket: WebSocket,
+    session_id: str,
+    token: str | None = Query(default=None),
+    signaling_manager: WebRtcSignalingManager = Depends(get_webrtc_signaling_manager),
+) -> None:
+    """Real-time P2P WebRTC signaling endpoint backed by Redis Pub/Sub and grace period."""
+    await signaling_manager.handle_connection(websocket, session_id=session_id, token=token)

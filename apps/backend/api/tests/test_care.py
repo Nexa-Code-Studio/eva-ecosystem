@@ -106,6 +106,8 @@ async def test_care_video_token_and_status(consultation_fixture):
         assert "token" in data
         assert "room_id" in data
         assert len(data["ice_servers"]) >= 1
+        assert len(data["ice_server_configs"]) >= 1
+        assert data["ws_url"].endswith(f"/api/v1/care/ws/{session_id}?token={data['token']}")
 
         # 2. Unrelated user is forbidden
         forbidden_res = await client.post(
@@ -123,14 +125,32 @@ async def test_care_video_token_and_status(consultation_fixture):
         assert status_res.status_code == 200
         assert status_res.json()["status"] == "live"
 
-        # 4. Counselor views session detail
+        # 4. Counselor views session detail (and non-counselors receive 403)
         detail_res = await client.get(
             f"/api/v1/sessions/{session_id}",
             headers=counselor_headers,
         )
         assert detail_res.status_code == 200
-        assert detail_res.json()["session_id"] == session_id
-        assert detail_res.json()["channel_name"] == data["room_id"]
+        detail_json = detail_res.json()
+        assert detail_json["session_id"] == session_id
+        assert detail_json["channel_name"] == data["room_id"]
+        assert len(detail_json["ice_servers"]) >= 1
+        assert len(detail_json["ice_server_configs"]) >= 1
+        assert detail_json["ws_url"].endswith(
+            f"/api/v1/care/ws/{session_id}?token={detail_json['signaling_token']}"
+        )
+
+        patient_detail_res = await client.get(
+            f"/api/v1/sessions/{session_id}",
+            headers=patient_headers,
+        )
+        assert patient_detail_res.status_code == 403
+
+        unrelated_detail_res = await client.get(
+            f"/api/v1/sessions/{session_id}",
+            headers=unrelated_headers,
+        )
+        assert unrelated_detail_res.status_code == 403
 
         # 5. Counselor terminates session with duration and quick notes
         end_res = await client.post(

@@ -17,6 +17,8 @@ from app.schemas.care.responses import (
     SessionActionResponse,
     VideoTokenResponse,
 )
+from app.services.care.ice_provider import IceServerProvider
+from shared.config import normalize_ws_base_url, settings
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +26,18 @@ logger = logging.getLogger(__name__)
 class CareService:
     """Domain service managing teleconsultation video rooms, access control, and call lifecycle."""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(
+        self,
+        db: AsyncSession,
+        ice_provider: IceServerProvider | None = None,
+    ) -> None:
         self.db = db
+        self.ice_provider = ice_provider or IceServerProvider()
+
+    @staticmethod
+    def _build_ws_url(session_id: uuid.UUID | str, token: str) -> str:
+        ws_base = normalize_ws_base_url(getattr(settings, "WS_BASE_URL", "ws://localhost:8888"))
+        return f"{ws_base}/api/v1/care/ws/{session_id}?token={token}"
 
     async def get_video_token(self, session_id: uuid.UUID, user_id: uuid.UUID) -> VideoTokenResponse:
         """Validate participation and generate secure WebRTC / signaling room token."""
@@ -71,16 +83,18 @@ class CareService:
             role=role,
         )
 
+        resolved_ice = await self.ice_provider.resolve_ice_servers()
+        ws_url = self._build_ws_url(session.id, token)
+
         return VideoTokenResponse(
             session_id=str(session.id),
             room_id=session.video_room_id,
             token=token,
             participant_id=str(user_id),
             status=session.status,
-            ice_servers=[
-                "stun:stun.l.google.com:19302",
-                "stun:stun1.l.google.com:19302",
-            ],
+            ice_servers=resolved_ice.ice_servers,
+            ice_server_configs=resolved_ice.ice_server_configs,
+            ws_url=ws_url,
         )
 
     async def update_call_status(
@@ -163,9 +177,24 @@ class CareService:
                 detail="Sesi konsultasi tidak ditemukan.",
             )
 
+        is_counselor = session.counselor is not None and session.counselor.user_id == user_id
+        if not is_counselor:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Akses ditolak: Hanya psikolog pemilik sesi yang dapat mengakses detail sesi ini.",
+            )
+
+        if not session.video_room_id:
+            session.video_room_id = f"eva-room-{session.session_code}"
+            await self.db.commit()
+            await self.db.refresh(session)
+
         patient_name = session.patient.email.split("@")[0].capitalize() if session.patient else "Pasien"
-        channel_name = session.video_room_id or f"eva-room-{session.session_code}"
+        channel_name = session.video_room_id
         token = create_room_token(str(session.id), channel_name, str(user_id), "counselor")
+
+        resolved_ice = await self.ice_provider.resolve_ice_servers()
+        ws_url = self._build_ws_url(session.id, token)
 
         return CounselorSessionDetailResponse(
             session_id=str(session.id),
@@ -175,6 +204,9 @@ class CareService:
             status=session.status,
             signaling_token=token,
             channel_name=channel_name,
+            ice_servers=resolved_ice.ice_servers,
+            ice_server_configs=resolved_ice.ice_server_configs,
+            ws_url=ws_url,
         )
 
     async def start_session(self, session_id: uuid.UUID, user_id: uuid.UUID) -> SessionActionResponse:
