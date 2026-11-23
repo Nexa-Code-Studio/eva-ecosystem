@@ -10,6 +10,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.coin import CoinTransaction
 from app.models.counselor import (
     ConsultationSession,
     CounselorTransaction,
@@ -20,6 +21,7 @@ from app.models.dass import DASSAssessment
 from app.models.diary import DiaryEntry
 from app.models.user import User
 from app.models.enums import (
+    CoinTransactionType,
     ConsultationSessionStatus,
     PsychologistVerificationStatus,
     TransactionStatus,
@@ -190,11 +192,17 @@ class SchedulingService:
                 detail=f"Slot waktu ({duration_minutes} menit) bertabrakan dengan jadwal konsultasi lain atau jeda buffer ({counselor.buffer_time_minutes} menit). Silakan pilih slot waktu berikutnya.",
             )
 
-        # 4. Snapshot Pricing Policy
+        # 4. Snapshot Pricing Policy & Validate Patient Coins
         pricing = await self.pricing_service.get_active_pricing()
         total_price = pricing.price_per_session * Decimal(str(session_count))
         counselor_share = (total_price * pricing.counselor_share_percentage) / Decimal("100.0")
         platform_fee = (total_price * pricing.platform_fee_percentage) / Decimal("100.0")
+        required_coins = max(0, int(total_price))
+        patient = await self._lock_and_validate_patient_coins(
+            patient_id=patient_id,
+            required_coins=required_coins,
+            insufficient_prefix="Saldo koin tidak mencukupi",
+        )
 
         # 5. Create Session & Unique Code
         date_stamp = datetime.now(UTC).strftime("%Y%m%d")
@@ -219,6 +227,15 @@ class SchedulingService:
         )
         self.db.add(session)
         await self.db.flush()
+
+        self._record_patient_coin_debit(
+            patient=patient,
+            coins_debit=required_coins,
+            tx_type=CoinTransactionType.BOOKING_DEBIT.value,
+            invoice_prefix="EVA-BOOK",
+            description=f"Booking Konsultasi {duration_minutes} Menit ({session_code})",
+            session_id=session.id,
+        )
 
         # 6. Record Initial Counselor Earning Transaction
         transaction = CounselorTransaction(
@@ -338,11 +355,17 @@ class SchedulingService:
                 detail=availability.reason or "Sesi tidak dapat diperpanjang saat ini.",
             )
 
-        # Pricing calculation for extension
+        # Pricing calculation & Patient Coin validation for extension
         pricing = await self.pricing_service.get_active_pricing()
         ext_price = pricing.extension_price_per_session
         ext_counselor = (ext_price * pricing.counselor_share_percentage) / Decimal("100.0")
         ext_fee = (ext_price * pricing.platform_fee_percentage) / Decimal("100.0")
+        ext_coins = max(0, int(ext_price))
+        patient = await self._lock_and_validate_patient_coins(
+            patient_id=patient_id,
+            required_coins=ext_coins,
+            insufficient_prefix="Saldo koin tidak mencukupi untuk perpanjangan sesi",
+        )
 
         # Update session
         session.scheduled_end_time = session.scheduled_end_time + timedelta(minutes=30)
@@ -352,6 +375,15 @@ class SchedulingService:
         session.total_price += ext_price
         session.counselor_earning += ext_counselor
         session.platform_fee += ext_fee
+
+        self._record_patient_coin_debit(
+            patient=patient,
+            coins_debit=ext_coins,
+            tx_type=CoinTransactionType.EXTENSION_DEBIT.value,
+            invoice_prefix="EVA-EXT",
+            description=f"Perpanjangan Sesi +30 Menit ({session.session_code})",
+            session_id=session.id,
+        )
 
         # Record extension transaction
         tx = CounselorTransaction(
@@ -376,6 +408,60 @@ class SchedulingService:
         await self.db.refresh(session)
 
         return self._to_session_response(session)
+
+    async def _lock_and_validate_patient_coins(
+        self,
+        patient_id: uuid.UUID,
+        required_coins: int,
+        insufficient_prefix: str,
+    ) -> User:
+        """Lock patient row and verify sufficient EVA Coin balance prior to session debit."""
+        res = await self.db.execute(select(User).where(User.id == patient_id).with_for_update())
+        patient = res.scalar_one_or_none()
+        if not patient:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Akun pasien tidak ditemukan.",
+            )
+        if required_coins > 0 and patient.coin_balance < required_coins:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"{insufficient_prefix} (dibutuhkan {required_coins} Koin, "
+                    f"saldo Anda {patient.coin_balance} Koin). Silakan lakukan top-up melalui Admin EVA."
+                ),
+            )
+        return patient
+
+    def _record_patient_coin_debit(
+        self,
+        patient: User,
+        coins_debit: int,
+        tx_type: str,
+        invoice_prefix: str,
+        description: str,
+        session_id: uuid.UUID,
+    ) -> None:
+        """Deduct patient EVA Coins and stage an auditable CoinTransaction ledger entry."""
+        if coins_debit <= 0:
+            return
+        now_utc = datetime.now(UTC)
+        patient.coin_balance -= coins_debit
+        self.db.add(
+            CoinTransaction(
+                invoice_code=f"{invoice_prefix}-{now_utc.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}",
+                user_id=patient.id,
+                transaction_type=tx_type,
+                coins_delta=-coins_debit,
+                balance_after=patient.coin_balance,
+                amount_idr=0,
+                payment_method="EVA Wallet",
+                package_name=description,
+                status=TransactionStatus.COMPLETED.value,
+                reference_session_id=session_id,
+                completed_at=now_utc,
+            )
+        )
 
     async def save_soap_notes(
         self,

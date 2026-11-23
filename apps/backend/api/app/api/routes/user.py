@@ -2,19 +2,30 @@ import logging
 
 from fastapi import APIRouter, Depends
 
-from app.api.dependencies import get_current_user, get_user_service
+from app.api.dependencies import get_coin_service, get_current_user, get_user_service
 from app.models.user import User
+from app.schemas.coin import UserCoinBalanceResponse
 from app.schemas.user import (
     CreateEmergencyContactRequest,
     DeleteContactResponse,
     EmergencyContactResponse,
     UpdateEmergencyContactRequest,
 )
+from app.services.coin import CoinService
 from app.services.user import UserService
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/users", tags=["Users"])
+
+
+@router.get("/coins", response_model=UserCoinBalanceResponse)
+async def get_my_coin_balance(
+    user: User = Depends(get_current_user),
+    service: CoinService = Depends(get_coin_service),
+) -> UserCoinBalanceResponse:
+    """Retrieve the authenticated user's current EVA Coin balance."""
+    return await service.get_user_balance(user.id)
 
 
 @router.get("/emergency-contacts", response_model=list[EmergencyContactResponse])

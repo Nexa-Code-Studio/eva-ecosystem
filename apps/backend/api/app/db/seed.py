@@ -68,6 +68,8 @@ async def seed_master_data() -> User:
                 password_hash=hash_password("password123"),
                 is_active=True,
                 is_verified=True,
+                is_admin=False,
+                coin_balance=300,
             )
             session.add(user)
             await session.commit()
@@ -78,6 +80,28 @@ async def seed_master_data() -> User:
             user.username = "samsul"
             await session.commit()
             logger.info(f"Existing Master User updated: {user.email}")
+
+        # 1b. Seed Default Admin Account (admin@eva.id)
+        admin_email = "admin@eva.id"
+        res_admin = await session.execute(select(User).where(User.email == admin_email))
+        admin_user = res_admin.scalar_one_or_none()
+        if not admin_user:
+            admin_user = User(
+                email=admin_email,
+                username="admin",
+                display_name="Administrator Pusat Ekosistem EVA",
+                password_hash=hash_password("AdminEva2026!"),
+                is_active=True,
+                is_verified=True,
+                is_admin=True,
+                coin_balance=0,
+            )
+            session.add(admin_user)
+            await session.commit()
+            logger.info("Seeded Admin User: admin@eva.id")
+        elif not admin_user.is_admin:
+            admin_user.is_admin = True
+            await session.commit()
 
         # 2. Seed Emergency Contacts (for Demo User)
         query_contacts = select(EmergencyContact).where(EmergencyContact.user_id == user.id)
@@ -427,10 +451,10 @@ async def seed_counselor_master_data(session: AsyncSessionLocal, patient_user: U
     if not pricing:
         pricing = PlatformPricingConfig(
             session_duration_minutes=30,
-            price_per_session=Decimal("150000.00"),
+            price_per_session=Decimal("150.00"),
             counselor_share_percentage=Decimal("80.00"),
             platform_fee_percentage=Decimal("20.00"),
-            extension_price_per_session=Decimal("75000.00"),
+            extension_price_per_session=Decimal("150.00"),
             status=PricingConfigStatus.ACTIVE.value,
         )
         session.add(pricing)

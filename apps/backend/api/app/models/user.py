@@ -1,11 +1,15 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship as orm_relationship
 
 from app.models.base import BaseModel
+
+if TYPE_CHECKING:
+    from app.models.coin import CoinTransaction
 
 
 class User(BaseModel):
@@ -19,6 +23,12 @@ class User(BaseModel):
     display_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_admin: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    coin_balance: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=10, server_default="10"
+    )
 
     # Relationships
     devices: Mapped[list["UserDevice"]] = orm_relationship(
@@ -26,6 +36,12 @@ class User(BaseModel):
     )
     emergency_contacts: Mapped[list["EmergencyContact"]] = orm_relationship(
         "EmergencyContact", back_populates="user", cascade="all, delete-orphan"
+    )
+    coin_transactions: Mapped[list["CoinTransaction"]] = orm_relationship(
+        "CoinTransaction",
+        foreign_keys="CoinTransaction.user_id",
+        back_populates="user",
+        cascade="all, delete-orphan",
     )
 
 

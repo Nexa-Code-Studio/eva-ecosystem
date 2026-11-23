@@ -1,11 +1,15 @@
 import type {
+  AdminCoinTopupRequestDto,
+  AdminCoinTopupResultDto,
   RegisterPsychologistRequestDto,
   UpsertPlatformPricingRequestDto,
   VerifyPsychologistRequestDto,
 } from '@/types/api/contracts'
 import type { DashboardAnalyticsBaseline } from '@/types/domain/dashboard'
 import type {
+  CoinTopupTransaction,
   ConsultationSessionMonitoring,
+  GeneralAppUser,
   PlatformPricingConfig,
   PortalDatabase,
   PortalSession,
@@ -41,4 +45,7 @@ export interface IPortalDataSource {
     existingConfigId?: string,
   ): Promise<PlatformPricingConfig>
   fetchConsultationSessions(): Promise<ConsultationSessionMonitoring[]>
+  fetchAdminUsers(): Promise<GeneralAppUser[]>
+  fetchCoinTransactions(): Promise<CoinTopupTransaction[]>
+  topUpUserCoins(payload: AdminCoinTopupRequestDto): Promise<AdminCoinTopupResultDto>
 }

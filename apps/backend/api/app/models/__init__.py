@@ -1,10 +1,12 @@
 from app.models.ai import AIRun, AIWorkerRun
 from app.models.base import BaseModel
+from app.models.coin import CoinTransaction
 from app.models.conversation import Conversation, ConversationSummary, Message
 from app.models.enums import (
     AIRunStatus,
     AIRunType,
     AIWorkerType,
+    CoinTransactionType,
     ConditionStatus,
     ConditionSymptomRelationship,
     ConversationStatus,
@@ -66,6 +68,8 @@ __all__ = [
     "AIWorkerRun",
     "AIWorkerType",
     "BaseModel",
+    "CoinTransaction",
+    "CoinTransactionType",
     "CopingActivity",
     "UserActivityCompletion",
     "Condition",

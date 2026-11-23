@@ -197,6 +197,15 @@ class TransactionStatus(StrEnum):
     PENDING = "pending"
     COMPLETED = "completed"
     FAILED = "failed"
+    REFUNDED = "refunded"
+
+
+class CoinTransactionType(StrEnum):
+    TOPUP_ADMIN = "topup_admin"
+    GRANT_ADMIN = "grant_admin"
+    BOOKING_DEBIT = "booking_debit"
+    EXTENSION_DEBIT = "extension_debit"
+    REFUND = "refund"
 
 
 class PricingConfigStatus(StrEnum):

@@ -3,6 +3,8 @@ import { getEmptyDashboardAnalyticsBaseline } from '@/data/mock/dashboardMetrics
 import type { IPortalDataSource } from '@/services/contracts/portalDataSource'
 import {
   buildDomainPsychologistFromRegister,
+  mapBackendAdminUserToDomain,
+  mapBackendCoinTransactionToDomain,
   mapBackendPricingToDomain,
   mapBackendPsychologistToDomain,
   normalizeVerificationStatus,
@@ -10,6 +12,11 @@ import {
 import { PORTAL_DB_CHANGE_EVENT } from '@/services/mock/mockPortalDataSource'
 import { EMPTY_PORTAL_DATABASE } from '@/services/portal/emptyDatabase'
 import type {
+  AdminCoinTopupRequestDto,
+  AdminCoinTopupResultDto,
+  BackendAdminCoinTopupResponseDto,
+  BackendAdminUserDto,
+  BackendCoinTransactionDto,
   BackendPricingConfigResponseDto,
   BackendPsychologistProfileResponseDto,
   RegisterPsychologistRequestDto,
@@ -17,7 +24,9 @@ import type {
   VerifyPsychologistRequestDto,
 } from '@/types/api/contracts'
 import type {
+  CoinTopupTransaction,
   ConsultationSessionMonitoring,
+  GeneralAppUser,
   PlatformPricingConfig,
   PortalDatabase,
   PortalSession,
@@ -317,5 +326,67 @@ export class RemotePortalDataSource implements IPortalDataSource {
 
   async fetchConsultationSessions(): Promise<ConsultationSessionMonitoring[]> {
     return this.loadSnapshot().consultationSessions
+  }
+
+  async fetchAdminUsers(): Promise<GeneralAppUser[]> {
+    const db = this.loadSnapshot()
+    try {
+      const list = await this.requestJson<BackendAdminUserDto[]>('/admin/users')
+      const existingMap = new Map(db.generalUsers.map((u) => [u.id, u]))
+      const mapped = list.map((dto) => mapBackendAdminUserToDomain(dto, existingMap.get(dto.id)))
+      db.generalUsers = mapped
+      this.saveSnapshot(db)
+      return mapped
+    } catch {
+      return db.generalUsers
+    }
+  }
+
+  async fetchCoinTransactions(): Promise<CoinTopupTransaction[]> {
+    const db = this.loadSnapshot()
+    try {
+      const list = await this.requestJson<BackendCoinTransactionDto[]>('/admin/coins/transactions')
+      const mapped = list.map(mapBackendCoinTransactionToDomain)
+      db.coinTransactions = mapped
+      this.saveSnapshot(db)
+      return mapped
+    } catch {
+      return db.coinTransactions
+    }
+  }
+
+  async topUpUserCoins(payload: AdminCoinTopupRequestDto): Promise<AdminCoinTopupResultDto> {
+    const db = this.loadSnapshot()
+    const dto = await this.requestJson<BackendAdminCoinTopupResponseDto>(
+      `/admin/users/${encodeURIComponent(payload.userId)}/coins/topup`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          coins_granted: Math.trunc(payload.coinsGranted),
+          amount_idr:
+            payload.paymentMethod === 'Grant Admin (Gratis)'
+              ? 0
+              : Math.max(0, Math.trunc(payload.amountIdr)),
+          payment_method: payload.paymentMethod,
+          package_name: payload.packageName.trim(),
+          admin_notes: payload.adminNotes?.trim() || null,
+        }),
+      },
+    )
+
+    const existing = db.generalUsers.find((u) => u.id === dto.user.id)
+    const updatedUser = mapBackendAdminUserToDomain(dto.user, existing)
+    const transaction = mapBackendCoinTransactionToDomain(dto.transaction)
+
+    const idx = db.generalUsers.findIndex((u) => u.id === updatedUser.id)
+    if (idx !== -1) {
+      db.generalUsers[idx] = updatedUser
+    } else {
+      db.generalUsers.unshift(updatedUser)
+    }
+    db.coinTransactions.unshift(transaction)
+    this.saveSnapshot(db)
+
+    return { user: updatedUser, transaction }
   }
 }

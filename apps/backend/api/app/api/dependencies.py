@@ -55,6 +55,18 @@ async def get_current_user(
     return await service.get_user_from_token(token)
 
 
+async def get_current_admin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """Ensure the authenticated user has administrator privileges."""
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Akses ditolak: hanya Administrator EVA yang dapat mengakses fitur ini.",
+        )
+    return current_user
+
+
 
 async def get_user_service(db: AsyncSession = Depends(get_db_session)):
     """Dependency factory for UserService."""
@@ -167,6 +179,13 @@ async def get_finance_service(db: AsyncSession = Depends(get_db_session)):
     from app.services.finances import FinanceService
 
     return FinanceService(db)
+
+
+async def get_coin_service(db: AsyncSession = Depends(get_db_session)):
+    """Dependency factory for CoinService."""
+    from app.services.coin import CoinService
+
+    return CoinService(db)
 
 
 
