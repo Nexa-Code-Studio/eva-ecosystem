@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from shared.config import settings
 
+from app.api.dependencies import shutdown_webrtc_signaling_manager
 from app.api.routes.analytics import router as analytics_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.call import router as call_router
@@ -35,7 +36,10 @@ async def lifespan(app: FastAPI):
             await seed_master_data()
         except Exception as e:
             logger.warning(f"Auto-seed during development startup skipped: {e}")
-    yield
+    try:
+        yield
+    finally:
+        await shutdown_webrtc_signaling_manager()
 
 
 app = FastAPI(

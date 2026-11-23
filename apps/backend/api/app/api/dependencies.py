@@ -126,11 +126,40 @@ async def get_scheduling_service(db: AsyncSession = Depends(get_db_session)):
     return SchedulingService(db)
 
 
+_webrtc_signaling_manager = None
+
+
+def get_ice_provider():
+    """Dependency factory for IceServerProvider."""
+    from app.services.care import IceServerProvider
+
+    return IceServerProvider()
+
+
+def get_webrtc_signaling_manager():
+    """Worker-scoped dependency factory for WebRtcSignalingManager."""
+    global _webrtc_signaling_manager
+    from app.services.care import WebRtcSignalingManager
+
+    if _webrtc_signaling_manager is None:
+        redis_client: Redis = from_url(settings.REDIS_URL, decode_responses=True)
+        _webrtc_signaling_manager = WebRtcSignalingManager(redis_client)
+    return _webrtc_signaling_manager
+
+
+async def shutdown_webrtc_signaling_manager() -> None:
+    """Cleanly close worker-scoped WebRtcSignalingManager resources."""
+    global _webrtc_signaling_manager
+    if _webrtc_signaling_manager is not None:
+        await _webrtc_signaling_manager.close()
+        _webrtc_signaling_manager = None
+
+
 async def get_care_service(db: AsyncSession = Depends(get_db_session)):
     """Dependency factory for CareService."""
-    from app.services.care import CareService
+    from app.services.care import CareService, IceServerProvider
 
-    return CareService(db)
+    return CareService(db, ice_provider=IceServerProvider())
 
 
 async def get_finance_service(db: AsyncSession = Depends(get_db_session)):
