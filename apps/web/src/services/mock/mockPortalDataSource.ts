@@ -12,10 +12,14 @@ import type {
   AdminCoinTopupRequestDto,
   AdminCoinTopupResultDto,
   RegisterPsychologistRequestDto,
+  UpdateCoinEconomyConfigRequestDto,
+  UpsertCoinPackageRequestDto,
   UpsertPlatformPricingRequestDto,
   VerifyPsychologistRequestDto,
 } from '@/types/api/contracts'
 import type {
+  CoinEconomyConfig,
+  CoinPackage,
   CoinTopupTransaction,
   ConsultationSessionMonitoring,
   GeneralAppUser,
@@ -413,5 +417,90 @@ export class MockPortalDataSource implements IPortalDataSource {
     db.coinTransactions.unshift(transaction)
     this.saveSnapshot(db)
     return { user: updatedUser, transaction }
+  }
+
+  async fetchCoinEconomyConfig(): Promise<CoinEconomyConfig> {
+    return this.loadSnapshot().coinEconomyConfig
+  }
+
+  async updateCoinEconomyConfig(
+    updates: UpdateCoinEconomyConfigRequestDto,
+  ): Promise<CoinEconomyConfig> {
+    const db = this.loadSnapshot()
+    const today = new Date().toISOString().slice(0, 10)
+    const updated: CoinEconomyConfig = {
+      ...db.coinEconomyConfig,
+      ...updates,
+      updatedAt: today,
+    }
+    db.coinEconomyConfig = updated
+    this.saveSnapshot(db)
+    return updated
+  }
+
+  async fetchCoinPackages(): Promise<CoinPackage[]> {
+    return this.loadSnapshot().coinPackages
+  }
+
+  async upsertCoinPackage(input: UpsertCoinPackageRequestDto): Promise<CoinPackage> {
+    const db = this.loadSnapshot()
+    const normalizedCode = input.code.trim().toUpperCase()
+    const duplicate = db.coinPackages.find(
+      (p) => p.code.trim().toUpperCase() === normalizedCode && p.id !== input.id,
+    )
+    if (duplicate) {
+      throw new Error(`Kode paket "${normalizedCode}" sudah digunakan paket lain.`)
+    }
+
+    if (input.id) {
+      const idx = db.coinPackages.findIndex((p) => p.id === input.id)
+      if (idx !== -1) {
+        const updated: CoinPackage = {
+          ...db.coinPackages[idx],
+          ...input,
+          id: input.id,
+          code: normalizedCode,
+          name: input.name.trim(),
+          description: input.description.trim(),
+          isPopular: Boolean(input.isPopular),
+        }
+        db.coinPackages[idx] = updated
+        this.saveSnapshot(db)
+        return updated
+      }
+    }
+
+    const created: CoinPackage = {
+      ...input,
+      id: `pkg-${Date.now()}-${db.coinPackages.length + 1}`,
+      code: normalizedCode,
+      name: input.name.trim(),
+      description: input.description.trim(),
+      isPopular: Boolean(input.isPopular),
+    }
+    db.coinPackages.push(created)
+    this.saveSnapshot(db)
+    return created
+  }
+
+  async toggleCoinPackageActive(packageId: string): Promise<CoinPackage> {
+    const db = this.loadSnapshot()
+    const idx = db.coinPackages.findIndex((p) => p.id === packageId)
+    if (idx === -1) {
+      throw new Error('Paket koin tidak ditemukan.')
+    }
+    const updated: CoinPackage = {
+      ...db.coinPackages[idx],
+      isActive: !db.coinPackages[idx].isActive,
+    }
+    db.coinPackages[idx] = updated
+    this.saveSnapshot(db)
+    return updated
+  }
+
+  async deleteCoinPackage(packageId: string): Promise<void> {
+    const db = this.loadSnapshot()
+    db.coinPackages = db.coinPackages.filter((p) => p.id !== packageId)
+    this.saveSnapshot(db)
   }
 }

@@ -2,12 +2,13 @@ import asyncio
 from datetime import date, datetime, timedelta, UTC
 from decimal import Decimal
 import logging
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.db.session import AsyncSessionLocal, engine
 from app.core.security import hash_password
 from app.core.tz import get_wib_today
 from app.models.base import BaseModel
+from app.models.coin import CoinEconomyConfig, CoinPackage
 from app.models.counselor import (
     ConsultationSession,
     CounselorTransaction,
@@ -436,6 +437,67 @@ async def seed_master_data() -> User:
 
         # 6. Seed Psychologist & Counselor Master Data
         await seed_counselor_master_data(session, user)
+
+        # 7. Seed Coin Economy Config & Initial Packages (only if empty)
+        econ_count = await session.scalar(select(func.count(CoinEconomyConfig.id)))
+        if (econ_count or 0) == 0:
+            session.add(
+                CoinEconomyConfig(
+                    base_price_per_coin_idr=1000,
+                    free_trial_coins_new_user=10,
+                )
+            )
+            await session.commit()
+            logger.info("Seeded default CoinEconomyConfig.")
+
+        pkg_count = await session.scalar(select(func.count(CoinPackage.id)))
+        if (pkg_count or 0) == 0:
+            session.add_all(
+                [
+                    CoinPackage(
+                        code="COIN-15",
+                        name="Paket Sesi Singkat",
+                        coins=15,
+                        bonus_coins=0,
+                        price_idr=15000,
+                        description="15 menit berbicara intensif bersama EVA (Rp1.000/menit).",
+                        is_popular=False,
+                        is_active=True,
+                    ),
+                    CoinPackage(
+                        code="COIN-35",
+                        name="Paket Reguler Tenang",
+                        coins=30,
+                        bonus_coins=5,
+                        price_idr=30000,
+                        description="Total 35 menit sesi suara (30 koin pokok + 5 koin bonus gratis).",
+                        is_popular=True,
+                        is_active=True,
+                    ),
+                    CoinPackage(
+                        code="COIN-120",
+                        name="Paket Pendamping Bulanan",
+                        coins=100,
+                        bonus_coins=20,
+                        price_idr=90000,
+                        description="Total 120 menit sesi suara dengan potongan paket hemat Rp30.000.",
+                        is_popular=False,
+                        is_active=True,
+                    ),
+                    CoinPackage(
+                        code="COIN-310",
+                        name="Paket Intensif Semester",
+                        coins=250,
+                        bonus_coins=60,
+                        price_idr=210000,
+                        description="Total 310 menit pendampingan suara jangka panjang untuk mahasiswa.",
+                        is_popular=False,
+                        is_active=True,
+                    ),
+                ]
+            )
+            await session.commit()
+            logger.info("Seeded initial 4 CoinPackage catalog items.")
 
         return user
 

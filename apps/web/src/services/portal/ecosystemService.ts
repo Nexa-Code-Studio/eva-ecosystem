@@ -1,5 +1,10 @@
 import { getActivePortalDataSource, loadPortalDb, savePortalDb } from './storage'
-import type { AdminCoinTopupRequestDto, AdminCoinTopupResultDto } from '@/types/api/contracts'
+import type {
+  AdminCoinTopupRequestDto,
+  AdminCoinTopupResultDto,
+  UpdateCoinEconomyConfigRequestDto,
+  UpsertCoinPackageRequestDto,
+} from '@/types/api/contracts'
 import type {
   AppUserStatus,
   CoinEconomyConfig,
@@ -194,78 +199,32 @@ export function reviewCoinTransaction(
   savePortalDb(db)
 }
 
-export function updateCoinEconomyConfig(
-  updates: Partial<Pick<CoinEconomyConfig, 'basePricePerCoinIdr' | 'freeTrialCoinsNewUser'>>,
-) {
-  const db = loadPortalDb()
-  const today = new Date().toISOString().slice(0, 10)
-  db.coinEconomyConfig = {
-    ...db.coinEconomyConfig,
-    ...updates,
-    updatedAt: today,
-  }
-  savePortalDb(db)
+export async function fetchCoinEconomyConfig(): Promise<CoinEconomyConfig> {
+  return getActivePortalDataSource().fetchCoinEconomyConfig()
 }
 
-export function upsertCoinPackage(input: Omit<CoinPackage, 'id'> & { id?: string }): CoinPackage {
-  const db = loadPortalDb()
-  const normalizedCode = input.code.trim().toUpperCase()
-  const duplicate = db.coinPackages.find(
-    (p) => p.code.trim().toUpperCase() === normalizedCode && p.id !== input.id,
-  )
-  if (duplicate) {
-    throw new Error(`Kode paket "${normalizedCode}" sudah digunakan paket lain.`)
-  }
-
-  if (input.id) {
-    const idx = db.coinPackages.findIndex((p) => p.id === input.id)
-    if (idx !== -1) {
-      const updated: CoinPackage = {
-        ...db.coinPackages[idx],
-        ...input,
-        id: input.id,
-        code: normalizedCode,
-        name: input.name.trim(),
-        description: input.description.trim(),
-        isPopular: Boolean(input.isPopular),
-      }
-      db.coinPackages[idx] = updated
-      savePortalDb(db)
-      return updated
-    }
-  }
-
-  const created: CoinPackage = {
-    ...input,
-    id: `pkg-${Date.now()}-${db.coinPackages.length + 1}`,
-    code: normalizedCode,
-    name: input.name.trim(),
-    description: input.description.trim(),
-    isPopular: Boolean(input.isPopular),
-  }
-  db.coinPackages.push(created)
-  savePortalDb(db)
-  return created
+export async function updateCoinEconomyConfig(
+  updates: UpdateCoinEconomyConfigRequestDto,
+): Promise<CoinEconomyConfig> {
+  return getActivePortalDataSource().updateCoinEconomyConfig(updates)
 }
 
-export function deleteCoinPackage(packageId: string): CoinPackage | null {
-  const db = loadPortalDb()
-  const target = db.coinPackages.find((p) => p.id === packageId) ?? null
-  if (!target) return null
-  db.coinPackages = db.coinPackages.filter((p) => p.id !== packageId)
-  savePortalDb(db)
-  return target
+export async function fetchCoinPackages(): Promise<CoinPackage[]> {
+  return getActivePortalDataSource().fetchCoinPackages()
 }
 
-export function toggleCoinPackageActive(packageId: string) {
-  const db = loadPortalDb()
-  const idx = db.coinPackages.findIndex((p) => p.id === packageId)
-  if (idx === -1) return
-  db.coinPackages[idx] = {
-    ...db.coinPackages[idx],
-    isActive: !db.coinPackages[idx].isActive,
-  }
-  savePortalDb(db)
+export async function upsertCoinPackage(
+  input: UpsertCoinPackageRequestDto,
+): Promise<CoinPackage> {
+  return getActivePortalDataSource().upsertCoinPackage(input)
+}
+
+export async function deleteCoinPackage(packageId: string): Promise<void> {
+  return getActivePortalDataSource().deleteCoinPackage(packageId)
+}
+
+export async function toggleCoinPackageActive(packageId: string): Promise<CoinPackage> {
+  return getActivePortalDataSource().toggleCoinPackageActive(packageId)
 }
 
 export async function fetchAdminUsers(): Promise<GeneralAppUser[]> {

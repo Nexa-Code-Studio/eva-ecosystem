@@ -1,12 +1,16 @@
 import { buildPsychologistCertificates } from '@/data/mock/psychologists.mock'
 import type {
   BackendAdminUserDto,
+  BackendCoinEconomyConfigDto,
+  BackendCoinPackageDto,
   BackendCoinTransactionDto,
   BackendPricingConfigResponseDto,
   BackendPsychologistProfileResponseDto,
   RegisterPsychologistRequestDto,
 } from '@/types/api/contracts'
 import type {
+  CoinEconomyConfig,
+  CoinPackage,
   CoinPaymentMethod,
   CoinTopupTransaction,
   CoinTransactionStatus,
@@ -207,5 +211,29 @@ export function mapBackendCoinTransactionToDomain(
     createdAt: dto.created_at.slice(0, 16).replace('T', ' '),
     completedAt: dto.completed_at ? dto.completed_at.slice(0, 16).replace('T', ' ') : undefined,
     adminNotes: dto.admin_notes ?? undefined,
+  }
+}
+
+export function mapBackendCoinPackageToDomain(dto: BackendCoinPackageDto): CoinPackage {
+  return {
+    id: dto.id,
+    code: dto.code,
+    name: dto.name,
+    coins: dto.coins,
+    bonusCoins: dto.bonus_coins,
+    priceIdr: dto.price_idr,
+    description: dto.description,
+    isPopular: dto.is_popular,
+    isActive: dto.is_active,
+  }
+}
+
+export function mapBackendCoinEconomyToDomain(
+  dto: BackendCoinEconomyConfigDto,
+): CoinEconomyConfig {
+  return {
+    basePricePerCoinIdr: dto.base_price_per_coin_idr,
+    freeTrialCoinsNewUser: dto.free_trial_coins_new_user,
+    updatedAt: dto.updated_at.slice(0, 10),
   }
 }

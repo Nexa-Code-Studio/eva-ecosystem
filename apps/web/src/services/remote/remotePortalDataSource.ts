@@ -4,6 +4,8 @@ import type { IPortalDataSource } from '@/services/contracts/portalDataSource'
 import {
   buildDomainPsychologistFromRegister,
   mapBackendAdminUserToDomain,
+  mapBackendCoinEconomyToDomain,
+  mapBackendCoinPackageToDomain,
   mapBackendCoinTransactionToDomain,
   mapBackendPricingToDomain,
   mapBackendPsychologistToDomain,
@@ -16,14 +18,20 @@ import type {
   AdminCoinTopupResultDto,
   BackendAdminCoinTopupResponseDto,
   BackendAdminUserDto,
+  BackendCoinEconomyConfigDto,
+  BackendCoinPackageDto,
   BackendCoinTransactionDto,
   BackendPricingConfigResponseDto,
   BackendPsychologistProfileResponseDto,
   RegisterPsychologistRequestDto,
+  UpdateCoinEconomyConfigRequestDto,
+  UpsertCoinPackageRequestDto,
   UpsertPlatformPricingRequestDto,
   VerifyPsychologistRequestDto,
 } from '@/types/api/contracts'
 import type {
+  CoinEconomyConfig,
+  CoinPackage,
   CoinTopupTransaction,
   ConsultationSessionMonitoring,
   GeneralAppUser,
@@ -459,5 +467,112 @@ export class RemotePortalDataSource implements IPortalDataSource {
     this.saveSnapshot(db)
 
     return { user: updatedUser, transaction }
+  }
+
+  async fetchCoinEconomyConfig(): Promise<CoinEconomyConfig> {
+    const db = this.loadSnapshot()
+    try {
+      const dto = await this.requestJson<BackendCoinEconomyConfigDto>('/coins/economy')
+      const mapped = mapBackendCoinEconomyToDomain(dto)
+      db.coinEconomyConfig = mapped
+      this.saveSnapshot(db)
+      return mapped
+    } catch {
+      return db.coinEconomyConfig
+    }
+  }
+
+  async updateCoinEconomyConfig(
+    updates: UpdateCoinEconomyConfigRequestDto,
+  ): Promise<CoinEconomyConfig> {
+    const db = this.loadSnapshot()
+    const payload = {
+      base_price_per_coin_idr: Math.trunc(
+        updates.basePricePerCoinIdr ?? db.coinEconomyConfig.basePricePerCoinIdr,
+      ),
+      free_trial_coins_new_user: Math.trunc(
+        updates.freeTrialCoinsNewUser ?? db.coinEconomyConfig.freeTrialCoinsNewUser,
+      ),
+    }
+    const dto = await this.requestJson<BackendCoinEconomyConfigDto>('/admin/coins/economy', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+    const mapped = mapBackendCoinEconomyToDomain(dto)
+    db.coinEconomyConfig = mapped
+    this.saveSnapshot(db)
+    return mapped
+  }
+
+  async fetchCoinPackages(): Promise<CoinPackage[]> {
+    const db = this.loadSnapshot()
+    try {
+      const list = await this.requestJson<BackendCoinPackageDto[]>('/admin/coins/packages')
+      const mapped = list.map(mapBackendCoinPackageToDomain)
+      db.coinPackages = mapped
+      this.saveSnapshot(db)
+      return mapped
+    } catch {
+      return db.coinPackages
+    }
+  }
+
+  async upsertCoinPackage(input: UpsertCoinPackageRequestDto): Promise<CoinPackage> {
+    const db = this.loadSnapshot()
+    const isEdit = Boolean(input.id && !input.id.startsWith('pkg-'))
+    const endpoint = isEdit
+      ? `/admin/coins/packages/${encodeURIComponent(input.id!)}`
+      : '/admin/coins/packages'
+    const method = isEdit ? 'PUT' : 'POST'
+
+    const dto = await this.requestJson<BackendCoinPackageDto>(endpoint, {
+      method,
+      body: JSON.stringify({
+        code: input.code.trim().toUpperCase(),
+        name: input.name.trim(),
+        coins: Math.trunc(input.coins),
+        bonus_coins: Math.trunc(input.bonusCoins),
+        price_idr: Math.trunc(input.priceIdr),
+        description: input.description.trim(),
+        is_popular: Boolean(input.isPopular),
+        is_active: Boolean(input.isActive),
+      }),
+    })
+
+    const mapped = mapBackendCoinPackageToDomain(dto)
+    const idx = db.coinPackages.findIndex((p) => p.id === mapped.id)
+    if (idx !== -1) {
+      db.coinPackages[idx] = mapped
+    } else {
+      db.coinPackages.push(mapped)
+    }
+    this.saveSnapshot(db)
+    return mapped
+  }
+
+  async toggleCoinPackageActive(packageId: string): Promise<CoinPackage> {
+    const db = this.loadSnapshot()
+    const dto = await this.requestJson<BackendCoinPackageDto>(
+      `/admin/coins/packages/${encodeURIComponent(packageId)}/toggle`,
+      { method: 'PATCH' },
+    )
+    const mapped = mapBackendCoinPackageToDomain(dto)
+    const idx = db.coinPackages.findIndex((p) => p.id === mapped.id)
+    if (idx !== -1) {
+      db.coinPackages[idx] = mapped
+    } else {
+      db.coinPackages.push(mapped)
+    }
+    this.saveSnapshot(db)
+    return mapped
+  }
+
+  async deleteCoinPackage(packageId: string): Promise<void> {
+    const db = this.loadSnapshot()
+    await this.requestJson(`/admin/coins/packages/${encodeURIComponent(packageId)}`, {
+      method: 'DELETE',
+    })
+    db.coinPackages = db.coinPackages.filter((p) => p.id !== packageId)
+    this.saveSnapshot(db)
   }
 }

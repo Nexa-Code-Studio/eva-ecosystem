@@ -44,6 +44,8 @@ export {
   deleteCopingQuest,
   deleteFaqEntry,
   fetchAdminUsers,
+  fetchCoinEconomyConfig,
+  fetchCoinPackages,
   fetchCoinTransactions,
   reviewCoinTransaction,
   toggleCoinPackageActive,

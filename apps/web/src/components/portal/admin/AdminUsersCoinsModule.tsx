@@ -6,6 +6,8 @@ import { AdminCoinsTransactionsTab } from './AdminCoinsTransactionsTab'
 import { cn } from '@/lib/cn'
 import {
   fetchAdminUsers,
+  fetchCoinEconomyConfig,
+  fetchCoinPackages,
   fetchCoinTransactions,
   updateGeneralUserStatus,
   type AppUserStatus,
@@ -45,6 +47,8 @@ export function AdminUsersCoinsModule({
   useEffect(() => {
     void fetchAdminUsers()
     void fetchCoinTransactions()
+    void fetchCoinEconomyConfig()
+    void fetchCoinPackages()
   }, [])
 
   const filteredUsers = useMemo(() => {

@@ -1,4 +1,4 @@
-import { Coins, Pencil, Plus, Sparkles, Star, Trash2 } from 'lucide-react'
+import { AlertCircle, Coins, Loader2, Pencil, Plus, Sparkles, Star, Trash2 } from 'lucide-react'
 import { useRef, useState, type FormEvent } from 'react'
 import { cn } from '@/lib/cn'
 import {
@@ -6,6 +6,7 @@ import {
   toggleCoinPackageActive,
   updateCoinEconomyConfig,
   upsertCoinPackage,
+  type CoinEconomyConfig,
   type CoinPackage,
   type PortalDatabase,
 } from '@/lib/portalStore'
@@ -39,6 +40,7 @@ function CoinPackageForm({
   const [pkgDesc, setPkgDesc] = useState(initialPackage?.description ?? '')
   const [pkgPopular, setPkgPopular] = useState(Boolean(initialPackage?.isPopular))
   const [formError, setFormError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   const coinsNum = Math.max(0, Math.round(Number(pkgCoins) || 0))
   const bonusNum = Math.max(0, Math.round(Number(pkgBonus) || 0))
@@ -51,7 +53,7 @@ function CoinPackageForm({
       ? Math.round(((normalTotalIdr - priceNum) / normalTotalIdr) * 100)
       : 0
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const normalizedCode = pkgCode.trim().toUpperCase()
     const trimmedName = pkgName.trim()
@@ -79,8 +81,9 @@ function CoinPackageForm({
     }
 
     setFormError(null)
+    setSubmitting(true)
     try {
-      const saved = upsertCoinPackage({
+      const saved = await upsertCoinPackage({
         id: initialPackage?.id,
         code: normalizedCode,
         name: trimmedName,
@@ -96,6 +99,8 @@ function CoinPackageForm({
       onSave(saved, isEdit)
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Gagal menyimpan data paket.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -262,15 +267,124 @@ function CoinPackageForm({
         <button
           type="button"
           onClick={onCancel}
-          className="h-10 cursor-pointer rounded-[6px] border border-[#CBD5E1] bg-white px-3 font-semibold text-ink-soft hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:h-8"
+          disabled={submitting}
+          className="h-10 cursor-pointer rounded-[6px] border border-[#CBD5E1] bg-white px-3 font-semibold text-ink-soft hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 sm:h-8"
         >
           Batal
         </button>
         <button
           type="submit"
-          className="h-10 cursor-pointer rounded-[6px] bg-primary px-3.5 font-semibold text-white hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:h-8"
+          disabled={submitting}
+          className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-[6px] bg-primary px-3.5 font-semibold text-white hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 sm:h-8"
         >
-          {isEdit ? 'Simpan Perubahan' : 'Simpan Paket'}
+          {submitting && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+          <span>{isEdit ? 'Simpan Perubahan' : 'Simpan Paket'}</span>
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function CoinEconomyConfigForm({
+  economyConfig,
+  onFeedback,
+}: {
+  economyConfig: CoinEconomyConfig
+  onFeedback: (message: string) => void
+}) {
+  const [basePriceInput, setBasePriceInput] = useState(String(economyConfig.basePricePerCoinIdr))
+  const [freeTrialInput, setFreeTrialInput] = useState(
+    String(economyConfig.freeTrialCoinsNewUser),
+  )
+  const [savingEconomy, setSavingEconomy] = useState(false)
+  const [economyError, setEconomyError] = useState<string | null>(null)
+
+  const handleSaveEconomyConfig = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const basePrice = Math.max(100, Math.round(Number(basePriceInput) || 1000))
+    const freeTrial = Math.max(0, Math.round(Number(freeTrialInput) || 0))
+
+    setEconomyError(null)
+    setSavingEconomy(true)
+    try {
+      const saved = await updateCoinEconomyConfig({
+        basePricePerCoinIdr: basePrice,
+        freeTrialCoinsNewUser: freeTrial,
+      })
+      onFeedback(
+        `Konfigurasi nilai EVA Coin berhasil diperbarui: Rp${saved.basePricePerCoinIdr.toLocaleString('id-ID')}/Koin.`,
+      )
+    } catch (err) {
+      setEconomyError(
+        err instanceof Error ? err.message : 'Gagal menyimpan pengaturan kurs koin.',
+      )
+    } finally {
+      setSavingEconomy(false)
+    }
+  }
+
+  return (
+    <form
+      onSubmit={handleSaveEconomyConfig}
+      className="rounded-[12px] border border-[#E2E8F0] bg-white p-5 lg:col-span-4 lg:self-start"
+    >
+      <h3 className="text-sm font-bold text-ink">
+        Pengaturan Kurs Dasar &amp; Kuota Trial
+      </h3>
+      <p className="mt-0.5 text-xs text-ink-muted">
+        Atur nilai konversi dasar untuk 1 EVA Coin (mata uang Voice AI 1 Koin/mnt &amp; telekonsultasi) dan bonus registrasi awal.
+      </p>
+
+      {economyError && (
+        <div className="mt-3 rounded-[8px] border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-[11px] font-semibold text-[#991B1B]">
+          {economyError}
+        </div>
+      )}
+
+      <div className="mt-4 space-y-3.5 text-xs">
+        <div>
+          <label htmlFor="coin-base-price" className="block font-semibold text-ink">
+            Harga Dasar per 1 EVA Coin - Rp
+          </label>
+          <input
+            id="coin-base-price"
+            type="number"
+            min={100}
+            step={100}
+            value={basePriceInput}
+            onChange={(e) => setBasePriceInput(e.target.value)}
+            className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 font-semibold text-ink focus:border-primary focus:outline-none"
+          />
+          <p className="mt-1 text-[11px] text-ink-muted">
+            Acuan harga normal sebelum diskon atau bonus bundling.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="coin-free-trial" className="block font-semibold text-ink">
+            Bonus Koin Gratis Pengguna Baru (Free Trial)
+          </label>
+          <input
+            id="coin-free-trial"
+            type="number"
+            min={0}
+            max={1000}
+            value={freeTrialInput}
+            onChange={(e) => setFreeTrialInput(e.target.value)}
+            className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 font-semibold text-ink focus:border-primary focus:outline-none"
+          />
+          <p className="mt-1 text-[11px] text-ink-muted">
+            Otomatis diberikan saat pengguna pertama kali membuat akun di aplikasi mobile.
+          </p>
+        </div>
+
+        <button
+          type="submit"
+          disabled={savingEconomy}
+          className="inline-flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-[8px] bg-primary px-4 text-xs font-semibold text-white transition-colors hover:bg-primary-hover disabled:opacity-60"
+        >
+          {savingEconomy && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
+          <span>Simpan Pengaturan Kurs Koin</span>
         </button>
       </div>
     </form>
@@ -283,18 +397,12 @@ export function AdminCoinPackagesConfigTab({
 }: AdminCoinPackagesConfigTabProps) {
   const catalogSectionRef = useRef<HTMLDivElement>(null)
 
-  // Economy config state
-  const [basePriceInput, setBasePriceInput] = useState(
-    String(db.coinEconomyConfig.basePricePerCoinIdr),
-  )
-  const [freeTrialInput, setFreeTrialInput] = useState(
-    String(db.coinEconomyConfig.freeTrialCoinsNewUser),
-  )
-
   // Package form & delete confirm state
   const [formMode, setFormMode] = useState<'closed' | 'add' | 'edit'>('closed')
   const [editingPackageId, setEditingPackageId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [busyPackageId, setBusyPackageId] = useState<string | null>(null)
+  const [catalogError, setCatalogError] = useState<string | null>(null)
 
   const editingPackage =
     editingPackageId !== null
@@ -303,22 +411,9 @@ export function AdminCoinPackagesConfigTab({
 
   const activePackagesCount = db.coinPackages.filter((pkg) => pkg.isActive).length
 
-  const handleSaveEconomyConfig = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const basePrice = Math.max(100, Number(basePriceInput) || 1000)
-    const freeTrial = Math.max(0, Number(freeTrialInput) || 0)
-
-    updateCoinEconomyConfig({
-      basePricePerCoinIdr: basePrice,
-      freeTrialCoinsNewUser: freeTrial,
-    })
-    onFeedback(
-      `Konfigurasi nilai EVA Coin berhasil diperbarui: Rp${basePrice.toLocaleString('id-ID')}/Koin.`,
-    )
-  }
-
   const handleToggleAddButton = () => {
     setConfirmDeleteId(null)
+    setCatalogError(null)
     if (formMode === 'add') {
       setFormMode('closed')
       return
@@ -329,6 +424,7 @@ export function AdminCoinPackagesConfigTab({
 
   const handleStartEditPackage = (pkg: CoinPackage) => {
     setConfirmDeleteId(null)
+    setCatalogError(null)
     setEditingPackageId(pkg.id)
     setFormMode('edit')
     catalogSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
@@ -341,6 +437,7 @@ export function AdminCoinPackagesConfigTab({
 
   const handlePackageSaved = (saved: CoinPackage, isEdit: boolean) => {
     handleCloseForm()
+    setCatalogError(null)
     onFeedback(
       isEdit
         ? `Paket koin "${saved.name}" (${saved.code}) berhasil diperbarui.`
@@ -348,13 +445,38 @@ export function AdminCoinPackagesConfigTab({
     )
   }
 
-  const handleConfirmDeletePackage = (pkg: CoinPackage) => {
-    deleteCoinPackage(pkg.id)
-    setConfirmDeleteId(null)
-    if (editingPackageId === pkg.id) {
-      handleCloseForm()
+  const handleConfirmDeletePackage = async (pkg: CoinPackage) => {
+    setCatalogError(null)
+    setBusyPackageId(pkg.id)
+    try {
+      await deleteCoinPackage(pkg.id)
+      setConfirmDeleteId(null)
+      if (editingPackageId === pkg.id) {
+        handleCloseForm()
+      }
+      onFeedback(`Paket koin "${pkg.name}" (${pkg.code}) dihapus dari katalog.`)
+    } catch (err) {
+      setCatalogError(err instanceof Error ? err.message : 'Gagal menghapus paket koin.')
+    } finally {
+      setBusyPackageId(null)
     }
-    onFeedback(`Paket koin "${pkg.name}" (${pkg.code}) dihapus dari katalog.`)
+  }
+
+  const handleTogglePackageActive = async (pkg: CoinPackage) => {
+    setCatalogError(null)
+    setBusyPackageId(pkg.id)
+    try {
+      const updated = await toggleCoinPackageActive(pkg.id)
+      onFeedback(
+        `Paket "${updated.name}" (${updated.code}) sekarang ${updated.isActive ? 'diaktifkan' : 'dinonaktifkan'} di aplikasi.`,
+      )
+    } catch (err) {
+      setCatalogError(
+        err instanceof Error ? err.message : 'Gagal mengubah status tayang paket.',
+      )
+    } finally {
+      setBusyPackageId(null)
+    }
   }
 
   return (
@@ -389,62 +511,11 @@ export function AdminCoinPackagesConfigTab({
       {/* Main Grid: Base Rate Configuration + Bundling Packages Catalog */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         {/* Left: Economy Config Form */}
-        <form
-          onSubmit={handleSaveEconomyConfig}
-          className="rounded-[12px] border border-[#E2E8F0] bg-white p-5 lg:col-span-4 lg:self-start"
-        >
-          <h3 className="text-sm font-bold text-ink">
-            Pengaturan Kurs Dasar &amp; Kuota Trial
-          </h3>
-          <p className="mt-0.5 text-xs text-ink-muted">
-            Atur nilai konversi dasar untuk 1 EVA Coin (mata uang Voice AI 1 Koin/mnt &amp; telekonsultasi) dan bonus registrasi awal.
-          </p>
-
-          <div className="mt-4 space-y-3.5 text-xs">
-            <div>
-              <label htmlFor="coin-base-price" className="block font-semibold text-ink">
-                Harga Dasar per 1 EVA Coin - Rp
-              </label>
-              <input
-                id="coin-base-price"
-                type="number"
-                min={100}
-                step={100}
-                value={basePriceInput}
-                onChange={(e) => setBasePriceInput(e.target.value)}
-                className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 font-semibold text-ink focus:border-primary focus:outline-none"
-              />
-              <p className="mt-1 text-[11px] text-ink-muted">
-                Acuan harga normal sebelum diskon atau bonus bundling.
-              </p>
-            </div>
-
-            <div>
-              <label htmlFor="coin-free-trial" className="block font-semibold text-ink">
-                Bonus Koin Gratis Pengguna Baru (Free Trial)
-              </label>
-              <input
-                id="coin-free-trial"
-                type="number"
-                min={0}
-                max={120}
-                value={freeTrialInput}
-                onChange={(e) => setFreeTrialInput(e.target.value)}
-                className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 font-semibold text-ink focus:border-primary focus:outline-none"
-              />
-              <p className="mt-1 text-[11px] text-ink-muted">
-                Otomatis diberikan saat pengguna pertama kali membuat akun di aplikasi mobile.
-              </p>
-            </div>
-
-            <button
-              type="submit"
-              className="inline-flex h-9 w-full cursor-pointer items-center justify-center rounded-[8px] bg-primary px-4 text-xs font-semibold text-white transition-colors hover:bg-primary-hover"
-            >
-              Simpan Pengaturan Kurs Koin
-            </button>
-          </div>
-        </form>
+        <CoinEconomyConfigForm
+          key={`${db.coinEconomyConfig.basePricePerCoinIdr}-${db.coinEconomyConfig.freeTrialCoinsNewUser}-${db.coinEconomyConfig.updatedAt}`}
+          economyConfig={db.coinEconomyConfig}
+          onFeedback={onFeedback}
+        />
 
         {/* Right: Coin Bundling Packages */}
         <div
@@ -469,6 +540,13 @@ export function AdminCoinPackagesConfigTab({
               <span>{formMode === 'add' ? 'Tutup Form' : 'Tambah Paket'}</span>
             </button>
           </div>
+
+          {catalogError && (
+            <div className="mt-3 flex items-center gap-2 rounded-[8px] border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-xs font-semibold text-[#991B1B]">
+              <AlertCircle className="size-4 shrink-0" aria-hidden="true" />
+              <span>{catalogError}</span>
+            </div>
+          )}
 
           {formMode !== 'closed' && (
             <CoinPackageForm
@@ -560,15 +638,17 @@ export function AdminCoinPackagesConfigTab({
                           <div className="flex items-center gap-1.5">
                             <button
                               type="button"
-                              onClick={() => handleConfirmDeletePackage(pkg)}
-                              className="inline-flex h-10 cursor-pointer items-center rounded-[6px] bg-[#B91C1C] px-2.5 text-[11px] font-semibold text-white transition-colors hover:bg-[#991B1B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B91C1C] sm:h-7"
+                              disabled={busyPackageId === pkg.id}
+                              onClick={() => void handleConfirmDeletePackage(pkg)}
+                              className="inline-flex h-10 cursor-pointer items-center rounded-[6px] bg-[#B91C1C] px-2.5 text-[11px] font-semibold text-white transition-colors hover:bg-[#991B1B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B91C1C] disabled:opacity-50 sm:h-7"
                             >
                               Ya, Hapus
                             </button>
                             <button
                               type="button"
+                              disabled={busyPackageId === pkg.id}
                               onClick={() => setConfirmDeleteId(null)}
-                              className="inline-flex h-10 cursor-pointer items-center rounded-[6px] border border-[#CBD5E1] bg-white px-2.5 text-[11px] font-semibold text-ink transition-colors hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:h-7"
+                              className="inline-flex h-10 cursor-pointer items-center rounded-[6px] border border-[#CBD5E1] bg-white px-2.5 text-[11px] font-semibold text-ink transition-colors hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 sm:h-7"
                             >
                               Batal
                             </button>
@@ -581,13 +661,9 @@ export function AdminCoinPackagesConfigTab({
                             role="switch"
                             aria-checked={pkg.isActive}
                             aria-label={`Ubah status tayang ${pkg.name}`}
-                            onClick={() => {
-                              toggleCoinPackageActive(pkg.id)
-                              onFeedback(
-                                `Paket "${pkg.name}" (${pkg.code}) sekarang ${pkg.isActive ? 'dinonaktifkan' : 'diaktifkan'} di aplikasi.`,
-                              )
-                            }}
-                            className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-[6px] pr-1 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:min-h-[32px]"
+                            disabled={busyPackageId === pkg.id}
+                            onClick={() => void handleTogglePackageActive(pkg)}
+                            className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-[6px] pr-1 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 sm:min-h-[32px]"
                           >
                             <span
                               aria-hidden="true"

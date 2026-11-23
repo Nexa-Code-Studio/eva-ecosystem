@@ -42,3 +42,32 @@ class CoinTopupTransactionResponse(BaseModel):
 class AdminCoinTopupResultResponse(BaseModel):
     user: AdminUserSummaryResponse
     transaction: CoinTopupTransactionResponse
+
+
+class CoinPackageResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    code: str
+    name: str
+    coins: int
+    bonus_coins: int
+    price_idr: int
+    description: str
+    is_popular: bool
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class CoinEconomyConfigResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    base_price_per_coin_idr: int
+    free_trial_coins_new_user: int
+    updated_at: datetime
+
+
+class CoinPackageDeleteResponse(BaseModel):
+    message: str
+    deleted_id: str
