@@ -1,10 +1,12 @@
 import logging
+from typing import Literal
 import uuid
 from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import case, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.security import hash_password
 from app.models.counselor import PsychologistProfile
@@ -17,6 +19,7 @@ from app.schemas.counselor import (
     RegisterPsychologistRequest,
     ResubmitVerificationRequest,
     UpdateBankDetailsRequest,
+    UpdateCounselorStatusRequest,
     UpdatePsychologistProfileRequest,
     VerifyPsychologistRequest,
 )
@@ -78,34 +81,46 @@ class CounselorService:
         await self.db.flush()
 
         # 2. Create PsychologistProfile linked to User
-        str_inst = payload.str_issuing_institution or payload.issuing_institution or "-"
-        str_exp = payload.str_expiry_date or payload.document_expiry_date or "-"
-        sip_inst = payload.sip_issuing_institution or "-"
-        sip_exp = payload.sip_expiry_date or "-"
+        effective_edu = (payload.education or payload.last_education or "S2 Magister Psikologi Profesi").strip()
+        str_inst = (payload.str_issuing_institution or payload.issuing_institution or "Kemenkes RI / KTKI").strip()
+        str_exp = (payload.str_expiry_date or payload.document_expiry_date or "Seumur Hidup (UU Kesehatan No. 17/2023)").strip()
+        sip_inst = payload.sip_issuing_institution.strip() if payload.sip_issuing_institution else None
+        sip_exp = payload.sip_expiry_date.strip() if payload.sip_expiry_date else None
         bio_info = payload.bio.strip() if payload.bio else (
-            f"Pendidikan: {payload.last_education or '-'} | STR: {str_inst} ({str_exp}) | SIP: {sip_inst} ({sip_exp})"
+            f"Pendidikan: {effective_edu} | STR: {str_inst} ({str_exp})"
+            + (f" | SIP: {sip_inst or '-'} ({sip_exp or '-'})" if payload.sip_number else "")
         )
-        effective_cert_url = payload.str_doc_url or payload.sip_doc_url or payload.certificate_doc_url
+        effective_str_doc_url = payload.str_doc_url or payload.certificate_doc_url
+        effective_cert_url = effective_str_doc_url or payload.sip_doc_url or payload.certificate_doc_url
         profile = PsychologistProfile(
             user_id=new_user.id,
             full_name=payload.full_name.strip(),
             title_degree=payload.title_degree.strip(),
+            education=effective_edu,
             str_number=effective_str,
+            str_doc_url=effective_str_doc_url,
+            str_issuing_institution=str_inst,
+            str_expiry_date=str_exp,
+            str_verified=False,
             sip_number=payload.sip_number.strip() if payload.sip_number else None,
+            sip_doc_url=payload.sip_doc_url,
+            sip_issuing_institution=sip_inst,
+            sip_expiry_date=sip_exp,
+            sip_verified=False,
             association=payload.association.strip(),
             specializations=payload.specializations,
             years_of_experience=payload.years_of_experience,
             bio=bio_info,
             certificate_doc_url=effective_cert_url,
             verification_status=PsychologistVerificationStatus.PENDING.value,
-            is_online=True,
+            is_online=False,
             buffer_time_minutes=10,
         )
         self.db.add(profile)
         await self.db.commit()
         await self.db.refresh(profile)
 
-        return self._to_profile_response(profile)
+        return self._to_profile_response(profile, email=clean_email)
 
     async def get_profile_by_user_id(self, user_id: uuid.UUID) -> PsychologistProfileResponse:
         """Fetch psychologist profile by linked user ID."""
@@ -182,14 +197,34 @@ class CounselorService:
                 detail="Profil psikolog tidak ditemukan.",
             )
 
-        profile.certificate_doc_url = payload.certificate_doc_url
+        if payload.certificate_doc_url:
+            profile.certificate_doc_url = payload.certificate_doc_url
+        if payload.str_doc_url is not None:
+            profile.str_doc_url = payload.str_doc_url
+        if payload.sip_doc_url is not None:
+            profile.sip_doc_url = payload.sip_doc_url
+        if payload.str_issuing_institution is not None:
+            profile.str_issuing_institution = payload.str_issuing_institution.strip()
+        if payload.str_expiry_date is not None:
+            profile.str_expiry_date = payload.str_expiry_date.strip()
+        if payload.sip_issuing_institution is not None:
+            profile.sip_issuing_institution = payload.sip_issuing_institution.strip()
+        if payload.sip_expiry_date is not None:
+            profile.sip_expiry_date = payload.sip_expiry_date.strip()
+        if payload.education is not None:
+            profile.education = payload.education.strip()
         if payload.str_number:
             profile.str_number = payload.str_number.strip()
         if payload.sip_number:
             profile.sip_number = payload.sip_number.strip()
 
+        profile.str_verified = False
+        profile.sip_verified = False
         profile.verification_status = PsychologistVerificationStatus.PENDING.value
         profile.verification_notes = None
+        profile.verified_at = None
+        profile.verified_by_user_id = None
+        profile.is_online = False
 
         await self.db.commit()
         await self.db.refresh(profile)
@@ -275,6 +310,86 @@ class CounselorService:
             for p in profiles
         ]
 
+    async def list_all_counselors_for_admin(
+        self,
+        verification_status: str | None = None,
+        search: str | None = None,
+    ) -> list[PsychologistProfileResponse]:
+        """List all psychologist profiles across every verification status for Admin review."""
+        query = (
+            select(PsychologistProfile)
+            .options(selectinload(PsychologistProfile.user))
+            .join(User, PsychologistProfile.user_id == User.id)
+        )
+
+        if verification_status:
+            query = query.where(PsychologistProfile.verification_status == verification_status.strip())
+
+        if search and search.strip():
+            pattern = f"%{search.strip()}%"
+            query = query.where(
+                or_(
+                    PsychologistProfile.full_name.ilike(pattern),
+                    User.email.ilike(pattern),
+                    PsychologistProfile.str_number.ilike(pattern),
+                    PsychologistProfile.sip_number.ilike(pattern),
+                    PsychologistProfile.association.ilike(pattern),
+                )
+            )
+
+        query = query.order_by(
+            case(
+                (PsychologistProfile.verification_status == PsychologistVerificationStatus.PENDING.value, 0),
+                else_=1,
+            ),
+            PsychologistProfile.created_at.desc(),
+        )
+        res = await self.db.execute(query)
+        profiles = res.scalars().all()
+        return [
+            self._to_profile_response(p, email=p.user.email if p.user else None)
+            for p in profiles
+        ]
+
+    async def toggle_document_verification(
+        self,
+        counselor_id: uuid.UUID,
+        doc_type: Literal["str", "sip"],
+        verified: bool | None = None,
+    ) -> PsychologistProfileResponse:
+        """Toggle or explicitly set STR/SIP document validity for an applicant (Admin)."""
+        query = (
+            select(PsychologistProfile)
+            .options(selectinload(PsychologistProfile.user))
+            .where(PsychologistProfile.id == counselor_id)
+        )
+        res = await self.db.execute(query)
+        profile = res.scalar_one_or_none()
+        if not profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Profil psikolog tidak ditemukan.",
+            )
+
+        if doc_type == "str":
+            if not profile.str_number or not profile.str_number.strip():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Psikolog tidak memiliki nomor STR terdaftar.",
+                )
+            profile.str_verified = (not profile.str_verified) if verified is None else verified
+        else:
+            if not profile.sip_number or not profile.sip_number.strip():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Psikolog tidak memiliki nomor SIP/SIPP terdaftar.",
+                )
+            profile.sip_verified = (not profile.sip_verified) if verified is None else verified
+
+        await self.db.commit()
+        await self.db.refresh(profile)
+        return self._to_profile_response(profile, email=profile.user.email if profile.user else None)
+
     async def verify_counselor(
         self,
         counselor_id: uuid.UUID,
@@ -291,21 +406,29 @@ class CounselorService:
                 detail="Profil psikolog tidak ditemukan.",
             )
 
-        profile.verification_status = payload.status
-        profile.verification_notes = payload.notes
         if payload.status == PsychologistVerificationStatus.VERIFIED.value:
+            if not (profile.str_verified or profile.sip_verified):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Minimal 1 dokumen STR atau SIP harus diverifikasi valid sebelum menyetujui psikolog.",
+                )
+            profile.verification_status = payload.status
+            profile.verification_notes = payload.notes
             profile.verified_at = datetime.now(UTC)
             profile.verified_by_user_id = admin_user_id
+            profile.is_online = True
 
-            # Also update base User verification
             user_query = select(User).where(User.id == profile.user_id)
             user_res = await self.db.execute(user_query)
             user = user_res.scalar_one_or_none()
             if user:
                 user.is_verified = True
         else:
+            profile.verification_status = payload.status
+            profile.verification_notes = payload.notes
             profile.verified_at = None
             profile.verified_by_user_id = None
+            profile.is_online = False
 
         await self.db.commit()
         await self.db.refresh(profile)
@@ -317,14 +440,76 @@ class CounselorService:
             message=f"Status verifikasi berhasil diubah menjadi '{payload.status}'.",
         )
 
-    def _to_profile_response(self, profile: PsychologistProfile) -> PsychologistProfileResponse:
+    async def update_counselor_account_status(
+        self,
+        counselor_id: uuid.UUID,
+        admin_user_id: uuid.UUID,
+        payload: UpdateCounselorStatusRequest,
+    ) -> PsychologistProfileResponse:
+        """Suspend or reactivate a psychologist profile verification status (Admin)."""
+        query = (
+            select(PsychologistProfile)
+            .options(selectinload(PsychologistProfile.user))
+            .where(PsychologistProfile.id == counselor_id)
+        )
+        res = await self.db.execute(query)
+        profile = res.scalar_one_or_none()
+        if not profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Profil psikolog tidak ditemukan.",
+            )
+
+        if payload.status == PsychologistVerificationStatus.SUSPENDED.value:
+            profile.verification_status = PsychologistVerificationStatus.SUSPENDED.value
+            profile.is_online = False
+            if payload.notes is not None and payload.notes.strip():
+                profile.verification_notes = payload.notes.strip()
+        else:
+            if not (profile.str_verified or profile.sip_verified):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Minimal 1 dokumen STR atau SIP harus valid sebelum mengaktifkan kembali akun psikolog.",
+                )
+            profile.verification_status = PsychologistVerificationStatus.VERIFIED.value
+            profile.verified_at = datetime.now(UTC)
+            profile.verified_by_user_id = admin_user_id
+            profile.is_online = True
+            if payload.notes is not None and payload.notes.strip():
+                profile.verification_notes = payload.notes.strip()
+            if profile.user:
+                profile.user.is_verified = True
+
+        await self.db.commit()
+        await self.db.refresh(profile)
+        return self._to_profile_response(profile, email=profile.user.email if profile.user else None)
+
+    def _to_profile_response(
+        self,
+        profile: PsychologistProfile,
+        email: str | None = None,
+    ) -> PsychologistProfileResponse:
+        resolved_email = email
+        if resolved_email is None and "user" in profile.__dict__ and profile.user is not None:
+            resolved_email = profile.user.email
+
         return PsychologistProfileResponse(
             id=str(profile.id),
             user_id=str(profile.user_id),
+            email=resolved_email,
             full_name=profile.full_name,
             title_degree=profile.title_degree,
+            education=profile.education,
             str_number=profile.str_number,
+            str_doc_url=profile.str_doc_url,
+            str_issuing_institution=profile.str_issuing_institution,
+            str_expiry_date=profile.str_expiry_date,
+            str_verified=profile.str_verified,
             sip_number=profile.sip_number,
+            sip_doc_url=profile.sip_doc_url,
+            sip_issuing_institution=profile.sip_issuing_institution,
+            sip_expiry_date=profile.sip_expiry_date,
+            sip_verified=profile.sip_verified,
             association=profile.association,
             specializations=profile.specializations or [],
             years_of_experience=profile.years_of_experience,

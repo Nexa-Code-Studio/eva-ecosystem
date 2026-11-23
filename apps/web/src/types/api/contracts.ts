@@ -62,10 +62,20 @@ export interface UpsertPlatformPricingRequestDto {
 export interface BackendPsychologistProfileResponseDto {
   id: string
   user_id: string
+  email?: string | null
   full_name: string
   title_degree: string
+  education?: string | null
   str_number: string
+  str_doc_url?: string | null
+  str_issuing_institution?: string | null
+  str_expiry_date?: string | null
+  str_verified?: boolean
   sip_number?: string | null
+  sip_doc_url?: string | null
+  sip_issuing_institution?: string | null
+  sip_expiry_date?: string | null
+  sip_verified?: boolean
   association: string
   specializations: string[]
   years_of_experience: number

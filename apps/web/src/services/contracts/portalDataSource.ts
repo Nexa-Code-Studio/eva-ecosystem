@@ -34,9 +34,19 @@ export interface IPortalDataSource {
   getDashboardBaseline(): DashboardAnalyticsBaseline
   getAdminAccount(): AdminCredentialConfig
   registerPsychologist(payload: RegisterPsychologistRequestDto): Promise<Psychologist>
+  fetchAdminPsychologists(): Promise<Psychologist[]>
+  togglePsychologistDocumentVerified(
+    psychologistId: string,
+    docIdOrType: string,
+  ): Promise<Psychologist>
   verifyPsychologist(
     psychologistId: string,
     payload: VerifyPsychologistRequestDto,
+  ): Promise<Psychologist>
+  updatePsychologistAccountStatus(
+    psychologistId: string,
+    status: 'verified' | 'suspended',
+    notes?: string,
   ): Promise<Psychologist>
   fetchActivePricing(): Promise<PlatformPricingConfig>
   fetchPricingHistory(): Promise<PlatformPricingConfig[]>

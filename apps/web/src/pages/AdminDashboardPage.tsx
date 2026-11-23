@@ -21,7 +21,12 @@ import {
   PortalFeedbackBanner,
   PortalTopbar,
 } from '@/components/portal/PortalTopbar'
-import { resetPortalDbToDefault, setPortalSession, usePortalDb } from '@/lib/portalStore'
+import {
+  fetchAdminPsychologists,
+  resetPortalDbToDefault,
+  setPortalSession,
+  usePortalDb,
+} from '@/lib/portalStore'
 
 export type { AdminOutletContext }
 
@@ -38,7 +43,9 @@ export function AdminDashboardPage() {
   useEffect(() => {
     if (!session || session.role !== 'admin') {
       navigate('/login', { replace: true })
+      return
     }
+    void fetchAdminPsychologists()
   }, [navigate, session])
 
   const counts = useMemo<AdminSummaryCounts>(() => {

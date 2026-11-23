@@ -13,6 +13,7 @@ interface PsychologistModalFooterProps {
   onOpenReject: () => void
   onApprove: () => void
   onSuspend: () => void
+  onReactivate?: () => void
 }
 
 export function PsychologistModalFooter({
@@ -26,9 +27,11 @@ export function PsychologistModalFooter({
   onOpenReject,
   onApprove,
   onSuspend,
+  onReactivate,
 }: PsychologistModalFooterProps) {
   const canApprove = verifiedCount >= 1
   const isVerified = verificationStatus === 'verified'
+  const isSuspended = verificationStatus === 'suspended'
 
   return (
     <div className="space-y-3 border-t border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3.5 sm:px-6">
@@ -80,7 +83,7 @@ export function PsychologistModalFooter({
             <button
               type="button"
               disabled={submitting || !canApprove}
-              onClick={onApprove}
+              onClick={isSuspended && onReactivate ? onReactivate : onApprove}
               className="order-1 inline-flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-[10px] bg-[#16A34A] px-4 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#15803D] disabled:cursor-not-allowed disabled:opacity-50 sm:order-4 sm:h-9 sm:w-auto"
             >
               {submitting ? (
@@ -88,7 +91,7 @@ export function PsychologistModalFooter({
               ) : (
                 <CheckCircle2 className="size-4" />
               )}
-              <span>Approve &amp; Aktifkan</span>
+              <span>{isSuspended ? 'Aktifkan Kembali' : 'Approve & Aktifkan'}</span>
             </button>
           )}
 
@@ -101,7 +104,7 @@ export function PsychologistModalFooter({
               Tutup
             </button>
 
-            {!isVerified && (
+            {!isVerified && !isSuspended && (
               <button
                 type="button"
                 disabled={submitting}
@@ -116,8 +119,9 @@ export function PsychologistModalFooter({
             {isVerified && (
               <button
                 type="button"
+                disabled={submitting}
                 onClick={onSuspend}
-                className="inline-flex h-9 cursor-pointer items-center justify-center rounded-[10px] border border-[#CBD5E1] bg-white px-3.5 text-xs font-semibold text-ink transition-colors hover:bg-slate-100"
+                className="inline-flex h-9 cursor-pointer items-center justify-center rounded-[10px] border border-[#CBD5E1] bg-white px-3.5 text-xs font-semibold text-ink transition-colors hover:bg-slate-100 disabled:opacity-50"
               >
                 Nonaktifkan Sementara
               </button>

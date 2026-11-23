@@ -2,7 +2,9 @@ from app.schemas.counselor.requests import (
     RegisterPsychologistRequest,
     ResubmitVerificationRequest,
     ToggleAvailabilityRequest,
+    ToggleDocumentVerificationRequest,
     UpdateBankDetailsRequest,
+    UpdateCounselorStatusRequest,
     UpdatePsychologistProfileRequest,
     VerifyPsychologistRequest,
 )
@@ -19,6 +21,8 @@ __all__ = [
     "ResubmitVerificationRequest",
     "UpdateBankDetailsRequest",
     "VerifyPsychologistRequest",
+    "ToggleDocumentVerificationRequest",
+    "UpdateCounselorStatusRequest",
     "ToggleAvailabilityRequest",
     "PsychologistProfileResponse",
     "PsychologistPublicResponse",

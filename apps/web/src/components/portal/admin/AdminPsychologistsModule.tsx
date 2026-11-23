@@ -1,5 +1,5 @@
-import { Search } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { AlertCircle, Loader2, RefreshCw, Search } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { PsychologistDetailModal } from './psychologists/PsychologistDetailModal'
 import {
@@ -12,8 +12,16 @@ import {
   MobilePsychologistSimulatorModal,
   MobilePsychologistSimulatorTrigger,
 } from '@/components/devtools/PortalDevTools'
+import { TablePagination } from '@/components/portal/TablePagination'
 import { cn } from '@/lib/cn'
-import { reviewPsychologistVerification, type Psychologist } from '@/lib/portalStore'
+import {
+  fetchAdminPsychologists,
+  reviewPsychologistVerification,
+  type Psychologist,
+} from '@/lib/portalStore'
+
+const DEFAULT_PAGE_SIZE = 10
+const PAGE_SIZE_OPTIONS = [5, 10, 25, 50]
 
 interface AdminPsychologistsModuleProps {
   psychologists: Psychologist[]
@@ -35,6 +43,18 @@ export function AdminPsychologistsModule({
   const activeFilter: PsyFilterTab =
     filterParam && validFilters.includes(filterParam) ? filterParam : 'all'
 
+  const rawPage = Number.parseInt(searchParams.get('page') ?? '1', 10)
+  const requestedPage = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1
+
+  const [search, setSearch] = useState('')
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
+  const [selectedPsyId, setSelectedPsyId] = useState<string | null>(null)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  const [isSimModalOpen, setIsSimModalOpen] = useState(false)
+  const [isLoadingList, setIsLoadingList] = useState(() => psychologists.length === 0)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const tableTopRef = useRef<HTMLDivElement | null>(null)
+
   const setActiveFilter = (filter: PsyFilterTab) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
@@ -43,14 +63,80 @@ export function AdminPsychologistsModule({
       } else {
         next.set('filter', filter)
       }
+      next.delete('page')
       return next
     })
   }
 
-  const [search, setSearch] = useState('')
-  const [selectedPsyId, setSelectedPsyId] = useState<string | null>(null)
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
-  const [isSimModalOpen, setIsSimModalOpen] = useState(false)
+  const updatePageParam = (nextPage: number) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (nextPage <= 1) {
+        next.delete('page')
+      } else {
+        next.set('page', String(nextPage))
+      }
+      return next
+    })
+  }
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value)
+    if (searchParams.has('page')) {
+      updatePageParam(1)
+    }
+  }
+
+  const handlePageSizeChange = (nextSize: number) => {
+    setPageSize(nextSize)
+    if (searchParams.has('page')) {
+      updatePageParam(1)
+    }
+  }
+
+  const handleResetFilters = () => {
+    setSearch('')
+    setActiveFilter('all')
+  }
+
+  const handleRetryLoad = useCallback(() => {
+    setIsLoadingList(true)
+    setLoadError(null)
+    void fetchAdminPsychologists()
+      .catch((err: unknown) => {
+        setLoadError(
+          err instanceof Error
+            ? err.message
+            : 'Gagal memuat daftar psikolog dari server.',
+        )
+      })
+      .finally(() => {
+        setIsLoadingList(false)
+      })
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    fetchAdminPsychologists()
+      .then(() => {
+        if (active) setLoadError(null)
+      })
+      .catch((err: unknown) => {
+        if (active) {
+          setLoadError(
+            err instanceof Error
+              ? err.message
+              : 'Gagal memuat daftar psikolog dari server.',
+          )
+        }
+      })
+      .finally(() => {
+        if (active) setIsLoadingList(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
 
   const counts: PsychologistKpiCounts = useMemo(() => {
     const pending = psychologists.filter((p) => p.verificationStatus === 'pending').length
@@ -97,6 +183,26 @@ export function AdminPsychologistsModule({
       )
     })
   }, [psychologists, activeFilter, search])
+
+  const totalPages = Math.max(1, Math.ceil(filteredPsychologists.length / pageSize))
+  const safePage = Math.min(requestedPage, totalPages)
+
+  const paginatedPsychologists = useMemo(() => {
+    const startIndex = (safePage - 1) * pageSize
+    return filteredPsychologists.slice(startIndex, startIndex + pageSize)
+  }, [filteredPsychologists, safePage, pageSize])
+
+  const handlePageChange = (nextPage: number) => {
+    const clampedPage = Math.min(Math.max(1, nextPage), totalPages)
+    updatePageParam(clampedPage)
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    tableTopRef.current?.scrollIntoView({
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
+      block: 'nearest',
+    })
+  }
 
   const selectedPsy = useMemo(() => {
     if (!selectedPsyId) return null
@@ -145,15 +251,25 @@ export function AdminPsychologistsModule({
         onSelectFilter={setActiveFilter}
       />
 
-      <div className="flex flex-col gap-3 rounded-[12px] border border-[#E2E8F0] bg-white p-3.5 sm:flex-row sm:items-center sm:justify-between">
+      <div
+        ref={tableTopRef}
+        className="flex flex-col gap-3 rounded-[12px] border border-[#E2E8F0] bg-white p-3.5 sm:flex-row sm:items-center sm:justify-between"
+      >
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-ink-muted" />
+          <Search
+            className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-ink-muted"
+            aria-hidden="true"
+          />
+          <label htmlFor="psy-search-input" className="sr-only">
+            Cari psikolog
+          </label>
           <input
+            id="psy-search-input"
             type="search"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Cari nama, email, nomor STR, SIP/SIPP, organisasi profesi, atau fokus klinis..."
-            className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-[#F8FAFC] pr-3 pl-8 text-xs text-ink placeholder:text-ink-muted/70 focus:border-primary focus:bg-white focus:outline-none"
+            className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-[#F8FAFC] pr-3 pl-8 text-xs text-ink placeholder:text-ink-muted/70 focus:border-primary focus:bg-white focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
           />
         </div>
 
@@ -165,7 +281,7 @@ export function AdminPsychologistsModule({
             id="mobile-psy-filter"
             value={activeFilter}
             onChange={(e) => setActiveFilter(e.target.value as PsyFilterTab)}
-            className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-[#F8FAFC] px-3 text-xs font-semibold text-ink focus:border-primary focus:bg-white focus:outline-none"
+            className="min-h-11 w-full cursor-pointer rounded-[8px] border border-[#CBD5E1] bg-[#F8FAFC] px-3 text-xs font-semibold text-ink focus:border-primary focus:bg-white focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
           >
             {filterTabs.map((tab) => (
               <option key={tab.id} value={tab.id}>
@@ -182,7 +298,7 @@ export function AdminPsychologistsModule({
               type="button"
               onClick={() => setActiveFilter(tab.id)}
               className={cn(
-                'cursor-pointer rounded-[6px] px-2.5 py-1 text-xs font-semibold whitespace-nowrap transition-colors',
+                'cursor-pointer rounded-[6px] px-2.5 py-1 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
                 activeFilter === tab.id
                   ? 'bg-white text-ink shadow-2xs'
                   : 'text-ink-muted hover:text-ink',
@@ -194,7 +310,56 @@ export function AdminPsychologistsModule({
         </div>
       </div>
 
-      <PsychologistTable psychologists={filteredPsychologists} onSelectPsychologist={handleOpenDetail} />
+      {loadError && (
+        <div
+          role="alert"
+          className="flex flex-col justify-between gap-2 rounded-[12px] border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-xs text-[#991B1B] sm:flex-row sm:items-center"
+        >
+          <div className="flex items-center gap-2">
+            <AlertCircle className="size-4 shrink-0" aria-hidden="true" />
+            <span>{loadError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleRetryLoad}
+            className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-[8px] border border-[#FECACA] bg-white px-3 text-xs font-semibold text-[#991B1B] transition-colors hover:bg-[#FEE2E2] sm:min-h-8"
+          >
+            <RefreshCw className="size-3.5" aria-hidden="true" />
+            <span>Muat Ulang</span>
+          </button>
+        </div>
+      )}
+
+      {isLoadingList && psychologists.length === 0 ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-center justify-center gap-2 rounded-[12px] border border-[#E2E8F0] bg-white px-4 py-12 text-xs font-semibold text-ink-soft"
+        >
+          <Loader2 className="size-4 animate-spin text-primary" aria-hidden="true" />
+          <span>Memuat daftar kredensial psikolog...</span>
+        </div>
+      ) : (
+        <>
+          <PsychologistTable
+            psychologists={paginatedPsychologists}
+            onSelectPsychologist={handleOpenDetail}
+            hasActiveFilter={activeFilter !== 'all' || search.trim().length > 0}
+            onResetFilters={handleResetFilters}
+          />
+
+          <TablePagination
+            currentPage={safePage}
+            totalItems={filteredPsychologists.length}
+            pageSize={pageSize}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            itemLabel="psikolog"
+            ariaLabel="Paginasi daftar psikolog"
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+          />
+        </>
+      )}
 
       <PsychologistDetailModal
         key={selectedPsy?.id ?? 'empty'}

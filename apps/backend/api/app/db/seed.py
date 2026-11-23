@@ -508,8 +508,15 @@ async def seed_counselor_master_data(session: AsyncSessionLocal, patient_user: U
             user_id=counselor_user.id,
             full_name="dr. Sarah Amelia, M.Psi., Psikolog",
             title_degree="M.Psi., Psikolog Klinis",
+            education="S2 Magister Psikologi Profesi (Psikolog Klinis)",
             str_number="STR-PSI-19940822-2024",
+            str_issuing_institution="Kemenkes RI / KTKI",
+            str_expiry_date="Seumur Hidup (UU Kesehatan No. 17/2023)",
+            str_verified=True,
             sip_number="SIP-PK-2024-0089",
+            sip_issuing_institution="Dinas Kesehatan Provinsi DKI Jakarta",
+            sip_expiry_date="2029-08-22",
+            sip_verified=True,
             association="Himpunan Psikologi Indonesia (HIMPSI)",
             specializations=["Anxiety & Stress", "Trauma & PTSD", "Depression", "Family & Relationship"],
             years_of_experience=7,
@@ -527,9 +534,56 @@ async def seed_counselor_master_data(session: AsyncSessionLocal, patient_user: U
         logger.info("Seeded Verified Psychologist Profile.")
     else:
         profile.verification_status = PsychologistVerificationStatus.VERIFIED.value
+        profile.education = profile.education or "S2 Magister Psikologi Profesi (Psikolog Klinis)"
+        profile.str_issuing_institution = profile.str_issuing_institution or "Kemenkes RI / KTKI"
+        profile.str_expiry_date = profile.str_expiry_date or "Seumur Hidup (UU Kesehatan No. 17/2023)"
+        profile.str_verified = True
+        profile.sip_issuing_institution = profile.sip_issuing_institution or "Dinas Kesehatan Provinsi DKI Jakarta"
+        profile.sip_expiry_date = profile.sip_expiry_date or "2029-08-22"
+        profile.sip_verified = True
         profile.wallet_balance = Decimal("360000.00")
         profile.is_online = True
         await session.commit()
+
+    # 3b. Seed 1 Sample Pending Psychologist Applicant for Admin Portal Verification Queue
+    pending_email = "larasati.psi@praktikmandiri.id"
+    res_pending = await session.execute(select(User).where(User.email == pending_email))
+    pending_user = res_pending.scalar_one_or_none()
+    if not pending_user:
+        pending_user = User(
+            email=pending_email,
+            username="larasati_psi",
+            display_name="Larasati Kusumawardhani",
+            password_hash=hash_password("password123"),
+            is_active=True,
+            is_verified=False,
+        )
+        session.add(pending_user)
+        await session.flush()
+
+        pending_profile = PsychologistProfile(
+            user_id=pending_user.id,
+            full_name="Larasati Kusumawardhani",
+            title_degree="M.Psi., Psikolog",
+            education="S2 Magister Psikologi Profesi (Psikolog Klinis)",
+            str_number="STR-PK-2022-884120",
+            str_issuing_institution="Kemenkes RI / KTKI (Konsil Tenaga Kesehatan Indonesia)",
+            str_expiry_date="Seumur Hidup (UU Kesehatan No. 17/2023)",
+            str_verified=False,
+            sip_number="20220618-2027-01-1402",
+            sip_issuing_institution="Dinas Kesehatan Kabupaten / Kota",
+            sip_expiry_date="2027-06-18",
+            sip_verified=False,
+            association="Himpunan Psikologi Indonesia (HIMPSI)",
+            specializations=["Kecemasan Dewasa", "Trauma & Regulasi Emosi", "Quarter-life Crisis"],
+            years_of_experience=5,
+            verification_status=PsychologistVerificationStatus.PENDING.value,
+            is_online=False,
+            bio="Psikolog klinis dewasa yang berfokus pada kecemasan, regulasi emosi, dan quarter-life crisis.",
+        )
+        session.add(pending_profile)
+        await session.commit()
+        logger.info("Seeded Pending Psychologist Applicant: larasati.psi@praktikmandiri.id")
 
     # 4. Patient Consent
     query_consent = select(PatientConsent).where(

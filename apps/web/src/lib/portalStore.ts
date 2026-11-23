@@ -25,6 +25,8 @@ export {
 } from '@/services/portal/pricingService'
 export {
   deletePsychologist,
+  fetchAdminPsychologists,
+  reactivatePsychologistAccount,
   registerPsychologistApplication,
   resubmitPsychologistApplication,
   reviewPsychologistVerification,

@@ -33,6 +33,8 @@ class PsychologistProfile(BaseModel):
 
     def __init__(self, **kwargs: Any) -> None:
         kwargs.setdefault("verification_status", PsychologistVerificationStatus.PENDING.value)
+        kwargs.setdefault("str_verified", False)
+        kwargs.setdefault("sip_verified", False)
         kwargs.setdefault("is_online", True)
         kwargs.setdefault("buffer_time_minutes", 10)
         kwargs.setdefault("wallet_balance", Decimal("0.00"))
@@ -62,8 +64,29 @@ class PsychologistProfile(BaseModel):
     )
     years_of_experience: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
+    education: Mapped[str | None] = mapped_column(String(200), nullable=True)
     profile_photo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     certificate_doc_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Separate STR / SIP Document Metadata & Admin Verification Flags
+    str_doc_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    str_issuing_institution: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    str_expiry_date: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    str_verified: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+    )
+    sip_doc_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sip_issuing_institution: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    sip_expiry_date: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    sip_verified: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+    )
 
     # Verification Gate Fields
     verification_status: Mapped[str] = mapped_column(
