@@ -131,6 +131,11 @@ class AppConfig {
     return '$wsScheme://$host/api/v1';
   }
 
+  /// Base WebSocket URL for WebRTC care room signaling
+  static String get wsCareBaseUrl {
+    return '$wsUrl/care/ws';
+  }
+
   /// Get current JWT access token
   static Future<String?> getToken() async {
     if (authToken != null) return authToken;

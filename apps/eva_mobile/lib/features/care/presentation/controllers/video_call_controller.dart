@@ -1,44 +1,261 @@
 import 'dart:async';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:webrtc_client/webrtc_client.dart';
+
+import '../../../../config/app_config.dart';
 import '../../domain/entities/consultation_session_entity.dart';
 import '../../domain/entities/video_call_state_entity.dart';
 import '../../domain/repositories/video_call_repository.dart';
 
-class VideoCallController extends StateNotifier<VideoCallStateEntity> {
+class VideoCallController extends StateNotifier<VideoCallStateEntity>
+    with WidgetsBindingObserver {
   final VideoCallRepository repository;
+  final IWebRtcPeerManager _peerManager;
+  final IWebRtcSignalingService _signalingService;
+
   Timer? _callTimer;
-  Timer? _speechSimulationTimer;
+  StreamSubscription? _signalingSub;
+  StreamSubscription? _peerIceCandidateSub;
+  StreamSubscription? _iceStateSub;
+
+  IWebRtcPeerManager get peerManager => _peerManager;
+  IWebRtcSignalingService get signalingService => _signalingService;
 
   VideoCallController({
     required this.repository,
     required ConsultationSessionEntity initialSession,
-  }) : super(VideoCallStateEntity(
+    IWebRtcPeerManager? peerManager,
+    IWebRtcSignalingService? signalingService,
+  })  : _peerManager = peerManager ??
+            (AppConfig.useMockData
+                ? MockWebRtcPeerManager()
+                : WebRtcPeerManager()),
+        _signalingService = signalingService ??
+            (AppConfig.useMockData
+                ? MockSignalingService()
+                : WebRtcSignalingService()),
+        super(VideoCallStateEntity(
           session: initialSession,
           connectionState: VideoCallConnectionState.connecting,
           roomId: 'room-${initialSession.id}',
         )) {
+    WidgetsBinding.instance.addObserver(this);
     _initializeCall(initialSession);
   }
 
   Future<void> _initializeCall(ConsultationSessionEntity session) async {
+    // 1. Request camera and microphone permissions
+    if (!AppConfig.useMockData) {
+      try {
+        final camStatus = await Permission.camera.request();
+        final micStatus = await Permission.microphone.request();
+        state = state.copyWith(
+          isCameraPermissionGranted: camStatus.isGranted,
+          isMicPermissionGranted: micStatus.isGranted,
+        );
+      } catch (e) {
+        debugPrint('[VideoCallController] Permission request error: $e');
+      }
+    }
+
+    // 2. Initialize video renderers
+    await _peerManager.initializeRenderers();
+
+    // 3. Start local media stream with initial quality preset
     try {
-      state = state.copyWith(
-        connectionState: VideoCallConnectionState.connecting,
-      );
-
-      final connectedState = await repository.joinCall(session);
-
-      state = connectedState.copyWith(
-        connectionState: VideoCallConnectionState.connected,
-      );
-
-      _startCallTimer();
-      _startSpeechSimulation();
+      if (state.isCameraPermissionGranted || state.isMicPermissionGranted) {
+        await _peerManager.startLocalStream(
+          audio: state.isMicPermissionGranted && !state.isMicMuted,
+          video: state.isCameraPermissionGranted &&
+              !state.isCameraOff &&
+              state.qualityPreset != VideoQualityPreset.audioOnly,
+          quality: state.qualityPreset,
+        );
+      }
     } catch (e) {
+      debugPrint('[VideoCallController] startLocalStream error: $e');
+    }
+
+    // 4. Join room and fetch session credentials & ICE servers
+    try {
+      final joinedState = await repository.joinCall(session);
       state = state.copyWith(
-        connectionState: VideoCallConnectionState.reconnecting,
-        errorMessage: e.toString(),
+        roomId: joinedState.roomId,
+        token: joinedState.token,
+        iceServers: joinedState.iceServers,
+        wsUrl: joinedState.wsUrl,
+        isWaitingForCounselor: true,
       );
+    } catch (e) {
+      debugPrint('[VideoCallController] joinCall error: $e');
+    }
+
+    // 5. Create PeerConnection as deterministic Answerer
+    await _peerManager.createPeerConnectionInstance(
+      iceServers: state.iceServers,
+      isOfferer: false,
+    );
+
+    // 6. Listen to local ICE candidates to forward to counselor via signaling
+    _peerIceCandidateSub =
+        _peerManager.onLocalIceCandidateStream.listen((candidate) {
+      _signalingService.sendMessage(SignalingMessage.create(
+        type: 'ice_candidate',
+        senderRole: 'patient',
+        payload: {
+          'candidate': candidate.candidate,
+          'sdpMid': candidate.sdpMid,
+          'sdpMLineIndex': candidate.sdpMLineIndex,
+        },
+      ));
+    });
+
+    // 7. Monitor ICE state transitions
+    _iceStateSub = _peerManager.iceConnectionStateStream.listen((iceState) {
+      if (iceState == RTCIceConnectionState.RTCIceConnectionStateConnected ||
+          iceState == RTCIceConnectionState.RTCIceConnectionStateCompleted) {
+        state = state.copyWith(
+          connectionState: VideoCallConnectionState.connected,
+          isWaitingForCounselor: false,
+          isCounselorReconnecting: false,
+          clearCounselorStatusMessage: true,
+        );
+        _startCallTimer();
+      } else if (iceState ==
+              RTCIceConnectionState.RTCIceConnectionStateDisconnected ||
+          iceState == RTCIceConnectionState.RTCIceConnectionStateFailed) {
+        state = state.copyWith(
+          connectionState: VideoCallConnectionState.reconnecting,
+          isCounselorReconnecting: true,
+          counselorStatusMessage:
+              'Koneksi terputus. Mencoba menghubungkan kembali...',
+        );
+      }
+    });
+
+    // 8. Auto ICE restart callback on debounce (> 4s)
+    final peer = _peerManager;
+    if (peer is WebRtcPeerManager) {
+      peer.onIceRestartNeeded = () {
+        sendIceRestartRequest();
+      };
+    }
+
+    // 9. Connect to Signaling Server via WebSocket
+    final token = state.token ?? 'mock-token';
+    final targetWsUrl = state.wsUrl ??
+        '${AppConfig.wsCareBaseUrl}/${state.session.id}?token=$token';
+    try {
+      await _signalingService.connect(targetWsUrl);
+      _signalingSub =
+          _signalingService.messageStream.listen(_handleSignalingMessage);
+    } catch (e) {
+      debugPrint('[VideoCallController] Signaling connect error: $e');
+    }
+
+    // 10. Enable Wakelock
+    if (!AppConfig.useMockData) {
+      try {
+        await WakelockPlus.enable();
+      } catch (_) {}
+    }
+
+    // If running in Mock mode, automatically simulate connected state after short delay
+    if (AppConfig.useMockData) {
+      Timer(const Duration(milliseconds: 300), () {
+        if (!mounted) return;
+        state = state.copyWith(
+          connectionState: VideoCallConnectionState.connected,
+          isWaitingForCounselor: false,
+        );
+        _startCallTimer();
+      });
+    }
+  }
+
+  void _handleSignalingMessage(SignalingMessage message) async {
+    switch (message.type) {
+      case 'room_ready':
+        state = state.copyWith(isWaitingForCounselor: false);
+        break;
+
+      case 'offer':
+        final sdp = message.payload['sdp']?.toString();
+        final type = message.payload['type']?.toString() ?? 'offer';
+        if (sdp != null) {
+          try {
+            await _peerManager.setRemoteDescription(
+              RTCSessionDescription(sdp, type),
+            );
+            final answer = await _peerManager.createAnswer();
+            _signalingService.sendMessage(SignalingMessage.create(
+              type: 'answer',
+              senderRole: 'patient',
+              payload: {
+                'sdp': answer.sdp,
+                'type': answer.type,
+              },
+            ));
+            state = state.copyWith(
+              connectionState: VideoCallConnectionState.connected,
+              isWaitingForCounselor: false,
+              isCounselorReconnecting: false,
+              clearCounselorStatusMessage: true,
+            );
+            _startCallTimer();
+          } catch (e) {
+            debugPrint('[VideoCallController] Answer creation error: $e');
+          }
+        }
+        break;
+
+      case 'ice_candidate':
+        final candidate = message.payload['candidate']?.toString();
+        final sdpMid = message.payload['sdpMid']?.toString();
+        final sdpMLineIndex = message.payload['sdpMLineIndex'] as int? ?? 0;
+        if (candidate != null) {
+          await _peerManager.addRemoteCandidate(
+            RTCIceCandidate(candidate, sdpMid, sdpMLineIndex),
+          );
+        }
+        break;
+
+      case 'peer_reconnecting':
+        state = state.copyWith(
+          connectionState: VideoCallConnectionState.reconnecting,
+          isCounselorReconnecting: true,
+          counselorStatusMessage:
+              'Konselor sedang mengalami gangguan jaringan...',
+        );
+        break;
+
+      case 'peer_reconnected':
+        state = state.copyWith(
+          connectionState: VideoCallConnectionState.connected,
+          isCounselorReconnecting: false,
+          clearCounselorStatusMessage: true,
+        );
+        break;
+
+      case 'media_state':
+        final isRemoteCamOff = message.payload['is_camera_off'] as bool?;
+        if (isRemoteCamOff != null) {
+          state = state.copyWith(
+            counselorStatusMessage:
+                isRemoteCamOff ? 'Konselor menonaktifkan kamera' : null,
+          );
+        }
+        break;
+
+      case 'session_ended':
+        state = state.copyWith(
+          connectionState: VideoCallConnectionState.ended,
+        );
+        break;
     }
   }
 
@@ -55,59 +272,123 @@ class VideoCallController extends StateNotifier<VideoCallStateEntity> {
     });
   }
 
-  void _startSpeechSimulation() {
-    _speechSimulationTimer?.cancel();
-    _speechSimulationTimer =
-        Timer.periodic(const Duration(seconds: 4), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      state = state.copyWith(
-        isRemoteSpeaking: !state.isRemoteSpeaking,
-      );
-    });
-  }
-
   void toggleMic() {
     final newMicState = !state.isMicMuted;
     state = state.copyWith(isMicMuted: newMicState);
+    _peerManager.toggleAudio(!newMicState);
     repository.syncMediaState(
       sessionId: state.session.id,
       isMicMuted: newMicState,
       isCameraOff: state.isCameraOff,
     );
+    _signalingService.sendMessage(SignalingMessage.create(
+      type: 'media_state',
+      senderRole: 'patient',
+      payload: {
+        'is_mic_muted': newMicState,
+        'is_camera_off': state.isCameraOff,
+      },
+    ));
   }
 
   void toggleCamera() {
     final newCameraState = !state.isCameraOff;
     state = state.copyWith(isCameraOff: newCameraState);
+    _peerManager.toggleVideo(!newCameraState);
     repository.syncMediaState(
       sessionId: state.session.id,
       isMicMuted: state.isMicMuted,
       isCameraOff: newCameraState,
     );
+    _signalingService.sendMessage(SignalingMessage.create(
+      type: 'media_state',
+      senderRole: 'patient',
+      payload: {
+        'is_mic_muted': state.isMicMuted,
+        'is_camera_off': newCameraState,
+      },
+    ));
   }
 
-  void switchCamera() {
+  Future<void> switchCamera() async {
+    await _peerManager.switchCamera();
     state = state.copyWith(isFrontCamera: !state.isFrontCamera);
   }
 
-  void toggleSpeaker() {
-    state = state.copyWith(isSpeakerOn: !state.isSpeakerOn);
+  Future<void> toggleSpeaker() async {
+    final newSpeakerState = !state.isSpeakerOn;
+    state = state.copyWith(isSpeakerOn: newSpeakerState);
+    await _peerManager.setSpeakerphoneOn(newSpeakerState);
+  }
+
+  Future<void> setVideoQualityPreset(VideoQualityPreset preset) async {
+    state = state.copyWith(qualityPreset: preset);
+    await _peerManager.setQualityPreset(preset);
+  }
+
+  void sendIceRestartRequest() {
+    _signalingService.sendMessage(SignalingMessage.create(
+      type: 'ice_restart_needed',
+      senderRole: 'patient',
+      payload: {'session_id': state.session.id},
+    ));
+  }
+
+  Future<void> manualIceRestart() async {
+    state = state.copyWith(
+      connectionState: VideoCallConnectionState.reconnecting,
+      counselorStatusMessage: 'Menghubungkan ulang sesi...',
+    );
+    sendIceRestartRequest();
   }
 
   Future<void> endCall() async {
     _callTimer?.cancel();
-    _speechSimulationTimer?.cancel();
-    state = state.copyWith(connectionState: VideoCallConnectionState.ended);
+    state = state.copyWith(
+      connectionState: VideoCallConnectionState.ended,
+    );
+
+    _signalingService.sendMessage(SignalingMessage.create(
+      type: 'session_ended',
+      senderRole: 'patient',
+      payload: {'session_id': state.session.id},
+    ));
+
     await repository.endCall(state.session.id);
   }
 
   @override
-  void dispose() {
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _peerManager.toggleVideo(false);
+    } else if (state == AppLifecycleState.resumed) {
+      if (!this.state.isCameraOff &&
+          this.state.qualityPreset != VideoQualityPreset.audioOnly) {
+        _peerManager.toggleVideo(true);
+      }
+    }
+  }
+
+  Future<void> _cleanup() async {
     _callTimer?.cancel();
-    _speechSimulationTimer?.cancel();
+    await _signalingSub?.cancel();
+    await _peerIceCandidateSub?.cancel();
+    await _iceStateSub?.cancel();
+
+    if (!AppConfig.useMockData) {
+      try {
+        await WakelockPlus.disable();
+      } catch (_) {}
+    }
+
+    await _peerManager.dispose();
+    await _signalingService.disconnect();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _cleanup();
     super.dispose();
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:webrtc_client/webrtc_client.dart';
 
 import 'package:eva_mobile/config/app_config.dart';
 import 'package:eva_mobile/features/care/domain/entities/consultation_session_entity.dart';
@@ -46,7 +47,7 @@ void main() {
   );
 
   group('VideoCall DataSource & Repository Unit Tests', () {
-    test('MockVideoCallDataSource returns valid room session DTO', () async {
+    test('MockVideoCallDataSource returns valid room session DTO with iceServerConfigs', () async {
       final dataSource = MockVideoCallDataSource();
       final dto = await dataSource.joinRoom('test-session-1');
 
@@ -55,36 +56,43 @@ void main() {
       expect(dto.token, contains('mock-webrtc-token'));
       expect(dto.status, 'active');
       expect(dto.iceServers, isNotEmpty);
+      expect(dto.iceServerConfigs, isNotEmpty);
+      expect(dto.wsUrl, contains('test-session-1'));
     });
 
-    test('VideoCallRepositoryImpl initializes connected call state', () async {
+    test('VideoCallRepositoryImpl initializes call state with ICE servers', () async {
       final repository =
           VideoCallRepositoryImpl(dataSource: MockVideoCallDataSource());
       final state = await repository.joinCall(dummySession);
 
-      expect(state.connectionState, VideoCallConnectionState.connected);
+      expect(state.connectionState, VideoCallConnectionState.connecting);
       expect(state.isMicMuted, isFalse);
       expect(state.isCameraOff, isFalse);
       expect(state.isSpeakerOn, isTrue);
       expect(state.isFrontCamera, isTrue);
       expect(state.roomId, contains('session-vc-101'));
+      expect(state.iceServers, isNotEmpty);
     });
   });
 
-  group('VideoCallController Logic Tests', () {
-    test('Toggles mic, camera, speaker, and front camera state properly',
+  group('VideoCallController Answerer Logic Tests', () {
+    test('Toggles mic, camera, speaker, camera switch and quality presets',
         () async {
       final repository =
           VideoCallRepositoryImpl(dataSource: MockVideoCallDataSource());
+      final mockPeer = MockWebRtcPeerManager();
+      final mockSignaling = MockSignalingService();
+
       final controller = VideoCallController(
         repository: repository,
         initialSession: dummySession,
+        peerManager: mockPeer,
+        signalingService: mockSignaling,
       );
 
       // Wait initial async join
       await Future.delayed(const Duration(milliseconds: 350));
-      expect(controller.state.connectionState,
-          VideoCallConnectionState.connected);
+      expect(controller.state.connectionState, VideoCallConnectionState.connected);
 
       // Toggle Mic
       controller.toggleMic();
@@ -99,20 +107,88 @@ void main() {
       expect(controller.state.isCameraOff, isFalse);
 
       // Switch Camera
-      controller.switchCamera();
+      await controller.switchCamera();
       expect(controller.state.isFrontCamera, isFalse);
-      controller.switchCamera();
+      await controller.switchCamera();
       expect(controller.state.isFrontCamera, isTrue);
 
       // Toggle Speaker
-      controller.toggleSpeaker();
+      await controller.toggleSpeaker();
       expect(controller.state.isSpeakerOn, isFalse);
-      controller.toggleSpeaker();
+      await controller.toggleSpeaker();
       expect(controller.state.isSpeakerOn, isTrue);
+
+      // Quality preset change
+      await controller.setVideoQualityPreset(VideoQualityPreset.sd480p);
+      expect(controller.state.qualityPreset, VideoQualityPreset.sd480p);
+
+      await controller.setVideoQualityPreset(VideoQualityPreset.audioOnly);
+      expect(controller.state.qualityPreset, VideoQualityPreset.audioOnly);
+
+      // Manual ICE restart request
+      await controller.manualIceRestart();
+      expect(controller.state.connectionState, VideoCallConnectionState.reconnecting);
 
       // End Call
       await controller.endCall();
       expect(controller.state.connectionState, VideoCallConnectionState.ended);
+    });
+
+    test('Reacts to Answerer signaling messages (room_ready, offer, reconnect)',
+        () async {
+      final repository =
+          VideoCallRepositoryImpl(dataSource: MockVideoCallDataSource());
+      final mockPeer = MockWebRtcPeerManager();
+      final mockSignaling = MockSignalingService();
+
+      final controller = VideoCallController(
+        repository: repository,
+        initialSession: dummySession,
+        peerManager: mockPeer,
+        signalingService: mockSignaling,
+      );
+
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      // 1. Receive room_ready from counselor
+      mockSignaling.emitMockMessage(SignalingMessage.create(
+        type: 'room_ready',
+        senderRole: 'counselor',
+      ));
+      await Future.delayed(const Duration(milliseconds: 20));
+      expect(controller.state.isWaitingForCounselor, isFalse);
+
+      // 2. Receive offer from counselor -> creates answer
+      mockSignaling.emitMockMessage(SignalingMessage.create(
+        type: 'offer',
+        senderRole: 'counselor',
+        payload: {
+          'sdp': 'v=0\r\no=counselor 0 0 IN IP4 127.0.0.1\r\ns=-\r\n',
+          'type': 'offer',
+        },
+      ));
+      await Future.delayed(const Duration(milliseconds: 20));
+      expect(controller.state.connectionState, VideoCallConnectionState.connected);
+
+      // 3. Receive peer_reconnecting
+      mockSignaling.emitMockMessage(SignalingMessage.create(
+        type: 'peer_reconnecting',
+        senderRole: 'system',
+      ));
+      await Future.delayed(const Duration(milliseconds: 20));
+      expect(controller.state.connectionState, VideoCallConnectionState.reconnecting);
+      expect(controller.state.isCounselorReconnecting, isTrue);
+
+      // 4. Receive peer_reconnected
+      mockSignaling.emitMockMessage(SignalingMessage.create(
+        type: 'peer_reconnected',
+        senderRole: 'system',
+      ));
+      await Future.delayed(const Duration(milliseconds: 20));
+      expect(controller.state.connectionState, VideoCallConnectionState.connected);
+      expect(controller.state.isCounselorReconnecting, isFalse);
+
+      await controller.endCall();
     });
   });
 
@@ -129,7 +205,10 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             child: MaterialApp(
-              home: PsychologistVideoCallScreen(session: dummySession),
+              home: MediaQuery(
+                data: const MediaQueryData(disableAnimations: true),
+                child: PsychologistVideoCallScreen(session: dummySession),
+              ),
             ),
           ),
         );
@@ -144,10 +223,10 @@ void main() {
         // 2. Verify interactive media control buttons
         expect(find.byIcon(Icons.mic_rounded), findsOneWidget);
         expect(find.byIcon(Icons.videocam_rounded), findsOneWidget);
-        expect(find.byIcon(Icons.flip_camera_ios_rounded), findsWidgets);
         expect(find.byIcon(Icons.volume_up_rounded), findsOneWidget);
-        expect(find.byIcon(Icons.chat_bubble_outline_rounded), findsOneWidget);
+        expect(find.byIcon(Icons.edit_note_rounded), findsOneWidget);
         expect(find.byIcon(Icons.call_end_rounded), findsOneWidget);
+        expect(find.byIcon(Icons.tune_rounded), findsOneWidget);
 
         // 3. Test Mic Mute toggle
         await tester.tap(find.byIcon(Icons.mic_rounded));
@@ -163,11 +242,27 @@ void main() {
         // 5. Test Speaker toggle
         await tester.tap(find.byIcon(Icons.volume_up_rounded));
         await tester.pump();
-        expect(find.byIcon(Icons.volume_off_rounded), findsOneWidget);
+        expect(find.byIcon(Icons.volume_down_rounded), findsOneWidget);
 
-        // 6. Test End Call Confirmation & Result Bottom Sheet Navigation
+        // 6. Test Quality Preset Sheet
+        await tester.tap(find.byIcon(Icons.tune_rounded));
+        await tester.pump(const Duration(milliseconds: 400));
+        await tester.pump(const Duration(milliseconds: 400));
+
+        expect(find.text('Kualitas Video Konsultasi'), findsOneWidget);
+        expect(find.text('720p HD (Rekomendasi)'), findsOneWidget);
+        expect(find.text('480p Hemat Data'), findsOneWidget);
+        expect(find.text('Audio-Only (Kamera Mati)'), findsOneWidget);
+
+        // Select 480p
+        await tester.tap(find.text('480p Hemat Data'));
+        await tester.pump(const Duration(milliseconds: 400));
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(find.text('480p'), findsOneWidget);
+
+        // 7. Test End Call Confirmation & Result Bottom Sheet Navigation
         await tester.tap(find.byIcon(Icons.call_end_rounded));
-        await tester.pumpAndSettle();
+        await tester.pump(const Duration(milliseconds: 400));
 
         expect(find.text('Akhiri Sesi Konsultasi?'), findsOneWidget);
         expect(find.text('Ya, Selesaikan'), findsOneWidget);
