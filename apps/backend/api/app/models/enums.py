@@ -176,6 +176,7 @@ class PsychologistVerificationStatus(StrEnum):
     VERIFIED = "verified"
     REJECTED = "rejected"
     NEED_REVISION = "need_revision"
+    SUSPENDED = "suspended"
 
 
 class ConsultationSessionStatus(StrEnum):

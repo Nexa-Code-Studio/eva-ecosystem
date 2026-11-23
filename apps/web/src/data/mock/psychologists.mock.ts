@@ -2,48 +2,65 @@ import { generateCertificateSvgUri } from './certificateSvgTemplates'
 import type { SimulateMobilePsychologistInput } from '@/types/api/contracts'
 import type { Psychologist, PsychologistCertificate } from '@/types/domain/portal'
 
+function isRenderableImageUrl(url?: string | null): url is string {
+  if (!url) return false
+  const trimmed = url.trim()
+  if (trimmed.startsWith('data:image/')) return true
+  if (!/^https?:\/\/|^\//i.test(trimmed)) return false
+  return /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(trimmed) || trimmed.startsWith('https://') || trimmed.startsWith('http://')
+}
+
 export function buildPsychologistCertificates(params: {
   fullName: string
   strNumber?: string | null
-  strIssuedBy?: string
-  strValidUntil?: string
+  strIssuedBy?: string | null
+  strValidUntil?: string | null
+  strDocUrl?: string | null
+  strVerified?: boolean
+  strDocId?: string
   sipNumber?: string | null
-  sipIssuedBy?: string
-  sipValidUntil?: string
+  sipIssuedBy?: string | null
+  sipValidUntil?: string | null
+  sipDocUrl?: string | null
+  sipVerified?: boolean
+  sipDocId?: string
   association: string
-  education?: string
+  education?: string | null
   verified?: boolean
 }): PsychologistCertificate[] {
   const slug = params.fullName
     .trim()
     .replace(/[^a-zA-Z0-9]+/g, '_')
     .slice(0, 24)
-  const verified = Boolean(params.verified)
+  const fallbackVerified = Boolean(params.verified)
   const docs: PsychologistCertificate[] = []
 
   if (params.strNumber?.trim()) {
     const strNum = params.strNumber.trim().toUpperCase()
     const strIssuer = params.strIssuedBy?.trim() || `${params.association} / Kemenkes RI`
     const strValid = params.strValidUntil?.trim() || 'Seumur Hidup (UU Kesehatan No. 17/2023)'
+    const strPreviewUrl = isRenderableImageUrl(params.strDocUrl)
+      ? params.strDocUrl.trim()
+      : generateCertificateSvgUri({
+          docType: 'STR HIMPSI',
+          title: 'Surat Tanda Registrasi Psikolog Klinis (STR-PK)',
+          documentNumber: strNum,
+          issuedBy: strIssuer,
+          holderName: params.fullName,
+          validUntil: strValid,
+        })
     docs.push({
-      id: `doc-str-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      id: params.strDocId ?? `doc-str-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       docType: 'STR HIMPSI',
       title: 'Surat Tanda Registrasi Psikolog Klinis (STR-PK)',
       documentNumber: strNum,
       issuedBy: strIssuer,
       issuedYear: '2024',
       validUntil: strValid,
-      fileName: `STR_PK_${slug}.pdf`,
+      fileName: params.strDocUrl?.trim() || `STR_PK_${slug}.pdf`,
       fileSize: '980 KB',
-      verified,
-      imageUrl: generateCertificateSvgUri({
-        docType: 'STR HIMPSI',
-        title: 'Surat Tanda Registrasi Psikolog Klinis (STR-PK)',
-        documentNumber: strNum,
-        issuedBy: strIssuer,
-        holderName: params.fullName,
-        validUntil: strValid,
-      }),
+      verified: params.strVerified ?? fallbackVerified,
+      imageUrl: strPreviewUrl,
     })
   }
 
@@ -51,25 +68,28 @@ export function buildPsychologistCertificates(params: {
     const sipNum = params.sipNumber.trim().toUpperCase()
     const sipIssuer = params.sipIssuedBy?.trim() || 'Dinas Kesehatan Kabupaten / Kota'
     const sipValid = params.sipValidUntil?.trim() || '2029-12-31'
+    const sipPreviewUrl = isRenderableImageUrl(params.sipDocUrl)
+      ? params.sipDocUrl.trim()
+      : generateCertificateSvgUri({
+          docType: 'SIPP',
+          title: 'Surat Izin Praktik Psikologi (SIPP)',
+          documentNumber: sipNum,
+          issuedBy: sipIssuer,
+          holderName: params.fullName,
+          validUntil: sipValid,
+        })
     docs.push({
-      id: `doc-sipp-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      id: params.sipDocId ?? `doc-sipp-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       docType: 'SIPP',
       title: 'Surat Izin Praktik Psikologi (SIPP)',
       documentNumber: sipNum,
       issuedBy: sipIssuer,
       issuedYear: '2024',
       validUntil: sipValid,
-      fileName: `SIPP_${slug}.pdf`,
+      fileName: params.sipDocUrl?.trim() || `SIPP_${slug}.pdf`,
       fileSize: '1.3 MB',
-      verified,
-      imageUrl: generateCertificateSvgUri({
-        docType: 'SIPP',
-        title: 'Surat Izin Praktik Psikologi (SIPP)',
-        documentNumber: sipNum,
-        issuedBy: sipIssuer,
-        holderName: params.fullName,
-        validUntil: sipValid,
-      }),
+      verified: params.sipVerified ?? fallbackVerified,
+      imageUrl: sipPreviewUrl,
     })
   }
 

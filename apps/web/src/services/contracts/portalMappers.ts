@@ -29,15 +29,38 @@ export function mapBackendPsychologistToDomain(
   existing?: Partial<Psychologist>,
 ): Psychologist {
   const verificationStatus = normalizeVerificationStatus(dto.verification_status)
+  const resolvedEducation = dto.education ?? existing?.education
+  const documents = buildPsychologistCertificates({
+    fullName: `${dto.full_name}, ${dto.title_degree}`,
+    strNumber: dto.str_number,
+    strIssuedBy: dto.str_issuing_institution,
+    strValidUntil: dto.str_expiry_date,
+    strDocUrl: dto.str_doc_url ?? dto.certificate_doc_url,
+    strVerified: dto.str_verified ?? verificationStatus === 'verified',
+    strDocId: 'str',
+    sipNumber: dto.sip_number,
+    sipIssuedBy: dto.sip_issuing_institution,
+    sipValidUntil: dto.sip_expiry_date,
+    sipDocUrl: dto.sip_doc_url,
+    sipVerified: dto.sip_verified ?? verificationStatus === 'verified',
+    sipDocId: 'sip',
+    association: dto.association,
+    education: resolvedEducation,
+    verified: verificationStatus === 'verified',
+  })
+
   return {
     id: dto.id,
     userId: dto.user_id,
     fullName: dto.full_name,
     titleDegree: dto.title_degree,
-    email: existing?.email ?? `${dto.full_name.toLowerCase().replace(/[^a-z0-9]+/g, '.')}@eva.id`,
+    email:
+      dto.email ??
+      existing?.email ??
+      `${dto.full_name.toLowerCase().replace(/[^a-z0-9]+/g, '.')}@eva.id`,
     phone: existing?.phone,
     city: existing?.city,
-    education: existing?.education,
+    education: resolvedEducation ?? undefined,
     strNumber: dto.str_number,
     sipNumber: dto.sip_number ?? null,
     association: dto.association,
@@ -45,29 +68,17 @@ export function mapBackendPsychologistToDomain(
     yearsOfExperience: dto.years_of_experience,
     bio: dto.bio ?? null,
     profilePhotoUrl: dto.profile_photo_url ?? null,
-    certificateDocUrl: dto.certificate_doc_url ?? null,
+    certificateDocUrl: dto.certificate_doc_url ?? dto.str_doc_url ?? null,
     verificationStatus,
     verificationNotes: dto.verification_notes ?? null,
     verifiedAt: dto.verified_at ?? null,
     isOnline: dto.is_online,
     bufferTimeMinutes: dto.buffer_time_minutes,
     practiceSchedule: existing?.practiceSchedule,
-    status: verificationStatus === 'verified' ? 'active' : 'inactive',
+    status: verificationStatus === 'verified' ? (dto.is_online ? 'active' : 'on_leave') : 'inactive',
     submittedAt: dto.created_at.slice(0, 10),
     reviewedAt: dto.verified_at ? dto.verified_at.slice(0, 10) : existing?.reviewedAt,
-    documents:
-      existing?.documents && existing.documents.length > 0
-        ? existing.documents.filter(
-            (doc) => doc.docType === 'STR HIMPSI' || doc.docType === 'SIPP',
-          )
-        : buildPsychologistCertificates({
-            fullName: `${dto.full_name}, ${dto.title_degree}`,
-            strNumber: dto.str_number,
-            sipNumber: dto.sip_number,
-            association: dto.association,
-            education: existing?.education,
-            verified: verificationStatus === 'verified',
-          }),
+    documents,
   }
 }
 

@@ -2,7 +2,12 @@ import uuid
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.api.dependencies import get_counselor_service, get_current_user, get_scheduling_service
+from app.api.dependencies import (
+    get_counselor_service,
+    get_current_admin,
+    get_current_user,
+    get_scheduling_service,
+)
 from app.models.user import User
 from app.schemas.counselor import (
     PsychologistProfileResponse,
@@ -103,7 +108,7 @@ async def get_counselor_profile_by_id(
 async def verify_counselor(
     counselor_id: uuid.UUID,
     payload: VerifyPsychologistRequest,
-    admin: User = Depends(get_current_user),
+    admin: User = Depends(get_current_admin),
     service: CounselorService = Depends(get_counselor_service),
 ) -> PsychologistVerificationResponse:
     """Review and verify or reject a psychologist's professional credentials (Admin)."""

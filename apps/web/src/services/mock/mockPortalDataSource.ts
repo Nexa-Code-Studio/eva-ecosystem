@@ -211,6 +211,42 @@ export class MockPortalDataSource implements IPortalDataSource {
     return created
   }
 
+  async fetchAdminPsychologists(): Promise<Psychologist[]> {
+    return this.loadSnapshot().psychologists
+  }
+
+  async togglePsychologistDocumentVerified(
+    psychologistId: string,
+    docIdOrType: string,
+  ): Promise<Psychologist> {
+    const db = this.loadSnapshot()
+    const idx = db.psychologists.findIndex((p) => p.id === psychologistId)
+    if (idx === -1) {
+      throw new Error('Profil psikolog tidak ditemukan.')
+    }
+
+    const psy = db.psychologists[idx]
+    const docs = psy.documents ?? []
+    const targetType =
+      docIdOrType.toLowerCase() === 'str'
+        ? 'STR HIMPSI'
+        : docIdOrType.toLowerCase() === 'sip'
+          ? 'SIPP'
+          : null
+
+    const updated: Psychologist = {
+      ...psy,
+      documents: docs.map((d) =>
+        d.id === docIdOrType || (targetType && d.docType === targetType)
+          ? { ...d, verified: !d.verified }
+          : d,
+      ),
+    }
+    db.psychologists[idx] = updated
+    this.saveSnapshot(db)
+    return updated
+  }
+
   async verifyPsychologist(
     psychologistId: string,
     payload: VerifyPsychologistRequestDto,
@@ -225,6 +261,11 @@ export class MockPortalDataSource implements IPortalDataSource {
     const today = nowIso.slice(0, 10)
     const current = db.psychologists[idx]
     const currentDocs = current.documents ?? []
+    if (payload.status === 'verified' && !currentDocs.some((doc) => doc.verified)) {
+      throw new Error(
+        'Minimal 1 dokumen STR atau SIP harus diverifikasi valid sebelum menyetujui psikolog.',
+      )
+    }
 
     const updated: Psychologist = {
       ...current,
@@ -234,10 +275,40 @@ export class MockPortalDataSource implements IPortalDataSource {
       status: payload.status === 'verified' ? 'active' : 'inactive',
       isOnline: payload.status === 'verified',
       reviewedAt: today,
-      documents:
-        payload.status === 'verified'
-          ? currentDocs.map((doc) => ({ ...doc, verified: true }))
-          : currentDocs,
+    }
+
+    db.psychologists[idx] = updated
+    this.saveSnapshot(db)
+    return updated
+  }
+
+  async updatePsychologistAccountStatus(
+    psychologistId: string,
+    status: 'verified' | 'suspended',
+    notes?: string,
+  ): Promise<Psychologist> {
+    const db = this.loadSnapshot()
+    const idx = db.psychologists.findIndex((p) => p.id === psychologistId)
+    if (idx === -1) {
+      throw new Error('Profil psikolog tidak ditemukan.')
+    }
+
+    const current = db.psychologists[idx]
+    const nowIso = new Date().toISOString()
+    if (status === 'verified' && !(current.documents ?? []).some((d) => d.verified)) {
+      throw new Error(
+        'Minimal 1 dokumen STR atau SIP harus valid sebelum mengaktifkan kembali akun psikolog.',
+      )
+    }
+
+    const updated: Psychologist = {
+      ...current,
+      verificationStatus: status,
+      verificationNotes: notes?.trim() || current.verificationNotes,
+      verifiedAt: status === 'verified' ? current.verifiedAt || nowIso : current.verifiedAt,
+      status: status === 'verified' ? 'active' : 'inactive',
+      isOnline: status === 'verified',
+      reviewedAt: nowIso.slice(0, 10),
     }
 
     db.psychologists[idx] = updated

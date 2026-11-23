@@ -7,6 +7,7 @@ import { PsychologistRejectModal } from './PsychologistRejectModal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { cn } from '@/lib/cn'
 import {
+  reactivatePsychologistAccount,
   suspendPsychologistAccount,
   togglePsychologistDocumentVerified,
 } from '@/lib/portalStore'
@@ -32,6 +33,7 @@ export function PsychologistDetailModal({
   const [activeDocId, setActiveDocId] = useState<string | null>(null)
   const [mobileTab, setMobileTab] = useState<'documents' | 'profile'>('documents')
   const [approvalNote, setApprovalNote] = useState('')
+  const [actionError, setActionError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [rejectModalOpen, setRejectModalOpen] = useState(false)
 
@@ -43,26 +45,68 @@ export function PsychologistDetailModal({
   const activeDoc = docs.find((d) => d.id === activeDocId) ?? docs[0] ?? null
   const verifiedCount = docs.filter((d) => d.verified).length
 
-  const handleToggleDoc = (docId: string) => {
-    togglePsychologistDocumentVerified(psy.id, docId)
-    onFeedback('Status validitas dokumen sertifikat berhasil diperbarui.')
-  }
-
-  const handleApproveClick = async () => {
+  const handleToggleDoc = async (docId: string) => {
+    setActionError(null)
     setSubmitting(true)
     try {
-      await onApprove(psy.id, psy.fullName, approvalNote.trim() || undefined)
-      setApprovalNote('')
-      onClose()
+      await togglePsychologistDocumentVerified(psy.id, docId)
+      onFeedback('Status validitas dokumen sertifikat berhasil diperbarui.')
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : 'Gagal memperbarui status validitas dokumen.',
+      )
     } finally {
       setSubmitting(false)
     }
   }
 
-  const handleSuspend = () => {
-    suspendPsychologistAccount(psy.id)
-    onFeedback(`Akun "${psy.fullName}" dinonaktifkan sementara.`)
-    onClose()
+  const handleApproveClick = async () => {
+    setActionError(null)
+    setSubmitting(true)
+    try {
+      await onApprove(psy.id, psy.fullName, approvalNote.trim() || undefined)
+      setApprovalNote('')
+      onClose()
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : 'Gagal menyetujui kredensial psikolog.',
+      )
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleSuspend = async () => {
+    setActionError(null)
+    setSubmitting(true)
+    try {
+      await suspendPsychologistAccount(psy.id)
+      onFeedback(`Akun "${psy.fullName}" dinonaktifkan sementara.`)
+      onClose()
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : 'Gagal menonaktifkan sementara akun psikolog.',
+      )
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleReactivate = async () => {
+    setActionError(null)
+    setSubmitting(true)
+    try {
+      await reactivatePsychologistAccount(psy.id, approvalNote.trim() || undefined)
+      setApprovalNote('')
+      onFeedback(`Akun "${psy.fullName}" berhasil diaktifkan kembali.`)
+      onClose()
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : 'Gagal mengaktifkan kembali akun psikolog.',
+      )
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -220,6 +264,12 @@ export function PsychologistDetailModal({
             </div>
           </div>
 
+          {actionError && (
+            <div className="border-t border-[#FECACA] bg-[#FEF2F2] px-4 py-2 text-xs font-semibold text-[#B91C1C] sm:px-6">
+              {actionError}
+            </div>
+          )}
+
           <PsychologistModalFooter
             verificationStatus={psy.verificationStatus}
             documentsCount={docs.length}
@@ -231,6 +281,7 @@ export function PsychologistDetailModal({
             onOpenReject={() => setRejectModalOpen(true)}
             onApprove={handleApproveClick}
             onSuspend={handleSuspend}
+            onReactivate={handleReactivate}
           />
         </div>
       </div>

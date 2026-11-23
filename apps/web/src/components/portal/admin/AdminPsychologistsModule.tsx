@@ -1,5 +1,5 @@
 import { Search } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { PsychologistDetailModal } from './psychologists/PsychologistDetailModal'
 import {
@@ -13,7 +13,11 @@ import {
   MobilePsychologistSimulatorTrigger,
 } from '@/components/devtools/PortalDevTools'
 import { cn } from '@/lib/cn'
-import { reviewPsychologistVerification, type Psychologist } from '@/lib/portalStore'
+import {
+  fetchAdminPsychologists,
+  reviewPsychologistVerification,
+  type Psychologist,
+} from '@/lib/portalStore'
 
 interface AdminPsychologistsModuleProps {
   psychologists: Psychologist[]
@@ -51,6 +55,10 @@ export function AdminPsychologistsModule({
   const [selectedPsyId, setSelectedPsyId] = useState<string | null>(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [isSimModalOpen, setIsSimModalOpen] = useState(false)
+
+  useEffect(() => {
+    void fetchAdminPsychologists()
+  }, [])
 
   const counts: PsychologistKpiCounts = useMemo(() => {
     const pending = psychologists.filter((p) => p.verificationStatus === 'pending').length

@@ -168,6 +168,7 @@ export class RemotePortalDataSource implements IPortalDataSource {
             title_degree: payload.title_degree,
             email: payload.email,
             password: payload.password,
+            education: payload.education ?? null,
             str_number: payload.str_number,
             sip_number: payload.sip_number ?? null,
             association: payload.association,
@@ -202,6 +203,46 @@ export class RemotePortalDataSource implements IPortalDataSource {
     }
   }
 
+  async fetchAdminPsychologists(): Promise<Psychologist[]> {
+    const db = this.loadSnapshot()
+    try {
+      const list = await this.requestJson<BackendPsychologistProfileResponseDto[]>('/admin/counselors')
+      const existingMap = new Map(db.psychologists.map((p) => [p.id, p]))
+      const mapped = list.map((dto) => mapBackendPsychologistToDomain(dto, existingMap.get(dto.id)))
+      db.psychologists = mapped
+      this.saveSnapshot(db)
+      return mapped
+    } catch {
+      return db.psychologists
+    }
+  }
+
+  async togglePsychologistDocumentVerified(
+    psychologistId: string,
+    docIdOrType: string,
+  ): Promise<Psychologist> {
+    const db = this.loadSnapshot()
+    const idx = db.psychologists.findIndex((p) => p.id === psychologistId)
+    const current = idx !== -1 ? db.psychologists[idx] : undefined
+    const matchedDoc = current?.documents?.find((d) => d.id === docIdOrType)
+    const docType: 'str' | 'sip' =
+      docIdOrType.toLowerCase() === 'sip' || matchedDoc?.docType === 'SIPP' ? 'sip' : 'str'
+
+    const dto = await this.requestJson<BackendPsychologistProfileResponseDto>(
+      `/admin/counselors/${encodeURIComponent(psychologistId)}/documents/${docType}/verify`,
+      { method: 'PATCH' },
+    )
+
+    const updated = mapBackendPsychologistToDomain(dto, current)
+    if (idx !== -1) {
+      db.psychologists[idx] = updated
+    } else {
+      db.psychologists.unshift(updated)
+    }
+    this.saveSnapshot(db)
+    return updated
+  }
+
   async verifyPsychologist(
     psychologistId: string,
     payload: VerifyPsychologistRequestDto,
@@ -209,32 +250,62 @@ export class RemotePortalDataSource implements IPortalDataSource {
     const db = this.loadSnapshot()
     const idx = db.psychologists.findIndex((p) => p.id === psychologistId)
     const current = idx !== -1 ? db.psychologists[idx] : undefined
-
-    try {
-      await this.requestJson('/counselors/' + encodeURIComponent(psychologistId) + '/verify', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      })
-    } catch {
-      // Fallback aman ke cache lokal saat endpoint membutuhkan admin JWT atau offline
-    }
-
     if (!current) {
       throw new Error('Profil psikolog tidak ditemukan.')
     }
 
+    const res = await this.requestJson<{
+      verification_status: string
+      verification_notes?: string | null
+      verified_at?: string | null
+    }>('/counselors/' + encodeURIComponent(psychologistId) + '/verify', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+
+    const nextStatus = normalizeVerificationStatus(res.verification_status)
     const nowIso = new Date().toISOString()
     const updated: Psychologist = {
       ...current,
-      verificationStatus: payload.status,
-      verificationNotes: payload.notes?.trim() || null,
-      verifiedAt: payload.status === 'verified' ? nowIso : null,
-      status: payload.status === 'verified' ? 'active' : 'inactive',
-      isOnline: payload.status === 'verified',
-      reviewedAt: nowIso.slice(0, 10),
+      verificationStatus: nextStatus,
+      verificationNotes: res.verification_notes ?? payload.notes?.trim() ?? null,
+      verifiedAt: res.verified_at ?? (nextStatus === 'verified' ? nowIso : null),
+      status: nextStatus === 'verified' ? 'active' : 'inactive',
+      isOnline: nextStatus === 'verified',
+      reviewedAt: (res.verified_at ?? nowIso).slice(0, 10),
     }
 
     db.psychologists[idx] = updated
+    this.saveSnapshot(db)
+    return updated
+  }
+
+  async updatePsychologistAccountStatus(
+    psychologistId: string,
+    status: 'verified' | 'suspended',
+    notes?: string,
+  ): Promise<Psychologist> {
+    const db = this.loadSnapshot()
+    const idx = db.psychologists.findIndex((p) => p.id === psychologistId)
+    const current = idx !== -1 ? db.psychologists[idx] : undefined
+
+    const dto = await this.requestJson<BackendPsychologistProfileResponseDto>(
+      `/admin/counselors/${encodeURIComponent(psychologistId)}/status`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status,
+          notes: notes?.trim() || null,
+        }),
+      },
+    )
+
+    const updated = mapBackendPsychologistToDomain(dto, current)
+    if (idx !== -1) {
+      db.psychologists[idx] = updated
+    } else {
+      db.psychologists.unshift(updated)
+    }
     this.saveSnapshot(db)
     return updated
   }

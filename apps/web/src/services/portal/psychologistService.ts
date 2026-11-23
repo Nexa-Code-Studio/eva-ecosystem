@@ -85,6 +85,10 @@ export function resubmitPsychologistApplication(
   return updated
 }
 
+export async function fetchAdminPsychologists(): Promise<Psychologist[]> {
+  return getActivePortalDataSource().fetchAdminPsychologists()
+}
+
 export async function reviewPsychologistVerification(
   psychologistId: string,
   payload: VerifyPsychologistRequestDto,
@@ -104,19 +108,18 @@ export function updatePsychologistStatus(id: string, status: PsychologistStatus)
   savePortalDb(db)
 }
 
-export function suspendPsychologistAccount(id: string, notes?: string) {
-  const db = loadPortalDb()
-  const idx = db.psychologists.findIndex((p) => p.id === id)
-  if (idx === -1) return
-  db.psychologists[idx] = {
-    ...db.psychologists[idx],
-    verificationStatus: 'suspended',
-    verificationNotes: notes?.trim() || db.psychologists[idx].verificationNotes,
-    status: 'inactive',
-    isOnline: false,
-    reviewedAt: new Date().toISOString().slice(0, 10),
-  }
-  savePortalDb(db)
+export async function suspendPsychologistAccount(
+  id: string,
+  notes?: string,
+): Promise<Psychologist> {
+  return getActivePortalDataSource().updatePsychologistAccountStatus(id, 'suspended', notes)
+}
+
+export async function reactivatePsychologistAccount(
+  id: string,
+  notes?: string,
+): Promise<Psychologist> {
+  return getActivePortalDataSource().updatePsychologistAccountStatus(id, 'verified', notes)
 }
 
 export function deletePsychologist(id: string) {
@@ -125,16 +128,12 @@ export function deletePsychologist(id: string) {
   savePortalDb(db)
 }
 
-export function togglePsychologistDocumentVerified(psychologistId: string, docId: string) {
-  const db = loadPortalDb()
-  const idx = db.psychologists.findIndex((p) => p.id === psychologistId)
-  if (idx === -1) return
-  const psy = db.psychologists[idx]
-  const docs = psy.documents ?? []
-
-  db.psychologists[idx] = {
-    ...psy,
-    documents: docs.map((d) => (d.id === docId ? { ...d, verified: !d.verified } : d)),
-  }
-  savePortalDb(db)
+export async function togglePsychologistDocumentVerified(
+  psychologistId: string,
+  docIdOrType: string,
+): Promise<Psychologist> {
+  return getActivePortalDataSource().togglePsychologistDocumentVerified(
+    psychologistId,
+    docIdOrType,
+  )
 }
