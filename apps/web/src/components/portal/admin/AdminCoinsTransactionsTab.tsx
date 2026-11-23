@@ -2,6 +2,7 @@ import {
   CheckCircle2,
   Clock,
   Coins,
+  Plus,
   RotateCcw,
   Search,
   Sparkles,
@@ -19,6 +20,7 @@ import {
 interface AdminCoinsTransactionsTabProps {
   db: PortalDatabase
   onFeedback: (message: string) => void
+  onOpenGlobalTopup?: () => void
 }
 
 type TrxFilter = 'all' | 'pending' | 'completed' | 'refunded_failed'
@@ -26,6 +28,7 @@ type TrxFilter = 'all' | 'pending' | 'completed' | 'refunded_failed'
 export function AdminCoinsTransactionsTab({
   db,
   onFeedback,
+  onOpenGlobalTopup,
 }: AdminCoinsTransactionsTabProps) {
   const [trxFilter, setTrxFilter] = useState<TrxFilter>('all')
   const [trxSearch, setTrxSearch] = useState('')
@@ -226,6 +229,17 @@ export function AdminCoinsTransactionsTab({
                 className="h-8 w-full rounded-[8px] border border-[#CBD5E1] bg-[#F8FAFC] pr-3 pl-8 text-xs text-ink focus:border-primary focus:bg-white focus:outline-none"
               />
             </div>
+
+            {onOpenGlobalTopup && (
+              <button
+                type="button"
+                onClick={onOpenGlobalTopup}
+                className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-[8px] bg-primary px-3 text-xs font-semibold text-white shadow-2xs transition-colors hover:bg-primary-hover"
+              >
+                <Plus className="size-3.5" />
+                <span>Top-Up Manual</span>
+              </button>
+            )}
           </div>
         </div>
 

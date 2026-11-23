@@ -85,6 +85,8 @@ class AuthService:
                 id=str(user.id),
                 name=display_name,
                 email=user.email,
+                is_admin=bool(user.is_admin),
+                coin_balance=int(user.coin_balance),
             ),
         )
 
@@ -109,6 +111,8 @@ class AuthService:
             password_hash=hash_password(payload.password),
             is_active=True,
             is_verified=True,
+            is_admin=False,
+            coin_balance=10,
         )
         self.db.add(user)
         await self.db.commit()
@@ -128,6 +132,8 @@ class AuthService:
                 id=str(user.id),
                 name=display_name,
                 email=user.email,
+                is_admin=bool(user.is_admin),
+                coin_balance=int(user.coin_balance),
             ),
         )
 
@@ -170,6 +176,8 @@ class AuthService:
                 id=str(user.id),
                 name=display_name,
                 email=user.email,
+                is_admin=bool(user.is_admin),
+                coin_balance=int(user.coin_balance),
             ),
         )
 
@@ -209,6 +217,8 @@ class AuthService:
             id=str(user.id),
             name=user.display_name or user.username or "User Eva",
             email=user.email,
+            is_admin=bool(user.is_admin),
+            coin_balance=int(user.coin_balance),
         )
 
     @staticmethod

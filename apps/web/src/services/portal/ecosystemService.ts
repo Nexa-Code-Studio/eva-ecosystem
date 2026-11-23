@@ -1,12 +1,15 @@
-import { loadPortalDb, savePortalDb } from './storage'
+import { getActivePortalDataSource, loadPortalDb, savePortalDb } from './storage'
+import type { AdminCoinTopupRequestDto, AdminCoinTopupResultDto } from '@/types/api/contracts'
 import type {
   AppUserStatus,
   CoinEconomyConfig,
   CoinPackage,
+  CoinTopupTransaction,
   CoinTransactionStatus,
   CopingQuest,
   CrisisConfig,
   FaqEntry,
+  GeneralAppUser,
   WaitlistEntry,
 } from '@/types/portal'
 
@@ -263,5 +266,19 @@ export function toggleCoinPackageActive(packageId: string) {
     isActive: !db.coinPackages[idx].isActive,
   }
   savePortalDb(db)
+}
+
+export async function fetchAdminUsers(): Promise<GeneralAppUser[]> {
+  return getActivePortalDataSource().fetchAdminUsers()
+}
+
+export async function fetchCoinTransactions(): Promise<CoinTopupTransaction[]> {
+  return getActivePortalDataSource().fetchCoinTransactions()
+}
+
+export async function topUpUserCoins(
+  payload: AdminCoinTopupRequestDto,
+): Promise<AdminCoinTopupResultDto> {
+  return getActivePortalDataSource().topUpUserCoins(payload)
 }
 

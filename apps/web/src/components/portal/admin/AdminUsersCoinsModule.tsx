@@ -1,11 +1,15 @@
-import { Coins, Search, ShieldAlert } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Coins, Plus, Search, ShieldAlert } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
+import { AdminCoinTopupModal } from './AdminCoinTopupModal'
 import { AdminCoinsTransactionsTab } from './AdminCoinsTransactionsTab'
 import { cn } from '@/lib/cn'
 import {
+  fetchAdminUsers,
+  fetchCoinTransactions,
   updateGeneralUserStatus,
   type AppUserStatus,
+  type GeneralAppUser,
   type PortalDatabase,
 } from '@/lib/portalStore'
 
@@ -35,6 +39,13 @@ export function AdminUsersCoinsModule({
   }
 
   const [userSearch, setUserSearch] = useState('')
+  const [topupTargetUser, setTopupTargetUser] = useState<GeneralAppUser | null>(null)
+  const [isTopupModalOpen, setIsTopupModalOpen] = useState(false)
+
+  useEffect(() => {
+    void fetchAdminUsers()
+    void fetchCoinTransactions()
+  }, [])
 
   const filteredUsers = useMemo(() => {
     if (!userSearch.trim()) return db.generalUsers
@@ -209,19 +220,32 @@ export function AdminUsersCoinsModule({
                       </span>
                     </td>
                     <td className="px-4 py-3.5 text-right">
-                      <select
-                        aria-label={`Ubah status ${usr.displayName}`}
-                        value={usr.accountStatus}
-                        onChange={(e) => {
-                          updateGeneralUserStatus(usr.id, e.target.value as AppUserStatus)
-                          onFeedback(`Status akun pengguna "${usr.userCode}" berhasil diperbarui.`)
-                        }}
-                        className="h-8 rounded-[6px] border border-[#CBD5E1] bg-white px-2 text-xs font-semibold text-ink focus:border-primary focus:outline-none"
-                      >
-                        <option value="active">Aktif Normal</option>
-                        <option value="flagged_crisis">Pantauan Prioritas</option>
-                        <option value="suspended">Tangguhkan Akun</option>
-                      </select>
+                      <div className="inline-flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTopupTargetUser(usr)
+                            setIsTopupModalOpen(true)
+                          }}
+                          className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-[6px] border border-primary/30 bg-[#EEF0FF] px-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary hover:text-white"
+                        >
+                          <Plus className="size-3.5" />
+                          <span>Tambah Koin</span>
+                        </button>
+                        <select
+                          aria-label={`Ubah status ${usr.displayName}`}
+                          value={usr.accountStatus}
+                          onChange={(e) => {
+                            updateGeneralUserStatus(usr.id, e.target.value as AppUserStatus)
+                            onFeedback(`Status akun pengguna "${usr.userCode}" berhasil diperbarui.`)
+                          }}
+                          className="h-8 rounded-[6px] border border-[#CBD5E1] bg-white px-2 text-xs font-semibold text-ink focus:border-primary focus:outline-none"
+                        >
+                          <option value="active">Aktif Normal</option>
+                          <option value="flagged_crisis">Pantauan Prioritas</option>
+                          <option value="suspended">Tangguhkan Akun</option>
+                        </select>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -230,8 +254,29 @@ export function AdminUsersCoinsModule({
           </div>
         </div>
       ) : (
-        <AdminCoinsTransactionsTab db={db} onFeedback={onFeedback} />
+        <AdminCoinsTransactionsTab
+          db={db}
+          onFeedback={onFeedback}
+          onOpenGlobalTopup={() => {
+            setTopupTargetUser(null)
+            setIsTopupModalOpen(true)
+          }}
+        />
       )}
+
+      <AdminCoinTopupModal
+        key={topupTargetUser?.id ?? (isTopupModalOpen ? 'global-open' : 'closed')}
+        isOpen={isTopupModalOpen}
+        users={db.generalUsers}
+        coinPackages={db.coinPackages}
+        economyConfig={db.coinEconomyConfig}
+        preselectedUser={topupTargetUser}
+        onClose={() => {
+          setIsTopupModalOpen(false)
+          setTopupTargetUser(null)
+        }}
+        onSuccess={onFeedback}
+      />
     </div>
   )
 }

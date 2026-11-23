@@ -76,8 +76,8 @@ export function LoginPage() {
     setAuthError(null)
     setSubmitState('submitting')
 
-    window.setTimeout(() => {
-      const result = authenticateUser(trimmedEmail, password)
+    void (async () => {
+      const result = await authenticateUser(trimmedEmail, password)
       setSubmitState('idle')
 
       if (!result.ok) {
@@ -86,7 +86,7 @@ export function LoginPage() {
       }
 
       navigate('/admin')
-    }, 300)
+    })()
   }
 
   const handleForgotSubmit = (e: FormEvent<HTMLFormElement>) => {

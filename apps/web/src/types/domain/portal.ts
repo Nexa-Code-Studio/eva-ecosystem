@@ -122,7 +122,10 @@ export interface GeneralAppUser {
 }
 
 export type CoinPaymentMethod =
+  | 'Transfer Bank'
   | 'QRIS'
+  | 'Tunai'
+  | 'Grant Admin (Gratis)'
   | 'GoPay'
   | 'OVO'
   | 'ShopeePay'

@@ -1,10 +1,16 @@
 import { buildPsychologistCertificates } from '@/data/mock/psychologists.mock'
 import type {
+  BackendAdminUserDto,
+  BackendCoinTransactionDto,
   BackendPricingConfigResponseDto,
   BackendPsychologistProfileResponseDto,
   RegisterPsychologistRequestDto,
 } from '@/types/api/contracts'
 import type {
+  CoinPaymentMethod,
+  CoinTopupTransaction,
+  CoinTransactionStatus,
+  GeneralAppUser,
   PlatformPricingConfig,
   PricingCalculation,
   Psychologist,
@@ -146,5 +152,49 @@ export function calculatePricingBreakdown(
     counselorEarning,
     platformFee,
     extensionPrice: extPrice,
+  }
+}
+
+export function mapBackendAdminUserToDomain(
+  dto: BackendAdminUserDto,
+  existing?: GeneralAppUser,
+): GeneralAppUser {
+  return {
+    id: dto.id,
+    userCode: dto.user_code,
+    displayName: dto.display_name,
+    email: dto.email,
+    city: existing?.city ?? '-',
+    occupation: existing?.occupation ?? 'Pengguna EVA Mobile',
+    joinedAt: dto.created_at.slice(0, 10),
+    lastActiveAt: existing?.lastActiveAt ?? dto.created_at.slice(0, 16).replace('T', ' '),
+    voiceSessionsCount: existing?.voiceSessionsCount ?? 0,
+    questStreakDays: existing?.questStreakDays ?? 0,
+    coinBalance: dto.coin_balance,
+    totalVoiceMinutesUsed: existing?.totalVoiceMinutesUsed ?? 0,
+    lastDassSeverity: existing?.lastDassSeverity ?? 'Normal',
+    crisisProtocolTriggered: existing?.crisisProtocolTriggered ?? false,
+    accountStatus: dto.is_active ? (existing?.accountStatus ?? 'active') : 'suspended',
+  }
+}
+
+export function mapBackendCoinTransactionToDomain(
+  dto: BackendCoinTransactionDto,
+): CoinTopupTransaction {
+  return {
+    id: dto.id,
+    invoiceCode: dto.invoice_code,
+    userId: dto.user_id,
+    userCode: dto.user_code,
+    userDisplayName: dto.user_display_name,
+    packageId: dto.transaction_type === 'grant_admin' ? 'admin-grant' : 'admin-topup',
+    packageName: dto.package_name,
+    coinsGranted: dto.coins_delta,
+    amountIdr: dto.amount_idr,
+    paymentMethod: dto.payment_method as CoinPaymentMethod,
+    status: (dto.status as CoinTransactionStatus) || 'completed',
+    createdAt: dto.created_at.slice(0, 16).replace('T', ' '),
+    completedAt: dto.completed_at ? dto.completed_at.slice(0, 16).replace('T', ' ') : undefined,
+    adminNotes: dto.admin_notes ?? undefined,
   }
 }

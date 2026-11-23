@@ -9,12 +9,16 @@ import {
   normalizeVerificationStatus,
 } from '@/services/contracts/portalMappers'
 import type {
+  AdminCoinTopupRequestDto,
+  AdminCoinTopupResultDto,
   RegisterPsychologistRequestDto,
   UpsertPlatformPricingRequestDto,
   VerifyPsychologistRequestDto,
 } from '@/types/api/contracts'
 import type {
+  CoinTopupTransaction,
   ConsultationSessionMonitoring,
+  GeneralAppUser,
   PlatformPricingConfig,
   PortalDatabase,
   PortalSession,
@@ -282,5 +286,61 @@ export class MockPortalDataSource implements IPortalDataSource {
 
   async fetchConsultationSessions(): Promise<ConsultationSessionMonitoring[]> {
     return this.loadSnapshot().consultationSessions
+  }
+
+  async fetchAdminUsers(): Promise<GeneralAppUser[]> {
+    return this.loadSnapshot().generalUsers
+  }
+
+  async fetchCoinTransactions(): Promise<CoinTopupTransaction[]> {
+    return this.loadSnapshot().coinTransactions
+  }
+
+  async topUpUserCoins(payload: AdminCoinTopupRequestDto): Promise<AdminCoinTopupResultDto> {
+    const db = this.loadSnapshot()
+    const idx = db.generalUsers.findIndex((u) => u.id === payload.userId)
+    if (idx === -1) {
+      throw new Error('Pengguna tidak ditemukan.')
+    }
+    const delta = Math.trunc(payload.coinsGranted)
+    if (!Number.isFinite(delta) || delta <= 0) {
+      throw new Error('Jumlah koin harus lebih dari 0.')
+    }
+
+    const currentUser = db.generalUsers[idx]
+    const updatedUser: GeneralAppUser = {
+      ...currentUser,
+      coinBalance: (currentUser.coinBalance ?? 0) + delta,
+    }
+    db.generalUsers[idx] = updatedUser
+
+    const isGrant = payload.paymentMethod === 'Grant Admin (Gratis)'
+    const effectiveAmountIdr = isGrant ? 0 : Math.max(0, Math.trunc(payload.amountIdr))
+    const nowStr = new Date().toISOString().slice(0, 16).replace('T', ' ')
+
+    const transaction: CoinTopupTransaction = {
+      id: `trx-manual-${Date.now()}`,
+      invoiceCode: `EVA-ADM-${Date.now().toString().slice(-6)}`,
+      userId: updatedUser.id,
+      userCode: updatedUser.userCode,
+      userDisplayName: updatedUser.displayName,
+      packageId: isGrant ? 'admin-grant' : 'admin-topup',
+      packageName: payload.packageName.trim(),
+      coinsGranted: delta,
+      amountIdr: effectiveAmountIdr,
+      paymentMethod: payload.paymentMethod,
+      status: 'completed',
+      createdAt: nowStr,
+      completedAt: nowStr,
+      adminNotes:
+        payload.adminNotes?.trim() ||
+        (isGrant
+          ? 'Penambahan koin gratis oleh Admin EVA.'
+          : `Top-up konvensional dikonfirmasi Admin EVA via ${payload.paymentMethod}.`),
+    }
+
+    db.coinTransactions.unshift(transaction)
+    this.saveSnapshot(db)
+    return { user: updatedUser, transaction }
   }
 }

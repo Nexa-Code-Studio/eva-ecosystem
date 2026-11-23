@@ -2,10 +2,13 @@ import type {
   AppUserStatus,
   CoinEconomyConfig,
   CoinPackage,
+  CoinPaymentMethod,
+  CoinTopupTransaction,
   CoinTransactionStatus,
   CopingQuest,
   CrisisConfig,
   FaqEntry,
+  GeneralAppUser,
   PortalDatabase,
   Psychologist,
   WaitlistEntry,
@@ -148,6 +151,66 @@ export interface ReviewCoinTransactionRequestDto {
   txId: string
   status: CoinTransactionStatus
   adminNotes?: string
+}
+
+export interface AdminCoinTopupRequestDto {
+  userId: string
+  coinsGranted: number
+  amountIdr: number
+  paymentMethod: CoinPaymentMethod
+  packageName: string
+  adminNotes?: string
+}
+
+export interface AdminCoinTopupResultDto {
+  user: GeneralAppUser
+  transaction: CoinTopupTransaction
+}
+
+export interface BackendAdminUserDto {
+  id: string
+  user_code: string
+  display_name: string
+  email: string
+  coin_balance: number
+  is_active: boolean
+  created_at: string
+}
+
+export interface BackendCoinTransactionDto {
+  id: string
+  invoice_code: string
+  user_id: string
+  user_code: string
+  user_display_name: string
+  package_name: string
+  transaction_type: string
+  coins_delta: number
+  balance_after: number
+  amount_idr: number
+  payment_method: string
+  status: string
+  admin_notes?: string | null
+  created_at: string
+  completed_at?: string | null
+}
+
+export interface BackendAdminCoinTopupResponseDto {
+  user: BackendAdminUserDto
+  transaction: BackendCoinTransactionDto
+}
+
+export interface BackendAuthTokenResponseDto {
+  access_token: string
+  refresh_token: string
+  token_type: string
+  user: {
+    id: string
+    name: string
+    email: string
+    is_admin?: boolean
+    coin_balance?: number
+  }
 }
 
 export type PortalDatabaseSnapshot = PortalDatabase
