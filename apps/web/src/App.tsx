@@ -7,11 +7,6 @@ import { NotFoundPage } from '@/pages/NotFoundPage'
 const LoginPage = lazy(() =>
   import('@/pages/LoginPage').then((m) => ({ default: m.LoginPage })),
 )
-const PsychologistApplyPage = lazy(() =>
-  import('@/pages/PsychologistApplyPage').then((m) => ({
-    default: m.PsychologistApplyPage,
-  })),
-)
 const AdminDashboardPage = lazy(() =>
   import('@/pages/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })),
 )
@@ -60,22 +55,6 @@ const router = createBrowserRouter([
         <LoginPage />
       </Suspense>
     ),
-  },
-  {
-    path: '/daftar-psikolog',
-    element: (
-      <Suspense fallback={<div className="min-h-screen bg-[#F8F9FE]" />}>
-        <PsychologistApplyPage />
-      </Suspense>
-    ),
-  },
-  {
-    path: '/pengajuan-mitra',
-    element: <Navigate to="/daftar-psikolog" replace />,
-  },
-  {
-    path: '/mitra/*',
-    element: <Navigate to="/daftar-psikolog" replace />,
   },
   {
     path: '/admin',

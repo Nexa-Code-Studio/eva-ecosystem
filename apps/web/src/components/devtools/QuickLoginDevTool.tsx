@@ -1,14 +1,8 @@
-import { KeyRound, Stethoscope, X } from 'lucide-react'
-import { Link } from 'react-router'
-import {
-  getAdminAccountConfig,
-  isDevToolsEnabled,
-  type Psychologist,
-} from '@/lib/portalStore'
+import { KeyRound, ShieldCheck, X } from 'lucide-react'
+import { getAdminAccountConfig, isDevToolsEnabled } from '@/lib/portalStore'
 
 interface QuickLoginDevToolProps {
   isOpen: boolean
-  psychologists: Psychologist[]
   onToggleOpen: () => void
   onClose: () => void
   onSelectCredentials: (email: string, password: string) => void
@@ -16,7 +10,6 @@ interface QuickLoginDevToolProps {
 
 export function QuickLoginDevTool({
   isOpen,
-  psychologists,
   onToggleOpen,
   onClose,
   onSelectCredentials,
@@ -24,11 +17,6 @@ export function QuickLoginDevTool({
   if (!isDevToolsEnabled()) return null
 
   const adminAccount = getAdminAccountConfig()
-  const verifiedPsy = psychologists.find((p) => p.verificationStatus === 'verified')
-  const pendingPsy = psychologists.find((p) => p.verificationStatus === 'pending')
-  const revisionPsy = psychologists.find(
-    (p) => p.verificationStatus === 'need_revision' || p.verificationStatus === 'rejected',
-  )
 
   return (
     <div className="fixed right-5 bottom-5 z-40 flex flex-col items-end">
@@ -41,7 +29,7 @@ export function QuickLoginDevTool({
           <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-2.5">
             <div>
               <p className="text-xs font-semibold text-ink">Akun Demo (Isi Otomatis)</p>
-              <p className="text-[11px] text-ink-muted">Klik untuk mengisi form login</p>
+              <p className="text-[11px] text-ink-muted">Klik untuk mengisi form login admin</p>
             </div>
             <button
               type="button"
@@ -54,7 +42,7 @@ export function QuickLoginDevTool({
           </div>
 
           <div className="mt-2.5 flex flex-col gap-1.5">
-            {adminAccount.password && (
+            {adminAccount.password ? (
               <button
                 type="button"
                 onClick={() => onSelectCredentials(adminAccount.email, adminAccount.password!)}
@@ -65,71 +53,17 @@ export function QuickLoginDevTool({
                 </span>
                 <span className="mt-0.5 text-[11px] text-ink-soft">{adminAccount.email}</span>
               </button>
-            )}
-
-            {verifiedPsy && (
-              <button
-                type="button"
-                onClick={() =>
-                  onSelectCredentials(verifiedPsy.email, verifiedPsy.password || 'psikolog123')
-                }
-                className="flex w-full cursor-pointer flex-col items-start rounded-[8px] border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-left transition-colors hover:border-primary/50 hover:bg-primary-container/25"
-              >
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink">
-                  <span className="size-2 rounded-full bg-success" /> Psikolog Mandiri (Terverifikasi)
-                </span>
-                <span className="mt-0.5 w-full truncate text-[11px] text-ink-soft">
-                  {verifiedPsy.email}
-                </span>
-              </button>
-            )}
-
-            {pendingPsy && (
-              <button
-                type="button"
-                onClick={() =>
-                  onSelectCredentials(pendingPsy.email, pendingPsy.password || 'psikolog123')
-                }
-                className="flex w-full cursor-pointer flex-col items-start rounded-[8px] border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-left transition-colors hover:border-primary/50 hover:bg-primary-container/25"
-              >
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink">
-                  <span className="size-2 rounded-full bg-warning" /> Psikolog Mandiri (Pending)
-                </span>
-                <span className="mt-0.5 w-full truncate text-[11px] text-ink-soft">
-                  {pendingPsy.email}
-                </span>
-              </button>
-            )}
-
-            {revisionPsy && (
-              <button
-                type="button"
-                onClick={() =>
-                  onSelectCredentials(revisionPsy.email, revisionPsy.password || 'psikolog123')
-                }
-                className="flex w-full cursor-pointer flex-col items-start rounded-[8px] border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-left transition-colors hover:border-primary/50 hover:bg-primary-container/25"
-              >
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink">
-                  <span className="size-2 rounded-full bg-error" /> Psikolog (Revisi / Ditolak)
-                </span>
-                <span className="mt-0.5 w-full truncate text-[11px] text-ink-soft">
-                  {revisionPsy.email}
-                </span>
-              </button>
+            ) : (
+              <p className="rounded-[8px] bg-[#F8FAFC] px-3 py-2 text-[11px] text-ink-muted">
+                Akun demo admin belum dikonfigurasi pada environment.
+              </p>
             )}
           </div>
 
           <div className="mt-2.5 flex items-center justify-between border-t border-[#E2E8F0] pt-2 text-[11px] text-ink-muted">
             <span className="inline-flex items-center gap-1">
-              <Stethoscope className="size-3" /> {psychologists.length} Psikolog
+              <ShieldCheck className="size-3 text-primary" /> Khusus Akses Admin EVA
             </span>
-            <Link
-              to="/daftar-psikolog"
-              onClick={onClose}
-              className="font-semibold text-primary hover:underline"
-            >
-              + Daftar Psikolog
-            </Link>
           </div>
         </div>
       )}

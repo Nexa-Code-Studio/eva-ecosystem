@@ -13,7 +13,6 @@ import type {
 
 export function normalizeVerificationStatus(raw?: string | null): VerificationStatus {
   if (raw === 'approved' || raw === 'verified') return 'verified'
-  if (raw === 'need_revision') return 'need_revision'
   if (raw === 'rejected') return 'rejected'
   if (raw === 'suspended') return 'suspended'
   return 'pending'

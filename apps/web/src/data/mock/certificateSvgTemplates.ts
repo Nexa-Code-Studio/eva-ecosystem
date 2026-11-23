@@ -8,10 +8,6 @@ export interface CertSvgOptions {
   docType:
     | 'SIPP'
     | 'STR HIMPSI'
-    | 'Ijazah Profesi'
-    | 'Sertifikat Klinis'
-    | 'Sertifikat Pelatihan'
-    | 'Bukti Kinerja Relawan'
   title: string
   documentNumber: string
   holderName: string
@@ -31,22 +27,12 @@ export function generateCertificateSvgUri({
   const primaryColor =
     docType === 'SIPP'
       ? '#1E3A8A'
-      : docType === 'STR HIMPSI'
-        ? '#047857'
-        : docType === 'Ijazah Profesi'
-          ? '#831843'
-          : docType === 'Bukti Kinerja Relawan'
-            ? '#D97706'
-            : '#4338CA'
+      : '#047857'
 
   const sealColor =
     docType === 'SIPP'
       ? '#2563EB'
-      : docType === 'STR HIMPSI'
-        ? '#10B981'
-        : docType === 'Bukti Kinerja Relawan'
-          ? '#F59E0B'
-          : '#BE185D'
+      : '#10B981'
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560" width="800" height="560">
     <defs>

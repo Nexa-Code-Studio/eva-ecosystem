@@ -1,5 +1,4 @@
 import {
-  AlertCircle,
   CheckCircle2,
   Clock,
   Users,
@@ -11,14 +10,12 @@ export type PsyFilterTab =
   | 'pending_review'
   | 'all'
   | 'verified'
-  | 'need_revision'
   | 'rejected'
 
 export interface PsychologistKpiCounts {
   total: number
   pending: number
   verified: number
-  needRevision: number
   rejected: number
   pendingReview: number
 }
@@ -39,7 +36,7 @@ export function PsychologistKpiCards({
       id: 'pending_review' as PsyFilterTab,
       label: 'Antrean Verifikasi',
       value: counts.pendingReview,
-      sublabel: `${counts.pending} baru · ${counts.needRevision} revisi`,
+      sublabel: `${counts.pending} pendaftar baru`,
       icon: <Clock className="size-4 text-[#D97706]" />,
       valueClass: counts.pendingReview > 0 ? 'text-[#B45309]' : 'text-ink',
       accentBorder: 'hover:border-[#F59E0B]/50',
@@ -64,15 +61,6 @@ export function PsychologistKpiCards({
       activeClass: 'border-emerald-500 ring-1 ring-emerald-500/20 bg-emerald-50/40',
     },
     {
-      id: 'need_revision' as PsyFilterTab,
-      label: 'Perlu Revisi',
-      value: counts.needRevision,
-      sublabel: 'Menunggu berkas ulang',
-      icon: <AlertCircle className="size-4 text-orange-600" />,
-      accentBorder: 'hover:border-orange-500/50',
-      activeClass: 'border-orange-500 ring-1 ring-orange-500/20 bg-orange-50/40',
-    },
-    {
       id: 'rejected' as PsyFilterTab,
       label: 'Ditolak / Nonaktif',
       value: counts.rejected,
@@ -84,7 +72,7 @@ export function PsychologistKpiCards({
   ]
 
   return (
-    <div className="hidden gap-3 sm:grid sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+    <div className="hidden gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-4">
       {cards.map((card) => {
         const isActive = activeFilter === card.id
         return (

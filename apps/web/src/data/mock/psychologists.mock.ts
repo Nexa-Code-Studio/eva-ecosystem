@@ -64,29 +64,6 @@ export function buildPsychologistCertificates(params: {
     })
   }
 
-  if (params.education?.trim()) {
-    docs.push({
-      id: `doc-ijz-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      docType: 'Ijazah Profesi',
-      title: `Ijazah Profesi Psikolog : ${params.education.trim()}`,
-      documentNumber: `IJZ-PSI-${Math.floor(1000 + Math.random() * 9000)}`,
-      issuedBy: params.education.trim(),
-      issuedYear: '2020',
-      validUntil: 'Seumur Hidup',
-      fileName: `Ijazah_Profesi_${slug}.pdf`,
-      fileSize: '1.8 MB',
-      verified,
-      imageUrl: generateCertificateSvgUri({
-        docType: 'Ijazah Profesi',
-        title: `Ijazah Profesi Psikolog : ${params.education.trim()}`,
-        documentNumber: `IJZ-PSI-${Math.floor(1000 + Math.random() * 9000)}`,
-        issuedBy: params.education.trim(),
-        holderName: params.fullName,
-        validUntil: 'Seumur Hidup',
-      }),
-    })
-  }
-
   return docs
 }
 
@@ -102,9 +79,9 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
     strNumber: 'STR-PK-2022-884120',
     sipNumber: '20220618-2027-01-1402',
     association: 'Himpunan Psikologi Indonesia (HIMPSI)',
-    specializations: ['Kecemasan & Panik', 'Regulasi Emosi & Stres Akademik', 'Remaja & Mahasiswa'],
+    specializations: ['Kecemasan Dewasa', 'Trauma & Regulasi Emosi', 'Quarter-life Crisis'],
     yearsOfExperience: 5,
-    bio: 'Psikolog klinis berfokus pada penanganan kecemasan akademik, quarter-life crisis, dan regulasi emosi dewasa muda melalui telekonsultasi berbasis CBT.',
+    bio: 'Psikolog klinis berfokus pada penanganan kecemasan dewasa, quarter-life crisis, dan regulasi emosi melalui telekonsultasi berbasis CBT.',
     verificationStatus: 'pending',
     isOnline: false,
     bufferTimeMinutes: 10,
@@ -136,18 +113,6 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
         fileSize: '1.4 MB',
         verified: true,
       },
-      {
-        id: 'doc-103',
-        docType: 'Ijazah Profesi',
-        title: 'Ijazah & Sumpah Profesi Magister Psikologi Klinis',
-        documentNumber: 'IJZ-UI-PSI-2021-0094',
-        issuedBy: 'Fakultas Psikologi Universitas Indonesia',
-        issuedYear: '2021',
-        validUntil: 'Seumur Hidup',
-        fileName: 'Ijazah_Profesi_UI_Larasati.pdf',
-        fileSize: '2.1 MB',
-        verified: false,
-      },
     ],
   },
   {
@@ -161,7 +126,7 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
     strNumber: 'STR-PK-2018-441092',
     sipNumber: '20180522-2028-01-0312',
     association: 'Himpunan Psikologi Indonesia (HIMPSI)',
-    specializations: ['Remaja & Mahasiswa', 'Relasi & Keluarga', 'Kecemasan & Panik'],
+    specializations: ['Konseling Remaja & Akademik', 'Hubungan & Komunikasi', 'Kecemasan Dewasa'],
     yearsOfExperience: 8,
     bio: 'Praktisi telekonseling psikologi klinis dengan pendekatan Acceptance and Commitment Therapy (ACT) untuk dewasa muda dan mahasiswa.',
     verificationStatus: 'verified',
@@ -211,7 +176,7 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
     strNumber: 'STR-PK-2020-310844',
     sipNumber: '20201104-2025-02-0774',
     association: 'Ikatan Psikolog Klinis (IPK) Indonesia',
-    specializations: ['Depresi & Mood', 'Trauma & Krisis', 'Kecemasan & Panik'],
+    specializations: ['Depresi & Suasana Hati', 'Trauma & Regulasi Emosi', 'Manajemen Stres & Burnout'],
     yearsOfExperience: 6,
     bio: 'Berpengalaman mendampingi klien dengan gangguan mood, burnout kerja, serta pemulihan trauma emosional.',
     verificationStatus: 'verified',
@@ -261,12 +226,12 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
     strNumber: 'STR-PK-2023-112940',
     sipNumber: '20230214-2028-01-0941',
     association: 'Himpunan Psikologi Indonesia (HIMPSI)',
-    specializations: ['Depresi & Mood', 'Regulasi Emosi & Stres Akademik'],
+    specializations: ['Depresi & Suasana Hati', 'Manajemen Stres & Burnout'],
     yearsOfExperience: 3,
     bio: 'Fokus layanan konseling daring untuk manajemen stres pekerja muda dan regulasi emosi.',
-    verificationStatus: 'need_revision',
+    verificationStatus: 'rejected',
     verificationNotes:
-      'Scan halaman belakang SIPP belum terbaca jelas dan nomor registrasi belum sinkron dengan lampiran PDF.',
+      'Scan dokumen SIPP tidak jelas dan nomor registrasi tidak valid saat dicek pada pangkalan data HIMPSI.',
     isOnline: false,
     bufferTimeMinutes: 10,
     practiceSchedule: 'Senin, Rabu, Jumat (19.00 - 21.00 WIB)',
@@ -311,7 +276,7 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
     strNumber: 'STR-PK-2017-004192',
     sipNumber: null,
     association: 'Himpunan Psikologi Indonesia (HIMPSI)',
-    specializations: ['Relasi & Keluarga'],
+    specializations: ['Hubungan & Komunikasi'],
     yearsOfExperience: 4,
     verificationStatus: 'rejected',
     verificationNotes:

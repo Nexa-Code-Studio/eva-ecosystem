@@ -1,6 +1,5 @@
 import { ArrowRight, Menu, X } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Link } from 'react-router'
 import { Button, Container, Logo } from '@/components/ui'
 import { navLinks } from '@/content/landing'
 import { scrollToCenteredSection, useActiveSection, useScrolled } from '@/hooks/useScroll'
@@ -97,14 +96,6 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Link
-              to="/login"
-              id="nav-login"
-              data-cursor="MASUK"
-              className="hidden h-10 items-center justify-center rounded-pill px-4 text-xs font-semibold text-ink-soft transition-colors duration-[250ms] hover:bg-primary-container/60 hover:text-primary sm:inline-flex"
-            >
-              Masuk
-            </Link>
             <Button
               id="nav-cta"
               href="#early-access"
@@ -153,16 +144,6 @@ export function Navbar() {
                 </a>
               </li>
             ))}
-            <li>
-              <Link
-                to="/login"
-                onClick={() => setOpen(false)}
-                className="flex items-center justify-between rounded-[16px] px-4 py-3.5 text-title-md text-ink transition-colors hover:bg-primary-container/50"
-              >
-                Masuk
-                <ArrowRight className="size-4 opacity-50" />
-              </Link>
-            </li>
           </ul>
           <Button
             href="#early-access"
