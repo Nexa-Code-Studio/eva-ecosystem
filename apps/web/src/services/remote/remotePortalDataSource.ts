@@ -129,6 +129,13 @@ export class RemotePortalDataSource implements IPortalDataSource {
     window.dispatchEvent(new CustomEvent(PORTAL_DB_CHANGE_EVENT))
   }
 
+  private updateSnapshot(mutator: (db: PortalDatabase) => void): PortalDatabase {
+    const db = this.loadSnapshot()
+    mutator(db)
+    this.saveSnapshot(db)
+    return db
+  }
+
   resetSnapshot(): void {
     if (typeof window === 'undefined') return
     window.localStorage.setItem(this.storageKey, JSON.stringify(EMPTY_PORTAL_DATABASE))
@@ -166,8 +173,22 @@ export class RemotePortalDataSource implements IPortalDataSource {
     }
   }
 
+  private upsertItem<T extends { id: string }>(
+    list: T[],
+    item: T,
+    insertPosition: 'start' | 'end' = 'start',
+  ): void {
+    const idx = list.findIndex((entry) => entry.id === item.id)
+    if (idx !== -1) {
+      list[idx] = item
+    } else if (insertPosition === 'start') {
+      list.unshift(item)
+    } else {
+      list.push(item)
+    }
+  }
+
   async registerPsychologist(payload: RegisterPsychologistRequestDto): Promise<Psychologist> {
-    const db = this.loadSnapshot()
     try {
       const dto = await this.requestJson<BackendPsychologistProfileResponseDto>(
         '/counselors/register',
@@ -198,8 +219,9 @@ export class RemotePortalDataSource implements IPortalDataSource {
         practiceSchedule: payload.practice_schedule,
       })
 
-      db.psychologists.unshift(mapped)
-      this.saveSnapshot(db)
+      this.updateSnapshot((db) => {
+        db.psychologists.unshift(mapped)
+      })
       return mapped
     } catch (err) {
       // Hanya lempar ulang error validasi bisnis (4xx); fallback cache lokal jika offline
@@ -207,23 +229,25 @@ export class RemotePortalDataSource implements IPortalDataSource {
         throw err
       }
       const fallback = buildDomainPsychologistFromRegister(payload)
-      db.psychologists.unshift(fallback)
-      this.saveSnapshot(db)
+      this.updateSnapshot((db) => {
+        db.psychologists.unshift(fallback)
+      })
       return fallback
     }
   }
 
   async fetchAdminPsychologists(): Promise<Psychologist[]> {
-    const db = this.loadSnapshot()
     try {
       const list = await this.requestJson<BackendPsychologistProfileResponseDto[]>('/admin/counselors')
-      const existingMap = new Map(db.psychologists.map((p) => [p.id, p]))
-      const mapped = list.map((dto) => mapBackendPsychologistToDomain(dto, existingMap.get(dto.id)))
-      db.psychologists = mapped
-      this.saveSnapshot(db)
+      let mapped: Psychologist[] = []
+      this.updateSnapshot((db) => {
+        const existingMap = new Map(db.psychologists.map((p) => [p.id, p]))
+        mapped = list.map((dto) => mapBackendPsychologistToDomain(dto, existingMap.get(dto.id)))
+        db.psychologists = mapped
+      })
       return mapped
     } catch {
-      return db.psychologists
+      return this.loadSnapshot().psychologists
     }
   }
 
@@ -231,10 +255,8 @@ export class RemotePortalDataSource implements IPortalDataSource {
     psychologistId: string,
     docIdOrType: string,
   ): Promise<Psychologist> {
-    const db = this.loadSnapshot()
-    const idx = db.psychologists.findIndex((p) => p.id === psychologistId)
-    const current = idx !== -1 ? db.psychologists[idx] : undefined
-    const matchedDoc = current?.documents?.find((d) => d.id === docIdOrType)
+    const initial = this.loadSnapshot().psychologists.find((p) => p.id === psychologistId)
+    const matchedDoc = initial?.documents?.find((d) => d.id === docIdOrType)
     const docType: 'str' | 'sip' =
       docIdOrType.toLowerCase() === 'sip' || matchedDoc?.docType === 'SIPP' ? 'sip' : 'str'
 
@@ -243,13 +265,12 @@ export class RemotePortalDataSource implements IPortalDataSource {
       { method: 'PATCH' },
     )
 
-    const updated = mapBackendPsychologistToDomain(dto, current)
-    if (idx !== -1) {
-      db.psychologists[idx] = updated
-    } else {
-      db.psychologists.unshift(updated)
-    }
-    this.saveSnapshot(db)
+    let updated!: Psychologist
+    this.updateSnapshot((db) => {
+      const current = db.psychologists.find((p) => p.id === psychologistId)
+      updated = mapBackendPsychologistToDomain(dto, current)
+      this.upsertItem(db.psychologists, updated, 'start')
+    })
     return updated
   }
 
@@ -257,10 +278,8 @@ export class RemotePortalDataSource implements IPortalDataSource {
     psychologistId: string,
     payload: VerifyPsychologistRequestDto,
   ): Promise<Psychologist> {
-    const db = this.loadSnapshot()
-    const idx = db.psychologists.findIndex((p) => p.id === psychologistId)
-    const current = idx !== -1 ? db.psychologists[idx] : undefined
-    if (!current) {
+    const exists = this.loadSnapshot().psychologists.some((p) => p.id === psychologistId)
+    if (!exists) {
       throw new Error('Profil psikolog tidak ditemukan.')
     }
 
@@ -275,18 +294,25 @@ export class RemotePortalDataSource implements IPortalDataSource {
 
     const nextStatus = normalizeVerificationStatus(res.verification_status)
     const nowIso = new Date().toISOString()
-    const updated: Psychologist = {
-      ...current,
-      verificationStatus: nextStatus,
-      verificationNotes: res.verification_notes ?? payload.notes?.trim() ?? null,
-      verifiedAt: res.verified_at ?? (nextStatus === 'verified' ? nowIso : null),
-      status: nextStatus === 'verified' ? 'active' : 'inactive',
-      isOnline: nextStatus === 'verified',
-      reviewedAt: (res.verified_at ?? nowIso).slice(0, 10),
-    }
 
-    db.psychologists[idx] = updated
-    this.saveSnapshot(db)
+    let updated!: Psychologist
+    this.updateSnapshot((db) => {
+      const idx = db.psychologists.findIndex((p) => p.id === psychologistId)
+      const current = idx !== -1 ? db.psychologists[idx] : undefined
+      if (!current) {
+        throw new Error('Profil psikolog tidak ditemukan.')
+      }
+      updated = {
+        ...current,
+        verificationStatus: nextStatus,
+        verificationNotes: res.verification_notes ?? payload.notes?.trim() ?? null,
+        verifiedAt: res.verified_at ?? (nextStatus === 'verified' ? nowIso : null),
+        status: nextStatus === 'verified' ? 'active' : 'inactive',
+        isOnline: nextStatus === 'verified',
+        reviewedAt: (res.verified_at ?? nowIso).slice(0, 10),
+      }
+      db.psychologists[idx] = updated
+    })
     return updated
   }
 
@@ -295,10 +321,6 @@ export class RemotePortalDataSource implements IPortalDataSource {
     status: 'verified' | 'suspended',
     notes?: string,
   ): Promise<Psychologist> {
-    const db = this.loadSnapshot()
-    const idx = db.psychologists.findIndex((p) => p.id === psychologistId)
-    const current = idx !== -1 ? db.psychologists[idx] : undefined
-
     const dto = await this.requestJson<BackendPsychologistProfileResponseDto>(
       `/admin/counselors/${encodeURIComponent(psychologistId)}/status`,
       {
@@ -310,41 +332,40 @@ export class RemotePortalDataSource implements IPortalDataSource {
       },
     )
 
-    const updated = mapBackendPsychologistToDomain(dto, current)
-    if (idx !== -1) {
-      db.psychologists[idx] = updated
-    } else {
-      db.psychologists.unshift(updated)
-    }
-    this.saveSnapshot(db)
+    let updated!: Psychologist
+    this.updateSnapshot((db) => {
+      const current = db.psychologists.find((p) => p.id === psychologistId)
+      updated = mapBackendPsychologistToDomain(dto, current)
+      this.upsertItem(db.psychologists, updated, 'start')
+    })
     return updated
   }
 
   async fetchActivePricing(): Promise<PlatformPricingConfig> {
-    const db = this.loadSnapshot()
     try {
       const dto = await this.requestJson<BackendPricingConfigResponseDto>('/pricing/active')
       const mapped = mapBackendPricingToDomain(dto)
-      db.pricingConfig = mapped
-      this.saveSnapshot(db)
+      this.updateSnapshot((db) => {
+        db.pricingConfig = mapped
+      })
       return mapped
     } catch {
-      return db.pricingConfig
+      return this.loadSnapshot().pricingConfig
     }
   }
 
   async fetchPricingHistory(): Promise<PlatformPricingConfig[]> {
-    const db = this.loadSnapshot()
     try {
       const list = await this.requestJson<BackendPricingConfigResponseDto[]>('/pricing')
       const mapped = list.map(mapBackendPricingToDomain)
       if (mapped.length > 0) {
-        db.pricingHistory = mapped
-        this.saveSnapshot(db)
+        this.updateSnapshot((db) => {
+          db.pricingHistory = mapped
+        })
       }
       return mapped
     } catch {
-      return db.pricingHistory
+      return this.loadSnapshot().pricingHistory
     }
   }
 
@@ -352,7 +373,6 @@ export class RemotePortalDataSource implements IPortalDataSource {
     payload: UpsertPlatformPricingRequestDto,
     existingConfigId?: string,
   ): Promise<PlatformPricingConfig> {
-    const db = this.loadSnapshot()
     try {
       const endpoint =
         existingConfigId && existingConfigId !== 'pricing-default' && !existingConfigId.startsWith('pricing-')
@@ -366,87 +386,89 @@ export class RemotePortalDataSource implements IPortalDataSource {
       })
 
       const mapped = mapBackendPricingToDomain(dto)
-      const archived = db.pricingHistory
-        .filter((item) => item.id !== mapped.id)
-        .map((item) =>
-          item.status === 'active'
-            ? { ...item, status: 'archived' as const, effectiveUntil: mapped.effectiveFrom }
-            : item,
-        )
-
-      db.pricingConfig = mapped
-      db.pricingHistory = [mapped, ...archived]
-      this.saveSnapshot(db)
+      this.updateSnapshot((db) => {
+        const archived = db.pricingHistory
+          .filter((item) => item.id !== mapped.id)
+          .map((item) =>
+            item.status === 'active'
+              ? { ...item, status: 'archived' as const, effectiveUntil: mapped.effectiveFrom }
+              : item,
+          )
+        db.pricingConfig = mapped
+        db.pricingHistory = [mapped, ...archived]
+      })
       return mapped
     } catch {
       const nowIso = new Date().toISOString()
-      const archived = db.pricingHistory.map((item) =>
-        item.status === 'active'
-          ? { ...item, status: 'archived' as const, effectiveUntil: nowIso }
-          : item,
-      )
-      const fallback: PlatformPricingConfig = {
-        id: `pricing-${Date.now()}`,
-        sessionDurationMinutes: payload.session_duration_minutes,
-        pricePerSession: payload.price_per_session,
-        counselorSharePercentage: payload.counselor_share_percentage,
-        platformFeePercentage: payload.platform_fee_percentage,
-        extensionPricePerSession: payload.extension_price_per_session,
-        status: 'active',
-        notes: payload.notes?.trim() || null,
-        effectiveFrom: nowIso,
-        effectiveUntil: null,
-        createdAt: nowIso,
-      }
-      db.pricingConfig = fallback
-      db.pricingHistory = [fallback, ...archived]
-      this.saveSnapshot(db)
+      let fallback!: PlatformPricingConfig
+      this.updateSnapshot((db) => {
+        const archived = db.pricingHistory.map((item) =>
+          item.status === 'active'
+            ? { ...item, status: 'archived' as const, effectiveUntil: nowIso }
+            : item,
+        )
+        fallback = {
+          id: `pricing-${Date.now()}`,
+          sessionDurationMinutes: payload.session_duration_minutes,
+          pricePerSession: payload.price_per_session,
+          counselorSharePercentage: payload.counselor_share_percentage,
+          platformFeePercentage: payload.platform_fee_percentage,
+          extensionPricePerSession: payload.extension_price_per_session,
+          status: 'active',
+          notes: payload.notes?.trim() || null,
+          effectiveFrom: nowIso,
+          effectiveUntil: null,
+          createdAt: nowIso,
+        }
+        db.pricingConfig = fallback
+        db.pricingHistory = [fallback, ...archived]
+      })
       return fallback
     }
   }
 
   async fetchConsultationSessions(): Promise<ConsultationSessionMonitoring[]> {
-    const db = this.loadSnapshot()
     try {
       const list = await this.requestJson<BackendAdminSessionDto[]>('/admin/sessions')
       const mapped = list.map(mapBackendAdminSessionToDomain)
-      db.consultationSessions = mapped
-      this.saveSnapshot(db)
+      this.updateSnapshot((db) => {
+        db.consultationSessions = mapped
+      })
       return mapped
     } catch {
-      return db.consultationSessions
+      return this.loadSnapshot().consultationSessions
     }
   }
 
   async fetchAdminUsers(): Promise<GeneralAppUser[]> {
-    const db = this.loadSnapshot()
     try {
       const list = await this.requestJson<BackendAdminUserDto[]>('/admin/users')
-      const existingMap = new Map(db.generalUsers.map((u) => [u.id, u]))
-      const mapped = list.map((dto) => mapBackendAdminUserToDomain(dto, existingMap.get(dto.id)))
-      db.generalUsers = mapped
-      this.saveSnapshot(db)
+      let mapped: GeneralAppUser[] = []
+      this.updateSnapshot((db) => {
+        const existingMap = new Map(db.generalUsers.map((u) => [u.id, u]))
+        mapped = list.map((dto) => mapBackendAdminUserToDomain(dto, existingMap.get(dto.id)))
+        db.generalUsers = mapped
+      })
       return mapped
     } catch {
-      return db.generalUsers
+      return this.loadSnapshot().generalUsers
     }
   }
 
   async fetchCoinTransactions(): Promise<CoinTopupTransaction[]> {
-    const db = this.loadSnapshot()
     try {
       const list = await this.requestJson<BackendCoinTransactionDto[]>('/admin/coins/transactions')
       const mapped = list.map(mapBackendCoinTransactionToDomain)
-      db.coinTransactions = mapped
-      this.saveSnapshot(db)
+      this.updateSnapshot((db) => {
+        db.coinTransactions = mapped
+      })
       return mapped
     } catch {
-      return db.coinTransactions
+      return this.loadSnapshot().coinTransactions
     }
   }
 
   async topUpUserCoins(payload: AdminCoinTopupRequestDto): Promise<AdminCoinTopupResultDto> {
-    const db = this.loadSnapshot()
     const dto = await this.requestJson<BackendAdminCoinTopupResponseDto>(
       `/admin/users/${encodeURIComponent(payload.userId)}/coins/topup`,
       {
@@ -464,45 +486,43 @@ export class RemotePortalDataSource implements IPortalDataSource {
       },
     )
 
-    const existing = db.generalUsers.find((u) => u.id === dto.user.id)
-    const updatedUser = mapBackendAdminUserToDomain(dto.user, existing)
-    const transaction = mapBackendCoinTransactionToDomain(dto.transaction)
+    let result!: AdminCoinTopupResultDto
+    this.updateSnapshot((db) => {
+      const existing = db.generalUsers.find((u) => u.id === dto.user.id)
+      const updatedUser = mapBackendAdminUserToDomain(dto.user, existing)
+      const transaction = mapBackendCoinTransactionToDomain(dto.transaction)
 
-    const idx = db.generalUsers.findIndex((u) => u.id === updatedUser.id)
-    if (idx !== -1) {
-      db.generalUsers[idx] = updatedUser
-    } else {
-      db.generalUsers.unshift(updatedUser)
-    }
-    db.coinTransactions.unshift(transaction)
-    this.saveSnapshot(db)
+      this.upsertItem(db.generalUsers, updatedUser, 'start')
+      this.upsertItem(db.coinTransactions, transaction, 'start')
+      result = { user: updatedUser, transaction }
+    })
 
-    return { user: updatedUser, transaction }
+    return result
   }
 
   async fetchCoinEconomyConfig(): Promise<CoinEconomyConfig> {
-    const db = this.loadSnapshot()
     try {
       const dto = await this.requestJson<BackendCoinEconomyConfigDto>('/coins/economy')
       const mapped = mapBackendCoinEconomyToDomain(dto)
-      db.coinEconomyConfig = mapped
-      this.saveSnapshot(db)
+      this.updateSnapshot((db) => {
+        db.coinEconomyConfig = mapped
+      })
       return mapped
     } catch {
-      return db.coinEconomyConfig
+      return this.loadSnapshot().coinEconomyConfig
     }
   }
 
   async updateCoinEconomyConfig(
     updates: UpdateCoinEconomyConfigRequestDto,
   ): Promise<CoinEconomyConfig> {
-    const db = this.loadSnapshot()
+    const currentEconomy = this.loadSnapshot().coinEconomyConfig
     const payload = {
       base_price_per_coin_idr: Math.trunc(
-        updates.basePricePerCoinIdr ?? db.coinEconomyConfig.basePricePerCoinIdr,
+        updates.basePricePerCoinIdr ?? currentEconomy.basePricePerCoinIdr,
       ),
       free_trial_coins_new_user: Math.trunc(
-        updates.freeTrialCoinsNewUser ?? db.coinEconomyConfig.freeTrialCoinsNewUser,
+        updates.freeTrialCoinsNewUser ?? currentEconomy.freeTrialCoinsNewUser,
       ),
     }
     const dto = await this.requestJson<BackendCoinEconomyConfigDto>('/admin/coins/economy', {
@@ -510,26 +530,26 @@ export class RemotePortalDataSource implements IPortalDataSource {
       body: JSON.stringify(payload),
     })
     const mapped = mapBackendCoinEconomyToDomain(dto)
-    db.coinEconomyConfig = mapped
-    this.saveSnapshot(db)
+    this.updateSnapshot((db) => {
+      db.coinEconomyConfig = mapped
+    })
     return mapped
   }
 
   async fetchCoinPackages(): Promise<CoinPackage[]> {
-    const db = this.loadSnapshot()
     try {
       const list = await this.requestJson<BackendCoinPackageDto[]>('/admin/coins/packages')
       const mapped = list.map(mapBackendCoinPackageToDomain)
-      db.coinPackages = mapped
-      this.saveSnapshot(db)
+      this.updateSnapshot((db) => {
+        db.coinPackages = mapped
+      })
       return mapped
     } catch {
-      return db.coinPackages
+      return this.loadSnapshot().coinPackages
     }
   }
 
   async upsertCoinPackage(input: UpsertCoinPackageRequestDto): Promise<CoinPackage> {
-    const db = this.loadSnapshot()
     const isEdit = Boolean(input.id && !input.id.startsWith('pkg-'))
     const endpoint = isEdit
       ? `/admin/coins/packages/${encodeURIComponent(input.id!)}`
@@ -551,39 +571,30 @@ export class RemotePortalDataSource implements IPortalDataSource {
     })
 
     const mapped = mapBackendCoinPackageToDomain(dto)
-    const idx = db.coinPackages.findIndex((p) => p.id === mapped.id)
-    if (idx !== -1) {
-      db.coinPackages[idx] = mapped
-    } else {
-      db.coinPackages.push(mapped)
-    }
-    this.saveSnapshot(db)
+    this.updateSnapshot((db) => {
+      this.upsertItem(db.coinPackages, mapped, 'end')
+    })
     return mapped
   }
 
   async toggleCoinPackageActive(packageId: string): Promise<CoinPackage> {
-    const db = this.loadSnapshot()
     const dto = await this.requestJson<BackendCoinPackageDto>(
       `/admin/coins/packages/${encodeURIComponent(packageId)}/toggle`,
       { method: 'PATCH' },
     )
     const mapped = mapBackendCoinPackageToDomain(dto)
-    const idx = db.coinPackages.findIndex((p) => p.id === mapped.id)
-    if (idx !== -1) {
-      db.coinPackages[idx] = mapped
-    } else {
-      db.coinPackages.push(mapped)
-    }
-    this.saveSnapshot(db)
+    this.updateSnapshot((db) => {
+      this.upsertItem(db.coinPackages, mapped, 'end')
+    })
     return mapped
   }
 
   async deleteCoinPackage(packageId: string): Promise<void> {
-    const db = this.loadSnapshot()
     await this.requestJson(`/admin/coins/packages/${encodeURIComponent(packageId)}`, {
       method: 'DELETE',
     })
-    db.coinPackages = db.coinPackages.filter((p) => p.id !== packageId)
-    this.saveSnapshot(db)
+    this.updateSnapshot((db) => {
+      db.coinPackages = db.coinPackages.filter((p) => p.id !== packageId)
+    })
   }
 }

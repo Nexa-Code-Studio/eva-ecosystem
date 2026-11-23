@@ -41,14 +41,17 @@ export function AdminDashboardPage() {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
   }, [])
 
+  const sessionRole = session?.role
+  const sessionToken = session?.accessToken
+
   useEffect(() => {
-    if (!session || session.role !== 'admin') {
+    if (!sessionRole || sessionRole !== 'admin') {
       navigate('/login', { replace: true })
       return
     }
     void fetchAdminPsychologists()
     void fetchConsultationSessions()
-  }, [navigate, session])
+  }, [navigate, sessionRole, sessionToken])
 
   const counts = useMemo<AdminSummaryCounts>(() => {
     const pendingPsychologists = db.psychologists.filter(
