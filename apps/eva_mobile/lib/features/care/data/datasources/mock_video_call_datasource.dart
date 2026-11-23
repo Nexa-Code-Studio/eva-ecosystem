@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:webrtc_client/webrtc_client.dart';
 import '../models/video_call_session_dto.dart';
 import 'video_call_datasource.dart';
 
@@ -15,6 +16,13 @@ class MockVideoCallDataSource implements VideoCallDataSource {
         'stun:stun.l.google.com:19302',
         'stun:stun1.l.google.com:19302',
       ],
+      iceServerConfigs: const [
+        IceServerConfig(urls: [
+          'stun:stun.l.google.com:19302',
+          'stun:stun1.l.google.com:19302',
+        ]),
+      ],
+      wsUrl: 'ws://localhost:8888/api/v1/care/ws/$sessionId?token=mock-token',
     );
   }
 

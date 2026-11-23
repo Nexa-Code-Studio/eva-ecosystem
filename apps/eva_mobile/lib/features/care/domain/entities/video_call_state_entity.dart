@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:webrtc_client/webrtc_client.dart';
 import 'consultation_session_entity.dart';
 
 enum VideoCallConnectionState {
@@ -21,6 +22,14 @@ class VideoCallStateEntity {
   final String roomId;
   final String? token;
   final String? errorMessage;
+  final VideoQualityPreset qualityPreset;
+  final bool isCameraPermissionGranted;
+  final bool isMicPermissionGranted;
+  final bool isWaitingForCounselor;
+  final bool isCounselorReconnecting;
+  final String? counselorStatusMessage;
+  final List<IceServerConfig> iceServers;
+  final String? wsUrl;
 
   const VideoCallStateEntity({
     required this.session,
@@ -29,11 +38,19 @@ class VideoCallStateEntity {
     this.isCameraOff = false,
     this.isFrontCamera = true,
     this.isSpeakerOn = true,
-    this.isRemoteSpeaking = true,
+    this.isRemoteSpeaking = false,
     this.callDurationSeconds = 0,
     required this.roomId,
     this.token,
     this.errorMessage,
+    this.qualityPreset = VideoQualityPreset.hd720p,
+    this.isCameraPermissionGranted = true,
+    this.isMicPermissionGranted = true,
+    this.isWaitingForCounselor = true,
+    this.isCounselorReconnecting = false,
+    this.counselorStatusMessage,
+    this.iceServers = const [],
+    this.wsUrl,
   });
 
   VideoCallStateEntity copyWith({
@@ -48,6 +65,15 @@ class VideoCallStateEntity {
     String? roomId,
     String? token,
     String? errorMessage,
+    VideoQualityPreset? qualityPreset,
+    bool? isCameraPermissionGranted,
+    bool? isMicPermissionGranted,
+    bool? isWaitingForCounselor,
+    bool? isCounselorReconnecting,
+    String? counselorStatusMessage,
+    bool clearCounselorStatusMessage = false,
+    List<IceServerConfig>? iceServers,
+    String? wsUrl,
   }) {
     return VideoCallStateEntity(
       session: session ?? this.session,
@@ -61,6 +87,20 @@ class VideoCallStateEntity {
       roomId: roomId ?? this.roomId,
       token: token ?? this.token,
       errorMessage: errorMessage ?? this.errorMessage,
+      qualityPreset: qualityPreset ?? this.qualityPreset,
+      isCameraPermissionGranted:
+          isCameraPermissionGranted ?? this.isCameraPermissionGranted,
+      isMicPermissionGranted:
+          isMicPermissionGranted ?? this.isMicPermissionGranted,
+      isWaitingForCounselor:
+          isWaitingForCounselor ?? this.isWaitingForCounselor,
+      isCounselorReconnecting:
+          isCounselorReconnecting ?? this.isCounselorReconnecting,
+      counselorStatusMessage: clearCounselorStatusMessage
+          ? null
+          : (counselorStatusMessage ?? this.counselorStatusMessage),
+      iceServers: iceServers ?? this.iceServers,
+      wsUrl: wsUrl ?? this.wsUrl,
     );
   }
 }
