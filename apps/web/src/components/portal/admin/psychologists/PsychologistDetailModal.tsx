@@ -37,7 +37,9 @@ export function PsychologistDetailModal({
 
   if (!isOpen || !psy) return null
 
-  const docs: PsychologistCertificate[] = psy.documents ?? []
+  const docs: PsychologistCertificate[] = (psy.documents ?? []).filter(
+    (doc) => doc.docType === 'STR HIMPSI' || doc.docType === 'SIPP',
+  )
   const activeDoc = docs.find((d) => d.id === activeDocId) ?? docs[0] ?? null
   const verifiedCount = docs.filter((d) => d.verified).length
 
@@ -135,10 +137,10 @@ export function PsychologistDetailModal({
             </div>
           )}
 
-          <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-12">
+          <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-12 lg:overflow-hidden">
             <div
               className={cn(
-                'border-b border-[#E2E8F0] bg-[#F8FAFC]/60 p-5 lg:col-span-4 lg:block lg:border-r lg:border-b-0',
+                'border-b border-[#E2E8F0] bg-[#F8FAFC]/60 p-5 lg:col-span-4 lg:block lg:h-full lg:overflow-y-auto lg:border-r lg:border-b-0',
                 mobileTab === 'profile' ? 'block' : 'hidden',
               )}
             >
@@ -147,8 +149,8 @@ export function PsychologistDetailModal({
 
             <div
               className={cn(
-                'flex flex-col space-y-4 p-5 lg:sticky lg:top-0 lg:col-span-8 lg:h-fit lg:self-start lg:p-6',
-                mobileTab === 'documents' ? 'block' : 'hidden',
+                'flex-col space-y-4 p-5 lg:col-span-8 lg:flex lg:h-full lg:overflow-y-auto lg:p-6',
+                mobileTab === 'documents' ? 'flex' : 'hidden',
               )}
             >
               {docs.length > 0 ? (

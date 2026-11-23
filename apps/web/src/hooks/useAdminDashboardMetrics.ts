@@ -169,7 +169,7 @@ export function useAdminDashboardMetrics(db: PortalDatabase, range: DashboardRan
           id: `psy-${p.id}`,
           kind: 'verification',
           title: `${p.fullName}, ${p.titleDegree}`,
-          subtitle: `STR ${p.strNumber} · ${p.city ?? 'Indonesia'} · ${p.documents?.length ?? 0} dokumen`,
+          subtitle: `${p.strNumber ? `STR ${p.strNumber}` : `SIP ${p.sipNumber ?? '-'}`} · ${p.documents?.length ?? 0} dokumen`,
           date: p.submittedAt,
           timeAgo: 'Baru',
           badgeLabel: 'Verifikasi STR/SIP',
