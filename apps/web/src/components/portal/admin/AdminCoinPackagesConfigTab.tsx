@@ -1,5 +1,7 @@
 import { AlertCircle, Coins, Loader2, Pencil, Plus, Sparkles, Star, Trash2 } from 'lucide-react'
 import { useRef, useState, type FormEvent } from 'react'
+import { TablePagination } from '@/components/portal/TablePagination'
+import { useUrlPagination } from '@/hooks/useUrlPagination'
 import { cn } from '@/lib/cn'
 import {
   deleteCoinPackage,
@@ -410,6 +412,16 @@ export function AdminCoinPackagesConfigTab({
       : null
 
   const activePackagesCount = db.coinPackages.filter((pkg) => pkg.isActive).length
+  const {
+    pageSize,
+    safePage,
+    paginatedItems: paginatedPackages,
+    handlePageChange,
+    handlePageSizeChange,
+  } = useUrlPagination(db.coinPackages, {
+    defaultPageSize: 6,
+    scrollTargetRef: catalogSectionRef,
+  })
 
   const handleToggleAddButton = () => {
     setConfirmDeleteId(null)
@@ -564,8 +576,9 @@ export function AdminCoinPackagesConfigTab({
               Belum ada paket koin di katalog. Klik &ldquo;Tambah Paket&rdquo; untuk membuat paket top-up baru.
             </div>
           ) : (
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {db.coinPackages.map((pkg) => {
+            <div className="mt-4 space-y-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {paginatedPackages.map((pkg) => {
                 const totalCoins = pkg.coins + pkg.bonusCoins
                 const effectivePerCoin =
                   totalCoins > 0 ? Math.round(pkg.priceIdr / totalCoins) : 0
@@ -722,6 +735,18 @@ export function AdminCoinPackagesConfigTab({
                   </div>
                 )
               })}
+              </div>
+
+              <TablePagination
+                currentPage={safePage}
+                totalItems={db.coinPackages.length}
+                pageSize={pageSize}
+                pageSizeOptions={[4, 6, 12, 24]}
+                itemLabel="paket koin"
+                ariaLabel="Paginasi katalog paket koin"
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+              />
             </div>
           )}
         </div>

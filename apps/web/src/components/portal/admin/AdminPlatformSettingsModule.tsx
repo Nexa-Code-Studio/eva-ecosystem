@@ -461,6 +461,7 @@ export function AdminPlatformSettingsModule({
       } else {
         next.set('tab', tab)
       }
+      next.delete('page')
       return next
     })
   }
