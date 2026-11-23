@@ -28,6 +28,7 @@ from app.models.enums import (
     TransactionType,
 )
 from app.schemas.session import (
+    AdminSessionMonitoringResponse,
     AvailableSlotsResponse,
     BookSessionRequest,
     ClinicalNoteDetailResponse,
@@ -43,6 +44,7 @@ from app.schemas.session import (
     TimeSlotResponse,
     UpdateSoapNotesRequest,
 )
+from app.services.coin.coin_service import format_user_code
 from app.services.pricing import PricingService
 
 logger = logging.getLogger(__name__)
@@ -956,3 +958,88 @@ class SchedulingService:
 
         await self.update_consent_status(patient_id, profile.id, "pending")
         return RequestConsentResponse(success=True, message="Permohonan akses rekam medis berhasil dikirim ke pasien.")
+
+    async def list_admin_sessions(
+        self,
+        session_status: str | None = None,
+        is_extended: bool | None = None,
+        search: str | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[AdminSessionMonitoringResponse]:
+        """List teleconsultation sessions across patients and counselors for admin monitoring."""
+        query = (
+            select(ConsultationSession, User, PsychologistProfile)
+            .join(User, ConsultationSession.patient_id == User.id)
+            .join(PsychologistProfile, ConsultationSession.counselor_id == PsychologistProfile.id)
+        )
+
+        if session_status and session_status.strip():
+            normalized = session_status.strip().lower()
+            if normalized == "extended":
+                query = query.where(ConsultationSession.is_extended.is_(True))
+            elif normalized == "in_progress":
+                query = query.where(
+                    ConsultationSession.status == ConsultationSessionStatus.LIVE.value
+                )
+            else:
+                query = query.where(ConsultationSession.status == normalized)
+
+        if is_extended is not None:
+            query = query.where(ConsultationSession.is_extended.is_(is_extended))
+
+        if search and search.strip():
+            term = f"%{search.strip()}%"
+            query = query.where(
+                or_(
+                    ConsultationSession.session_code.ilike(term),
+                    User.display_name.ilike(term),
+                    User.username.ilike(term),
+                    PsychologistProfile.full_name.ilike(term),
+                )
+            )
+
+        query = (
+            query.order_by(ConsultationSession.scheduled_start_time.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        res = await self.db.execute(query)
+        rows = res.all()
+        return [
+            self._to_admin_session_response(sess, patient, counselor)
+            for sess, patient, counselor in rows
+        ]
+
+    @staticmethod
+    def _to_admin_session_response(
+        sess: ConsultationSession,
+        patient: User,
+        counselor: PsychologistProfile,
+    ) -> AdminSessionMonitoringResponse:
+        patient_name = patient.display_name or patient.username or f"Pengguna {format_user_code(patient.id)}"
+        if sess.status == ConsultationSessionStatus.CANCELLED.value and sess.cancellation_reason:
+            clinical_summary = f"Dibatalkan: {sess.cancellation_reason}"
+        elif sess.soap_notes:
+            clinical_summary = "Catatan SOAP tersedia (terenkripsi untuk konselor)."
+        else:
+            clinical_summary = "Menunggu pelaksanaan / catatan sesi."
+
+        return AdminSessionMonitoringResponse(
+            id=str(sess.id),
+            session_code=sess.session_code,
+            patient_code=format_user_code(patient.id),
+            patient_display_name=patient_name,
+            counselor_id=str(counselor.id),
+            counselor_name=counselor.full_name,
+            counselor_title=counselor.title_degree,
+            scheduled_start_time=sess.scheduled_start_time,
+            scheduled_end_time=sess.scheduled_end_time,
+            duration_minutes=sess.duration_minutes,
+            is_extended=bool(sess.is_extended),
+            status=sess.status,
+            total_price_coins=round(float(sess.total_price or 0)),
+            counselor_earning_coins=round(float(sess.counselor_earning or 0)),
+            platform_fee_coins=round(float(sess.platform_fee or 0)),
+            clinical_summary=clinical_summary,
+        )

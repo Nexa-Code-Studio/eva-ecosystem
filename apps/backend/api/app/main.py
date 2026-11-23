@@ -8,6 +8,7 @@ from shared.config import settings
 from app.api.dependencies import shutdown_webrtc_signaling_manager
 from app.api.routes.admin_coins import router as admin_coins_router
 from app.api.routes.admin_counselors import router as admin_counselors_router
+from app.api.routes.admin_sessions import router as admin_sessions_router
 from app.api.routes.analytics import router as analytics_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.call import router as call_router
@@ -77,6 +78,7 @@ app.include_router(care_router, prefix="/api/v1")
 app.include_router(admin_coins_router, prefix="/api/v1")
 app.include_router(coins_router, prefix="/api/v1")
 app.include_router(admin_counselors_router, prefix="/api/v1")
+app.include_router(admin_sessions_router, prefix="/api/v1")
 
 
 @app.get("/")

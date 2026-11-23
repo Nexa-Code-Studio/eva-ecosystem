@@ -47,6 +47,7 @@ export {
   fetchCoinEconomyConfig,
   fetchCoinPackages,
   fetchCoinTransactions,
+  fetchConsultationSessions,
   reviewCoinTransaction,
   toggleCoinPackageActive,
   toggleCopingQuest,

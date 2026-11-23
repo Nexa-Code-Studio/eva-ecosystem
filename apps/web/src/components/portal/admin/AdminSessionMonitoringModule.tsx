@@ -1,14 +1,20 @@
 import {
+  AlertCircle,
   Calendar,
   Clock,
   Eye,
+  Loader2,
+  RefreshCw,
   Search,
   Sparkles,
   Video,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SessionDurationBadge } from '@/components/portal/PortalBadges'
+import { TablePagination } from '@/components/portal/TablePagination'
+import { useUrlPagination } from '@/hooks/useUrlPagination'
 import { cn } from '@/lib/cn'
+import { fetchConsultationSessions } from '@/lib/portalStore'
 import type {
   ConsultationSessionMonitoring,
   ConsultationSessionStatus,
@@ -57,6 +63,8 @@ function getSessionStatusBadge(status: ConsultationSessionStatus): {
       return { label: 'Selesai', className: 'border-[#CBD5E1] bg-[#F1F5F9] text-ink-soft' }
     case 'cancelled':
       return { label: 'Dibatalkan', className: 'border-[#FECACA] bg-[#FEF2F2] text-[#991B1B]' }
+    case 'expired':
+      return { label: 'Kedaluwarsa', className: 'border-[#E2E8F0] bg-[#F8FAFC] text-ink-muted' }
   }
 }
 
@@ -66,6 +74,44 @@ export function AdminSessionMonitoringModule({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [durationFilter, setDurationFilter] = useState<DurationFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [isLoading, setIsLoading] = useState(() => sessions.length === 0)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const listTopRef = useRef<HTMLDivElement>(null)
+
+  const handleRetryLoad = useCallback(() => {
+    setIsLoading(true)
+    setLoadError(null)
+    void fetchConsultationSessions()
+      .catch((err: unknown) => {
+        setLoadError(
+          err instanceof Error ? err.message : 'Gagal memuat daftar sesi konsultasi.',
+        )
+      })
+      .finally(() => {
+        setIsLoading(false)
+      })
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    fetchConsultationSessions()
+      .then(() => {
+        if (active) setLoadError(null)
+      })
+      .catch((err: unknown) => {
+        if (active) {
+          setLoadError(
+            err instanceof Error ? err.message : 'Gagal memuat daftar sesi konsultasi.',
+          )
+        }
+      })
+      .finally(() => {
+        if (active) setIsLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
 
   const counts = useMemo(() => {
     const extendedCount = sessions.filter((s) => s.isExtended || s.durationMinutes === 60).length
@@ -104,6 +150,43 @@ export function AdminSessionMonitoringModule({
       )
     })
   }, [sessions, statusFilter, durationFilter, searchQuery])
+
+  const {
+    pageSize,
+    safePage,
+    paginatedItems: paginatedSessions,
+    resetPage,
+    handlePageChange,
+    handlePageSizeChange,
+  } = useUrlPagination(filteredSessions, {
+    defaultPageSize: 10,
+    scrollTargetRef: listTopRef,
+  })
+
+  const hasActiveFilter =
+    statusFilter !== 'all' || durationFilter !== 'all' || searchQuery.trim().length > 0
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value)
+    resetPage()
+  }
+
+  const handleDurationChange = (next: DurationFilter) => {
+    setDurationFilter(next)
+    resetPage()
+  }
+
+  const handleStatusChange = (next: StatusFilter) => {
+    setStatusFilter(next)
+    resetPage()
+  }
+
+  const handleResetFilters = () => {
+    setSearchQuery('')
+    setDurationFilter('all')
+    setStatusFilter('all')
+    resetPage()
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -145,13 +228,16 @@ export function AdminSessionMonitoringModule({
       </div>
 
       {/* Filter Controls */}
-      <div className="flex flex-col gap-3 rounded-[12px] border border-[#E2E8F0] bg-white p-3.5 lg:flex-row lg:items-center lg:justify-between">
+      <div
+        ref={listTopRef}
+        className="flex flex-col gap-3 rounded-[12px] border border-[#E2E8F0] bg-white p-3.5 lg:flex-row lg:items-center lg:justify-between"
+      >
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-ink-muted" />
           <input
             type="search"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Cari kode sesi, kode pasien, atau nama psikolog mandiri..."
             className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-[#F8FAFC] pr-3 pl-8 text-xs text-ink placeholder:text-ink-muted/70 focus:border-primary focus:bg-white focus:outline-none"
           />
@@ -161,7 +247,7 @@ export function AdminSessionMonitoringModule({
           <select
             aria-label="Filter Durasi Sesi"
             value={durationFilter}
-            onChange={(e) => setDurationFilter(e.target.value as DurationFilter)}
+            onChange={(e) => handleDurationChange(e.target.value as DurationFilter)}
             className="h-9 rounded-[8px] border border-[#CBD5E1] bg-[#F8FAFC] px-3 text-xs font-semibold text-ink focus:border-primary focus:bg-white focus:outline-none"
           >
             <option value="all">Semua Durasi</option>
@@ -172,7 +258,7 @@ export function AdminSessionMonitoringModule({
           <select
             aria-label="Filter Status Sesi"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            onChange={(e) => handleStatusChange(e.target.value as StatusFilter)}
             className="h-9 rounded-[8px] border border-[#CBD5E1] bg-[#F8FAFC] px-3 text-xs font-semibold text-ink focus:border-primary focus:bg-white focus:outline-none"
           >
             <option value="all">Semua Status ({sessions.length})</option>
@@ -181,18 +267,63 @@ export function AdminSessionMonitoringModule({
             <option value="scheduled">Terjadwal</option>
             <option value="completed">Selesai</option>
             <option value="cancelled">Dibatalkan</option>
+            <option value="expired">Kedaluwarsa</option>
           </select>
         </div>
       </div>
 
-      {/* Mobile Cards (< md) */}
-      <div className="space-y-3 md:hidden">
-        {filteredSessions.length === 0 ? (
-          <div className="rounded-[12px] border border-[#E2E8F0] bg-white p-8 text-center text-xs text-ink-muted">
-            Tidak ada sesi telekonsultasi yang cocok dengan filter saat ini.
+      {loadError && (
+        <div
+          role="alert"
+          className="flex flex-col justify-between gap-2 rounded-[12px] border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-xs text-[#991B1B] sm:flex-row sm:items-center"
+        >
+          <div className="flex items-center gap-2">
+            <AlertCircle className="size-4 shrink-0" aria-hidden="true" />
+            <span>{loadError}</span>
           </div>
-        ) : (
-          filteredSessions.map((sess) => {
+          <button
+            type="button"
+            onClick={handleRetryLoad}
+            className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-1.5 rounded-[8px] border border-[#FECACA] bg-white px-3 text-xs font-semibold text-[#991B1B] hover:bg-[#FEE2E2] sm:min-h-8"
+          >
+            <RefreshCw className="size-3.5" aria-hidden="true" />
+            <span>Muat Ulang</span>
+          </button>
+        </div>
+      )}
+
+      {isLoading && sessions.length === 0 ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-center justify-center gap-2 rounded-[12px] border border-[#E2E8F0] bg-white px-4 py-12 text-xs font-semibold text-ink-soft"
+        >
+          <Loader2 className="size-4 animate-spin text-primary" aria-hidden="true" />
+          <span>Memuat jadwal dan sesi konsultasi...</span>
+        </div>
+      ) : (
+        <>
+          {/* Mobile Cards (< md) */}
+          <div className="space-y-3 md:hidden">
+            {paginatedSessions.length === 0 ? (
+              <div className="rounded-[12px] border border-[#E2E8F0] bg-white p-8 text-center text-xs text-ink-muted">
+                <p className="font-semibold text-ink">
+                  {hasActiveFilter
+                    ? 'Tidak ada sesi telekonsultasi yang cocok dengan filter saat ini.'
+                    : 'Belum ada sesi telekonsultasi terdaftar.'}
+                </p>
+                {hasActiveFilter && (
+                  <button
+                    type="button"
+                    onClick={handleResetFilters}
+                    className="mt-3 inline-flex min-h-11 cursor-pointer items-center rounded-[8px] border border-[#CBD5E1] bg-white px-4 text-xs font-semibold text-ink hover:bg-[#F8FAFC]"
+                  >
+                    Reset Filter
+                  </button>
+                )}
+              </div>
+            ) : (
+              paginatedSessions.map((sess) => {
             const statusBadge = getSessionStatusBadge(sess.status)
             return (
               <div
@@ -267,20 +398,31 @@ export function AdminSessionMonitoringModule({
                 <th className="px-5 py-3.5 text-right">Nominal &amp; Split (Koin)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E2E8F0] text-xs">
-              {filteredSessions.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="p-8 text-center text-ink-muted">
-                    <div className="flex flex-col items-center justify-center">
-                      <Clock className="size-8 text-ink-muted/50" />
-                      <p className="mt-2 text-xs font-semibold text-ink">
-                        Tidak ada sesi yang sesuai filter
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredSessions.map((sess) => {
+              <tbody className="divide-y divide-[#E2E8F0] text-xs">
+                {paginatedSessions.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-ink-muted">
+                      <div className="flex flex-col items-center justify-center">
+                        <Clock className="size-8 text-ink-muted/50" />
+                        <p className="mt-2 text-xs font-semibold text-ink">
+                          {hasActiveFilter
+                            ? 'Tidak ada sesi yang sesuai filter'
+                            : 'Belum ada sesi telekonsultasi terdaftar'}
+                        </p>
+                        {hasActiveFilter && (
+                          <button
+                            type="button"
+                            onClick={handleResetFilters}
+                            className="mt-3 inline-flex min-h-9 cursor-pointer items-center rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-xs font-semibold text-ink hover:bg-[#F8FAFC]"
+                          >
+                            Reset Filter
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedSessions.map((sess) => {
                   const statusBadge = getSessionStatusBadge(sess.status)
                   return (
                     <tr key={sess.id} className="hover:bg-[#F8FAFC]">
@@ -339,11 +481,24 @@ export function AdminSessionMonitoringModule({
                     </tr>
                   )
                 })
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+
+          <TablePagination
+            currentPage={safePage}
+            totalItems={filteredSessions.length}
+            pageSize={pageSize}
+            pageSizeOptions={[5, 10, 25, 50]}
+            itemLabel="sesi"
+            ariaLabel="Paginasi monitoring sesi konsultasi"
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+          />
+        </>
+      )}
     </div>
   )
 }

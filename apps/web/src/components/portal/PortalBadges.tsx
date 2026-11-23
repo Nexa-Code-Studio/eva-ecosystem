@@ -93,7 +93,7 @@ export function SessionDurationBadge({
   isExtended,
   className,
 }: {
-  durationMinutes: 30 | 60
+  durationMinutes: number
   isExtended: boolean
   className?: string
 }) {

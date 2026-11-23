@@ -8,6 +8,7 @@ from app.schemas.session.requests import (
     UpdateSoapNotesRequest,
 )
 from app.schemas.session.responses import (
+    AdminSessionMonitoringResponse,
     AvailableSlotsResponse,
     ClinicalNoteDetailResponse,
     ClinicalNotesResponse,
@@ -42,4 +43,5 @@ __all__ = [
     "CounselorPatientResponse",
     "RequestConsentResponse",
     "ClinicalNoteDetailResponse",
+    "AdminSessionMonitoringResponse",
 ]
