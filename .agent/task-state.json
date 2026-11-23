@@ -129,5 +129,13 @@
     "updated_at": 1795161178,
     "evidence_summary": "Evidence accepted: PR and test verification documented.",
     "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/92"
+  },
+  "78": {
+    "issue": 78,
+    "branch": "feat/78-mobile-webrtc-videocall",
+    "state": "In Review",
+    "updated_at": 1795415166,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/103"
   }
 }
