@@ -9,11 +9,15 @@ import { PsychologistCardList } from './PsychologistCardList'
 interface PsychologistTableProps {
   psychologists: Psychologist[]
   onSelectPsychologist: (psy: Psychologist) => void
+  hasActiveFilter?: boolean
+  onResetFilters?: () => void
 }
 
 export function PsychologistTable({
   psychologists,
   onSelectPsychologist,
+  hasActiveFilter = false,
+  onResetFilters,
 }: PsychologistTableProps) {
   return (
     <div>
@@ -22,6 +26,8 @@ export function PsychologistTable({
         <PsychologistCardList
           psychologists={psychologists}
           onSelectPsychologist={onSelectPsychologist}
+          hasActiveFilter={hasActiveFilter}
+          onResetFilters={onResetFilters}
         />
       </div>
 
@@ -43,13 +49,26 @@ export function PsychologistTable({
                 <tr>
                   <td colSpan={5} className="p-8 text-center text-ink-muted">
                     <div className="flex flex-col items-center justify-center">
-                      <Stethoscope className="size-8 text-ink-muted/50" />
+                      <Stethoscope className="size-8 text-ink-muted/50" aria-hidden="true" />
                       <p className="mt-2 text-xs font-semibold text-ink">
-                        Tidak ada data psikolog yang sesuai
+                        {hasActiveFilter
+                          ? 'Tidak ada psikolog yang cocok dengan filter atau pencarian saat ini'
+                          : 'Belum ada psikolog mandiri terdaftar'}
                       </p>
-                      <p className="text-[11px] text-ink-muted">
-                        Ubah kata kunci pencarian atau pilih tab status verifikasi lain.
+                      <p className="mt-0.5 text-[11px] text-ink-muted">
+                        {hasActiveFilter
+                          ? 'Coba ubah kata kunci pencarian atau kembali ke tab Semua.'
+                          : 'Pendaftaran psikolog dari aplikasi mobile akan tampil di sini.'}
                       </p>
+                      {hasActiveFilter && onResetFilters && (
+                        <button
+                          type="button"
+                          onClick={onResetFilters}
+                          className="mt-3 inline-flex min-h-9 cursor-pointer items-center rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-xs font-semibold text-ink transition-colors hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        >
+                          Reset Filter &amp; Pencarian
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -135,9 +154,9 @@ export function PsychologistTable({
                             e.stopPropagation()
                             onSelectPsychologist(psy)
                           }}
-                          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-[6px] border border-primary/30 bg-[#EEF0FF] px-3 text-xs font-semibold text-primary transition-colors hover:bg-primary hover:text-white"
+                          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-[6px] border border-primary/30 bg-[#EEF0FF] px-3 text-xs font-semibold text-primary transition-colors hover:bg-primary hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                         >
-                          <Eye className="size-3.5" />
+                          <Eye className="size-3.5" aria-hidden="true" />
                           <span>Tinjau Berkas</span>
                         </button>
                       </td>

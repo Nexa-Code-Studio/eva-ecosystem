@@ -9,20 +9,39 @@ import type { Psychologist } from '@/types/portal'
 interface PsychologistCardListProps {
   psychologists: Psychologist[]
   onSelectPsychologist: (psy: Psychologist) => void
+  hasActiveFilter?: boolean
+  onResetFilters?: () => void
 }
 
 export function PsychologistCardList({
   psychologists,
   onSelectPsychologist,
+  hasActiveFilter = false,
+  onResetFilters,
 }: PsychologistCardListProps) {
   if (psychologists.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-[12px] border border-[#E2E8F0] bg-white p-8 text-center text-ink-muted">
-        <Stethoscope className="size-8 text-ink-muted/50" />
-        <p className="mt-2 text-xs font-semibold text-ink">Tidak ada data psikolog yang sesuai</p>
-        <p className="text-[11px] text-ink-muted">
-          Ubah kata kunci pencarian atau pilih tab status verifikasi lain.
+        <Stethoscope className="size-8 text-ink-muted/50" aria-hidden="true" />
+        <p className="mt-2 text-xs font-semibold text-ink">
+          {hasActiveFilter
+            ? 'Tidak ada psikolog yang cocok dengan filter atau pencarian saat ini'
+            : 'Belum ada psikolog mandiri terdaftar'}
         </p>
+        <p className="mt-0.5 text-[11px] text-ink-muted">
+          {hasActiveFilter
+            ? 'Ubah kata kunci pencarian atau reset filter untuk melihat semua psikolog.'
+            : 'Pendaftaran psikolog dari aplikasi mobile akan tampil di sini.'}
+        </p>
+        {hasActiveFilter && onResetFilters && (
+          <button
+            type="button"
+            onClick={onResetFilters}
+            className="mt-3 inline-flex min-h-11 cursor-pointer items-center rounded-[8px] border border-[#CBD5E1] bg-white px-4 text-xs font-semibold text-ink transition-colors hover:bg-[#F8FAFC] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            Reset Filter &amp; Pencarian
+          </button>
+        )}
       </div>
     )
   }
