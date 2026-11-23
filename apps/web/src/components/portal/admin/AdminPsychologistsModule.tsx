@@ -30,7 +30,6 @@ export function AdminPsychologistsModule({
     'pending_review',
     'all',
     'verified',
-    'need_revision',
     'rejected',
   ]
   const activeFilter: PsyFilterTab =
@@ -56,9 +55,6 @@ export function AdminPsychologistsModule({
   const counts: PsychologistKpiCounts = useMemo(() => {
     const pending = psychologists.filter((p) => p.verificationStatus === 'pending').length
     const verified = psychologists.filter((p) => p.verificationStatus === 'verified').length
-    const needRevision = psychologists.filter(
-      (p) => p.verificationStatus === 'need_revision',
-    ).length
     const rejected = psychologists.filter(
       (p) => p.verificationStatus === 'rejected' || p.verificationStatus === 'suspended',
     ).length
@@ -67,9 +63,8 @@ export function AdminPsychologistsModule({
       total: psychologists.length,
       pending,
       verified,
-      needRevision,
       rejected,
-      pendingReview: pending + needRevision,
+      pendingReview: pending,
     }
   }, [psychologists])
 
@@ -78,15 +73,11 @@ export function AdminPsychologistsModule({
     return psychologists.filter((p) => {
       if (
         activeFilter === 'pending_review' &&
-        p.verificationStatus !== 'pending' &&
-        p.verificationStatus !== 'need_revision'
+        p.verificationStatus !== 'pending'
       ) {
         return false
       }
       if (activeFilter === 'verified' && p.verificationStatus !== 'verified') return false
-      if (activeFilter === 'need_revision' && p.verificationStatus !== 'need_revision') {
-        return false
-      }
       if (
         activeFilter === 'rejected' &&
         p.verificationStatus !== 'rejected' &&
@@ -131,7 +122,6 @@ export function AdminPsychologistsModule({
     { id: 'pending_review', label: `Antrean (${counts.pendingReview})` },
     { id: 'all', label: `Semua (${counts.total})` },
     { id: 'verified', label: `Terverifikasi (${counts.verified})` },
-    { id: 'need_revision', label: `Perlu Revisi (${counts.needRevision})` },
     { id: 'rejected', label: `Ditolak (${counts.rejected})` },
   ]
 
@@ -143,7 +133,7 @@ export function AdminPsychologistsModule({
             Verifikasi Psikolog Profesional Mandiri
           </h1>
           <p className="mt-0.5 text-xs text-ink-muted">
-            Tinjau kredensial STR/SIP psikolog individu yang mendaftar dari web atau Eva Counselor Mobile.
+            Tinjau kredensial STR/SIP psikolog individu yang mendaftar melalui Eva Counselor Mobile.
           </p>
         </div>
         <MobilePsychologistSimulatorTrigger onOpen={() => setIsSimModalOpen(true)} />

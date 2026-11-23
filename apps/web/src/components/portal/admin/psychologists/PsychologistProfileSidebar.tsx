@@ -5,7 +5,6 @@ import {
   Clock,
   GraduationCap,
   Mail,
-  MapPin,
   Phone,
   ShieldCheck,
   User,
@@ -57,12 +56,6 @@ export function PsychologistProfileSidebar({ psy }: PsychologistProfileSidebarPr
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               <PsychologistRoleBadge verificationStatus={psy.verificationStatus} />
               <VerificationBadge status={psy.verificationStatus} />
-            </div>
-            <div className="mt-2 flex items-center gap-1 text-[11px] text-ink-muted">
-              <MapPin className="size-3 shrink-0 text-ink-muted/80" />
-              <span>{psy.city ?? 'Indonesia'}</span>
-              <span>·</span>
-              <span>Telekonsultasi Online 30 Menit</span>
             </div>
           </div>
         </div>

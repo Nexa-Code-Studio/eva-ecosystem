@@ -1,5 +1,4 @@
 import {
-  AlertCircle,
   CheckCircle2,
   Clock,
   ShieldAlert,
@@ -27,13 +26,6 @@ export function VerificationBadge({ status }: { status: VerificationStatus }) {
     return (
       <span className="inline-flex shrink-0 items-center gap-1 rounded-[6px] border border-[#BBF7D0] bg-[#F0FDF4] px-2 py-0.5 text-[11px] font-semibold text-[#166534]">
         <CheckCircle2 className="size-3" /> Terverifikasi
-      </span>
-    )
-  }
-  if (status === 'need_revision') {
-    return (
-      <span className="inline-flex shrink-0 items-center gap-1 rounded-[6px] border border-[#FDBA74] bg-[#FFF7ED] px-2 py-0.5 text-[11px] font-semibold text-[#C2410C]">
-        <AlertCircle className="size-3" /> Perlu Revisi
       </span>
     )
   }

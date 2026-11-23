@@ -1,10 +1,11 @@
 export const CLINICAL_SPECIALIZATIONS = [
-  'Kecemasan & Panik',
-  'Depresi & Mood',
-  'Remaja & Mahasiswa',
-  'Regulasi Emosi & Stres Akademik',
-  'Trauma & Krisis',
-  'Relasi & Keluarga',
+  'Kecemasan Dewasa',
+  'Depresi & Suasana Hati',
+  'Manajemen Stres & Burnout',
+  'Konseling Remaja & Akademik',
+  'Hubungan & Komunikasi',
+  'Trauma & Regulasi Emosi',
+  'Quarter-life Crisis',
 ] as const
 
 export const PROFESSIONAL_ASSOCIATIONS = [

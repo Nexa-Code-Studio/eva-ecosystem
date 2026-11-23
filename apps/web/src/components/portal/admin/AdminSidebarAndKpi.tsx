@@ -78,10 +78,8 @@ export function AdminSidebar({
     {
       id: 'content_config' as const,
       path: '/admin/content-config',
-      label: 'Konten Mobile & Website',
+      label: 'Konten & Platform',
       icon: Globe,
-      badge: counts.newWaitlist,
-      badgeColor: 'bg-[#EEF0FF] text-primary',
     },
   ]
 
@@ -101,7 +99,7 @@ export function AdminSidebar({
               <CurrentIcon className="size-4" />
             </span>
             <span className="truncate text-xs font-bold text-ink">{currentItem.label}</span>
-            {currentItem.badge > 0 && (
+            {currentItem.badge !== undefined && currentItem.badge > 0 && (
               <span
                 className={cn(
                   'shrink-0 rounded-[5px] px-1.5 py-0.5 text-[10px] font-bold',
@@ -148,7 +146,7 @@ export function AdminSidebar({
                       <Icon className="size-4 shrink-0" />
                       <span>{item.label}</span>
                     </span>
-                    {item.badge > 0 && (
+                    {item.badge !== undefined && item.badge > 0 && (
                       <span
                         className={cn(
                           'rounded-[5px] px-1.5 py-0.5 text-[10px] font-bold',
@@ -190,7 +188,7 @@ export function AdminSidebar({
                   <Icon className="size-4 shrink-0" />
                   <span>{item.label}</span>
                 </span>
-                {item.badge > 0 && (
+                {item.badge !== undefined && item.badge > 0 && (
                   <span
                     className={cn(
                       'rounded-[5px] px-1.5 py-0.5 text-[10px] font-bold',

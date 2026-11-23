@@ -1,6 +1,5 @@
 import { CheckCircle2, Eye, EyeOff, Loader2 } from 'lucide-react'
 import type { FormEvent } from 'react'
-import { Link } from 'react-router'
 import {
   FORMAL_INPUT_CLASS,
   FORMAL_INPUT_ERR_CLASS,
@@ -142,8 +141,8 @@ export function LoginFormView({
   return (
     <>
       <div>
-        <h1 className="text-[20px] font-semibold tracking-[-0.015em] text-ink">Masuk ke EVA</h1>
-        <p className="mt-1 text-sm text-ink-soft">Masukkan email dan kata sandi akun Anda.</p>
+        <h1 className="text-[20px] font-semibold tracking-[-0.015em] text-ink">Masuk Admin EVA</h1>
+        <p className="mt-1 text-sm text-ink-soft">Masukkan email dan kata sandi akun Admin Anda.</p>
       </div>
 
       {authError && (
@@ -254,16 +253,6 @@ export function LoginFormView({
           )}
         </button>
       </form>
-
-      <div className="mt-5 border-t border-[#E2E8F0] pt-4 text-center text-xs text-ink-soft">
-        Psikolog profesional ingin bergabung?{' '}
-        <Link
-          to="/daftar-psikolog"
-          className="font-semibold text-primary hover:text-primary-deep"
-        >
-          Daftar Psikolog Mandiri
-        </Link>
-      </div>
     </>
   )
 }

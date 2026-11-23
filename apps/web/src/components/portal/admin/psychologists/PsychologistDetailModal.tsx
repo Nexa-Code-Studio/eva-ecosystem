@@ -3,10 +3,7 @@ import { useState } from 'react'
 import { CertificatePreviewCard } from './CertificatePreviewCard'
 import { PsychologistModalFooter } from './PsychologistModalFooter'
 import { PsychologistProfileSidebar } from './PsychologistProfileSidebar'
-import {
-  PsychologistRejectModal,
-  type VerificationRejectMode,
-} from './PsychologistRejectModal'
+import { PsychologistRejectModal } from './PsychologistRejectModal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { cn } from '@/lib/cn'
 import {
@@ -36,7 +33,7 @@ export function PsychologistDetailModal({
   const [mobileTab, setMobileTab] = useState<'documents' | 'profile'>('documents')
   const [approvalNote, setApprovalNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [rejectModalMode, setRejectModalMode] = useState<VerificationRejectMode | null>(null)
+  const [rejectModalOpen, setRejectModalOpen] = useState(false)
 
   if (!isOpen || !psy) return null
 
@@ -229,8 +226,7 @@ export function PsychologistDetailModal({
             submitting={submitting}
             onApprovalNoteChange={setApprovalNote}
             onClose={onClose}
-            onRequestRevision={() => setRejectModalMode('need_revision')}
-            onOpenReject={() => setRejectModalMode('rejected')}
+            onOpenReject={() => setRejectModalOpen(true)}
             onApprove={handleApproveClick}
             onSuspend={handleSuspend}
           />
@@ -238,12 +234,11 @@ export function PsychologistDetailModal({
       </div>
 
       <PsychologistRejectModal
-        isOpen={Boolean(rejectModalMode)}
-        mode={rejectModalMode ?? 'rejected'}
+        isOpen={rejectModalOpen}
         psyId={psy.id}
         psyFullName={psy.fullName}
         initialReason={psy.verificationNotes}
-        onClose={() => setRejectModalMode(null)}
+        onClose={() => setRejectModalOpen(false)}
         onFeedback={onFeedback}
         onSuccess={() => onClose()}
       />

@@ -32,7 +32,10 @@ export function MobilePsychologistSimulatorModal({
   const [simEmail, setSimEmail] = useState('')
   const [simPhone, setSimPhone] = useState('')
   const [simSchedule, setSimSchedule] = useState('Senin - Jumat (18.00 - 21.00 WIB)')
-  const [simSpecs, setSimSpecs] = useState<string[]>(['Kecemasan & Panik', 'Remaja & Mahasiswa'])
+  const [simSpecs, setSimSpecs] = useState<string[]>([
+    CLINICAL_SPECIALIZATIONS[0],
+    CLINICAL_SPECIALIZATIONS[3],
+  ])
   const [simError, setSimError] = useState<string | null>(null)
 
   if (!isDevToolsEnabled() || !isOpen) return null
@@ -61,7 +64,7 @@ export function MobilePsychologistSimulatorModal({
       email: simEmail || `psikolog.${Date.now().toString().slice(-4)}@praktikmandiri.id`,
       phone: simPhone || '081299887766',
       practiceSchedule: simSchedule,
-      specializations: simSpecs.length > 0 ? simSpecs : ['Kecemasan & Panik'],
+      specializations: simSpecs.length > 0 ? simSpecs : [CLINICAL_SPECIALIZATIONS[0]],
       yearsOfExperience: 4,
     })
 

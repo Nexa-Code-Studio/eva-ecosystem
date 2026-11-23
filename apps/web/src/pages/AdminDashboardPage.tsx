@@ -45,9 +45,7 @@ export function AdminDashboardPage() {
     const pendingPsychologists = db.psychologists.filter(
       (p) => p.verificationStatus === 'pending',
     ).length
-    const needRevisionPsychologists = db.psychologists.filter(
-      (p) => p.verificationStatus === 'need_revision',
-    ).length
+    const needRevisionPsychologists = 0
     const verifiedPsychologists = db.psychologists.filter(
       (p) => p.verificationStatus === 'verified',
     ).length

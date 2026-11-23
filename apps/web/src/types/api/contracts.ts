@@ -18,7 +18,6 @@ export interface LoginRequestDto {
 
 export type AuthResult =
   | { ok: true; role: 'admin'; accessToken?: string }
-  | { ok: true; role: 'counselor_status'; psychologist: Psychologist }
   | { ok: false; error: string }
 
 export interface RegisterPsychologistRequestDto {
@@ -44,7 +43,7 @@ export type SubmitPsychologistApplicationResultDto =
   | { ok: false; error: string }
 
 export interface VerifyPsychologistRequestDto {
-  status: 'verified' | 'rejected' | 'need_revision'
+  status: 'verified' | 'rejected'
   notes?: string | null
 }
 
