@@ -133,8 +133,9 @@
   "102": {
     "issue": 102,
     "branch": "feat/102-interactive-availability-timeline-booking",
-    "state": "In Progress",
-    "updated_at": 1795418124,
-    "evidence_summary": "Evidence accepted: active task branch verified."
+    "state": "In Review",
+    "updated_at": 1795432369,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/109"
   }
 }
