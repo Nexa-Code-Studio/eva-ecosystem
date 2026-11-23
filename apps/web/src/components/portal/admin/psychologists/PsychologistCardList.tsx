@@ -47,8 +47,8 @@ export function PsychologistCardList({
                   </p>
                   <PsychologistShieldBadge verificationStatus={psy.verificationStatus} />
                 </div>
-                <p className="mt-0.5 text-xs text-ink-muted">
-                  {psy.city ?? 'Indonesia'} · {psy.yearsOfExperience} thn pengalaman
+                <p className="mt-0.5 truncate text-xs text-ink-muted">
+                  {psy.email} · {psy.yearsOfExperience} thn pengalaman
                 </p>
               </div>
               <VerificationBadge status={psy.verificationStatus} />
@@ -70,7 +70,9 @@ export function PsychologistCardList({
 
               <div className="flex items-center justify-between gap-2">
                 <span className="text-ink-muted">STR:</span>
-                <span className="font-mono font-semibold text-ink">{psy.strNumber}</span>
+                <span className="font-mono font-semibold text-ink">
+                  {psy.strNumber || 'Belum dilampirkan'}
+                </span>
               </div>
 
               <div className="flex items-center justify-between gap-2">

@@ -1,11 +1,8 @@
 import {
   AlertCircle,
   BookOpen,
-  Calendar,
-  Clock,
   GraduationCap,
   Mail,
-  Phone,
   ShieldCheck,
   User,
 } from 'lucide-react'
@@ -60,11 +57,12 @@ export function PsychologistProfileSidebar({ psy }: PsychologistProfileSidebarPr
           </div>
         </div>
 
-        {psy.bio && (
-          <p className="mt-3 border-t border-[#F1F5F9] pt-3 text-[11px] leading-relaxed text-ink-soft">
-            {psy.bio}
-          </p>
-        )}
+        <div className="mt-3 flex items-center gap-2 border-t border-[#F1F5F9] pt-3 text-[11px] text-ink-soft">
+          <Mail className="size-3.5 shrink-0 text-ink-muted" />
+          <span className="truncate" title={psy.email}>
+            {psy.email}
+          </span>
+        </div>
       </div>
 
       <div className="rounded-[14px] border border-[#E2E8F0] bg-white p-3.5 shadow-2xs">
@@ -78,7 +76,9 @@ export function PsychologistProfileSidebar({ psy }: PsychologistProfileSidebarPr
         <div className="mt-2.5 space-y-2 text-[11px]">
           <div className="flex items-center justify-between gap-2">
             <span className="text-ink-muted">Nomor STR:</span>
-            <span className="font-mono font-bold text-ink">{psy.strNumber}</span>
+            <span className="font-mono font-bold text-ink">
+              {psy.strNumber ? psy.strNumber : 'Belum dilampirkan'}
+            </span>
           </div>
 
           <div className="flex items-center justify-between gap-2">
@@ -89,7 +89,7 @@ export function PsychologistProfileSidebar({ psy }: PsychologistProfileSidebarPr
           </div>
 
           <div className="flex items-center justify-between gap-2">
-            <span className="shrink-0 text-ink-muted">Asosiasi:</span>
+            <span className="shrink-0 text-ink-muted">Organisasi Profesi:</span>
             <span className="truncate font-semibold text-primary" title={psy.association}>
               {psy.association}
             </span>
@@ -114,7 +114,7 @@ export function PsychologistProfileSidebar({ psy }: PsychologistProfileSidebarPr
           <div>
             <span className="block text-[10px] text-ink-muted">Pendidikan Terakhir</span>
             <p className="mt-0.5 font-semibold text-ink">
-              {psy.education || 'Magister Profesi Psikologi Klinis'}
+              {psy.education || 'S2 Magister Psikologi Profesi (Psikolog Klinis)'}
             </p>
           </div>
 
@@ -122,37 +122,6 @@ export function PsychologistProfileSidebar({ psy }: PsychologistProfileSidebarPr
             <span className="text-ink-muted">Pengalaman Klinis:</span>
             <span className="font-bold text-ink">{psy.yearsOfExperience} Tahun Praktik</span>
           </div>
-        </div>
-      </div>
-
-      <div className="rounded-[14px] border border-[#E2E8F0] bg-white p-3.5 shadow-2xs">
-        <div className="flex items-center gap-1.5 border-b border-[#E2E8F0] pb-2">
-          <Calendar className="size-3.5 text-teal-600" />
-          <span className="text-[10px] font-bold tracking-wider text-ink-muted uppercase">
-            Jadwal &amp; Kontak
-          </span>
-        </div>
-
-        <div className="mt-2.5 space-y-2 text-[11px]">
-          <div className="flex items-start gap-2">
-            <Clock className="mt-0.5 size-3.5 shrink-0 text-ink-muted" />
-            <div>
-              <span className="block text-[10px] text-ink-muted">Jadwal Praktik Online</span>
-              <span className="font-semibold text-ink">{psy.practiceSchedule}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 pt-1">
-            <Mail className="size-3.5 shrink-0 text-ink-muted" />
-            <span className="truncate text-ink-soft">{psy.email}</span>
-          </div>
-
-          {psy.phone && (
-            <div className="flex items-center gap-2">
-              <Phone className="size-3.5 shrink-0 text-ink-muted" />
-              <span className="font-mono text-ink-soft">{psy.phone}</span>
-            </div>
-          )}
         </div>
       </div>
 

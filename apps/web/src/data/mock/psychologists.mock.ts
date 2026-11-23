@@ -4,10 +4,13 @@ import type { Psychologist, PsychologistCertificate } from '@/types/domain/porta
 
 export function buildPsychologistCertificates(params: {
   fullName: string
-  strNumber: string
+  strNumber?: string | null
+  strIssuedBy?: string
+  strValidUntil?: string
   sipNumber?: string | null
+  sipIssuedBy?: string
+  sipValidUntil?: string
   association: string
-  city?: string
   education?: string
   verified?: boolean
 }): PsychologistCertificate[] {
@@ -15,51 +18,57 @@ export function buildPsychologistCertificates(params: {
     .trim()
     .replace(/[^a-zA-Z0-9]+/g, '_')
     .slice(0, 24)
-  const region = params.city?.trim() || 'INDONESIA'
   const verified = Boolean(params.verified)
+  const docs: PsychologistCertificate[] = []
 
-  const docs: PsychologistCertificate[] = [
-    {
+  if (params.strNumber?.trim()) {
+    const strNum = params.strNumber.trim().toUpperCase()
+    const strIssuer = params.strIssuedBy?.trim() || `${params.association} / Kemenkes RI`
+    const strValid = params.strValidUntil?.trim() || 'Seumur Hidup (UU Kesehatan No. 17/2023)'
+    docs.push({
       id: `doc-str-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       docType: 'STR HIMPSI',
       title: 'Surat Tanda Registrasi Psikolog Klinis (STR-PK)',
-      documentNumber: params.strNumber,
-      issuedBy: `${params.association} / Kemenkes RI`,
+      documentNumber: strNum,
+      issuedBy: strIssuer,
       issuedYear: '2024',
-      validUntil: '2029-12-31',
+      validUntil: strValid,
       fileName: `STR_PK_${slug}.pdf`,
       fileSize: '980 KB',
       verified,
       imageUrl: generateCertificateSvgUri({
         docType: 'STR HIMPSI',
         title: 'Surat Tanda Registrasi Psikolog Klinis (STR-PK)',
-        documentNumber: params.strNumber,
-        issuedBy: `${params.association} / Kemenkes RI`,
+        documentNumber: strNum,
+        issuedBy: strIssuer,
         holderName: params.fullName,
-        validUntil: '2029-12-31',
+        validUntil: strValid,
       }),
-    },
-  ]
+    })
+  }
 
   if (params.sipNumber?.trim()) {
+    const sipNum = params.sipNumber.trim().toUpperCase()
+    const sipIssuer = params.sipIssuedBy?.trim() || 'Dinas Kesehatan Kabupaten / Kota'
+    const sipValid = params.sipValidUntil?.trim() || '2029-12-31'
     docs.push({
       id: `doc-sipp-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       docType: 'SIPP',
-      title: `Surat Izin Praktik Psikologi (SIPP) : ${region}`,
-      documentNumber: params.sipNumber.trim(),
-      issuedBy: `HIMPSI Wilayah ${region}`,
+      title: 'Surat Izin Praktik Psikologi (SIPP)',
+      documentNumber: sipNum,
+      issuedBy: sipIssuer,
       issuedYear: '2024',
-      validUntil: '2029-12-31',
+      validUntil: sipValid,
       fileName: `SIPP_${slug}.pdf`,
       fileSize: '1.3 MB',
       verified,
       imageUrl: generateCertificateSvgUri({
         docType: 'SIPP',
-        title: `Surat Izin Praktik Psikologi (SIPP) : ${region}`,
-        documentNumber: params.sipNumber.trim(),
-        issuedBy: `HIMPSI Wilayah ${region}`,
+        title: 'Surat Izin Praktik Psikologi (SIPP)',
+        documentNumber: sipNum,
+        issuedBy: sipIssuer,
         holderName: params.fullName,
-        validUntil: '2029-12-31',
+        validUntil: sipValid,
       }),
     })
   }
@@ -73,19 +82,15 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
     fullName: 'Larasati Kusumawardhani',
     titleDegree: 'M.Psi., Psikolog',
     email: 'larasati.psi@praktikmandiri.id',
-    phone: '081294810234',
-    city: 'JAKARTA SELATAN',
-    education: 'Magister Profesi Psikologi Klinis Universitas Indonesia',
+    education: 'S2 Magister Psikologi Profesi (Psikolog Klinis)',
     strNumber: 'STR-PK-2022-884120',
     sipNumber: '20220618-2027-01-1402',
     association: 'Himpunan Psikologi Indonesia (HIMPSI)',
     specializations: ['Kecemasan Dewasa', 'Trauma & Regulasi Emosi', 'Quarter-life Crisis'],
     yearsOfExperience: 5,
-    bio: 'Psikolog klinis berfokus pada penanganan kecemasan dewasa, quarter-life crisis, dan regulasi emosi melalui telekonsultasi berbasis CBT.',
     verificationStatus: 'pending',
     isOnline: false,
     bufferTimeMinutes: 10,
-    practiceSchedule: 'Senin - Jumat (16.00 - 21.00 WIB)',
     status: 'inactive',
     submittedAt: '2026-11-17',
     documents: [
@@ -94,9 +99,9 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
         docType: 'STR HIMPSI',
         title: 'Surat Tanda Registrasi Psikolog Klinis (STR-PK)',
         documentNumber: 'STR-PK-2022-884120',
-        issuedBy: 'Ikatan Psikolog Klinis (IPK) Indonesia / Kemenkes',
+        issuedBy: 'Kemenkes RI / KTKI (Konsil Tenaga Kesehatan Indonesia)',
         issuedYear: '2022',
-        validUntil: '2027-06-18',
+        validUntil: 'Seumur Hidup (UU Kesehatan No. 17/2023)',
         fileName: 'STR_PK_Larasati_Kusumawardhani.pdf',
         fileSize: '980 KB',
         verified: true,
@@ -104,9 +109,9 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
       {
         id: 'doc-102',
         docType: 'SIPP',
-        title: 'Surat Izin Praktik Psikologi (SIPP) HIMPSI Jaya',
+        title: 'Surat Izin Praktik Psikologi (SIPP)',
         documentNumber: '20220618-2027-01-1402',
-        issuedBy: 'HIMPSI Wilayah DKI Jakarta',
+        issuedBy: 'Dinas Kesehatan Kabupaten / Kota',
         issuedYear: '2022',
         validUntil: '2027-06-18',
         fileName: 'SIPP_Larasati_Kusumawardhani_2027.pdf',
@@ -120,21 +125,17 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
     fullName: 'Farhan Syahputra',
     titleDegree: 'M.Psi., Psikolog',
     email: 'farhan.psi@konselingmandiri.id',
-    phone: '081227891033',
-    city: 'YOGYAKARTA',
-    education: 'Magister Profesi Psikologi Klinis Universitas Gadjah Mada',
+    education: 'S2 Magister Psikologi Profesi (Psikolog Klinis)',
     strNumber: 'STR-PK-2018-441092',
     sipNumber: '20180522-2028-01-0312',
     association: 'Himpunan Psikologi Indonesia (HIMPSI)',
     specializations: ['Konseling Remaja & Akademik', 'Hubungan & Komunikasi', 'Kecemasan Dewasa'],
-    yearsOfExperience: 8,
-    bio: 'Praktisi telekonseling psikologi klinis dengan pendekatan Acceptance and Commitment Therapy (ACT) untuk dewasa muda dan mahasiswa.',
+    yearsOfExperience: 7,
     verificationStatus: 'verified',
     verificationNotes: 'STR-PK dan SIPP aktif diverifikasi melalui direktori resmi HIMPSI.',
     verifiedAt: '2026-11-12T09:15:00Z',
     isOnline: true,
     bufferTimeMinutes: 10,
-    practiceSchedule: 'Senin - Sabtu (18.00 - 21.30 WIB)',
     status: 'active',
     submittedAt: '2026-11-10',
     reviewedAt: '2026-11-12',
@@ -144,9 +145,9 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
         docType: 'STR HIMPSI',
         title: 'Surat Tanda Registrasi Psikolog Klinis',
         documentNumber: 'STR-PK-2018-441092',
-        issuedBy: 'IPK Indonesia / Kemenkes RI',
+        issuedBy: 'Kemenkes RI / KTKI (Konsil Tenaga Kesehatan Indonesia)',
         issuedYear: '2023',
-        validUntil: '2028-05-22',
+        validUntil: 'Seumur Hidup (UU Kesehatan No. 17/2023)',
         fileName: 'STR_Farhan_Syahputra.pdf',
         fileSize: '920 KB',
         verified: true,
@@ -154,9 +155,9 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
       {
         id: 'doc-202',
         docType: 'SIPP',
-        title: 'Surat Izin Praktik Psikologi (SIPP) DIY',
+        title: 'Surat Izin Praktik Psikologi (SIPP)',
         documentNumber: '20180522-2028-01-0312',
-        issuedBy: 'HIMPSI Wilayah DI Yogyakarta',
+        issuedBy: 'DPMPTSP (Dinas Penanaman Modal & Pelayanan Terpadu Satu Pintu)',
         issuedYear: '2023',
         validUntil: '2028-05-22',
         fileName: 'SIPP_Farhan_Syahputra_2028.pdf',
@@ -170,21 +171,17 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
     fullName: 'Nadia Pramesti',
     titleDegree: 'M.Psi., Psikolog',
     email: 'nadia.pramesti@klinikmind.id',
-    phone: '081320189400',
-    city: 'BANDUNG',
-    education: 'Magister Profesi Psikologi Klinis Universitas Padjadjaran',
+    education: 'S2 Magister Psikologi Profesi (Psikolog Klinis)',
     strNumber: 'STR-PK-2020-310844',
     sipNumber: '20201104-2025-02-0774',
     association: 'Ikatan Psikolog Klinis (IPK) Indonesia',
     specializations: ['Depresi & Suasana Hati', 'Trauma & Regulasi Emosi', 'Manajemen Stres & Burnout'],
     yearsOfExperience: 6,
-    bio: 'Berpengalaman mendampingi klien dengan gangguan mood, burnout kerja, serta pemulihan trauma emosional.',
     verificationStatus: 'verified',
     verificationNotes: 'Kredensial lengkap dan terverifikasi.',
     verifiedAt: '2026-11-14T11:30:00Z',
     isOnline: true,
     bufferTimeMinutes: 15,
-    practiceSchedule: 'Selasa - Minggu (09.00 - 15.00 WIB)',
     status: 'active',
     submittedAt: '2026-11-11',
     reviewedAt: '2026-11-14',
@@ -194,7 +191,7 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
         docType: 'STR HIMPSI',
         title: 'Surat Tanda Registrasi Psikolog Klinis',
         documentNumber: 'STR-PK-2020-310844',
-        issuedBy: 'IPK Indonesia / Kemenkes RI',
+        issuedBy: 'Kemenkes RI / KTKI (Konsil Tenaga Kesehatan Indonesia)',
         issuedYear: '2024',
         validUntil: '2029-11-04',
         fileName: 'STR_Nadia_Pramesti.pdf',
@@ -204,9 +201,9 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
       {
         id: 'doc-302',
         docType: 'SIPP',
-        title: 'Surat Izin Praktik Psikologi (SIPP) Jawa Barat',
+        title: 'Surat Izin Praktik Psikologi (SIPP)',
         documentNumber: '20201104-2029-02-0774',
-        issuedBy: 'HIMPSI Wilayah Jawa Barat',
+        issuedBy: 'Dinas Kesehatan Kabupaten / Kota',
         issuedYear: '2024',
         validUntil: '2029-11-04',
         fileName: 'SIPP_Nadia_Pramesti.pdf',
@@ -220,21 +217,17 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
     fullName: 'Dimas Wicaksono',
     titleDegree: 'M.Psi., Psikolog',
     email: 'dimas.wicaksono@psikolog.id',
-    phone: '081331094821',
-    city: 'SURABAYA',
-    education: 'Magister Profesi Psikologi Universitas Airlangga',
+    education: 'S2 Magister Psikologi Profesi (Psikolog Klinis)',
     strNumber: 'STR-PK-2023-112940',
     sipNumber: '20230214-2028-01-0941',
     association: 'Himpunan Psikologi Indonesia (HIMPSI)',
     specializations: ['Depresi & Suasana Hati', 'Manajemen Stres & Burnout'],
     yearsOfExperience: 3,
-    bio: 'Fokus layanan konseling daring untuk manajemen stres pekerja muda dan regulasi emosi.',
     verificationStatus: 'rejected',
     verificationNotes:
       'Scan dokumen SIPP tidak jelas dan nomor registrasi tidak valid saat dicek pada pangkalan data HIMPSI.',
     isOnline: false,
     bufferTimeMinutes: 10,
-    practiceSchedule: 'Senin, Rabu, Jumat (19.00 - 21.00 WIB)',
     status: 'inactive',
     submittedAt: '2026-11-15',
     reviewedAt: '2026-11-16',
@@ -244,7 +237,7 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
         docType: 'STR HIMPSI',
         title: 'Surat Tanda Registrasi Psikolog Klinis',
         documentNumber: 'STR-PK-2023-112940',
-        issuedBy: 'IPK Indonesia / Kemenkes RI',
+        issuedBy: 'Kemenkes RI / KTKI (Konsil Tenaga Kesehatan Indonesia)',
         issuedYear: '2023',
         validUntil: '2028-02-14',
         fileName: 'STR_Dimas_Wicaksono.pdf',
@@ -254,9 +247,9 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
       {
         id: 'doc-402',
         docType: 'SIPP',
-        title: 'Surat Izin Praktik Psikologi (SIPP) Jawa Timur',
+        title: 'Surat Izin Praktik Psikologi (SIPP)',
         documentNumber: '20230214-2028-01-0941',
-        issuedBy: 'HIMPSI Wilayah Jawa Timur',
+        issuedBy: 'Dinas Kesehatan Kabupaten / Kota',
         issuedYear: '2023',
         validUntil: '2028-02-14',
         fileName: 'SIPP_Dimas_Scan_Buram.pdf',
@@ -270,20 +263,17 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
     fullName: 'Raka Santoso',
     titleDegree: 'M.Psi., Psikolog',
     email: 'raka.santoso@konselor.id',
-    phone: '081588990011',
-    city: 'SEMARANG',
-    education: 'Magister Profesi Psikologi Universitas Diponegoro',
+    education: 'S2 Magister Psikologi Terapan',
     strNumber: 'STR-PK-2017-004192',
     sipNumber: null,
     association: 'Himpunan Psikologi Indonesia (HIMPSI)',
     specializations: ['Hubungan & Komunikasi'],
-    yearsOfExperience: 4,
+    yearsOfExperience: 3,
     verificationStatus: 'rejected',
     verificationNotes:
       'Masa berlaku STR telah kedaluwarsa per Desember 2024 dan belum melampirkan pembaruan STR aktif dari KTKI/HIMPSI.',
     isOnline: false,
     bufferTimeMinutes: 10,
-    practiceSchedule: 'Sabtu - Minggu (09.00 - 14.00 WIB)',
     status: 'inactive',
     submittedAt: '2026-11-13',
     reviewedAt: '2026-11-14',
@@ -293,7 +283,7 @@ const RAW_PSYCHOLOGISTS: Psychologist[] = [
         docType: 'STR HIMPSI',
         title: 'Surat Tanda Registrasi Psikolog Klinis (Kedaluwarsa)',
         documentNumber: 'STR-PK-2017-004192',
-        issuedBy: 'HIMPSI / Kemenkes RI',
+        issuedBy: 'Kementerian Kesehatan RI',
         issuedYear: '2019',
         validUntil: '2024-12-31',
         fileName: 'STR_Raka_Santoso_2019.pdf',
@@ -327,17 +317,23 @@ export function buildSimulatedMobilePsychologist(
   const today = new Date().toISOString().slice(0, 10)
   const fullName = input.fullName.trim()
   const titleDegree = input.titleDegree?.trim() || 'M.Psi., Psikolog'
-  const strNumber = input.strNumber.trim().toUpperCase()
-  const sipNumber = input.sippNumber?.trim().toUpperCase() || null
+  const docType = input.documentType ?? 'both'
+  const includeStr = docType === 'both' || docType === 'str'
+  const includeSip = docType === 'both' || docType === 'sip'
+
+  const strNumber = includeStr ? (input.strNumber?.trim().toUpperCase() ?? '') : ''
+  const sipNumber = includeSip ? input.sippNumber?.trim().toUpperCase() || null : null
   const association = input.association?.trim() || 'Himpunan Psikologi Indonesia (HIMPSI)'
-  const city = input.city.trim().toUpperCase()
 
   const documents = buildPsychologistCertificates({
     fullName: `${fullName}, ${titleDegree}`,
-    strNumber,
+    strNumber: strNumber || null,
+    strIssuedBy: input.strIssuedBy,
+    strValidUntil: input.strValidUntil,
     sipNumber,
+    sipIssuedBy: input.sipIssuedBy,
+    sipValidUntil: input.sipValidUntil,
     association,
-    city,
     education: input.education,
     verified: false,
   })
@@ -347,20 +343,16 @@ export function buildSimulatedMobilePsychologist(
     fullName,
     titleDegree,
     email: input.email.trim(),
-    phone: input.phone.trim(),
-    city,
     education: input.education.trim(),
     strNumber,
     sipNumber,
     association,
     specializations: input.specializations,
     yearsOfExperience: input.yearsOfExperience ?? 3,
-    bio: input.bio?.trim() || 'Psikolog profesional mandiri siap melayani sesi telekonsultasi online 30 menit.',
     certificateDocUrl: documents[0]?.fileName ?? null,
     verificationStatus: 'pending',
     isOnline: false,
     bufferTimeMinutes: 10,
-    practiceSchedule: input.practiceSchedule.trim(),
     status: 'inactive',
     submittedAt: today,
     documents,

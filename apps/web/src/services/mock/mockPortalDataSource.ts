@@ -23,7 +23,7 @@ import type {
 
 export const PORTAL_DB_CHANGE_EVENT = 'eva:portal-db-updated'
 
-const MOCK_STORAGE_KEY = 'eva_portal_db_demo_v5'
+const MOCK_STORAGE_KEY = 'eva_portal_db_demo_v6'
 const MOCK_SESSION_KEY = 'eva_portal_session_demo_v2'
 
 function hydrateMockDb(parsed: Partial<PortalDatabase>): {
@@ -43,10 +43,17 @@ function hydrateMockDb(parsed: Partial<PortalDatabase>): {
       needsSave = true
     }
 
+    const filteredStoredDocs = p.documents?.filter(
+      (doc) => doc.docType === 'STR HIMPSI' || doc.docType === 'SIPP',
+    )
+    if (p.documents && filteredStoredDocs && filteredStoredDocs.length !== p.documents.length) {
+      needsSave = true
+    }
+
     const documents =
-      p.documents && p.documents.length > 0
-        ? p.documents
-        : (seedPsy?.documents ?? p.documents)
+      filteredStoredDocs && filteredStoredDocs.length > 0
+        ? filteredStoredDocs
+        : (seedPsy?.documents ?? filteredStoredDocs)
 
     return {
       ...p,

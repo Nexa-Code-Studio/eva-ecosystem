@@ -74,15 +74,15 @@ export function PsychologistTable({
                           <PsychologistShieldBadge verificationStatus={psy.verificationStatus} />
                         </div>
                         <div className="mt-1 flex items-center gap-1.5 text-[11px] text-ink-muted">
-                          <span>{psy.city ?? 'Indonesia'}</span>
+                          <span className="truncate">{psy.email}</span>
                           <span>·</span>
-                          <span>{psy.yearsOfExperience} thn pengalaman</span>
+                          <span className="shrink-0">{psy.yearsOfExperience} thn pengalaman</span>
                         </div>
                       </td>
 
                       <td className="px-5 py-4">
                         <p className="font-mono text-xs font-semibold text-ink">
-                          STR: {psy.strNumber}
+                          {psy.strNumber ? `STR: ${psy.strNumber}` : 'STR: Belum dilampirkan'}
                         </p>
                         <p className="mt-0.5 font-mono text-[11px] text-ink-muted">
                           {psy.sipNumber ? `SIP: ${psy.sipNumber}` : 'SIP: Belum dilampirkan'}

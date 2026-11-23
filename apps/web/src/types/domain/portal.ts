@@ -44,7 +44,7 @@ export interface Psychologist {
   verifiedAt?: string | null
   isOnline: boolean
   bufferTimeMinutes: number
-  practiceSchedule: string
+  practiceSchedule?: string
   status: PsychologistStatus
   submittedAt: string
   reviewedAt?: string

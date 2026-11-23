@@ -94,18 +94,18 @@ export interface BackendPricingConfigResponseDto {
 export interface SimulateMobilePsychologistInput {
   fullName: string
   titleDegree?: string
+  documentType?: 'both' | 'str' | 'sip'
+  strNumber?: string
+  strIssuedBy?: string
+  strValidUntil?: string
   sippNumber?: string
-  strNumber: string
+  sipIssuedBy?: string
+  sipValidUntil?: string
   association?: string
-  city: string
   education: string
   email: string
-  phone: string
-  practiceSchedule: string
   specializations: string[]
   yearsOfExperience?: number
-  bio?: string
-  sippValidUntil?: string
 }
 
 export interface UpdateGeneralUserStatusRequestDto {

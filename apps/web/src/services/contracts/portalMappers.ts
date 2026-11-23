@@ -45,19 +45,20 @@ export function mapBackendPsychologistToDomain(
     verifiedAt: dto.verified_at ?? null,
     isOnline: dto.is_online,
     bufferTimeMinutes: dto.buffer_time_minutes,
-    practiceSchedule: existing?.practiceSchedule ?? 'Jadwal fleksibel (slot 30 menit online)',
+    practiceSchedule: existing?.practiceSchedule,
     status: verificationStatus === 'verified' ? 'active' : 'inactive',
     submittedAt: dto.created_at.slice(0, 10),
     reviewedAt: dto.verified_at ? dto.verified_at.slice(0, 10) : existing?.reviewedAt,
     documents:
       existing?.documents && existing.documents.length > 0
-        ? existing.documents
+        ? existing.documents.filter(
+            (doc) => doc.docType === 'STR HIMPSI' || doc.docType === 'SIPP',
+          )
         : buildPsychologistCertificates({
             fullName: `${dto.full_name}, ${dto.title_degree}`,
             strNumber: dto.str_number,
             sipNumber: dto.sip_number,
             association: dto.association,
-            city: existing?.city,
             education: existing?.education,
             verified: verificationStatus === 'verified',
           }),
@@ -73,7 +74,6 @@ export function buildDomainPsychologistFromRegister(
     strNumber: payload.str_number.trim().toUpperCase(),
     sipNumber: payload.sip_number?.trim().toUpperCase() || null,
     association: payload.association.trim(),
-    city: payload.city?.trim().toUpperCase(),
     education: payload.education?.trim(),
     verified: false,
   })
@@ -84,8 +84,6 @@ export function buildDomainPsychologistFromRegister(
     titleDegree: payload.title_degree.trim(),
     email: payload.email.trim(),
     password: payload.password,
-    phone: payload.phone?.trim(),
-    city: payload.city?.trim().toUpperCase() || 'INDONESIA',
     education: payload.education?.trim(),
     strNumber: payload.str_number.trim().toUpperCase(),
     sipNumber: payload.sip_number?.trim().toUpperCase() || null,
@@ -99,7 +97,6 @@ export function buildDomainPsychologistFromRegister(
     verifiedAt: null,
     isOnline: false,
     bufferTimeMinutes: 10,
-    practiceSchedule: payload.practice_schedule?.trim() || 'Slot online 30 menit (Senin - Jumat)',
     status: 'inactive',
     submittedAt: today,
     documents,
