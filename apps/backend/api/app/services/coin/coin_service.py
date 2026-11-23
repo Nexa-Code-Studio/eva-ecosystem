@@ -2,17 +2,22 @@ from datetime import UTC, datetime
 import uuid
 
 from fastapi import HTTPException, status
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.coin import CoinTransaction
+from app.models.coin import CoinEconomyConfig, CoinPackage, CoinTransaction
 from app.models.enums import CoinTransactionType, TransactionStatus
 from app.models.user import User
 from app.schemas.coin import (
     AdminCoinTopupRequest,
     AdminCoinTopupResultResponse,
     AdminUserSummaryResponse,
+    CoinEconomyConfigResponse,
+    CoinPackageDeleteResponse,
+    CoinPackageResponse,
     CoinTopupTransactionResponse,
+    UpdateCoinEconomyConfigRequest,
+    UpsertCoinPackageRequest,
     UserCoinBalanceResponse,
 )
 
@@ -137,6 +142,175 @@ class CoinService:
         return AdminCoinTopupResultResponse(
             user=self._to_user_summary(user),
             transaction=self._to_transaction_response(tx, user),
+        )
+
+    async def list_packages(self, include_inactive: bool = False) -> list[CoinPackageResponse]:
+        """List EVA Coin top-up packages ordered by coin amount ascending."""
+        query = select(CoinPackage).order_by(CoinPackage.coins.asc(), CoinPackage.created_at.asc())
+        if not include_inactive:
+            query = query.where(CoinPackage.is_active.is_(True))
+        res = await self.db.execute(query)
+        packages = res.scalars().all()
+        return [self._to_package_response(p) for p in packages]
+
+    async def create_package(self, payload: UpsertCoinPackageRequest) -> CoinPackageResponse:
+        """Create a new EVA Coin top-up package with unique uppercase code."""
+        normalized_code = payload.code.strip().upper()
+        existing = await self.db.execute(
+            select(CoinPackage).where(func.upper(CoinPackage.code) == normalized_code)
+        )
+        if existing.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f'Kode paket "{normalized_code}" sudah digunakan paket lain.',
+            )
+
+        pkg = CoinPackage(
+            code=normalized_code,
+            name=payload.name.strip(),
+            coins=payload.coins,
+            bonus_coins=payload.bonus_coins,
+            price_idr=payload.price_idr,
+            description=payload.description.strip(),
+            is_popular=bool(payload.is_popular),
+            is_active=bool(payload.is_active),
+        )
+        self.db.add(pkg)
+        await self.db.commit()
+        await self.db.refresh(pkg)
+        return self._to_package_response(pkg)
+
+    async def update_package(
+        self,
+        package_id: uuid.UUID,
+        payload: UpsertCoinPackageRequest,
+    ) -> CoinPackageResponse:
+        """Update an existing EVA Coin package while enforcing unique package codes."""
+        res = await self.db.execute(select(CoinPackage).where(CoinPackage.id == package_id))
+        pkg = res.scalar_one_or_none()
+        if not pkg:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Paket koin tidak ditemukan.",
+            )
+
+        normalized_code = payload.code.strip().upper()
+        dup_res = await self.db.execute(
+            select(CoinPackage).where(
+                func.upper(CoinPackage.code) == normalized_code,
+                CoinPackage.id != package_id,
+            )
+        )
+        if dup_res.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f'Kode paket "{normalized_code}" sudah digunakan paket lain.',
+            )
+
+        pkg.code = normalized_code
+        pkg.name = payload.name.strip()
+        pkg.coins = payload.coins
+        pkg.bonus_coins = payload.bonus_coins
+        pkg.price_idr = payload.price_idr
+        pkg.description = payload.description.strip()
+        pkg.is_popular = bool(payload.is_popular)
+        pkg.is_active = bool(payload.is_active)
+
+        await self.db.commit()
+        await self.db.refresh(pkg)
+        return self._to_package_response(pkg)
+
+    async def toggle_package_active(self, package_id: uuid.UUID) -> CoinPackageResponse:
+        """Toggle visibility/active status of an EVA Coin package."""
+        res = await self.db.execute(select(CoinPackage).where(CoinPackage.id == package_id))
+        pkg = res.scalar_one_or_none()
+        if not pkg:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Paket koin tidak ditemukan.",
+            )
+
+        pkg.is_active = not pkg.is_active
+        await self.db.commit()
+        await self.db.refresh(pkg)
+        return self._to_package_response(pkg)
+
+    async def delete_package(self, package_id: uuid.UUID) -> CoinPackageDeleteResponse:
+        """Delete an EVA Coin package from the catalog."""
+        res = await self.db.execute(select(CoinPackage).where(CoinPackage.id == package_id))
+        pkg = res.scalar_one_or_none()
+        if not pkg:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Paket koin tidak ditemukan.",
+            )
+
+        await self.db.delete(pkg)
+        await self.db.commit()
+        return CoinPackageDeleteResponse(
+            message=f'Paket koin "{pkg.name}" ({pkg.code}) berhasil dihapus.',
+            deleted_id=str(package_id),
+        )
+
+    async def get_economy_config(self) -> CoinEconomyConfigResponse:
+        """Retrieve global EVA Coin economy settings with safe defaults."""
+        res = await self.db.execute(
+            select(CoinEconomyConfig).order_by(CoinEconomyConfig.updated_at.desc()).limit(1)
+        )
+        config = res.scalar_one_or_none()
+        if not config:
+            return CoinEconomyConfigResponse(
+                base_price_per_coin_idr=1000,
+                free_trial_coins_new_user=10,
+                updated_at=datetime.now(UTC),
+            )
+        return CoinEconomyConfigResponse(
+            base_price_per_coin_idr=config.base_price_per_coin_idr,
+            free_trial_coins_new_user=config.free_trial_coins_new_user,
+            updated_at=config.updated_at,
+        )
+
+    async def update_economy_config(
+        self,
+        payload: UpdateCoinEconomyConfigRequest,
+    ) -> CoinEconomyConfigResponse:
+        """Update global EVA Coin base rate and new-user free trial allocation."""
+        res = await self.db.execute(
+            select(CoinEconomyConfig).order_by(CoinEconomyConfig.updated_at.desc()).limit(1)
+        )
+        config = res.scalar_one_or_none()
+        if not config:
+            config = CoinEconomyConfig(
+                base_price_per_coin_idr=payload.base_price_per_coin_idr,
+                free_trial_coins_new_user=payload.free_trial_coins_new_user,
+            )
+            self.db.add(config)
+        else:
+            config.base_price_per_coin_idr = payload.base_price_per_coin_idr
+            config.free_trial_coins_new_user = payload.free_trial_coins_new_user
+
+        await self.db.commit()
+        await self.db.refresh(config)
+        return CoinEconomyConfigResponse(
+            base_price_per_coin_idr=config.base_price_per_coin_idr,
+            free_trial_coins_new_user=config.free_trial_coins_new_user,
+            updated_at=config.updated_at,
+        )
+
+    @staticmethod
+    def _to_package_response(pkg: CoinPackage) -> CoinPackageResponse:
+        return CoinPackageResponse(
+            id=str(pkg.id),
+            code=pkg.code,
+            name=pkg.name,
+            coins=pkg.coins,
+            bonus_coins=pkg.bonus_coins,
+            price_idr=pkg.price_idr,
+            description=pkg.description,
+            is_popular=pkg.is_popular,
+            is_active=pkg.is_active,
+            created_at=pkg.created_at,
+            updated_at=pkg.updated_at,
         )
 
     @staticmethod

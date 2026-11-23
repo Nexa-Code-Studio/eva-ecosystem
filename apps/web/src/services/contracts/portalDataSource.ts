@@ -2,11 +2,15 @@ import type {
   AdminCoinTopupRequestDto,
   AdminCoinTopupResultDto,
   RegisterPsychologistRequestDto,
+  UpdateCoinEconomyConfigRequestDto,
+  UpsertCoinPackageRequestDto,
   UpsertPlatformPricingRequestDto,
   VerifyPsychologistRequestDto,
 } from '@/types/api/contracts'
 import type { DashboardAnalyticsBaseline } from '@/types/domain/dashboard'
 import type {
+  CoinEconomyConfig,
+  CoinPackage,
   CoinTopupTransaction,
   ConsultationSessionMonitoring,
   GeneralAppUser,
@@ -58,4 +62,12 @@ export interface IPortalDataSource {
   fetchAdminUsers(): Promise<GeneralAppUser[]>
   fetchCoinTransactions(): Promise<CoinTopupTransaction[]>
   topUpUserCoins(payload: AdminCoinTopupRequestDto): Promise<AdminCoinTopupResultDto>
+  fetchCoinEconomyConfig(): Promise<CoinEconomyConfig>
+  updateCoinEconomyConfig(
+    updates: UpdateCoinEconomyConfigRequestDto,
+  ): Promise<CoinEconomyConfig>
+  fetchCoinPackages(): Promise<CoinPackage[]>
+  upsertCoinPackage(input: UpsertCoinPackageRequestDto): Promise<CoinPackage>
+  toggleCoinPackageActive(packageId: string): Promise<CoinPackage>
+  deleteCoinPackage(packageId: string): Promise<void>
 }

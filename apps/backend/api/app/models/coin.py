@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 import uuid
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship as orm_relationship
 
@@ -66,4 +66,44 @@ class CoinTransaction(BaseModel):
     performed_by: Mapped["User | None"] = orm_relationship(
         "User",
         foreign_keys=[performed_by_user_id],
+    )
+
+
+class CoinPackage(BaseModel):
+    """Configurable EVA Coin top-up bundle catalog displayed in mobile & admin portal."""
+
+    __tablename__ = "coin_packages"
+
+    code: Mapped[str] = mapped_column(String(40), unique=True, nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    coins: Mapped[int] = mapped_column(Integer, nullable=False)
+    bonus_coins: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    price_idr: Mapped[int] = mapped_column(Integer, nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    is_popular: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default="true",
+        index=True,
+    )
+
+
+class CoinEconomyConfig(BaseModel):
+    """Global EVA Coin base rate and new-user free trial allocation."""
+
+    __tablename__ = "coin_economy_configs"
+
+    base_price_per_coin_idr: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=1000,
+        server_default="1000",
+    )
+    free_trial_coins_new_user: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=10,
+        server_default="10",
     )

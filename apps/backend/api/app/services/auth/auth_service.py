@@ -13,6 +13,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
+from app.models.coin import CoinEconomyConfig
 from app.models.user import User
 from app.schemas.auth import (
     EmailCheckResponse,
@@ -103,6 +104,16 @@ class AuthService:
                 detail="Email sudah terdaftar",
             )
 
+        econ_res = await self.db.execute(
+            select(CoinEconomyConfig).order_by(CoinEconomyConfig.updated_at.desc()).limit(1)
+        )
+        econ_config = econ_res.scalar_one_or_none()
+        initial_free_coins = (
+            max(0, int(econ_config.free_trial_coins_new_user))
+            if econ_config is not None
+            else 10
+        )
+
         clean_name = payload.name.strip()
         user = User(
             email=clean_email,
@@ -112,7 +123,7 @@ class AuthService:
             is_active=True,
             is_verified=True,
             is_admin=False,
-            coin_balance=10,
+            coin_balance=initial_free_coins,
         )
         self.db.add(user)
         await self.db.commit()

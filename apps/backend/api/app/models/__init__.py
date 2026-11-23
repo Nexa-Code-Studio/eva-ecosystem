@@ -1,6 +1,6 @@
 from app.models.ai import AIRun, AIWorkerRun
 from app.models.base import BaseModel
-from app.models.coin import CoinTransaction
+from app.models.coin import CoinEconomyConfig, CoinPackage, CoinTransaction
 from app.models.conversation import Conversation, ConversationSummary, Message
 from app.models.enums import (
     AIRunStatus,
@@ -68,6 +68,8 @@ __all__ = [
     "AIWorkerRun",
     "AIWorkerType",
     "BaseModel",
+    "CoinEconomyConfig",
+    "CoinPackage",
     "CoinTransaction",
     "CoinTransactionType",
     "CopingActivity",

@@ -210,6 +210,26 @@ export interface BackendAdminCoinTopupResponseDto {
   transaction: BackendCoinTransactionDto
 }
 
+export interface BackendCoinPackageDto {
+  id: string
+  code: string
+  name: string
+  coins: number
+  bonus_coins: number
+  price_idr: number
+  description: string
+  is_popular: boolean
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface BackendCoinEconomyConfigDto {
+  base_price_per_coin_idr: number
+  free_trial_coins_new_user: number
+  updated_at: string
+}
+
 export interface BackendAuthTokenResponseDto {
   access_token: string
   refresh_token: string

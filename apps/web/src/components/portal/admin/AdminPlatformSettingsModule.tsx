@@ -14,6 +14,8 @@ import {
   STANDARD_SESSION_DURATION_MINUTES,
   calculatePricingBreakdown,
   fetchActivePlatformPricing,
+  fetchCoinEconomyConfig,
+  fetchCoinPackages,
   savePlatformPricingConfig,
   type PlatformPricingConfig,
   type PortalDatabase,
@@ -459,12 +461,15 @@ export function AdminPlatformSettingsModule({
       } else {
         next.set('tab', tab)
       }
+      next.delete('page')
       return next
     })
   }
 
   useEffect(() => {
     void fetchActivePlatformPricing().catch(() => undefined)
+    void fetchCoinEconomyConfig().catch(() => undefined)
+    void fetchCoinPackages().catch(() => undefined)
   }, [])
 
   const activePackagesCount = db.coinPackages.filter((pkg) => pkg.isActive).length
