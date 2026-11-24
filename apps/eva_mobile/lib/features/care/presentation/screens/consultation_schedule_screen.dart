@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../config/app_config.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_back_button.dart';
 import '../../domain/entities/consultation_session_entity.dart';
@@ -139,6 +141,26 @@ class _ConsultationScheduleScreenState
           ],
         ),
         actions: [
+          if (kDebugMode || AppConfig.useLocalApi || AppConfig.useHybridFallback || AppConfig.useMockData)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PsychologistVideoCallScreen(session: session),
+                  ),
+                );
+              },
+              child: Text(
+                'Masuk Sekarang (Simulasi/Test)',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
@@ -185,12 +207,14 @@ class _ConsultationScheduleScreenState
     final sessionsAsync = ref.watch(consultationSessionsProvider);
     final allSessions = sessionsAsync.value ?? [];
 
-    final upcomingSessions = allSessions
+    final upcomingSessions = (allSessions
         .where((s) => s.status == ConsultationStatus.upcoming)
-        .toList();
-    final completedSessions = allSessions
+        .toList())
+      ..sort((a, b) => a.sessionDateTime.compareTo(b.sessionDateTime));
+    final completedSessions = (allSessions
         .where((s) => s.status == ConsultationStatus.completed)
-        .toList();
+        .toList())
+      ..sort((a, b) => b.sessionDateTime.compareTo(a.sessionDateTime));
 
     List<ConsultationSessionEntity> displayedSessions;
     if (_selectedTab == 'upcoming') {

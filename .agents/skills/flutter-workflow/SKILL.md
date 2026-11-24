@@ -23,6 +23,17 @@ make mobile-emu-cloud  # Android Emulator nembak production cloud
 make mobile-web-cloud  # Chrome Web nembak production cloud
 make mobile-cloud      # Shortcut alias ke mobile-usb-cloud
 make mobile-web-build  # Build Flutter Web Release (Hybrid API + GitHub Pages ready)
+
+# COUNSELOR: Eva Counselor Mobile (Psikolog)
+make counselor-mock       # Offline Mock Data (tanpa backend)
+make counselor-web        # Chrome Web Simulator (Local API 127.0.0.1:8888)
+make counselor-usb        # HP fisik via USB (auto adb reverse port 8888)
+make counselor-emu        # Android Emulator (auto route gateway 10.0.2.2:8888)
+make counselor-usb-cloud  # HP fisik nembak production cloud (eva.nexacode.dev)
+make counselor-emu-cloud  # Android Emulator nembak production cloud
+make counselor-web-cloud  # Chrome Web nembak production cloud
+make counselor-cloud      # Shortcut alias ke counselor-usb-cloud
+make test-counselor       # Flutter test untuk Eva Counselor
 ```
 
 ## 2. Manual Profile Execution

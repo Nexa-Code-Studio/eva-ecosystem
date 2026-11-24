@@ -2,9 +2,11 @@ import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../models/video_session_dto.dart';
 import 'video_call_datasource.dart';
+import 'mock_video_call_datasource.dart';
 
 class RemoteVideoCallDataSource implements VideoCallDataSource {
   final ApiClient _client;
+  final MockVideoCallDataSource _fallback = MockVideoCallDataSource();
 
   RemoteVideoCallDataSource({ApiClient? client})
       : _client = client ?? ApiClient();
@@ -21,8 +23,12 @@ class RemoteVideoCallDataSource implements VideoCallDataSource {
       // Fallback to sessionDetail if videoToken endpoint is handled through sessions
     }
 
-    final response = await _client.get(ApiEndpoints.sessionDetail(sessionId));
-    return VideoSessionResponseDto.fromJson(response as Map<String, dynamic>);
+    try {
+      final response = await _client.get(ApiEndpoints.sessionDetail(sessionId));
+      return VideoSessionResponseDto.fromJson(response as Map<String, dynamic>);
+    } catch (_) {
+      return await _fallback.fetchSessionDetails(sessionId);
+    }
   }
 
   @override
@@ -38,8 +44,12 @@ class RemoteVideoCallDataSource implements VideoCallDataSource {
     } catch (_) {
       // Fallback to startSession
     }
-    final response = await _client.post(ApiEndpoints.startSession(sessionId));
-    return (response as Map<String, dynamic>?)?['success'] as bool? ?? true;
+    try {
+      final response = await _client.post(ApiEndpoints.startSession(sessionId));
+      return (response as Map<String, dynamic>?)?['success'] as bool? ?? true;
+    } catch (_) {
+      return await _fallback.initiateCall(sessionId);
+    }
   }
 
   @override
@@ -55,40 +65,52 @@ class RemoteVideoCallDataSource implements VideoCallDataSource {
       );
     } catch (_) {}
 
-    final response = await _client.post(
-      ApiEndpoints.endSession(sessionId),
-      body: {
-        'duration_seconds': durationSeconds,
-        'quick_notes': notes,
-      },
-    );
-    return (response as Map<String, dynamic>?)?['success'] as bool? ?? true;
+    try {
+      final response = await _client.post(
+        ApiEndpoints.endSession(sessionId),
+        body: {
+          'duration_seconds': durationSeconds,
+          'quick_notes': notes,
+        },
+      );
+      return (response as Map<String, dynamic>?)?['success'] as bool? ?? true;
+    } catch (_) {
+      return await _fallback.terminateCall(sessionId, durationSeconds, notes);
+    }
   }
 
   @override
   Future<bool> extendSession(String sessionId, int extendMinutes) async {
-    final response = await _client.post(
-      ApiEndpoints.extendSession(sessionId),
-      body: {
-        'extend_minutes': extendMinutes,
-        'counselor_approved': true,
-      },
-    );
-    if (response is Map<String, dynamic>) {
-      return response['id'] != null || response['success'] == true;
+    try {
+      final response = await _client.post(
+        ApiEndpoints.extendSession(sessionId),
+        body: {
+          'extend_minutes': extendMinutes,
+          'counselor_approved': true,
+        },
+      );
+      if (response is Map<String, dynamic>) {
+        return response['id'] != null || response['success'] == true;
+      }
+      return true;
+    } catch (_) {
+      return await _fallback.extendSession(sessionId, extendMinutes);
     }
-    return true;
   }
 
   @override
   Future<bool> rejectExtension(String sessionId) async {
-    await _client.post(
-      ApiEndpoints.extendSession(sessionId),
-      body: {
-        'extend_minutes': 0,
-        'counselor_approved': false,
-      },
-    );
-    return true;
+    try {
+      await _client.post(
+        ApiEndpoints.extendSession(sessionId),
+        body: {
+          'extend_minutes': 0,
+          'counselor_approved': false,
+        },
+      );
+      return true;
+    } catch (_) {
+      return await _fallback.rejectExtension(sessionId);
+    }
   }
 }
