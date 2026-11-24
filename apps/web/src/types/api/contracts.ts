@@ -1,5 +1,6 @@
 import type {
   AppUserStatus,
+  CertificateTriggerType,
   CoinEconomyConfig,
   CoinPackage,
   CoinPaymentMethod,
@@ -270,6 +271,96 @@ export interface BackendFaqEntryDto {
   updated_at: string
 }
 
+export interface UpsertCertificateTemplateRequestDto {
+  id?: string
+  code: string
+  title: string
+  subtitle: string
+  categoryCode: string
+  categoryLabel: string
+  milestoneCriteria: string
+  description: string
+  badgeColor: string
+  triggerType: CertificateTriggerType
+  minCompletedSessions: number
+  minAverageRating?: number | null
+  autoIssueEnabled: boolean
+  isActive: boolean
+  svgBodyTemplate?: string | null
+}
+
+export interface IssueCertificateRequestDto {
+  counselorId: string
+  templateId?: string | null
+  customTitle?: string
+  customSubtitle?: string
+  customCategoryCode?: string
+  customCategoryLabel?: string
+  customMilestoneCriteria?: string
+  customDescription?: string
+  customBadgeColor?: string
+}
+
+export interface BackendCertificateTemplateDto {
+  id: string
+  code: string
+  title: string
+  subtitle: string
+  category_code: string
+  category_label: string
+  milestone_criteria: string
+  description: string
+  badge_color: string
+  trigger_type: string
+  min_completed_sessions: number
+  min_average_rating?: number | null
+  auto_issue_enabled: boolean
+  is_active: boolean
+  svg_body_template?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface BackendPsychologistCertificateDto {
+  id: string
+  certificate_number: string
+  sequence_number: number
+  issue_year: number
+  category_code: string
+  counselor_id: string
+  template_id?: string | null
+  title: string
+  subtitle: string
+  recipient_name: string
+  str_number: string
+  milestone_criteria: string
+  category_label: string
+  description: string
+  badge_color: string
+  trigger_source: string
+  status: string
+  issue_date_label: string
+  issued_at: string
+  revoked_at?: string | null
+  revocation_reason?: string | null
+}
+
+export interface BackendCounselorCertificateEligibilityDto {
+  counselor_id: string
+  full_name: string
+  str_number: string
+  verification_status: string
+  completed_sessions_count: number
+  average_rating?: number | null
+  active_certificates_count: number
+}
+
+export interface BackendCertificateEvaluationSummaryDto {
+  evaluated_counselors: number
+  newly_issued_count: number
+  issued_certificates: BackendPsychologistCertificateDto[]
+}
+
 export interface BackendAdminSessionDto {
   id: string
   session_code: string
@@ -300,6 +391,47 @@ export interface BackendAuthTokenResponseDto {
     is_admin?: boolean
     coin_balance?: number
   }
+}
+
+export interface UpsertPsychologistLevelRequestDto {
+  levelTier: number
+  name: string
+  badgeIcon: string
+  minCompletedSessions: number
+  minAverageRating: number
+  minConsultationHours: number
+  minReviewCount: number
+  defaultSessionPrice: number
+  platformFeePercentage: number
+  allowCustomPrice: boolean
+  minCustomPrice?: number | null
+  maxCustomPrice?: number | null
+  isActive: boolean
+}
+
+export interface BackendPsychologistLevelDto {
+  id: string
+  level_tier: number
+  name: string
+  badge_icon: string
+  min_completed_sessions: number
+  min_average_rating: number
+  min_consultation_hours: number
+  min_review_count: number
+  default_session_price: number
+  platform_fee_percentage: number
+  allow_custom_price: boolean
+  min_custom_price?: number | null
+  max_custom_price?: number | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface BackendLevelEvaluationBatchDto {
+  evaluated_counselors: number
+  upgraded_count: number
+  message: string
 }
 
 export type PortalDatabaseSnapshot = PortalDatabase

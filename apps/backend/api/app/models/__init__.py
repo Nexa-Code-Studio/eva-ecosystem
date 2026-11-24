@@ -1,5 +1,6 @@
 from app.models.ai import AIRun, AIWorkerRun
 from app.models.base import BaseModel
+from app.models.certificate import CertificateTemplate, PsychologistCertificate
 from app.models.coin import CoinEconomyConfig, CoinPackage, CoinTransaction
 from app.models.content import CrisisConfig, FaqEntry
 from app.models.conversation import Conversation, ConversationSummary, Message
@@ -43,6 +44,7 @@ from app.models.counselor import (
     PsychologistLevel,
     PsychologistProfile,
 )
+from app.models.level import CounselorReview, PsychologistLevel
 from app.models.dass import DASSAssessment
 from app.models.diary import DiaryEntry
 from app.models.memory import Memory
@@ -71,6 +73,7 @@ __all__ = [
     "AIWorkerRun",
     "AIWorkerType",
     "BaseModel",
+    "CertificateTemplate",
     "CoinEconomyConfig",
     "CoinPackage",
     "CoinTransaction",
@@ -81,7 +84,9 @@ __all__ = [
     "ConditionStatus",
     "ConsultationSession",
     "ConsultationSessionStatus",
+    "CounselorReview",
     "CounselorTransaction",
+    "PsychologistLevel",
     "CrisisConfig",
     "DASSAssessment",
     "ConditionSymptom",
@@ -111,6 +116,7 @@ __all__ = [
     "PatientConsent",
     "PlatformPricingConfig",
     "PricingConfigStatus",
+    "PsychologistCertificate",
     "PsychologistProfile",
     "PsychologistVerificationStatus",
     "RAGRetrieval",

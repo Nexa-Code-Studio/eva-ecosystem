@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, status
 
 from app.api.dependencies import (
     get_care_service,
-    get_counselor_service,
     get_current_user,
+    get_level_service,
     get_scheduling_service,
 )
 from app.models.user import User
@@ -14,10 +14,7 @@ from app.schemas.care import (
     SessionActionResponse,
     UpdateCallStatusRequest,
 )
-from app.schemas.counselor import (
-    CounselorReviewItemResponse,
-    SubmitSessionReviewRequest,
-)
+from app.schemas.level import CounselorReviewResponse, CreateSessionReviewRequest
 from app.schemas.session import (
     ConsultationSessionResponse,
     ExtensionAvailabilityResponse,
@@ -26,7 +23,7 @@ from app.schemas.session import (
     UpdateSoapNotesRequest,
 )
 from app.services.care import CareService
-from app.services.counselor import CounselorService
+from app.services.level import LevelService
 from app.services.session import SchedulingService
 
 router = APIRouter(prefix="/sessions", tags=["Sessions"])
@@ -137,12 +134,12 @@ async def end_consultation_session(
     return await service.end_session(session_id, user.id, duration_seconds=duration, quick_notes=notes)
 
 
-@router.post("/{session_id}/reviews", response_model=CounselorReviewItemResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/{session_id}/reviews", response_model=CounselorReviewResponse, status_code=status.HTTP_201_CREATED)
 async def submit_session_review(
     session_id: uuid.UUID,
-    payload: SubmitSessionReviewRequest,
+    payload: CreateSessionReviewRequest,
     user: User = Depends(get_current_user),
-    service: CounselorService = Depends(get_counselor_service),
-) -> CounselorReviewItemResponse:
-    """Submit rating and qualitative review for a completed consultation session."""
-    return await service.submit_review(session_id, user.id, payload)
+    service: LevelService = Depends(get_level_service),
+) -> CounselorReviewResponse:
+    """Submit patient rating & qualitative review for a completed consultation session (1 session = 1 review)."""
+    return await service.submit_session_review(session_id, user.id, payload)

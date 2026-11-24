@@ -2,28 +2,37 @@ import type {
   AdminCoinTopupRequestDto,
   AdminCoinTopupResultDto,
   CreateFaqRequestDto,
+  IssueCertificateRequestDto,
   PublicFaqsResultDto,
   RegisterPsychologistRequestDto,
   UpdateCoinEconomyConfigRequestDto,
   UpdateCrisisConfigRequestDto,
   UpdateFaqRequestDto,
+  UpsertCertificateTemplateRequestDto,
   UpsertCoinPackageRequestDto,
   UpsertPlatformPricingRequestDto,
+  UpsertPsychologistLevelRequestDto,
   VerifyPsychologistRequestDto,
 } from '@/types/api/contracts'
 import type { DashboardAnalyticsBaseline } from '@/types/domain/dashboard'
 import type {
+  CertificateEvaluationSummary,
+  CertificateTemplate,
   CoinEconomyConfig,
   CoinPackage,
   CoinTopupTransaction,
   ConsultationSessionMonitoring,
+  CounselorCertificateEligibility,
   CrisisConfig,
   FaqEntry,
   GeneralAppUser,
+  IssuedPsychologistCertificate,
+  LevelEvaluationBatchSummary,
   PlatformPricingConfig,
   PortalDatabase,
   PortalSession,
   Psychologist,
+  PsychologistLevelConfig,
 } from '@/types/domain/portal'
 
 export interface AdminCredentialConfig {
@@ -84,4 +93,29 @@ export interface IPortalDataSource {
   updateFaqEntry(id: string, input: UpdateFaqRequestDto): Promise<FaqEntry>
   toggleFaqPublished(id: string): Promise<FaqEntry>
   deleteFaqEntry(id: string): Promise<void>
+  fetchCertificateTemplates(): Promise<CertificateTemplate[]>
+  upsertCertificateTemplate(input: UpsertCertificateTemplateRequestDto): Promise<CertificateTemplate>
+  toggleCertificateTemplateActive(templateId: string): Promise<CertificateTemplate>
+  fetchIssuedCertificates(): Promise<IssuedPsychologistCertificate[]>
+  fetchEligibleCounselorsForCertificates(): Promise<CounselorCertificateEligibility[]>
+  issueCertificateManual(
+    payload: IssueCertificateRequestDto,
+  ): Promise<IssuedPsychologistCertificate>
+  evaluateAutoCertificates(): Promise<CertificateEvaluationSummary>
+  revokeCertificate(
+    certificateId: string,
+    reason: string,
+  ): Promise<IssuedPsychologistCertificate>
+  downloadCertificatePdf(certificateId: string): Promise<{ blob: Blob; filename: string }>
+  fetchPsychologistLevels(): Promise<PsychologistLevelConfig[]>
+  createPsychologistLevel(
+    input: UpsertPsychologistLevelRequestDto,
+  ): Promise<PsychologistLevelConfig>
+  updatePsychologistLevel(
+    levelId: string,
+    input: UpsertPsychologistLevelRequestDto,
+  ): Promise<PsychologistLevelConfig>
+  togglePsychologistLevelActive(levelId: string): Promise<PsychologistLevelConfig>
+  deletePsychologistLevel(levelId: string): Promise<void>
+  evaluateAllPsychologistLevels(): Promise<LevelEvaluationBatchSummary>
 }

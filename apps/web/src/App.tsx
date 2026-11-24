@@ -32,6 +32,11 @@ const AdminContentConfigRoute = lazy(() =>
     default: m.AdminContentConfigRoute,
   })),
 )
+const AdminCertificatesRoute = lazy(() =>
+  import('@/pages/AdminDashboardPage').then((m) => ({
+    default: m.AdminCertificatesRoute,
+  })),
+)
 
 const router = createBrowserRouter([
   {
@@ -85,6 +90,14 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: 'certificates',
+        element: (
+          <Suspense fallback={<div className="min-h-[400px] animate-pulse rounded-xl bg-white/50" />}>
+            <AdminCertificatesRoute />
+          </Suspense>
+        ),
+      },
+      {
         path: 'monitoring',
         element: (
           <Suspense fallback={<div className="min-h-[400px] animate-pulse rounded-xl bg-white/50" />}>
@@ -94,6 +107,14 @@ const router = createBrowserRouter([
       },
       {
         path: 'settings',
+        element: (
+          <Suspense fallback={<div className="min-h-[400px] animate-pulse rounded-xl bg-white/50" />}>
+            <AdminSettingsRoute />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'settings/psychologist-levels',
         element: (
           <Suspense fallback={<div className="min-h-[400px] animate-pulse rounded-xl bg-white/50" />}>
             <AdminSettingsRoute />

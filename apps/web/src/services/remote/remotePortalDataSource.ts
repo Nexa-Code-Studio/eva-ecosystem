@@ -5,12 +5,18 @@ import {
   buildDomainPsychologistFromRegister,
   mapBackendAdminSessionToDomain,
   mapBackendAdminUserToDomain,
+  mapBackendCertificateTemplateToDomain,
+  mapBackendCertificateToDomain,
   mapBackendCoinEconomyToDomain,
   mapBackendCoinPackageToDomain,
   mapBackendCoinTransactionToDomain,
+  mapBackendCounselorEligibilityToDomain,
   mapBackendCrisisConfigToDomain,
+  mapBackendEvaluationSummaryToDomain,
   mapBackendFaqToDomain,
+  mapBackendLevelEvaluationToDomain,
   mapBackendPricingToDomain,
+  mapBackendPsychologistLevelToDomain,
   mapBackendPsychologistToDomain,
   normalizeVerificationStatus,
 } from '@/services/contracts/portalMappers'
@@ -22,35 +28,50 @@ import type {
   BackendAdminCoinTopupResponseDto,
   BackendAdminSessionDto,
   BackendAdminUserDto,
+  BackendCertificateEvaluationSummaryDto,
+  BackendCertificateTemplateDto,
   BackendCoinEconomyConfigDto,
   BackendCoinPackageDto,
   BackendCoinTransactionDto,
+  BackendCounselorCertificateEligibilityDto,
   BackendCrisisConfigDto,
   BackendFaqEntryDto,
+  BackendLevelEvaluationBatchDto,
   BackendPricingConfigResponseDto,
+  BackendPsychologistCertificateDto,
+  BackendPsychologistLevelDto,
   BackendPsychologistProfileResponseDto,
   CreateFaqRequestDto,
+  IssueCertificateRequestDto,
   PublicFaqsResultDto,
   RegisterPsychologistRequestDto,
   UpdateCoinEconomyConfigRequestDto,
   UpdateCrisisConfigRequestDto,
   UpdateFaqRequestDto,
+  UpsertCertificateTemplateRequestDto,
   UpsertCoinPackageRequestDto,
   UpsertPlatformPricingRequestDto,
+  UpsertPsychologistLevelRequestDto,
   VerifyPsychologistRequestDto,
 } from '@/types/api/contracts'
 import type {
+  CertificateEvaluationSummary,
+  CertificateTemplate,
   CoinEconomyConfig,
   CoinPackage,
   CoinTopupTransaction,
   ConsultationSessionMonitoring,
+  CounselorCertificateEligibility,
   CrisisConfig,
   FaqEntry,
   GeneralAppUser,
+  IssuedPsychologistCertificate,
+  LevelEvaluationBatchSummary,
   PlatformPricingConfig,
   PortalDatabase,
   PortalSession,
   Psychologist,
+  PsychologistLevelConfig,
 } from '@/types/domain/portal'
 
 const PROD_STORAGE_KEY = 'eva_portal_db_prod_v2'
@@ -63,10 +84,11 @@ export class RemotePortalDataSource implements IPortalDataSource {
   readonly sessionKey = PROD_SESSION_KEY
   readonly apiBaseUrl = APP_CONFIG.apiBaseUrl.replace(/\/+$/, '')
 
-  private async requestJson<T>(
+  private async fetchWithAuth(
     path: string,
     init?: RequestInit,
-  ): Promise<T> {
+    defaultHeaders: Record<string, string> = { 'Content-Type': 'application/json' },
+  ): Promise<Response> {
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
     const session = this.getSession()
@@ -76,7 +98,7 @@ export class RemotePortalDataSource implements IPortalDataSource {
         ...init,
         signal: controller.signal,
         headers: {
-          'Content-Type': 'application/json',
+          ...defaultHeaders,
           ...(session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}),
           ...init?.headers,
         },
@@ -93,9 +115,28 @@ export class RemotePortalDataSource implements IPortalDataSource {
         throw new Error(detail)
       }
 
-      return (await response.json()) as T
+      return response
     } finally {
       window.clearTimeout(timeout)
+    }
+  }
+
+  private async requestJson<T>(
+    path: string,
+    init?: RequestInit,
+  ): Promise<T> {
+    const response = await this.fetchWithAuth(path, init)
+    return (await response.json()) as T
+  }
+
+  private async requestBlob(path: string, fallbackFilename: string): Promise<{ blob: Blob; filename: string }> {
+    const response = await this.fetchWithAuth(path, { method: 'GET' }, {})
+    const disposition = response.headers.get('Content-Disposition') ?? ''
+    const match = /filename="?([^";]+)"?/i.exec(disposition)
+    const blob = await response.blob()
+    return {
+      blob,
+      filename: match?.[1] || fallbackFilename,
     }
   }
 
@@ -127,6 +168,14 @@ export class RemotePortalDataSource implements IPortalDataSource {
         coinEconomyConfig: parsed.coinEconomyConfig ?? EMPTY_PORTAL_DATABASE.coinEconomyConfig,
         coinPackages: parsed.coinPackages ?? EMPTY_PORTAL_DATABASE.coinPackages,
         coinTransactions: parsed.coinTransactions ?? EMPTY_PORTAL_DATABASE.coinTransactions,
+        certificateTemplates:
+          parsed.certificateTemplates ?? EMPTY_PORTAL_DATABASE.certificateTemplates,
+        issuedCertificates:
+          parsed.issuedCertificates ?? EMPTY_PORTAL_DATABASE.issuedCertificates,
+        eligibleCounselorSummaries:
+          parsed.eligibleCounselorSummaries ?? EMPTY_PORTAL_DATABASE.eligibleCounselorSummaries,
+        psychologistLevels:
+          parsed.psychologistLevels ?? EMPTY_PORTAL_DATABASE.psychologistLevels,
       }
     } catch {
       return EMPTY_PORTAL_DATABASE
@@ -730,5 +779,269 @@ export class RemotePortalDataSource implements IPortalDataSource {
     this.updateSnapshot((db) => {
       db.faqs = db.faqs.filter((f) => f.id !== id)
     })
+  }
+
+  async fetchCertificateTemplates(): Promise<CertificateTemplate[]> {
+    try {
+      const list = await this.requestJson<BackendCertificateTemplateDto[]>(
+        '/admin/certificates/templates',
+      )
+      const mapped = list.map(mapBackendCertificateTemplateToDomain)
+      this.updateSnapshot((db) => {
+        db.certificateTemplates = mapped
+      })
+      return mapped
+    } catch {
+      return this.loadSnapshot().certificateTemplates
+    }
+  }
+
+  async upsertCertificateTemplate(
+    input: UpsertCertificateTemplateRequestDto,
+  ): Promise<CertificateTemplate> {
+    const isEdit = Boolean(input.id && !input.id.startsWith('tpl-'))
+    const endpoint = isEdit
+      ? `/admin/certificates/templates/${encodeURIComponent(input.id!)}`
+      : '/admin/certificates/templates'
+    const method = isEdit ? 'PUT' : 'POST'
+
+    const dto = await this.requestJson<BackendCertificateTemplateDto>(endpoint, {
+      method,
+      body: JSON.stringify({
+        code: input.code.trim().toUpperCase(),
+        title: input.title.trim(),
+        subtitle: input.subtitle.trim(),
+        category_code: input.categoryCode.trim().toUpperCase(),
+        category_label: input.categoryLabel.trim(),
+        milestone_criteria: input.milestoneCriteria.trim(),
+        description: input.description.trim(),
+        badge_color: input.badgeColor.trim(),
+        trigger_type: input.triggerType,
+        min_completed_sessions: Math.max(0, Math.trunc(input.minCompletedSessions)),
+        min_average_rating:
+          input.triggerType === 'rating_milestone' ? (input.minAverageRating ?? 4.8) : null,
+        auto_issue_enabled: Boolean(input.autoIssueEnabled),
+        is_active: Boolean(input.isActive),
+        svg_body_template: input.svgBodyTemplate ?? null,
+      }),
+    })
+
+    const mapped = mapBackendCertificateTemplateToDomain(dto)
+    this.updateSnapshot((db) => {
+      this.upsertItem(db.certificateTemplates, mapped, 'end')
+    })
+    return mapped
+  }
+
+  async toggleCertificateTemplateActive(templateId: string): Promise<CertificateTemplate> {
+    const dto = await this.requestJson<BackendCertificateTemplateDto>(
+      `/admin/certificates/templates/${encodeURIComponent(templateId)}/toggle`,
+      { method: 'PATCH' },
+    )
+    const mapped = mapBackendCertificateTemplateToDomain(dto)
+    this.updateSnapshot((db) => {
+      this.upsertItem(db.certificateTemplates, mapped, 'end')
+    })
+    return mapped
+  }
+
+  async fetchIssuedCertificates(): Promise<IssuedPsychologistCertificate[]> {
+    try {
+      const list = await this.requestJson<BackendPsychologistCertificateDto[]>(
+        '/admin/certificates',
+      )
+      const mapped = list.map(mapBackendCertificateToDomain)
+      this.updateSnapshot((db) => {
+        db.issuedCertificates = mapped
+      })
+      return mapped
+    } catch {
+      return this.loadSnapshot().issuedCertificates
+    }
+  }
+
+  async fetchEligibleCounselorsForCertificates(): Promise<CounselorCertificateEligibility[]> {
+    try {
+      const list = await this.requestJson<BackendCounselorCertificateEligibilityDto[]>(
+        '/admin/certificates/eligible-counselors',
+      )
+      const mapped = list.map(mapBackendCounselorEligibilityToDomain)
+      this.updateSnapshot((db) => {
+        db.eligibleCounselorSummaries = mapped
+      })
+      return mapped
+    } catch {
+      return this.loadSnapshot().eligibleCounselorSummaries
+    }
+  }
+
+  async issueCertificateManual(
+    payload: IssueCertificateRequestDto,
+  ): Promise<IssuedPsychologistCertificate> {
+    const dto = await this.requestJson<BackendPsychologistCertificateDto>(
+      '/admin/certificates/issue',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          counselor_id: payload.counselorId,
+          template_id: payload.templateId || null,
+          custom_title: payload.customTitle?.trim() || null,
+          custom_subtitle: payload.customSubtitle?.trim() || null,
+          custom_category_code: payload.customCategoryCode?.trim().toUpperCase() || null,
+          custom_category_label: payload.customCategoryLabel?.trim() || null,
+          custom_milestone_criteria: payload.customMilestoneCriteria?.trim() || null,
+          custom_description: payload.customDescription?.trim() || null,
+          custom_badge_color: payload.customBadgeColor?.trim() || null,
+        }),
+      },
+    )
+
+    const mapped = mapBackendCertificateToDomain(dto)
+    this.updateSnapshot((db) => {
+      this.upsertItem(db.issuedCertificates, mapped, 'start')
+    })
+    return mapped
+  }
+
+  async evaluateAutoCertificates(): Promise<CertificateEvaluationSummary> {
+    const dto = await this.requestJson<BackendCertificateEvaluationSummaryDto>(
+      '/admin/certificates/evaluate-auto',
+      { method: 'POST' },
+    )
+    const mapped = mapBackendEvaluationSummaryToDomain(dto)
+    if (mapped.issuedCertificates.length > 0) {
+      this.updateSnapshot((db) => {
+        for (const item of mapped.issuedCertificates) {
+          this.upsertItem(db.issuedCertificates, item, 'start')
+        }
+      })
+    }
+    return mapped
+  }
+
+  async revokeCertificate(
+    certificateId: string,
+    reason: string,
+  ): Promise<IssuedPsychologistCertificate> {
+    const dto = await this.requestJson<BackendPsychologistCertificateDto>(
+      `/admin/certificates/${encodeURIComponent(certificateId)}/revoke`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ reason: reason.trim() }),
+      },
+    )
+    const mapped = mapBackendCertificateToDomain(dto)
+    this.updateSnapshot((db) => {
+      this.upsertItem(db.issuedCertificates, mapped, 'start')
+    })
+    return mapped
+  }
+
+  async downloadCertificatePdf(certificateId: string): Promise<{ blob: Blob; filename: string }> {
+    return this.requestBlob(
+      `/admin/certificates/${encodeURIComponent(certificateId)}/download`,
+      `sertifikat-${certificateId}.pdf`,
+    )
+  }
+
+  async fetchPsychologistLevels(): Promise<PsychologistLevelConfig[]> {
+    const list = await this.requestJson<BackendPsychologistLevelDto[]>('/admin/psychologist-levels')
+    const mapped = list
+      .map(mapBackendPsychologistLevelToDomain)
+      .sort((a, b) => a.levelTier - b.levelTier)
+    this.updateSnapshot((db) => {
+      db.psychologistLevels = mapped
+    })
+    return mapped
+  }
+
+  async createPsychologistLevel(
+    input: UpsertPsychologistLevelRequestDto,
+  ): Promise<PsychologistLevelConfig> {
+    const dto = await this.requestJson<BackendPsychologistLevelDto>('/admin/psychologist-levels', {
+      method: 'POST',
+      body: JSON.stringify({
+        level_tier: input.levelTier,
+        name: input.name.trim(),
+        badge_icon: input.badgeIcon.trim() || 'award',
+        min_completed_sessions: input.minCompletedSessions,
+        min_average_rating: input.minAverageRating,
+        min_consultation_hours: input.minConsultationHours,
+        min_review_count: input.minReviewCount,
+        default_session_price: input.defaultSessionPrice,
+        platform_fee_percentage: input.platformFeePercentage,
+        allow_custom_price: input.allowCustomPrice,
+        min_custom_price: input.allowCustomPrice ? (input.minCustomPrice ?? null) : null,
+        max_custom_price: input.allowCustomPrice ? (input.maxCustomPrice ?? null) : null,
+        is_active: input.isActive,
+      }),
+    })
+    const mapped = mapBackendPsychologistLevelToDomain(dto)
+    this.updateSnapshot((db) => {
+      this.upsertItem(db.psychologistLevels, mapped, 'end')
+      db.psychologistLevels.sort((a, b) => a.levelTier - b.levelTier)
+    })
+    return mapped
+  }
+
+  async updatePsychologistLevel(
+    levelId: string,
+    input: UpsertPsychologistLevelRequestDto,
+  ): Promise<PsychologistLevelConfig> {
+    const dto = await this.requestJson<BackendPsychologistLevelDto>(
+      `/admin/psychologist-levels/${encodeURIComponent(levelId)}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          level_tier: input.levelTier,
+          name: input.name.trim(),
+          badge_icon: input.badgeIcon.trim() || 'award',
+          min_completed_sessions: input.minCompletedSessions,
+          min_average_rating: input.minAverageRating,
+          min_consultation_hours: input.minConsultationHours,
+          min_review_count: input.minReviewCount,
+          default_session_price: input.defaultSessionPrice,
+          platform_fee_percentage: input.platformFeePercentage,
+          allow_custom_price: input.allowCustomPrice,
+          min_custom_price: input.allowCustomPrice ? (input.minCustomPrice ?? null) : null,
+          max_custom_price: input.allowCustomPrice ? (input.maxCustomPrice ?? null) : null,
+          is_active: input.isActive,
+        }),
+      },
+    )
+    const mapped = mapBackendPsychologistLevelToDomain(dto)
+    this.updateSnapshot((db) => {
+      this.upsertItem(db.psychologistLevels, mapped, 'end')
+      db.psychologistLevels.sort((a, b) => a.levelTier - b.levelTier)
+    })
+    return mapped
+  }
+
+  async togglePsychologistLevelActive(levelId: string): Promise<PsychologistLevelConfig> {
+    const dto = await this.requestJson<BackendPsychologistLevelDto>(
+      `/admin/psychologist-levels/${encodeURIComponent(levelId)}/toggle`,
+      { method: 'PATCH' },
+    )
+    const mapped = mapBackendPsychologistLevelToDomain(dto)
+    this.updateSnapshot((db) => {
+      this.upsertItem(db.psychologistLevels, mapped, 'end')
+      db.psychologistLevels.sort((a, b) => a.levelTier - b.levelTier)
+    })
+    return mapped
+  }
+
+  async deletePsychologistLevel(levelId: string): Promise<void> {
+    await this.requestJson(`/admin/psychologist-levels/${encodeURIComponent(levelId)}`, {
+      method: 'DELETE',
+    })
+    await this.fetchPsychologistLevels().catch(() => undefined)
+  }
+
+  async evaluateAllPsychologistLevels(): Promise<LevelEvaluationBatchSummary> {
+    const dto = await this.requestJson<BackendLevelEvaluationBatchDto>(
+      '/admin/psychologist-levels/evaluate-all',
+      { method: 'POST' },
+    )
+    return mapBackendLevelEvaluationToDomain(dto)
   }
 }

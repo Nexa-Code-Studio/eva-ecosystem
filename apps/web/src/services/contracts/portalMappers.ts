@@ -2,16 +2,25 @@ import { buildPsychologistCertificates } from '@/data/mock/psychologists.mock'
 import type {
   BackendAdminSessionDto,
   BackendAdminUserDto,
+  BackendCertificateEvaluationSummaryDto,
+  BackendCertificateTemplateDto,
   BackendCoinEconomyConfigDto,
   BackendCoinPackageDto,
   BackendCoinTransactionDto,
+  BackendCounselorCertificateEligibilityDto,
   BackendCrisisConfigDto,
   BackendFaqEntryDto,
+  BackendLevelEvaluationBatchDto,
   BackendPricingConfigResponseDto,
+  BackendPsychologistCertificateDto,
+  BackendPsychologistLevelDto,
   BackendPsychologistProfileResponseDto,
   RegisterPsychologistRequestDto,
 } from '@/types/api/contracts'
 import type {
+  CertificateEvaluationSummary,
+  CertificateTemplate,
+  CertificateTriggerType,
   CoinEconomyConfig,
   CoinPackage,
   CoinPaymentMethod,
@@ -19,11 +28,15 @@ import type {
   CoinTransactionStatus,
   ConsultationSessionMonitoring,
   ConsultationSessionStatus,
+  CounselorCertificateEligibility,
   CrisisConfig,
   FaqEntry,
   GeneralAppUser,
+  IssuedPsychologistCertificate,
+  LevelEvaluationBatchSummary,
   PlatformPricingConfig,
   PricingCalculation,
+  PsychologistLevelConfig,
   Psychologist,
   VerificationStatus,
 } from '@/types/domain/portal'
@@ -310,5 +323,116 @@ export function mapBackendFaqToDomain(dto: BackendFaqEntryDto): FaqEntry {
     answer: dto.answer,
     isPublished: dto.is_published,
     sortOrder: dto.sort_order,
+  }
+}
+
+export function mapBackendCertificateTemplateToDomain(
+  dto: BackendCertificateTemplateDto,
+): CertificateTemplate {
+  const trigger: CertificateTriggerType =
+    dto.trigger_type === 'rating_milestone' || dto.trigger_type === 'manual'
+      ? dto.trigger_type
+      : 'sessions_milestone'
+  return {
+    id: dto.id,
+    code: dto.code,
+    title: dto.title,
+    subtitle: dto.subtitle,
+    categoryCode: dto.category_code,
+    categoryLabel: dto.category_label,
+    milestoneCriteria: dto.milestone_criteria,
+    description: dto.description,
+    badgeColor: dto.badge_color,
+    triggerType: trigger,
+    minCompletedSessions: dto.min_completed_sessions,
+    minAverageRating: dto.min_average_rating ?? null,
+    autoIssueEnabled: dto.auto_issue_enabled,
+    isActive: dto.is_active,
+    svgBodyTemplate: dto.svg_body_template ?? null,
+    updatedAt: dto.updated_at.slice(0, 10),
+  }
+}
+
+export function mapBackendCertificateToDomain(
+  dto: BackendPsychologistCertificateDto,
+): IssuedPsychologistCertificate {
+  return {
+    id: dto.id,
+    certificateNumber: dto.certificate_number,
+    sequenceNumber: dto.sequence_number,
+    issueYear: dto.issue_year,
+    categoryCode: dto.category_code,
+    counselorId: dto.counselor_id,
+    templateId: dto.template_id ?? null,
+    title: dto.title,
+    subtitle: dto.subtitle,
+    recipientName: dto.recipient_name,
+    strNumber: dto.str_number,
+    milestoneCriteria: dto.milestone_criteria,
+    categoryLabel: dto.category_label,
+    description: dto.description,
+    badgeColor: dto.badge_color,
+    triggerSource: dto.trigger_source,
+    status: dto.status === 'revoked' ? 'revoked' : 'active',
+    issueDateLabel: dto.issue_date_label,
+    issuedAt: dto.issued_at,
+    revokedAt: dto.revoked_at ?? null,
+    revocationReason: dto.revocation_reason ?? null,
+  }
+}
+
+export function mapBackendCounselorEligibilityToDomain(
+  dto: BackendCounselorCertificateEligibilityDto,
+): CounselorCertificateEligibility {
+  return {
+    counselorId: dto.counselor_id,
+    fullName: dto.full_name,
+    strNumber: dto.str_number,
+    verificationStatus: dto.verification_status,
+    completedSessionsCount: dto.completed_sessions_count,
+    averageRating: dto.average_rating ?? null,
+    activeCertificatesCount: dto.active_certificates_count,
+  }
+}
+
+export function mapBackendEvaluationSummaryToDomain(
+  dto: BackendCertificateEvaluationSummaryDto,
+): CertificateEvaluationSummary {
+  return {
+    evaluatedCounselors: dto.evaluated_counselors,
+    newlyIssuedCount: dto.newly_issued_count,
+    issuedCertificates: dto.issued_certificates.map(mapBackendCertificateToDomain),
+  }
+}
+
+export function mapBackendPsychologistLevelToDomain(
+  dto: BackendPsychologistLevelDto,
+): PsychologistLevelConfig {
+  return {
+    id: dto.id,
+    levelTier: dto.level_tier,
+    name: dto.name,
+    badgeIcon: dto.badge_icon || 'award',
+    minCompletedSessions: dto.min_completed_sessions,
+    minAverageRating: dto.min_average_rating,
+    minConsultationHours: dto.min_consultation_hours,
+    minReviewCount: dto.min_review_count,
+    defaultSessionPrice: dto.default_session_price,
+    platformFeePercentage: dto.platform_fee_percentage,
+    allowCustomPrice: dto.allow_custom_price,
+    minCustomPrice: dto.min_custom_price ?? null,
+    maxCustomPrice: dto.max_custom_price ?? null,
+    isActive: dto.is_active,
+    updatedAt: dto.updated_at.slice(0, 10),
+  }
+}
+
+export function mapBackendLevelEvaluationToDomain(
+  dto: BackendLevelEvaluationBatchDto,
+): LevelEvaluationBatchSummary {
+  return {
+    evaluatedCounselors: dto.evaluated_counselors,
+    upgradedCount: dto.upgraded_count,
+    message: dto.message,
   }
 }

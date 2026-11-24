@@ -195,6 +195,20 @@ async def get_content_service(db: AsyncSession = Depends(get_db_session)):
     return ContentService(db)
 
 
+async def get_certificate_service(db: AsyncSession = Depends(get_db_session)):
+    """Dependency factory for CertificateService."""
+    from app.services.certificate import CertificateService
+
+    return CertificateService(db)
+
+
+async def get_level_service(db: AsyncSession = Depends(get_db_session)):
+    """Dependency factory for LevelService."""
+    from app.services.level import LevelService
+
+    return LevelService(db)
+
+
 
 
 

@@ -209,6 +209,91 @@ export interface FaqEntry {
   sortOrder?: number
 }
 
+export type CertificateTriggerType = 'sessions_milestone' | 'rating_milestone' | 'manual'
+
+export interface CertificateTemplate {
+  id: string
+  code: string
+  title: string
+  subtitle: string
+  categoryCode: string
+  categoryLabel: string
+  milestoneCriteria: string
+  description: string
+  badgeColor: string
+  triggerType: CertificateTriggerType
+  minCompletedSessions: number
+  minAverageRating?: number | null
+  autoIssueEnabled: boolean
+  isActive: boolean
+  svgBodyTemplate?: string | null
+  updatedAt: string
+}
+
+export interface IssuedPsychologistCertificate {
+  id: string
+  certificateNumber: string
+  sequenceNumber: number
+  issueYear: number
+  categoryCode: string
+  counselorId: string
+  templateId?: string | null
+  title: string
+  subtitle: string
+  recipientName: string
+  strNumber: string
+  milestoneCriteria: string
+  categoryLabel: string
+  description: string
+  badgeColor: string
+  triggerSource: 'manual' | 'auto_sessions' | 'auto_rating' | string
+  status: 'active' | 'revoked'
+  issueDateLabel: string
+  issuedAt: string
+  revokedAt?: string | null
+  revocationReason?: string | null
+}
+
+export interface CounselorCertificateEligibility {
+  counselorId: string
+  fullName: string
+  strNumber: string
+  verificationStatus: string
+  completedSessionsCount: number
+  averageRating?: number | null
+  activeCertificatesCount: number
+}
+
+export interface CertificateEvaluationSummary {
+  evaluatedCounselors: number
+  newlyIssuedCount: number
+  issuedCertificates: IssuedPsychologistCertificate[]
+}
+
+export interface PsychologistLevelConfig {
+  id: string
+  levelTier: number
+  name: string
+  badgeIcon: string
+  minCompletedSessions: number
+  minAverageRating: number
+  minConsultationHours: number
+  minReviewCount: number
+  defaultSessionPrice: number
+  platformFeePercentage: number
+  allowCustomPrice: boolean
+  minCustomPrice: number | null
+  maxCustomPrice: number | null
+  isActive: boolean
+  updatedAt: string
+}
+
+export interface LevelEvaluationBatchSummary {
+  evaluatedCounselors: number
+  upgradedCount: number
+  message: string
+}
+
 export interface PortalSession {
   role: 'admin'
   email: string
@@ -229,4 +314,8 @@ export interface PortalDatabase {
   coinEconomyConfig: CoinEconomyConfig
   coinPackages: CoinPackage[]
   coinTransactions: CoinTopupTransaction[]
+  certificateTemplates: CertificateTemplate[]
+  issuedCertificates: IssuedPsychologistCertificate[]
+  eligibleCounselorSummaries: CounselorCertificateEligibility[]
+  psychologistLevels: PsychologistLevelConfig[]
 }

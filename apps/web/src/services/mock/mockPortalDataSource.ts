@@ -12,27 +12,36 @@ import type {
   AdminCoinTopupRequestDto,
   AdminCoinTopupResultDto,
   CreateFaqRequestDto,
+  IssueCertificateRequestDto,
   PublicFaqsResultDto,
   RegisterPsychologistRequestDto,
   UpdateCoinEconomyConfigRequestDto,
   UpdateCrisisConfigRequestDto,
   UpdateFaqRequestDto,
+  UpsertCertificateTemplateRequestDto,
   UpsertCoinPackageRequestDto,
   UpsertPlatformPricingRequestDto,
+  UpsertPsychologistLevelRequestDto,
   VerifyPsychologistRequestDto,
 } from '@/types/api/contracts'
 import type {
+  CertificateEvaluationSummary,
+  CertificateTemplate,
   CoinEconomyConfig,
   CoinPackage,
   CoinTopupTransaction,
   ConsultationSessionMonitoring,
+  CounselorCertificateEligibility,
   CrisisConfig,
   FaqEntry,
   GeneralAppUser,
+  IssuedPsychologistCertificate,
+  LevelEvaluationBatchSummary,
   PlatformPricingConfig,
   PortalDatabase,
   PortalSession,
   Psychologist,
+  PsychologistLevelConfig,
 } from '@/types/domain/portal'
 
 export const PORTAL_DB_CHANGE_EVENT = 'eva:portal-db-updated'
@@ -136,6 +145,19 @@ function hydrateMockDb(parsed: Partial<PortalDatabase>): {
         parsed.coinTransactions && parsed.coinTransactions.length > 0
           ? parsed.coinTransactions
           : INITIAL_MOCK_DB.coinTransactions,
+      certificateTemplates:
+        parsed.certificateTemplates && parsed.certificateTemplates.length > 0
+          ? parsed.certificateTemplates
+          : INITIAL_MOCK_DB.certificateTemplates,
+      issuedCertificates:
+        parsed.issuedCertificates && parsed.issuedCertificates.length > 0
+          ? parsed.issuedCertificates
+          : INITIAL_MOCK_DB.issuedCertificates,
+      eligibleCounselorSummaries: parsed.eligibleCounselorSummaries ?? [],
+      psychologistLevels:
+        parsed.psychologistLevels && parsed.psychologistLevels.length > 0
+          ? parsed.psychologistLevels
+          : INITIAL_MOCK_DB.psychologistLevels,
     },
     needsSave,
   }
@@ -595,5 +617,338 @@ export class MockPortalDataSource implements IPortalDataSource {
     const db = this.loadSnapshot()
     db.faqs = db.faqs.filter((f) => f.id !== id)
     this.saveSnapshot(db)
+  }
+
+  async fetchCertificateTemplates(): Promise<CertificateTemplate[]> {
+    return this.loadSnapshot().certificateTemplates
+  }
+
+  async upsertCertificateTemplate(
+    input: UpsertCertificateTemplateRequestDto,
+  ): Promise<CertificateTemplate> {
+    const db = this.loadSnapshot()
+    const normalizedCode = input.code.trim().toUpperCase().replace(/\s+/g, '-')
+    const today = new Date().toISOString().slice(0, 10)
+    const duplicate = db.certificateTemplates.find(
+      (t) => t.code.toUpperCase() === normalizedCode && t.id !== input.id,
+    )
+    if (duplicate) {
+      throw new Error(`Kode template "${normalizedCode}" sudah digunakan.`)
+    }
+
+    if (input.id) {
+      const idx = db.certificateTemplates.findIndex((t) => t.id === input.id)
+      if (idx !== -1) {
+        const updated: CertificateTemplate = {
+          ...db.certificateTemplates[idx],
+          ...input,
+          id: input.id,
+          code: normalizedCode,
+          categoryCode: input.categoryCode.trim().toUpperCase(),
+          updatedAt: today,
+        }
+        db.certificateTemplates[idx] = updated
+        this.saveSnapshot(db)
+        return updated
+      }
+    }
+
+    const created: CertificateTemplate = {
+      ...input,
+      id: `tpl-${Date.now()}`,
+      code: normalizedCode,
+      categoryCode: input.categoryCode.trim().toUpperCase(),
+      updatedAt: today,
+    }
+    db.certificateTemplates.push(created)
+    this.saveSnapshot(db)
+    return created
+  }
+
+  async toggleCertificateTemplateActive(templateId: string): Promise<CertificateTemplate> {
+    const db = this.loadSnapshot()
+    const idx = db.certificateTemplates.findIndex((t) => t.id === templateId)
+    if (idx === -1) {
+      throw new Error('Template sertifikat tidak ditemukan.')
+    }
+    const updated: CertificateTemplate = {
+      ...db.certificateTemplates[idx],
+      isActive: !db.certificateTemplates[idx].isActive,
+    }
+    db.certificateTemplates[idx] = updated
+    this.saveSnapshot(db)
+    return updated
+  }
+
+  async fetchIssuedCertificates(): Promise<IssuedPsychologistCertificate[]> {
+    return this.loadSnapshot().issuedCertificates
+  }
+
+  async fetchEligibleCounselorsForCertificates(): Promise<CounselorCertificateEligibility[]> {
+    const db = this.loadSnapshot()
+    return db.psychologists
+      .filter((p) => p.verificationStatus === 'verified')
+      .map((p) => {
+        const completedSessionsCount = db.consultationSessions.filter(
+          (s) => s.counselorId === p.id && s.status === 'completed',
+        ).length
+        return {
+          counselorId: p.id,
+          fullName: p.fullName,
+          strNumber: p.strNumber,
+          verificationStatus: p.verificationStatus,
+          completedSessionsCount,
+          averageRating: completedSessionsCount > 0 ? 4.9 : null,
+          activeCertificatesCount: db.issuedCertificates.filter(
+            (c) => c.counselorId === p.id && c.status === 'active',
+          ).length,
+        }
+      })
+  }
+
+  async issueCertificateManual(
+    payload: IssueCertificateRequestDto,
+  ): Promise<IssuedPsychologistCertificate> {
+    const db = this.loadSnapshot()
+    const psy = db.psychologists.find((p) => p.id === payload.counselorId)
+    if (!psy || psy.verificationStatus !== 'verified') {
+      throw new Error('Psikolog tidak ditemukan atau belum terverifikasi.')
+    }
+    const tpl = payload.templateId
+      ? db.certificateTemplates.find((t) => t.id === payload.templateId)
+      : undefined
+    const categoryCode = (
+      payload.customCategoryCode ||
+      tpl?.categoryCode ||
+      'PRO'
+    )
+      .trim()
+      .toUpperCase()
+    const now = new Date()
+    const issueYear = now.getFullYear()
+    const maxSeq = db.issuedCertificates
+      .filter((c) => c.issueYear === issueYear && c.categoryCode === categoryCode)
+      .reduce((max, c) => Math.max(max, c.sequenceNumber), 0)
+    const seq = maxSeq + 1
+    const certNumber = `EVA/CERT/${issueYear}/${categoryCode}/${String(seq).padStart(5, '0')}`
+    const issueDateLabel = now.toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    })
+    const rawDesc =
+      payload.customDescription ||
+      tpl?.description ||
+      'Diberikan kepada {psychologist_name} (STR: {str_number}) No {certificate_number}.'
+
+    const created: IssuedPsychologistCertificate = {
+      id: `cert-${Date.now()}`,
+      certificateNumber: certNumber,
+      sequenceNumber: seq,
+      issueYear,
+      categoryCode,
+      counselorId: psy.id,
+      templateId: tpl?.id ?? null,
+      title: (payload.customTitle || tpl?.title || 'SERTIFIKAT KREDENSIAL EVA').trim(),
+      subtitle: (payload.customSubtitle || tpl?.subtitle || 'Clinical Excellence').trim(),
+      recipientName: psy.fullName,
+      strNumber: psy.strNumber,
+      milestoneCriteria: (
+        payload.customMilestoneCriteria ||
+        tpl?.milestoneCriteria ||
+        'Penghargaan Manual Admin'
+      ).trim(),
+      categoryLabel: (payload.customCategoryLabel || tpl?.categoryLabel || 'Psikolog Mandiri').trim(),
+      description: rawDesc
+        .replaceAll('{psychologist_name}', psy.fullName)
+        .replaceAll('{str_number}', psy.strNumber)
+        .replaceAll('{certificate_number}', certNumber)
+        .replaceAll('{issue_date}', issueDateLabel),
+      badgeColor: payload.customBadgeColor || tpl?.badgeColor || '#2563EB',
+      triggerSource: 'manual',
+      status: 'active',
+      issueDateLabel,
+      issuedAt: now.toISOString(),
+    }
+
+    db.issuedCertificates.unshift(created)
+    this.saveSnapshot(db)
+    return created
+  }
+
+  async evaluateAutoCertificates(): Promise<CertificateEvaluationSummary> {
+    const db = this.loadSnapshot()
+    const verified = db.psychologists.filter((p) => p.verificationStatus === 'verified')
+    const activeAutoTemplates = db.certificateTemplates.filter(
+      (t) => t.isActive && t.autoIssueEnabled && t.triggerType !== 'manual',
+    )
+    const newlyIssued: IssuedPsychologistCertificate[] = []
+
+    for (const psy of verified) {
+      const completedCount = db.consultationSessions.filter(
+        (s) => s.counselorId === psy.id && s.status === 'completed',
+      ).length
+      const avgRating = completedCount > 0 ? 4.9 : 0
+
+      for (const tpl of activeAutoTemplates) {
+        const exists = db.issuedCertificates.some(
+          (c) => c.counselorId === psy.id && c.templateId === tpl.id && c.status === 'active',
+        )
+        if (exists) continue
+        if (completedCount < tpl.minCompletedSessions) continue
+        if (
+          tpl.triggerType === 'rating_milestone' &&
+          avgRating < (tpl.minAverageRating ?? 4.8)
+        ) {
+          continue
+        }
+        const issued = await this.issueCertificateManual({
+          counselorId: psy.id,
+          templateId: tpl.id,
+        })
+        issued.triggerSource =
+          tpl.triggerType === 'rating_milestone' ? 'auto_rating' : 'auto_sessions'
+        newlyIssued.push(issued)
+      }
+    }
+
+    return {
+      evaluatedCounselors: verified.length,
+      newlyIssuedCount: newlyIssued.length,
+      issuedCertificates: newlyIssued,
+    }
+  }
+
+  async revokeCertificate(
+    certificateId: string,
+    reason: string,
+  ): Promise<IssuedPsychologistCertificate> {
+    const db = this.loadSnapshot()
+    const idx = db.issuedCertificates.findIndex((c) => c.id === certificateId)
+    if (idx === -1) {
+      throw new Error('Sertifikat tidak ditemukan.')
+    }
+    const updated: IssuedPsychologistCertificate = {
+      ...db.issuedCertificates[idx],
+      status: 'revoked',
+      revokedAt: new Date().toISOString(),
+      revocationReason: reason.trim(),
+    }
+    db.issuedCertificates[idx] = updated
+    this.saveSnapshot(db)
+    return updated
+  }
+
+  async downloadCertificatePdf(certificateId: string): Promise<{ blob: Blob; filename: string }> {
+    const cert = this.loadSnapshot().issuedCertificates.find((c) => c.id === certificateId)
+    if (!cert) {
+      throw new Error('Sertifikat tidak ditemukan.')
+    }
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560"><rect width="800" height="560" fill="#FCFDFE"/><text x="400" y="120" text-anchor="middle" font-size="22" font-weight="bold">${cert.title}</text><text x="400" y="200" text-anchor="middle" font-size="28">${cert.recipientName}</text><text x="400" y="250" text-anchor="middle" font-size="14">${cert.certificateNumber} | ${cert.strNumber}</text></svg>`
+    return {
+      blob: new Blob([svg], { type: 'image/svg+xml' }),
+      filename: `${cert.certificateNumber.replaceAll('/', '_')}.svg`,
+    }
+  }
+
+  async fetchPsychologistLevels(): Promise<PsychologistLevelConfig[]> {
+    return [...this.loadSnapshot().psychologistLevels].sort((a, b) => a.levelTier - b.levelTier)
+  }
+
+  async createPsychologistLevel(
+    input: UpsertPsychologistLevelRequestDto,
+  ): Promise<PsychologistLevelConfig> {
+    const db = this.loadSnapshot()
+    if (db.psychologistLevels.some((l) => l.levelTier === input.levelTier)) {
+      throw new Error(`Tier level #${input.levelTier} sudah digunakan.`)
+    }
+    const created: PsychologistLevelConfig = {
+      id: `lvl-${Date.now()}`,
+      levelTier: input.levelTier,
+      name: input.name.trim(),
+      badgeIcon: input.badgeIcon.trim() || 'award',
+      minCompletedSessions: input.minCompletedSessions,
+      minAverageRating: input.minAverageRating,
+      minConsultationHours: input.minConsultationHours,
+      minReviewCount: input.minReviewCount,
+      defaultSessionPrice: input.defaultSessionPrice,
+      platformFeePercentage: input.platformFeePercentage,
+      allowCustomPrice: input.allowCustomPrice,
+      minCustomPrice: input.allowCustomPrice ? (input.minCustomPrice ?? null) : null,
+      maxCustomPrice: input.allowCustomPrice ? (input.maxCustomPrice ?? null) : null,
+      isActive: input.isActive,
+      updatedAt: new Date().toISOString().slice(0, 10),
+    }
+    db.psychologistLevels.push(created)
+    db.psychologistLevels.sort((a, b) => a.levelTier - b.levelTier)
+    this.saveSnapshot(db)
+    return created
+  }
+
+  async updatePsychologistLevel(
+    levelId: string,
+    input: UpsertPsychologistLevelRequestDto,
+  ): Promise<PsychologistLevelConfig> {
+    const db = this.loadSnapshot()
+    const idx = db.psychologistLevels.findIndex((l) => l.id === levelId)
+    if (idx === -1) {
+      throw new Error('Konfigurasi level tidak ditemukan.')
+    }
+    if (db.psychologistLevels.some((l) => l.id !== levelId && l.levelTier === input.levelTier)) {
+      throw new Error(`Tier level #${input.levelTier} sudah digunakan tier lain.`)
+    }
+    const updated: PsychologistLevelConfig = {
+      ...db.psychologistLevels[idx],
+      levelTier: input.levelTier,
+      name: input.name.trim(),
+      badgeIcon: input.badgeIcon.trim() || 'award',
+      minCompletedSessions: input.minCompletedSessions,
+      minAverageRating: input.minAverageRating,
+      minConsultationHours: input.minConsultationHours,
+      minReviewCount: input.minReviewCount,
+      defaultSessionPrice: input.defaultSessionPrice,
+      platformFeePercentage: input.platformFeePercentage,
+      allowCustomPrice: input.allowCustomPrice,
+      minCustomPrice: input.allowCustomPrice ? (input.minCustomPrice ?? null) : null,
+      maxCustomPrice: input.allowCustomPrice ? (input.maxCustomPrice ?? null) : null,
+      isActive: input.isActive,
+      updatedAt: new Date().toISOString().slice(0, 10),
+    }
+    db.psychologistLevels[idx] = updated
+    db.psychologistLevels.sort((a, b) => a.levelTier - b.levelTier)
+    this.saveSnapshot(db)
+    return updated
+  }
+
+  async togglePsychologistLevelActive(levelId: string): Promise<PsychologistLevelConfig> {
+    const db = this.loadSnapshot()
+    const idx = db.psychologistLevels.findIndex((l) => l.id === levelId)
+    if (idx === -1) {
+      throw new Error('Konfigurasi level tidak ditemukan.')
+    }
+    const updated: PsychologistLevelConfig = {
+      ...db.psychologistLevels[idx],
+      isActive: !db.psychologistLevels[idx].isActive,
+      updatedAt: new Date().toISOString().slice(0, 10),
+    }
+    db.psychologistLevels[idx] = updated
+    this.saveSnapshot(db)
+    return updated
+  }
+
+  async deletePsychologistLevel(levelId: string): Promise<void> {
+    const db = this.loadSnapshot()
+    db.psychologistLevels = db.psychologistLevels.filter((l) => l.id !== levelId)
+    this.saveSnapshot(db)
+  }
+
+  async evaluateAllPsychologistLevels(): Promise<LevelEvaluationBatchSummary> {
+    const db = this.loadSnapshot()
+    const verifiedCount = db.psychologists.filter((p) => p.verificationStatus === 'verified').length
+    return {
+      evaluatedCounselors: verifiedCount,
+      upgradedCount: verifiedCount > 0 ? 1 : 0,
+      message: `Evaluasi selesai untuk ${verifiedCount} psikolog terverifikasi sesuai konfigurasi tier aktif.`,
+    }
   }
 }
