@@ -468,8 +468,7 @@ class _PatientDetailConsentScreenState
 
   // TAB 1: GRANTED CONSENT VIEW (GATED BY ACTIVE/UPCOMING SCHEDULE)
   Widget _buildConsentGrantedContent(dynamic patient) {
-    final bool hasActiveSchedule =
-        patient.upcomingSchedule != null && !patient.upcomingSchedule!.isCompleted;
+    final bool hasActiveSchedule = patient.upcomingSchedule != null;
     final bool isAccessAllowed = hasActiveSchedule || _sessionUnlocked;
 
     if (!isAccessAllowed) {
@@ -751,7 +750,8 @@ class _PatientDetailConsentScreenState
 
           // IN-CALL QUICK NOTES (Catatan Singkat Selama Sesi Video Call)
           Builder(builder: (context) {
-            final sessionId = patient.upcomingSchedule?.sessionId ?? 'session-live-001';
+            final sessionId = patient.upcomingSchedule?.sessionId;
+            if (sessionId == null || sessionId.isEmpty) return const SizedBox.shrink();
             final liveNotes = ref.watch(videoCallControllerProvider(sessionId)).realTimeNotes;
             if (liveNotes.isEmpty) return const SizedBox.shrink();
 
@@ -1047,10 +1047,20 @@ class _PatientDetailConsentScreenState
               label: 'Masuk Ruang Video Call Sekarang',
               icon: Icons.videocam_rounded,
               onPressed: () async {
+                final sessionId = schedule.sessionId;
+                if (sessionId == null || sessionId.isEmpty) {
+                  TopToast.show(
+                    context,
+                    title: 'Jadwal Belum Aktif',
+                    message: 'ID sesi konsultasi belum tersedia untuk panggilan video.',
+                    type: ToastType.warning,
+                  );
+                  return;
+                }
                 final finished = await Navigator.of(context).pushNamed(
                   '/counselor-video-call',
                   arguments: {
-                    'sessionId': schedule.sessionId ?? 'session-live-001',
+                    'sessionId': sessionId,
                     'patientName': patient.name,
                     'scheduledTime': schedule.timeRange,
                     'isLiveNow': schedule.isLiveNow,
@@ -1060,7 +1070,7 @@ class _PatientDetailConsentScreenState
                 if (finished == true && mounted) {
                   setState(() {
                     _sessionUnlocked = true;
-                    final liveNotes = ref.read(videoCallControllerProvider(schedule.sessionId ?? 'session-live-001')).realTimeNotes;
+                    final liveNotes = ref.read(videoCallControllerProvider(sessionId)).realTimeNotes;
                     if (liveNotes.isNotEmpty) {
                       _subjCtrl.text = 'Catatan observasi sesi:\n• ${liveNotes.join('\n• ')}';
                     }
@@ -1165,10 +1175,20 @@ class _PatientDetailConsentScreenState
               label: 'Masuk / Standby Ruang Video Call',
               icon: Icons.videocam_rounded,
               onPressed: () async {
+                final sessionId = schedule.sessionId;
+                if (sessionId == null || sessionId.isEmpty) {
+                  TopToast.show(
+                    context,
+                    title: 'Jadwal Belum Aktif',
+                    message: 'ID sesi konsultasi belum tersedia untuk panggilan video.',
+                    type: ToastType.warning,
+                  );
+                  return;
+                }
                 final finished = await Navigator.of(context).pushNamed(
                   '/counselor-video-call',
                   arguments: {
-                    'sessionId': schedule.sessionId ?? 'session-live-001',
+                    'sessionId': sessionId,
                     'patientName': patient.name,
                     'scheduledTime': schedule.timeRange,
                     'isLiveNow': schedule.isLiveNow,
@@ -1178,7 +1198,7 @@ class _PatientDetailConsentScreenState
                 if (finished == true && mounted) {
                   setState(() {
                     _sessionUnlocked = true;
-                    final liveNotes = ref.read(videoCallControllerProvider(schedule.sessionId ?? 'session-live-001')).realTimeNotes;
+                    final liveNotes = ref.read(videoCallControllerProvider(sessionId)).realTimeNotes;
                     if (liveNotes.isNotEmpty) {
                       _subjCtrl.text = 'Catatan observasi sesi:\n• ${liveNotes.join('\n• ')}';
                     }
