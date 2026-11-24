@@ -64,4 +64,15 @@ export {
   updateWaitlistStatus,
   upsertCoinPackage,
 } from '@/services/portal/ecosystemService'
+export {
+  downloadCertificatePdf,
+  evaluateAutoCertificates,
+  fetchCertificateTemplates,
+  fetchEligibleCounselorsForCertificates,
+  fetchIssuedCertificates,
+  issueCertificateManual,
+  revokeCertificate,
+  toggleCertificateTemplateActive,
+  upsertCertificateTemplate,
+} from '@/services/portal/certificateService'
 export { usePortalDb } from '@/hooks/usePortalDb'

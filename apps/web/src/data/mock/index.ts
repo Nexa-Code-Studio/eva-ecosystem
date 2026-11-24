@@ -1,4 +1,8 @@
 import { MOCK_ADMIN_ACCOUNT } from './auth.mock'
+import {
+  INITIAL_CERTIFICATE_TEMPLATES,
+  INITIAL_ISSUED_CERTIFICATES,
+} from './certificates.mock'
 import { generateCertificateSvgUri } from './certificateSvgTemplates'
 import {
   INITIAL_COIN_ECONOMY_CONFIG,
@@ -44,6 +48,8 @@ export {
   INITIAL_PRICING_HISTORY,
   INITIAL_PSYCHOLOGISTS,
   INITIAL_WAITLIST,
+  INITIAL_CERTIFICATE_TEMPLATES,
+  INITIAL_ISSUED_CERTIFICATES,
   MOCK_ADMIN_ACCOUNT,
   MOCK_BASELINE_DASS,
   MOCK_BASELINE_USERS,
@@ -68,4 +74,7 @@ export const INITIAL_MOCK_DB: PortalDatabase = {
   coinEconomyConfig: INITIAL_COIN_ECONOMY_CONFIG,
   coinPackages: INITIAL_COIN_PACKAGES,
   coinTransactions: INITIAL_COIN_TRANSACTIONS,
+  certificateTemplates: INITIAL_CERTIFICATE_TEMPLATES,
+  issuedCertificates: INITIAL_ISSUED_CERTIFICATES,
+  eligibleCounselorSummaries: [],
 }

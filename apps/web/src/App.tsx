@@ -32,6 +32,11 @@ const AdminContentConfigRoute = lazy(() =>
     default: m.AdminContentConfigRoute,
   })),
 )
+const AdminCertificatesRoute = lazy(() =>
+  import('@/pages/AdminDashboardPage').then((m) => ({
+    default: m.AdminCertificatesRoute,
+  })),
+)
 
 const router = createBrowserRouter([
   {
@@ -81,6 +86,14 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={<div className="min-h-[400px] animate-pulse rounded-xl bg-white/50" />}>
             <AdminPsychologistsRoute />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'certificates',
+        element: (
+          <Suspense fallback={<div className="min-h-[400px] animate-pulse rounded-xl bg-white/50" />}>
+            <AdminCertificatesRoute />
           </Suspense>
         ),
       },
