@@ -866,8 +866,8 @@ class _PsychologistRegistrationScreenState
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                     ),
-                    icon: Image.network(
-                      'https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png',
+                    icon: Image.asset(
+                      'assets/images/google_logo.png',
                       width: 18,
                       height: 18,
                       errorBuilder: (context, error, stackTrace) => const Icon(
