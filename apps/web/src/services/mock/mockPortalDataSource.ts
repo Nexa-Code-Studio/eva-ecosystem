@@ -11,8 +11,12 @@ import {
 import type {
   AdminCoinTopupRequestDto,
   AdminCoinTopupResultDto,
+  CreateFaqRequestDto,
+  PublicFaqsResultDto,
   RegisterPsychologistRequestDto,
   UpdateCoinEconomyConfigRequestDto,
+  UpdateCrisisConfigRequestDto,
+  UpdateFaqRequestDto,
   UpsertCoinPackageRequestDto,
   UpsertPlatformPricingRequestDto,
   VerifyPsychologistRequestDto,
@@ -22,6 +26,8 @@ import type {
   CoinPackage,
   CoinTopupTransaction,
   ConsultationSessionMonitoring,
+  CrisisConfig,
+  FaqEntry,
   GeneralAppUser,
   PlatformPricingConfig,
   PortalDatabase,
@@ -501,6 +507,93 @@ export class MockPortalDataSource implements IPortalDataSource {
   async deleteCoinPackage(packageId: string): Promise<void> {
     const db = this.loadSnapshot()
     db.coinPackages = db.coinPackages.filter((p) => p.id !== packageId)
+    this.saveSnapshot(db)
+  }
+
+  async fetchCrisisConfig(): Promise<CrisisConfig> {
+    return this.loadSnapshot().crisisConfig
+  }
+
+  async updateCrisisConfig(updates: UpdateCrisisConfigRequestDto): Promise<CrisisConfig> {
+    const db = this.loadSnapshot()
+    const today = new Date().toISOString().slice(0, 10)
+    const updated: CrisisConfig = {
+      ...db.crisisConfig,
+      ...updates,
+      hotlineNumber: (updates.hotlineNumber ?? db.crisisConfig.hotlineNumber).trim().toUpperCase(),
+      hotlineLabel: (updates.hotlineLabel ?? db.crisisConfig.hotlineLabel).trim(),
+      updatedAt: today,
+    }
+    db.crisisConfig = updated
+    this.saveSnapshot(db)
+    return updated
+  }
+
+  async fetchPublicFaqs(): Promise<PublicFaqsResultDto> {
+    const published = this.loadSnapshot()
+      .faqs.filter((f) => f.isPublished)
+      .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
+    return { items: published, fromServer: true }
+  }
+
+  async fetchAdminFaqs(): Promise<FaqEntry[]> {
+    return [...this.loadSnapshot().faqs].sort(
+      (a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999),
+    )
+  }
+
+  async createFaqEntry(input: CreateFaqRequestDto): Promise<FaqEntry> {
+    const db = this.loadSnapshot()
+    const maxOrder = db.faqs.reduce((max, item, idx) => Math.max(max, item.sortOrder ?? idx + 1), 0)
+    const created: FaqEntry = {
+      id: `faq-${Date.now()}`,
+      category: input.category.trim().toUpperCase(),
+      question: input.question.trim(),
+      answer: input.answer.trim(),
+      isPublished: input.isPublished ?? true,
+      sortOrder: input.sortOrder ?? maxOrder + 1,
+    }
+    db.faqs = [...db.faqs, created].sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
+    this.saveSnapshot(db)
+    return created
+  }
+
+  async updateFaqEntry(id: string, input: UpdateFaqRequestDto): Promise<FaqEntry> {
+    const db = this.loadSnapshot()
+    const idx = db.faqs.findIndex((f) => f.id === id)
+    if (idx === -1) {
+      throw new Error('Entri FAQ tidak ditemukan.')
+    }
+    const existing = db.faqs[idx]
+    const updated: FaqEntry = {
+      ...existing,
+      category: input.category.trim().toUpperCase(),
+      question: input.question.trim(),
+      answer: input.answer.trim(),
+      sortOrder: input.sortOrder ?? existing.sortOrder,
+      isPublished: input.isPublished ?? existing.isPublished,
+    }
+    db.faqs[idx] = updated
+    db.faqs = [...db.faqs].sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
+    this.saveSnapshot(db)
+    return updated
+  }
+
+  async toggleFaqPublished(id: string): Promise<FaqEntry> {
+    const db = this.loadSnapshot()
+    const idx = db.faqs.findIndex((f) => f.id === id)
+    if (idx === -1) {
+      throw new Error('Entri FAQ tidak ditemukan.')
+    }
+    const updated: FaqEntry = { ...db.faqs[idx], isPublished: !db.faqs[idx].isPublished }
+    db.faqs[idx] = updated
+    this.saveSnapshot(db)
+    return updated
+  }
+
+  async deleteFaqEntry(id: string): Promise<void> {
+    const db = this.loadSnapshot()
+    db.faqs = db.faqs.filter((f) => f.id !== id)
     this.saveSnapshot(db)
   }
 }

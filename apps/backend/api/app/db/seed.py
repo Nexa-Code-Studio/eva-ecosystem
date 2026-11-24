@@ -9,6 +9,7 @@ from app.core.security import hash_password
 from app.core.tz import get_wib_today
 from app.models.base import BaseModel
 from app.models.coin import CoinEconomyConfig, CoinPackage
+from app.models.content import CrisisConfig, FaqEntry
 from app.models.counselor import (
     ConsultationSession,
     CounselorTransaction,
@@ -498,6 +499,66 @@ async def seed_master_data() -> User:
             )
             await session.commit()
             logger.info("Seeded initial 4 CoinPackage catalog items.")
+
+        # 8. Seed SafetyNet Crisis Config & Website FAQs (only if empty)
+        crisis_count = await session.scalar(select(func.count(CrisisConfig.id)))
+        if (crisis_count or 0) == 0:
+            session.add(
+                CrisisConfig(
+                    hotline_number="119 EXT 8",
+                    hotline_label="Layanan Darurat Kemenkes RI",
+                    extreme_depression_threshold=28,
+                    extreme_anxiety_threshold=20,
+                    auto_safety_net_modal=True,
+                    allow_direct_independent_referral=True,
+                )
+            )
+            await session.commit()
+            logger.info("Seeded default CrisisConfig.")
+
+        faq_count = await session.scalar(select(func.count(FaqEntry.id)))
+        if (faq_count or 0) == 0:
+            session.add_all(
+                [
+                    FaqEntry(
+                        category="PRIVASI & KEAMANAN",
+                        question="Apakah rekaman suara dan isi curhat saya benar-benar aman?",
+                        answer="Ya, 100% privat. EVA menerapkan arsitektur On-Device Data Sovereignty: catatan refleksi dan riwayat percakapanmu dienkripsi langsung di perangkatmu, tidak dijual ke pihak ketiga, dan tidak digunakan untuk melatih model iklan publik.",
+                        is_published=True,
+                        sort_order=1,
+                    ),
+                    FaqEntry(
+                        category="BIAYA & EVA COIN",
+                        question="Bagaimana sistem biaya dan penggunaan Koin di aplikasi EVA?",
+                        answer="Fitur Misi Koping Harian, Diari Otomatis, dan Skrining DASS-21 dapat diakses gratis. Untuk seluruh layanan berbayar EVA — baik Curhat Suara AI 24/7 (1 Koin = 1 menit berbicara) maupun telekonsultasi psikolog profesional (tarif Koin per sesi 30 menit) — EVA menggunakan mata uang terpadu EVA Coin (kurs dasar Rp1.000/Koin dengan pilihan paket top-up hemat). Setiap pengguna baru otomatis mendapatkan bonus 10 Koin gratis.",
+                        is_published=True,
+                        sort_order=2,
+                    ),
+                    FaqEntry(
+                        category="BATAS KLINIS",
+                        question="Apakah EVA menggantikan peran psikolog atau psikiater?",
+                        answer="Tidak. EVA adalah pendamping pertolongan pertama emosional (digital first-aid) yang disupervisi oleh psikolog klinis (HIMPSI) dan bersifat non-diagnostik. Jika hasil skrining DASS-21 menunjukkan perlunya pendampingan lanjutan, EVA justru membantumu terhubung ke psikolog profesional.",
+                        is_published=True,
+                        sort_order=3,
+                    ),
+                    FaqEntry(
+                        category="PROTOKOL DARURAT",
+                        question="Apa yang terjadi jika saya berada dalam kondisi krisis darurat?",
+                        answer="EVA dilengkapi protokol keselamatan 24/7 SafetyNet berstandar WHO. Ketika terdeteksi indikasi krisis atau bahaya diri, EVA segera menghentikan percakapan biasa dan menyediakan akses satu sentuhan ke layanan darurat bebas pulsa Kemenkes (119 Ext 8) serta kontak orang kepercayaanmu.",
+                        is_published=True,
+                        sort_order=4,
+                    ),
+                    FaqEntry(
+                        category="KETERSEDIAAN PERANGKAT",
+                        question="Di perangkat apa saja saya bisa mengunduh EVA?",
+                        answer="Saat ini versi Beta (APK) dapat langsung kamu unduh dan pasang untuk perangkat Android melalui tombol unduh di halaman ini. Versi iOS sedang dalam tahap pengujian akhir.",
+                        is_published=True,
+                        sort_order=5,
+                    ),
+                ]
+            )
+            await session.commit()
+            logger.info("Seeded initial 5 website FAQ entries.")
 
         return user
 

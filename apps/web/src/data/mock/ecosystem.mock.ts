@@ -309,10 +309,11 @@ export const INITIAL_WAITLIST: WaitlistEntry[] = [
   },
 ]
 
-export const INITIAL_FAQS: FaqEntry[] = defaultFaqs.map((f) => ({
+export const INITIAL_FAQS: FaqEntry[] = defaultFaqs.map((f, index) => ({
   id: f.id,
   category: f.category,
   question: f.question,
   answer: f.answer,
   isPublished: true,
+  sortOrder: index + 1,
 }))

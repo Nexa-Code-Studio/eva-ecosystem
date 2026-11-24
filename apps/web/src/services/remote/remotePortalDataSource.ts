@@ -8,6 +8,8 @@ import {
   mapBackendCoinEconomyToDomain,
   mapBackendCoinPackageToDomain,
   mapBackendCoinTransactionToDomain,
+  mapBackendCrisisConfigToDomain,
+  mapBackendFaqToDomain,
   mapBackendPricingToDomain,
   mapBackendPsychologistToDomain,
   normalizeVerificationStatus,
@@ -23,10 +25,16 @@ import type {
   BackendCoinEconomyConfigDto,
   BackendCoinPackageDto,
   BackendCoinTransactionDto,
+  BackendCrisisConfigDto,
+  BackendFaqEntryDto,
   BackendPricingConfigResponseDto,
   BackendPsychologistProfileResponseDto,
+  CreateFaqRequestDto,
+  PublicFaqsResultDto,
   RegisterPsychologistRequestDto,
   UpdateCoinEconomyConfigRequestDto,
+  UpdateCrisisConfigRequestDto,
+  UpdateFaqRequestDto,
   UpsertCoinPackageRequestDto,
   UpsertPlatformPricingRequestDto,
   VerifyPsychologistRequestDto,
@@ -36,6 +44,8 @@ import type {
   CoinPackage,
   CoinTopupTransaction,
   ConsultationSessionMonitoring,
+  CrisisConfig,
+  FaqEntry,
   GeneralAppUser,
   PlatformPricingConfig,
   PortalDatabase,
@@ -595,6 +605,129 @@ export class RemotePortalDataSource implements IPortalDataSource {
     })
     this.updateSnapshot((db) => {
       db.coinPackages = db.coinPackages.filter((p) => p.id !== packageId)
+    })
+  }
+
+  async fetchCrisisConfig(): Promise<CrisisConfig> {
+    try {
+      const dto = await this.requestJson<BackendCrisisConfigDto>('/content/crisis-config')
+      const mapped = mapBackendCrisisConfigToDomain(dto)
+      this.updateSnapshot((db) => {
+        db.crisisConfig = mapped
+      })
+      return mapped
+    } catch {
+      return this.loadSnapshot().crisisConfig
+    }
+  }
+
+  async updateCrisisConfig(updates: UpdateCrisisConfigRequestDto): Promise<CrisisConfig> {
+    const current = this.loadSnapshot().crisisConfig
+    const dto = await this.requestJson<BackendCrisisConfigDto>('/admin/content/crisis-config', {
+      method: 'PUT',
+      body: JSON.stringify({
+        hotline_number: (updates.hotlineNumber ?? current.hotlineNumber).trim().toUpperCase(),
+        hotline_label: (updates.hotlineLabel ?? current.hotlineLabel).trim(),
+        extreme_depression_threshold: Math.trunc(
+          updates.extremeDepressionThreshold ?? current.extremeDepressionThreshold,
+        ),
+        extreme_anxiety_threshold: Math.trunc(
+          updates.extremeAnxietyThreshold ?? current.extremeAnxietyThreshold,
+        ),
+        auto_safety_net_modal:
+          updates.autoSafetyNetModal ?? current.autoSafetyNetModal,
+        allow_direct_independent_referral:
+          updates.allowDirectIndependentReferral ?? current.allowDirectIndependentReferral,
+      }),
+    })
+    const mapped = mapBackendCrisisConfigToDomain(dto)
+    this.updateSnapshot((db) => {
+      db.crisisConfig = mapped
+    })
+    return mapped
+  }
+
+  async fetchPublicFaqs(): Promise<PublicFaqsResultDto> {
+    try {
+      const list = await this.requestJson<BackendFaqEntryDto[]>('/content/faqs')
+      return { items: list.map(mapBackendFaqToDomain), fromServer: true }
+    } catch {
+      return { items: [], fromServer: false }
+    }
+  }
+
+  async fetchAdminFaqs(): Promise<FaqEntry[]> {
+    try {
+      const list = await this.requestJson<BackendFaqEntryDto[]>('/admin/content/faqs')
+      const mapped = list.map(mapBackendFaqToDomain)
+      this.updateSnapshot((db) => {
+        db.faqs = mapped
+      })
+      return mapped
+    } catch {
+      return this.loadSnapshot().faqs
+    }
+  }
+
+  async createFaqEntry(input: CreateFaqRequestDto): Promise<FaqEntry> {
+    const dto = await this.requestJson<BackendFaqEntryDto>('/admin/content/faqs', {
+      method: 'POST',
+      body: JSON.stringify({
+        category: input.category.trim().toUpperCase(),
+        question: input.question.trim(),
+        answer: input.answer.trim(),
+        sort_order: input.sortOrder ?? null,
+        is_published: input.isPublished ?? true,
+      }),
+    })
+    const mapped = mapBackendFaqToDomain(dto)
+    this.updateSnapshot((db) => {
+      this.upsertItem(db.faqs, mapped, 'end')
+      db.faqs.sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
+    })
+    return mapped
+  }
+
+  async updateFaqEntry(id: string, input: UpdateFaqRequestDto): Promise<FaqEntry> {
+    const dto = await this.requestJson<BackendFaqEntryDto>(
+      `/admin/content/faqs/${encodeURIComponent(id)}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          category: input.category.trim().toUpperCase(),
+          question: input.question.trim(),
+          answer: input.answer.trim(),
+          sort_order: input.sortOrder ?? null,
+          is_published: input.isPublished ?? null,
+        }),
+      },
+    )
+    const mapped = mapBackendFaqToDomain(dto)
+    this.updateSnapshot((db) => {
+      this.upsertItem(db.faqs, mapped, 'end')
+      db.faqs.sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
+    })
+    return mapped
+  }
+
+  async toggleFaqPublished(id: string): Promise<FaqEntry> {
+    const dto = await this.requestJson<BackendFaqEntryDto>(
+      `/admin/content/faqs/${encodeURIComponent(id)}/toggle`,
+      { method: 'PATCH' },
+    )
+    const mapped = mapBackendFaqToDomain(dto)
+    this.updateSnapshot((db) => {
+      this.upsertItem(db.faqs, mapped, 'end')
+    })
+    return mapped
+  }
+
+  async deleteFaqEntry(id: string): Promise<void> {
+    await this.requestJson(`/admin/content/faqs/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    })
+    this.updateSnapshot((db) => {
+      db.faqs = db.faqs.filter((f) => f.id !== id)
     })
   }
 }

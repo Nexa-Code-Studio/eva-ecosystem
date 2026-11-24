@@ -1,8 +1,12 @@
 import type {
   AdminCoinTopupRequestDto,
   AdminCoinTopupResultDto,
+  CreateFaqRequestDto,
+  PublicFaqsResultDto,
   RegisterPsychologistRequestDto,
   UpdateCoinEconomyConfigRequestDto,
+  UpdateCrisisConfigRequestDto,
+  UpdateFaqRequestDto,
   UpsertCoinPackageRequestDto,
   UpsertPlatformPricingRequestDto,
   VerifyPsychologistRequestDto,
@@ -13,6 +17,8 @@ import type {
   CoinPackage,
   CoinTopupTransaction,
   ConsultationSessionMonitoring,
+  CrisisConfig,
+  FaqEntry,
   GeneralAppUser,
   PlatformPricingConfig,
   PortalDatabase,
@@ -70,4 +76,12 @@ export interface IPortalDataSource {
   upsertCoinPackage(input: UpsertCoinPackageRequestDto): Promise<CoinPackage>
   toggleCoinPackageActive(packageId: string): Promise<CoinPackage>
   deleteCoinPackage(packageId: string): Promise<void>
+  fetchCrisisConfig(): Promise<CrisisConfig>
+  updateCrisisConfig(updates: UpdateCrisisConfigRequestDto): Promise<CrisisConfig>
+  fetchPublicFaqs(): Promise<PublicFaqsResultDto>
+  fetchAdminFaqs(): Promise<FaqEntry[]>
+  createFaqEntry(input: CreateFaqRequestDto): Promise<FaqEntry>
+  updateFaqEntry(id: string, input: UpdateFaqRequestDto): Promise<FaqEntry>
+  toggleFaqPublished(id: string): Promise<FaqEntry>
+  deleteFaqEntry(id: string): Promise<void>
 }

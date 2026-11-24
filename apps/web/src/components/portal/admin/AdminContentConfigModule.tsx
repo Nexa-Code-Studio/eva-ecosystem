@@ -1,74 +1,272 @@
-import { useState, type FormEvent } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { Loader2, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
+import { TablePagination } from '@/components/portal/TablePagination'
+import { useUrlPagination } from '@/hooks/useUrlPagination'
 import { cn } from '@/lib/cn'
-import type { PortalDatabase } from '@/types/portal'
 import {
   addFaqEntry,
   deleteFaqEntry,
+  fetchAdminFaqs,
+  fetchCrisisConfig,
   toggleFaqPublished,
   updateCrisisConfig,
-} from '@/services/portal/ecosystemService'
+  updateFaqEntry,
+  type FaqEntry,
+  type PortalDatabase,
+} from '@/lib/portalStore'
 
 interface AdminContentConfigModuleProps {
   db: PortalDatabase
   onFeedback: (message: string) => void
 }
 
-export function AdminContentConfigModule({ db, onFeedback }: AdminContentConfigModuleProps) {
-  // Crisis SafetyNet Protocol state
-  const [hotlineNumber, setHotlineNumber] = useState(db.crisisConfig.hotlineNumber)
-  const [hotlineLabel, setHotlineLabel] = useState(db.crisisConfig.hotlineLabel)
-  const [extremeDep, setExtremeDep] = useState(String(db.crisisConfig.extremeDepressionThreshold))
-  const [extremeAnx, setExtremeAnx] = useState(String(db.crisisConfig.extremeAnxietyThreshold))
-  const [autoSafetyNet, setAutoSafetyNet] = useState(db.crisisConfig.autoSafetyNetModal)
-  const [allowDirectMandiri, setAllowDirectMandiri] = useState(
-    db.crisisConfig.allowDirectIndependentReferral,
-  )
+type CrisisDraft = {
+  hotlineNumber?: string
+  hotlineLabel?: string
+  extremeDep?: string
+  extremeAnx?: string
+  autoSafetyNet?: boolean
+  allowDirectMandiri?: boolean
+}
 
-  // FAQ state
+export function AdminContentConfigModule({ db, onFeedback }: AdminContentConfigModuleProps) {
+  // Crisis SafetyNet Protocol draft overrides (falls back cleanly to live db.crisisConfig)
+  const [crisisDraft, setCrisisDraft] = useState<CrisisDraft | null>(null)
+  const [savingCrisis, setSavingCrisis] = useState(false)
+
+  const hotlineNumber = crisisDraft?.hotlineNumber ?? db.crisisConfig.hotlineNumber
+  const hotlineLabel = crisisDraft?.hotlineLabel ?? db.crisisConfig.hotlineLabel
+  const extremeDep =
+    crisisDraft?.extremeDep ?? String(db.crisisConfig.extremeDepressionThreshold)
+  const extremeAnx =
+    crisisDraft?.extremeAnx ?? String(db.crisisConfig.extremeAnxietyThreshold)
+  const autoSafetyNet = crisisDraft?.autoSafetyNet ?? db.crisisConfig.autoSafetyNetModal
+  const allowDirectMandiri =
+    crisisDraft?.allowDirectMandiri ?? db.crisisConfig.allowDirectIndependentReferral
+
+  const patchCrisisDraft = (patch: Partial<CrisisDraft>) => {
+    setCrisisDraft((prev) => ({ ...(prev ?? {}), ...patch }))
+  }
+
+  // FAQ CMS state
+  const [editingFaqId, setEditingFaqId] = useState<string | null>(null)
   const [faqCategory, setFaqCategory] = useState('KEAMANAN & PRIVASI')
   const [faqQuestion, setFaqQuestion] = useState('')
   const [faqAnswer, setFaqAnswer] = useState('')
+  const [faqSortOrder, setFaqSortOrder] = useState('')
+  const [faqSearch, setFaqSearch] = useState('')
+  const [savingFaq, setSavingFaq] = useState(false)
+  const [pendingFaqId, setPendingFaqId] = useState<string | null>(null)
+  const [loadingData, setLoadingData] = useState(true)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const handleSaveCrisisConfig = (e: FormEvent) => {
-    e.preventDefault()
-    updateCrisisConfig({
-      hotlineNumber,
-      hotlineLabel,
-      extremeDepressionThreshold: Number(extremeDep) || 28,
-      extremeAnxietyThreshold: Number(extremeAnx) || 20,
-      autoSafetyNetModal: autoSafetyNet,
-      allowDirectIndependentReferral: allowDirectMandiri,
-    })
-    onFeedback(
-      'Konfigurasi Protokol Krisis SafetyNet & Rujukan Psikolog Mandiri berhasil diperbarui.',
+  const faqFormRef = useRef<HTMLDivElement>(null)
+  const faqListCardRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    let active = true
+    Promise.all([fetchCrisisConfig(), fetchAdminFaqs()])
+      .then(() => {
+        if (active) setErrorMessage(null)
+      })
+      .catch((err) => {
+        if (active) {
+          setErrorMessage(
+            err instanceof Error ? err.message : 'Gagal memuat konfigurasi konten dari server.',
+          )
+        }
+      })
+      .finally(() => {
+        if (active) setLoadingData(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const sortedFaqs = useMemo(
+    () =>
+      [...db.faqs].sort(
+        (a, b) => (a.sortOrder ?? Number.MAX_SAFE_INTEGER) - (b.sortOrder ?? Number.MAX_SAFE_INTEGER),
+      ),
+    [db.faqs],
+  )
+
+  const filteredFaqs = useMemo(() => {
+    const q = faqSearch.trim().toLowerCase()
+    if (!q) return sortedFaqs
+    return sortedFaqs.filter(
+      (f) =>
+        f.category.toLowerCase().includes(q) ||
+        f.question.toLowerCase().includes(q) ||
+        f.answer.toLowerCase().includes(q),
     )
+  }, [sortedFaqs, faqSearch])
+
+  const {
+    pageSize: faqPageSize,
+    safePage: faqSafePage,
+    paginatedItems: paginatedFaqs,
+    resetPage: resetFaqPage,
+    handlePageChange: handleFaqPageChange,
+    handlePageSizeChange: handleFaqPageSizeChange,
+  } = useUrlPagination(filteredFaqs, {
+    defaultPageSize: 5,
+    scrollTargetRef: faqListCardRef,
+  })
+
+  const handleFaqSearchChange = (value: string) => {
+    setFaqSearch(value)
+    resetFaqPage()
   }
 
-  const handleAddFaq = (e: FormEvent) => {
-    e.preventDefault()
-    if (!faqQuestion.trim() || !faqAnswer.trim()) return
-
-    addFaqEntry({
-      category: faqCategory,
-      question: faqQuestion,
-      answer: faqAnswer,
-    })
+  const resetFaqForm = () => {
+    setEditingFaqId(null)
+    setFaqCategory('KEAMANAN & PRIVASI')
     setFaqQuestion('')
     setFaqAnswer('')
-    onFeedback('Pertanyaan FAQ baru telah ditambahkan dan langsung tampil di Landing Page.')
+    setFaqSortOrder('')
+  }
+
+  const handleStartEditFaq = (faq: FaqEntry) => {
+    setEditingFaqId(faq.id)
+    setFaqCategory(faq.category)
+    setFaqQuestion(faq.question)
+    setFaqAnswer(faq.answer)
+    setFaqSortOrder(faq.sortOrder !== undefined ? String(faq.sortOrder) : '')
+    setErrorMessage(null)
+    faqFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }
+
+  const handleSaveCrisisConfig = async (e: FormEvent) => {
+    e.preventDefault()
+    if (savingCrisis) return
+
+    const depThreshold = Math.min(42, Math.max(1, Math.trunc(Number(extremeDep) || 28)))
+    const anxThreshold = Math.min(42, Math.max(1, Math.trunc(Number(extremeAnx) || 20)))
+
+    setSavingCrisis(true)
+    setErrorMessage(null)
+    try {
+      await updateCrisisConfig({
+        hotlineNumber: hotlineNumber.trim().toUpperCase(),
+        hotlineLabel: hotlineLabel.trim(),
+        extremeDepressionThreshold: depThreshold,
+        extremeAnxietyThreshold: anxThreshold,
+        autoSafetyNetModal: autoSafetyNet,
+        allowDirectIndependentReferral: allowDirectMandiri,
+      })
+      setCrisisDraft(null)
+      onFeedback(
+        'Konfigurasi Protokol Krisis SafetyNet & Rujukan Psikolog Mandiri berhasil disimpan ke server.',
+      )
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : 'Gagal menyimpan konfigurasi protokol krisis.',
+      )
+    } finally {
+      setSavingCrisis(false)
+    }
+  }
+
+  const handleSubmitFaq = async (e: FormEvent) => {
+    e.preventDefault()
+    if (savingFaq || !faqQuestion.trim() || !faqAnswer.trim() || !faqCategory.trim()) return
+
+    const parsedOrder = faqSortOrder.trim() === '' ? undefined : Math.max(0, Math.trunc(Number(faqSortOrder)))
+    if (faqSortOrder.trim() !== '' && Number.isNaN(parsedOrder)) {
+      setErrorMessage('Urutan tampilan FAQ harus berupa angka bulat non-negatif.')
+      return
+    }
+
+    setSavingFaq(true)
+    setErrorMessage(null)
+    try {
+      if (editingFaqId) {
+        await updateFaqEntry(editingFaqId, {
+          category: faqCategory,
+          question: faqQuestion,
+          answer: faqAnswer,
+          sortOrder: parsedOrder,
+        })
+        resetFaqForm()
+        onFeedback('Perubahan entri FAQ berhasil disimpan ke server.')
+      } else {
+        await addFaqEntry({
+          category: faqCategory,
+          question: faqQuestion,
+          answer: faqAnswer,
+          sortOrder: parsedOrder,
+        })
+        resetFaqForm()
+        onFeedback('Pertanyaan FAQ baru berhasil diterbitkan ke server dan tampil di Landing Page.')
+      }
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Gagal menyimpan entri FAQ.')
+    } finally {
+      setSavingFaq(false)
+    }
+  }
+
+  const handleToggleFaq = async (faq: FaqEntry) => {
+    if (pendingFaqId) return
+    setPendingFaqId(faq.id)
+    setErrorMessage(null)
+    try {
+      const updated = await toggleFaqPublished(faq.id)
+      onFeedback(
+        updated.isPublished
+          ? `FAQ "${updated.question}" sekarang tayang di Landing Page.`
+          : `FAQ "${updated.question}" disembunyikan dari Landing Page.`,
+      )
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Gagal mengubah status publikasi FAQ.')
+    } finally {
+      setPendingFaqId(null)
+    }
+  }
+
+  const handleDeleteFaq = async (faq: FaqEntry) => {
+    if (pendingFaqId) return
+    setPendingFaqId(faq.id)
+    setErrorMessage(null)
+    try {
+      await deleteFaqEntry(faq.id)
+      if (editingFaqId === faq.id) {
+        resetFaqForm()
+      }
+      onFeedback(`FAQ "${faq.question}" berhasil dihapus permanen.`)
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Gagal menghapus FAQ.')
+    } finally {
+      setPendingFaqId(null)
+    }
   }
 
   return (
     <div>
-      <div>
-        <h1 className="text-xl font-bold tracking-[-0.02em] text-ink sm:text-2xl">
-          Konfigurasi Konten &amp; Operasional Platform
-        </h1>
-        <p className="mt-0.5 text-xs text-ink-muted">
-          Kelola parameter protokol darurat krisis SafetyNet dan publikasi FAQ halaman utama.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h1 className="text-xl font-bold tracking-[-0.02em] text-ink sm:text-2xl">
+            Konfigurasi Konten &amp; Operasional Platform
+          </h1>
+          <p className="mt-0.5 text-xs text-ink-muted">
+            Kelola parameter protokol darurat krisis SafetyNet dan publikasi FAQ halaman utama.
+          </p>
+        </div>
+        {loadingData && (
+          <span className="inline-flex items-center gap-1.5 rounded-[8px] border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-medium text-ink-muted">
+            <Loader2 className="size-3.5 animate-spin text-primary" /> Memuat sinkronisasi server...
+          </span>
+        )}
       </div>
+
+      {errorMessage && (
+        <div className="mt-4 rounded-[10px] border border-[#FECACA] bg-[#FEF2F2] px-4 py-2.5 text-xs font-medium text-[#991B1B]">
+          {errorMessage}
+        </div>
+      )}
 
       <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Left: Crisis SafetyNet Protocol Configuration */}
@@ -86,8 +284,11 @@ export function AdminContentConfigModule({ db, onFeedback }: AdminContentConfigM
                 <label className="block font-semibold text-ink">Nomor Hotline Darurat Nasional</label>
                 <input
                   type="text"
+                  required
                   value={hotlineNumber}
-                  onChange={(e) => setHotlineNumber(e.target.value.toUpperCase())}
+                  onChange={(e) =>
+                    patchCrisisDraft({ hotlineNumber: e.target.value.toUpperCase() })
+                  }
                   className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 font-mono uppercase text-ink focus:border-primary focus:outline-none"
                 />
               </div>
@@ -96,8 +297,9 @@ export function AdminContentConfigModule({ db, onFeedback }: AdminContentConfigM
                 <label className="block font-semibold text-ink">Label Layanan Darurat</label>
                 <input
                   type="text"
+                  required
                   value={hotlineLabel}
-                  onChange={(e) => setHotlineLabel(e.target.value)}
+                  onChange={(e) => patchCrisisDraft({ hotlineLabel: e.target.value })}
                   className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-ink focus:border-primary focus:outline-none"
                 />
               </div>
@@ -107,8 +309,11 @@ export function AdminContentConfigModule({ db, onFeedback }: AdminContentConfigM
                   <label className="block font-semibold text-ink">Ambang Skor Extreme Depresi</label>
                   <input
                     type="number"
+                    min={1}
+                    max={42}
+                    required
                     value={extremeDep}
-                    onChange={(e) => setExtremeDep(e.target.value)}
+                    onChange={(e) => patchCrisisDraft({ extremeDep: e.target.value })}
                     className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-ink focus:border-primary focus:outline-none"
                   />
                 </div>
@@ -116,8 +321,11 @@ export function AdminContentConfigModule({ db, onFeedback }: AdminContentConfigM
                   <label className="block font-semibold text-ink">Ambang Skor Extreme Cemas</label>
                   <input
                     type="number"
+                    min={1}
+                    max={42}
+                    required
                     value={extremeAnx}
-                    onChange={(e) => setExtremeAnx(e.target.value)}
+                    onChange={(e) => patchCrisisDraft({ extremeAnx: e.target.value })}
                     className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-ink focus:border-primary focus:outline-none"
                   />
                 </div>
@@ -127,7 +335,7 @@ export function AdminContentConfigModule({ db, onFeedback }: AdminContentConfigM
                 <input
                   type="checkbox"
                   checked={autoSafetyNet}
-                  onChange={(e) => setAutoSafetyNet(e.target.checked)}
+                  onChange={(e) => patchCrisisDraft({ autoSafetyNet: e.target.checked })}
                   className="mt-0.5 size-4 accent-primary"
                 />
                 <span>
@@ -142,7 +350,9 @@ export function AdminContentConfigModule({ db, onFeedback }: AdminContentConfigM
                 <input
                   type="checkbox"
                   checked={allowDirectMandiri}
-                  onChange={(e) => setAllowDirectMandiri(e.target.checked)}
+                  onChange={(e) =>
+                    patchCrisisDraft({ allowDirectMandiri: e.target.checked })
+                  }
                   className="mt-0.5 size-4 accent-primary"
                 />
                 <span>
@@ -155,9 +365,11 @@ export function AdminContentConfigModule({ db, onFeedback }: AdminContentConfigM
 
               <button
                 type="submit"
-                className="inline-flex h-9 w-full cursor-pointer items-center justify-center rounded-[8px] bg-primary px-4 font-semibold text-white hover:bg-primary-hover"
+                disabled={savingCrisis}
+                className="inline-flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-[8px] bg-primary px-4 font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Simpan Konfigurasi Protokol
+                {savingCrisis && <Loader2 className="size-3.5 animate-spin" />}
+                <span>Simpan Konfigurasi Protokol</span>
               </button>
             </form>
           </div>
@@ -165,21 +377,50 @@ export function AdminContentConfigModule({ db, onFeedback }: AdminContentConfigM
 
         {/* Right: FAQ CMS connected to Landing Page */}
         <div className="space-y-5 lg:col-span-7">
-          <div className="rounded-[12px] border border-[#E2E8F0] bg-white p-5">
-            <h2 className="text-sm font-bold text-ink">Tambah FAQ Halaman Depan Website</h2>
-            <form onSubmit={handleAddFaq} className="mt-3 space-y-3 text-xs">
-              <div>
-                <label className="block font-semibold text-ink">
-                  Kategori FAQ (Huruf Kapital)
-                </label>
-                <input
-                  type="text"
-                  value={faqCategory}
-                  onChange={(e) => setFaqCategory(e.target.value.toUpperCase())}
-                  placeholder="KEAMANAN & PRIVASI"
-                  required
-                  className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 uppercase text-ink focus:border-primary focus:outline-none"
-                />
+          <div ref={faqFormRef} className="rounded-[12px] border border-[#E2E8F0] bg-white p-5">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm font-bold text-ink">
+                {editingFaqId ? 'Edit Entri FAQ Website' : 'Tambah FAQ Halaman Depan Website'}
+              </h2>
+              {editingFaqId && (
+                <button
+                  type="button"
+                  onClick={resetFaqForm}
+                  className="inline-flex cursor-pointer items-center gap-1 rounded-[6px] border border-[#CBD5E1] px-2.5 py-1 text-[11px] font-semibold text-ink-muted hover:bg-[#F8FAFC] hover:text-ink"
+                >
+                  <X className="size-3" /> Batal Edit
+                </button>
+              )}
+            </div>
+
+            <form onSubmit={handleSubmitFaq} className="mt-3 space-y-3 text-xs">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+                <div className="sm:col-span-3">
+                  <label className="block font-semibold text-ink">
+                    Kategori FAQ (Huruf Kapital)
+                  </label>
+                  <input
+                    type="text"
+                    value={faqCategory}
+                    onChange={(e) => setFaqCategory(e.target.value.toUpperCase())}
+                    placeholder="KEAMANAN & PRIVASI"
+                    required
+                    minLength={2}
+                    className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 uppercase text-ink focus:border-primary focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-ink">Urutan (Opsional)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={9999}
+                    value={faqSortOrder}
+                    onChange={(e) => setFaqSortOrder(e.target.value)}
+                    placeholder="Auto"
+                    className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-ink focus:border-primary focus:outline-none"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block font-semibold text-ink">Pertanyaan</label>
@@ -189,6 +430,7 @@ export function AdminContentConfigModule({ db, onFeedback }: AdminContentConfigM
                   onChange={(e) => setFaqQuestion(e.target.value)}
                   placeholder="Tuliskan pertanyaan yang sering diajukan pengunjung..."
                   required
+                  minLength={5}
                   className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-ink focus:border-primary focus:outline-none"
                 />
               </div>
@@ -200,60 +442,139 @@ export function AdminContentConfigModule({ db, onFeedback }: AdminContentConfigM
                   onChange={(e) => setFaqAnswer(e.target.value)}
                   placeholder="Tuliskan penjelasan transparan yang tampil di Landing Page..."
                   required
+                  minLength={5}
                   className="mt-1 w-full rounded-[8px] border border-[#CBD5E1] bg-white p-2.5 text-ink focus:border-primary focus:outline-none"
                 />
               </div>
               <button
                 type="submit"
-                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[8px] bg-primary px-4 font-semibold text-white hover:bg-primary-hover"
+                disabled={savingFaq}
+                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[8px] bg-primary px-4 font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <Plus className="size-3.5" /> Terbitkan ke Landing Page
+                {savingFaq ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Plus className="size-3.5" />
+                )}
+                <span>{editingFaqId ? 'Simpan Perubahan FAQ' : 'Terbitkan ke Landing Page'}</span>
               </button>
             </form>
           </div>
 
-          <div className="rounded-[12px] border border-[#E2E8F0] bg-white p-5">
-            <h2 className="text-sm font-bold text-ink">
-              Daftar FAQ Website ({db.faqs.length})
-            </h2>
+          <div
+            ref={faqListCardRef}
+            className="rounded-[12px] border border-[#E2E8F0] bg-white p-5"
+          >
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <h2 className="text-sm font-bold text-ink">
+                Daftar FAQ Website ({db.faqs.length})
+              </h2>
+              <div className="relative w-full sm:w-64">
+                <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-ink-muted" />
+                <input
+                  type="search"
+                  value={faqSearch}
+                  onChange={(e) => handleFaqSearchChange(e.target.value)}
+                  placeholder="Cari kategori atau pertanyaan..."
+                  className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-[#F8FAFC] pr-3 pl-8 text-xs text-ink focus:border-primary focus:bg-white focus:outline-none"
+                />
+              </div>
+            </div>
+
             <div className="mt-3 divide-y divide-[#E2E8F0]">
-              {db.faqs.map((f) => (
-                <div
-                  key={f.id}
-                  className="flex items-start justify-between gap-3 py-3 text-xs"
-                >
-                  <div>
-                    <span className="text-[10px] font-bold tracking-wider text-primary uppercase">
-                      {f.category}
-                    </span>
-                    <p className="mt-0.5 font-semibold text-ink">{f.question}</p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
+              {paginatedFaqs.length === 0 ? (
+                <div className="py-8 text-center text-xs text-ink-muted">
+                  <p className="font-semibold text-ink">
+                    {faqSearch.trim()
+                      ? 'Tidak ada entri FAQ yang cocok dengan kata kunci pencarian.'
+                      : 'Belum ada entri FAQ terdaftar.'}
+                  </p>
+                  {faqSearch.trim() && (
                     <button
                       type="button"
-                      onClick={() => toggleFaqPublished(f.id)}
+                      onClick={() => handleFaqSearchChange('')}
+                      className="mt-2 inline-flex min-h-8 cursor-pointer items-center rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-xs font-semibold text-ink hover:bg-[#F8FAFC]"
+                    >
+                      Reset Pencarian
+                    </button>
+                  )}
+                </div>
+              ) : (
+                paginatedFaqs.map((f) => {
+                  const isBusy = pendingFaqId === f.id
+                  const isBeingEdited = editingFaqId === f.id
+                  return (
+                    <div
+                      key={f.id}
                       className={cn(
-                        'cursor-pointer rounded-[6px] border px-2 py-1 text-[11px] font-semibold',
-                        f.isPublished
-                          ? 'border-[#BBF7D0] bg-[#F0FDF4] text-[#166534]'
-                          : 'border-[#CBD5E1] bg-[#F8FAFC] text-ink-muted',
+                        'flex flex-col justify-between gap-3 py-3 text-xs sm:flex-row sm:items-start',
+                        isBeingEdited && 'rounded-[8px] bg-[#EEF0FF]/40 px-2.5',
                       )}
                     >
-                      {f.isPublished ? 'Tayang' : 'Disembunyikan'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => deleteFaqEntry(f.id)}
-                      aria-label={`Hapus FAQ ${f.question}`}
-                      className="inline-flex size-7 cursor-pointer items-center justify-center rounded-[6px] border border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {f.sortOrder !== undefined && (
+                            <span className="rounded-[4px] bg-[#F1F5F9] px-1.5 py-0.5 font-mono text-[10px] font-bold text-ink-muted">
+                              #{f.sortOrder}
+                            </span>
+                          )}
+                          <span className="text-[10px] font-bold tracking-wider text-primary uppercase">
+                            {f.category}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 font-semibold text-ink">{f.question}</p>
+                        <p className="mt-1 line-clamp-2 text-[11px] text-ink-muted">{f.answer}</p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <button
+                          type="button"
+                          disabled={isBusy}
+                          onClick={() => handleStartEditFaq(f)}
+                          aria-label={`Edit FAQ ${f.question}`}
+                          className="inline-flex size-7 cursor-pointer items-center justify-center rounded-[6px] border border-[#CBD5E1] bg-white text-ink-soft hover:bg-[#F8FAFC] hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Pencil className="size-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isBusy}
+                          onClick={() => void handleToggleFaq(f)}
+                          className={cn(
+                            'cursor-pointer rounded-[6px] border px-2 py-1 text-[11px] font-semibold disabled:cursor-not-allowed disabled:opacity-50',
+                            f.isPublished
+                              ? 'border-[#BBF7D0] bg-[#F0FDF4] text-[#166534]'
+                              : 'border-[#CBD5E1] bg-[#F8FAFC] text-ink-muted',
+                          )}
+                        >
+                          {f.isPublished ? 'Tayang' : 'Disembunyikan'}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isBusy}
+                          onClick={() => void handleDeleteFaq(f)}
+                          aria-label={`Hapus FAQ ${f.question}`}
+                          className="inline-flex size-7 cursor-pointer items-center justify-center rounded-[6px] border border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
             </div>
           </div>
+
+          <TablePagination
+            currentPage={faqSafePage}
+            totalItems={filteredFaqs.length}
+            pageSize={faqPageSize}
+            pageSizeOptions={[5, 10, 25]}
+            itemLabel="FAQ"
+            ariaLabel="Paginasi daftar FAQ"
+            onPageChange={handleFaqPageChange}
+            onPageSizeChange={handleFaqPageSizeChange}
+          />
         </div>
       </div>
     </div>

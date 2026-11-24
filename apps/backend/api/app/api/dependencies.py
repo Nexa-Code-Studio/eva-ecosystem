@@ -188,6 +188,13 @@ async def get_coin_service(db: AsyncSession = Depends(get_db_session)):
     return CoinService(db)
 
 
+async def get_content_service(db: AsyncSession = Depends(get_db_session)):
+    """Dependency factory for ContentService."""
+    from app.services.content import ContentService
+
+    return ContentService(db)
+
+
 
 
 
