@@ -14,8 +14,6 @@ class SingleAudioCaptureService {
       MethodChannel('com.eva.single_audio/methods');
   static const EventChannel _audioStreamChannel =
       EventChannel('com.eva.single_audio/audio_stream');
-  static const EventChannel _sttEventsChannel =
-      EventChannel('com.eva.single_audio/stt_events');
 
   final SpeechRecognitionService? _fallbackSpeechService;
 
@@ -26,7 +24,6 @@ class SingleAudioCaptureService {
   bool _isListening = false;
   bool _isMuted = false;
   int _activeSttSessionId = 0;
-  int _sequenceCounter = 0;
 
   StreamSubscription? _audioSubscription;
   final List<StreamSubscription> _fallbackSubscriptions = [];
@@ -151,7 +148,6 @@ class SingleAudioCaptureService {
     }
 
     _activeSttSessionId = sttSessionId;
-    _sequenceCounter = 0;
     _isListening = true;
 
     // 1. Start STT with proven speech_to_text configuration
