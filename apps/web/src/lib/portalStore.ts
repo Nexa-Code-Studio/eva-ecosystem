@@ -11,6 +11,7 @@ export {
   getDashboardAnalyticsBaseline,
   getPortalSession,
   isDevToolsEnabled,
+  isQuickLoginEnabled,
   loadPortalDb,
   resetPortalDbToDefault,
   savePortalDb,

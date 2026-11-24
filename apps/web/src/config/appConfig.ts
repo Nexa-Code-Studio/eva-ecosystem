@@ -28,11 +28,21 @@ const enableDevToolsFromEnv = parseBooleanEnv(
   useMockFromEnv,
 )
 
+const enableQuickLoginFromEnv = parseBooleanEnv(
+  import.meta.env.VITE_ENABLE_QUICK_LOGIN,
+  true,
+)
+
 export const APP_CONFIG = {
   useMockData: useMockFromEnv,
   apiBaseUrl:
     (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim() ||
     'http://localhost:8888/api/v1',
   enableDevTools: useMockFromEnv && enableDevToolsFromEnv,
+  enableQuickLogin: enableQuickLoginFromEnv,
+  demoAdminEmail:
+    (import.meta.env.VITE_DEMO_ADMIN_EMAIL as string | undefined)?.trim() || 'admin@eva.id',
+  demoAdminPassword:
+    (import.meta.env.VITE_DEMO_ADMIN_PASSWORD as string | undefined)?.trim() || 'AdminEva2026!',
 } as const
 

@@ -1,5 +1,5 @@
 import { KeyRound, ShieldCheck, X } from 'lucide-react'
-import { getAdminAccountConfig, isDevToolsEnabled } from '@/lib/portalStore'
+import { getAdminAccountConfig, isQuickLoginEnabled } from '@/lib/portalStore'
 
 interface QuickLoginDevToolProps {
   isOpen: boolean
@@ -14,7 +14,7 @@ export function QuickLoginDevTool({
   onClose,
   onSelectCredentials,
 }: QuickLoginDevToolProps) {
-  if (!isDevToolsEnabled()) return null
+  if (!isQuickLoginEnabled()) return null
 
   const adminAccount = getAdminAccountConfig()
 

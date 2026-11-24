@@ -178,7 +178,8 @@ export class RemotePortalDataSource implements IPortalDataSource {
 
   getAdminAccount() {
     return {
-      email: 'admin@eva.id',
+      email: APP_CONFIG.demoAdminEmail,
+      password: APP_CONFIG.demoAdminPassword,
       name: 'Administrator Pusat Ekosistem EVA',
     }
   }
