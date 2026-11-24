@@ -175,5 +175,13 @@
     "updated_at": 1795554674,
     "evidence_summary": "Evidence accepted: PR and test verification documented.",
     "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/129"
+  },
+  "130": {
+    "issue": 130,
+    "branch": "fix/130-backend-models-import",
+    "state": "In Review",
+    "updated_at": 1795555308,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/131"
   }
 }
