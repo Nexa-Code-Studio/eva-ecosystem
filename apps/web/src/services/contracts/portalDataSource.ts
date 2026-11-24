@@ -11,6 +11,7 @@ import type {
   UpsertCertificateTemplateRequestDto,
   UpsertCoinPackageRequestDto,
   UpsertPlatformPricingRequestDto,
+  UpsertPsychologistLevelRequestDto,
   VerifyPsychologistRequestDto,
 } from '@/types/api/contracts'
 import type { DashboardAnalyticsBaseline } from '@/types/domain/dashboard'
@@ -26,10 +27,12 @@ import type {
   FaqEntry,
   GeneralAppUser,
   IssuedPsychologistCertificate,
+  LevelEvaluationBatchSummary,
   PlatformPricingConfig,
   PortalDatabase,
   PortalSession,
   Psychologist,
+  PsychologistLevelConfig,
 } from '@/types/domain/portal'
 
 export interface AdminCredentialConfig {
@@ -104,4 +107,15 @@ export interface IPortalDataSource {
     reason: string,
   ): Promise<IssuedPsychologistCertificate>
   downloadCertificatePdf(certificateId: string): Promise<{ blob: Blob; filename: string }>
+  fetchPsychologistLevels(): Promise<PsychologistLevelConfig[]>
+  createPsychologistLevel(
+    input: UpsertPsychologistLevelRequestDto,
+  ): Promise<PsychologistLevelConfig>
+  updatePsychologistLevel(
+    levelId: string,
+    input: UpsertPsychologistLevelRequestDto,
+  ): Promise<PsychologistLevelConfig>
+  togglePsychologistLevelActive(levelId: string): Promise<PsychologistLevelConfig>
+  deletePsychologistLevel(levelId: string): Promise<void>
+  evaluateAllPsychologistLevels(): Promise<LevelEvaluationBatchSummary>
 }

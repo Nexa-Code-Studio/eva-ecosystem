@@ -10,8 +10,10 @@ import type {
   BackendCounselorCertificateEligibilityDto,
   BackendCrisisConfigDto,
   BackendFaqEntryDto,
+  BackendLevelEvaluationBatchDto,
   BackendPricingConfigResponseDto,
   BackendPsychologistCertificateDto,
+  BackendPsychologistLevelDto,
   BackendPsychologistProfileResponseDto,
   RegisterPsychologistRequestDto,
 } from '@/types/api/contracts'
@@ -31,8 +33,10 @@ import type {
   FaqEntry,
   GeneralAppUser,
   IssuedPsychologistCertificate,
+  LevelEvaluationBatchSummary,
   PlatformPricingConfig,
   PricingCalculation,
+  PsychologistLevelConfig,
   Psychologist,
   VerificationStatus,
 } from '@/types/domain/portal'
@@ -398,5 +402,37 @@ export function mapBackendEvaluationSummaryToDomain(
     evaluatedCounselors: dto.evaluated_counselors,
     newlyIssuedCount: dto.newly_issued_count,
     issuedCertificates: dto.issued_certificates.map(mapBackendCertificateToDomain),
+  }
+}
+
+export function mapBackendPsychologistLevelToDomain(
+  dto: BackendPsychologistLevelDto,
+): PsychologistLevelConfig {
+  return {
+    id: dto.id,
+    levelTier: dto.level_tier,
+    name: dto.name,
+    badgeIcon: dto.badge_icon || 'award',
+    minCompletedSessions: dto.min_completed_sessions,
+    minAverageRating: dto.min_average_rating,
+    minConsultationHours: dto.min_consultation_hours,
+    minReviewCount: dto.min_review_count,
+    defaultSessionPrice: dto.default_session_price,
+    platformFeePercentage: dto.platform_fee_percentage,
+    allowCustomPrice: dto.allow_custom_price,
+    minCustomPrice: dto.min_custom_price ?? null,
+    maxCustomPrice: dto.max_custom_price ?? null,
+    isActive: dto.is_active,
+    updatedAt: dto.updated_at.slice(0, 10),
+  }
+}
+
+export function mapBackendLevelEvaluationToDomain(
+  dto: BackendLevelEvaluationBatchDto,
+): LevelEvaluationBatchSummary {
+  return {
+    evaluatedCounselors: dto.evaluated_counselors,
+    upgradedCount: dto.upgraded_count,
+    message: dto.message,
   }
 }

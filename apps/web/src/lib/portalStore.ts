@@ -75,4 +75,12 @@ export {
   toggleCertificateTemplateActive,
   upsertCertificateTemplate,
 } from '@/services/portal/certificateService'
+export {
+  createPsychologistLevel,
+  deletePsychologistLevel,
+  evaluateAllPsychologistLevels,
+  fetchPsychologistLevels,
+  togglePsychologistLevelActive,
+  updatePsychologistLevel,
+} from '@/services/portal/levelService'
 export { usePortalDb } from '@/hooks/usePortalDb'

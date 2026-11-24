@@ -21,6 +21,7 @@ import type {
   UpsertCertificateTemplateRequestDto,
   UpsertCoinPackageRequestDto,
   UpsertPlatformPricingRequestDto,
+  UpsertPsychologistLevelRequestDto,
   VerifyPsychologistRequestDto,
 } from '@/types/api/contracts'
 import type {
@@ -35,10 +36,12 @@ import type {
   FaqEntry,
   GeneralAppUser,
   IssuedPsychologistCertificate,
+  LevelEvaluationBatchSummary,
   PlatformPricingConfig,
   PortalDatabase,
   PortalSession,
   Psychologist,
+  PsychologistLevelConfig,
 } from '@/types/domain/portal'
 
 export const PORTAL_DB_CHANGE_EVENT = 'eva:portal-db-updated'
@@ -151,6 +154,10 @@ function hydrateMockDb(parsed: Partial<PortalDatabase>): {
           ? parsed.issuedCertificates
           : INITIAL_MOCK_DB.issuedCertificates,
       eligibleCounselorSummaries: parsed.eligibleCounselorSummaries ?? [],
+      psychologistLevels:
+        parsed.psychologistLevels && parsed.psychologistLevels.length > 0
+          ? parsed.psychologistLevels
+          : INITIAL_MOCK_DB.psychologistLevels,
     },
     needsSave,
   }
@@ -841,6 +848,107 @@ export class MockPortalDataSource implements IPortalDataSource {
     return {
       blob: new Blob([svg], { type: 'image/svg+xml' }),
       filename: `${cert.certificateNumber.replaceAll('/', '_')}.svg`,
+    }
+  }
+
+  async fetchPsychologistLevels(): Promise<PsychologistLevelConfig[]> {
+    return [...this.loadSnapshot().psychologistLevels].sort((a, b) => a.levelTier - b.levelTier)
+  }
+
+  async createPsychologistLevel(
+    input: UpsertPsychologistLevelRequestDto,
+  ): Promise<PsychologistLevelConfig> {
+    const db = this.loadSnapshot()
+    if (db.psychologistLevels.some((l) => l.levelTier === input.levelTier)) {
+      throw new Error(`Tier level #${input.levelTier} sudah digunakan.`)
+    }
+    const created: PsychologistLevelConfig = {
+      id: `lvl-${Date.now()}`,
+      levelTier: input.levelTier,
+      name: input.name.trim(),
+      badgeIcon: input.badgeIcon.trim() || 'award',
+      minCompletedSessions: input.minCompletedSessions,
+      minAverageRating: input.minAverageRating,
+      minConsultationHours: input.minConsultationHours,
+      minReviewCount: input.minReviewCount,
+      defaultSessionPrice: input.defaultSessionPrice,
+      platformFeePercentage: input.platformFeePercentage,
+      allowCustomPrice: input.allowCustomPrice,
+      minCustomPrice: input.allowCustomPrice ? (input.minCustomPrice ?? null) : null,
+      maxCustomPrice: input.allowCustomPrice ? (input.maxCustomPrice ?? null) : null,
+      isActive: input.isActive,
+      updatedAt: new Date().toISOString().slice(0, 10),
+    }
+    db.psychologistLevels.push(created)
+    db.psychologistLevels.sort((a, b) => a.levelTier - b.levelTier)
+    this.saveSnapshot(db)
+    return created
+  }
+
+  async updatePsychologistLevel(
+    levelId: string,
+    input: UpsertPsychologistLevelRequestDto,
+  ): Promise<PsychologistLevelConfig> {
+    const db = this.loadSnapshot()
+    const idx = db.psychologistLevels.findIndex((l) => l.id === levelId)
+    if (idx === -1) {
+      throw new Error('Konfigurasi level tidak ditemukan.')
+    }
+    if (db.psychologistLevels.some((l) => l.id !== levelId && l.levelTier === input.levelTier)) {
+      throw new Error(`Tier level #${input.levelTier} sudah digunakan tier lain.`)
+    }
+    const updated: PsychologistLevelConfig = {
+      ...db.psychologistLevels[idx],
+      levelTier: input.levelTier,
+      name: input.name.trim(),
+      badgeIcon: input.badgeIcon.trim() || 'award',
+      minCompletedSessions: input.minCompletedSessions,
+      minAverageRating: input.minAverageRating,
+      minConsultationHours: input.minConsultationHours,
+      minReviewCount: input.minReviewCount,
+      defaultSessionPrice: input.defaultSessionPrice,
+      platformFeePercentage: input.platformFeePercentage,
+      allowCustomPrice: input.allowCustomPrice,
+      minCustomPrice: input.allowCustomPrice ? (input.minCustomPrice ?? null) : null,
+      maxCustomPrice: input.allowCustomPrice ? (input.maxCustomPrice ?? null) : null,
+      isActive: input.isActive,
+      updatedAt: new Date().toISOString().slice(0, 10),
+    }
+    db.psychologistLevels[idx] = updated
+    db.psychologistLevels.sort((a, b) => a.levelTier - b.levelTier)
+    this.saveSnapshot(db)
+    return updated
+  }
+
+  async togglePsychologistLevelActive(levelId: string): Promise<PsychologistLevelConfig> {
+    const db = this.loadSnapshot()
+    const idx = db.psychologistLevels.findIndex((l) => l.id === levelId)
+    if (idx === -1) {
+      throw new Error('Konfigurasi level tidak ditemukan.')
+    }
+    const updated: PsychologistLevelConfig = {
+      ...db.psychologistLevels[idx],
+      isActive: !db.psychologistLevels[idx].isActive,
+      updatedAt: new Date().toISOString().slice(0, 10),
+    }
+    db.psychologistLevels[idx] = updated
+    this.saveSnapshot(db)
+    return updated
+  }
+
+  async deletePsychologistLevel(levelId: string): Promise<void> {
+    const db = this.loadSnapshot()
+    db.psychologistLevels = db.psychologistLevels.filter((l) => l.id !== levelId)
+    this.saveSnapshot(db)
+  }
+
+  async evaluateAllPsychologistLevels(): Promise<LevelEvaluationBatchSummary> {
+    const db = this.loadSnapshot()
+    const verifiedCount = db.psychologists.filter((p) => p.verificationStatus === 'verified').length
+    return {
+      evaluatedCounselors: verifiedCount,
+      upgradedCount: verifiedCount > 0 ? 1 : 0,
+      message: `Evaluasi selesai untuk ${verifiedCount} psikolog terverifikasi sesuai konfigurasi tier aktif.`,
     }
   }
 }

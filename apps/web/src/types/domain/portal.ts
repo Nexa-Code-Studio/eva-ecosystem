@@ -270,6 +270,30 @@ export interface CertificateEvaluationSummary {
   issuedCertificates: IssuedPsychologistCertificate[]
 }
 
+export interface PsychologistLevelConfig {
+  id: string
+  levelTier: number
+  name: string
+  badgeIcon: string
+  minCompletedSessions: number
+  minAverageRating: number
+  minConsultationHours: number
+  minReviewCount: number
+  defaultSessionPrice: number
+  platformFeePercentage: number
+  allowCustomPrice: boolean
+  minCustomPrice: number | null
+  maxCustomPrice: number | null
+  isActive: boolean
+  updatedAt: string
+}
+
+export interface LevelEvaluationBatchSummary {
+  evaluatedCounselors: number
+  upgradedCount: number
+  message: string
+}
+
 export interface PortalSession {
   role: 'admin'
   email: string
@@ -293,4 +317,5 @@ export interface PortalDatabase {
   certificateTemplates: CertificateTemplate[]
   issuedCertificates: IssuedPsychologistCertificate[]
   eligibleCounselorSummaries: CounselorCertificateEligibility[]
+  psychologistLevels: PsychologistLevelConfig[]
 }
