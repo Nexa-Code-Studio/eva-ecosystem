@@ -2,26 +2,35 @@ import { useEffect, useMemo, useState } from 'react'
 import { Outlet, useNavigate } from 'react-router'
 import { ShieldCheck } from 'lucide-react'
 import { ResetPortalDataAction } from '@/components/devtools/PortalDevTools'
-import { resetPortalDbToDefault, setPortalSession, usePortalDb } from '@/lib/portalStore'
-import {
-  PortalFeedbackBanner,
-  PortalTopbar,
-} from '@/components/portal/PortalTopbar'
+import { AdminContentConfigModule } from '@/components/portal/admin/AdminContentConfigModule'
+import { AdminCertificatesModule } from '@/components/portal/admin/certificates/AdminCertificatesModule'
+import { AdminDashboardOverview } from '@/components/portal/admin/AdminDashboardOverview'
+import { AdminPlatformSettingsModule } from '@/components/portal/admin/AdminPlatformSettingsModule'
+import { AdminPsychologistsModule } from '@/components/portal/admin/AdminPsychologistsModule'
+import { AdminSessionMonitoringModule } from '@/components/portal/admin/AdminSessionMonitoringModule'
 import {
   AdminSidebar,
   type AdminModule,
   type AdminSummaryCounts,
 } from '@/components/portal/admin/AdminSidebarAndKpi'
+import { AdminUsersCoinsModule } from '@/components/portal/admin/AdminUsersCoinsModule'
 import {
   useAdminOutletContext,
   type AdminOutletContext,
 } from '@/components/portal/admin/adminPortalContext'
-import { AdminDashboardOverview } from '@/components/portal/admin/AdminDashboardOverview'
-import { AdminPsychologistsModule } from '@/components/portal/admin/AdminPsychologistsModule'
-import { AdminPartnersModule } from '@/components/portal/admin/AdminPartnersModule'
-import { AdminReferralsModule } from '@/components/portal/admin/AdminReferralsModule'
-import { AdminUsersCoinsModule } from '@/components/portal/admin/AdminUsersCoinsModule'
-import { AdminContentConfigModule } from '@/components/portal/admin/AdminContentConfigModule'
+import {
+  PortalFeedbackBanner,
+  PortalTopbar,
+} from '@/components/portal/PortalTopbar'
+import {
+  fetchAdminPsychologists,
+  fetchConsultationSessions,
+  fetchCrisisConfig,
+  fetchIssuedCertificates,
+  resetPortalDbToDefault,
+  setPortalSession,
+  usePortalDb,
+} from '@/lib/portalStore'
 
 export type { AdminOutletContext }
 
@@ -35,45 +44,52 @@ export function AdminDashboardPage() {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
   }, [])
 
+  const sessionRole = session?.role
+  const sessionToken = session?.accessToken
+
   useEffect(() => {
-    if (!session || session.role !== 'admin') {
+    if (!sessionRole || sessionRole !== 'admin') {
       navigate('/login', { replace: true })
+      return
     }
-  }, [navigate, session])
+    void fetchAdminPsychologists()
+    void fetchConsultationSessions()
+    void fetchCrisisConfig()
+    void fetchIssuedCertificates()
+  }, [navigate, sessionRole, sessionToken])
 
   const counts = useMemo<AdminSummaryCounts>(() => {
-    const pendingMandiri = db.psychologists.filter(
-      (p) => p.practiceType === 'mandiri' && p.verificationStatus === 'pending',
+    const pendingPsychologists = db.psychologists.filter(
+      (p) => p.verificationStatus === 'pending',
     ).length
-    const pendingPsyAction = db.psychologists.filter(
-      (p) => p.verificationStatus === 'pending' || Boolean(p.upgradeRequest),
+    const needRevisionPsychologists = 0
+    const verifiedPsychologists = db.psychologists.filter(
+      (p) => p.verificationStatus === 'verified',
     ).length
-    const approvedMandiri = db.psychologists.filter(
-      (p) => p.practiceType === 'mandiri' && p.verificationStatus === 'approved',
+    const activeSessions = db.consultationSessions.filter(
+      (s) => s.status === 'in_progress' || s.status === 'extended' || s.status === 'waiting',
     ).length
-    const faskesPsy = db.psychologists.filter((p) => p.practiceType !== 'mandiri').length
-    const pendingPartners = db.partners.filter((p) => p.status === 'pending').length
-    const approvedPartners = db.partners.filter((p) => p.status === 'approved').length
+    const extendedSessions = db.consultationSessions.filter(
+      (s) => s.isExtended || s.durationMinutes === 60,
+    ).length
     const crisisUsers = db.generalUsers.filter(
       (u) => u.crisisProtocolTriggered || u.accountStatus === 'flagged_crisis',
     ).length
-    const unassignedRefs = db.referrals.filter((r) => r.status === 'unassigned').length
     const newWaitlist = db.waitlistEntries.filter((w) => w.status === 'new').length
 
     return {
-      pendingMandiri,
-      approvedMandiri,
-      faskesPsy,
-      pendingPartners,
-      approvedPartners,
+      pendingPsychologists,
+      verifiedPsychologists,
+      needRevisionPsychologists,
+      activeSessions,
+      extendedSessions,
       crisisUsers,
-      unassignedRefs,
       newWaitlist,
       totalGeneralUsers: db.generalUsers.length,
       activeQuestsCount: db.copingQuests.filter((q) => q.isActive).length,
       totalWaitlistCount: db.waitlistEntries.length,
       hotlineNumber: db.crisisConfig.hotlineNumber,
-      pendingPsyAction,
+      activeCertificatesCount: db.issuedCertificates.filter((c) => c.status === 'active').length,
     }
   }, [db])
 
@@ -83,7 +99,11 @@ export function AdminDashboardPage() {
   }
 
   const handleResetDemo = () => {
-    if (window.confirm('Kembalikan semua data demo ke kondisi awal? Perubahan tersimpan akan direset.')) {
+    if (
+      window.confirm(
+        'Kembalikan semua data demo ke kondisi awal? Perubahan tersimpan akan direset.',
+      )
+    ) {
       resetPortalDbToDefault()
       setFeedbackBanner('Semua data demo berhasil dikembalikan ke kondisi awal.')
     }
@@ -93,8 +113,9 @@ export function AdminDashboardPage() {
     const pathMap: Record<AdminModule, string> = {
       dashboard: '/admin/dashboard',
       psychologists: '/admin/psychologists',
-      partners: '/admin/partners',
-      referrals: '/admin/referrals',
+      certificates: '/admin/certificates',
+      monitoring: '/admin/monitoring',
+      settings: '/admin/settings',
       users_coins: '/admin/users-coins',
       content_config: '/admin/content-config',
     }
@@ -118,10 +139,7 @@ export function AdminDashboardPage() {
       />
 
       <div className="flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:items-start lg:px-8">
-        <AdminSidebar
-          counts={counts}
-          onSelectModule={handleSelectModule}
-        />
+        <AdminSidebar counts={counts} onSelectModule={handleSelectModule} />
 
         <main className="min-w-0 flex-1">
           {feedbackBanner && (
@@ -148,7 +166,6 @@ export function AdminDashboardPage() {
   )
 }
 
-// Child Route Components
 export function AdminDashboardRoute() {
   const { db, onSelectModule } = useAdminOutletContext()
   return <AdminDashboardOverview db={db} onSelectModule={onSelectModule} />
@@ -156,23 +173,22 @@ export function AdminDashboardRoute() {
 
 export function AdminPsychologistsRoute() {
   const { db, onFeedback } = useAdminOutletContext()
-  return (
-    <AdminPsychologistsModule
-      psychologists={db.psychologists}
-      partners={db.partners}
-      onFeedback={onFeedback}
-    />
-  )
+  return <AdminPsychologistsModule psychologists={db.psychologists} onFeedback={onFeedback} />
 }
 
-export function AdminPartnersRoute() {
+export function AdminCertificatesRoute() {
   const { db, onFeedback } = useAdminOutletContext()
-  return <AdminPartnersModule db={db} onFeedback={onFeedback} />
+  return <AdminCertificatesModule db={db} onFeedback={onFeedback} />
 }
 
-export function AdminReferralsRoute() {
+export function AdminMonitoringRoute() {
+  const { db } = useAdminOutletContext()
+  return <AdminSessionMonitoringModule sessions={db.consultationSessions} />
+}
+
+export function AdminSettingsRoute() {
   const { db, onFeedback } = useAdminOutletContext()
-  return <AdminReferralsModule db={db} onFeedback={onFeedback} />
+  return <AdminPlatformSettingsModule db={db} onFeedback={onFeedback} />
 }
 
 export function AdminUsersCoinsRoute() {

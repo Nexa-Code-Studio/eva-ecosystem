@@ -1,9 +1,9 @@
 import {
   ArrowRight,
   Award,
-  Building2,
   CheckCircle2,
   ChevronRight,
+  RefreshCw,
   ShieldAlert,
 } from 'lucide-react'
 import { cn } from '@/lib/cn'
@@ -22,14 +22,14 @@ export function RecentQueueCard({
   className,
 }: RecentQueueCardProps) {
   const getKindIcon = (kind: QueueItem['kind']) => {
-    if (kind === 'mandiri') return <Award className="size-4 text-[#D97706]" />
-    if (kind === 'faskes') return <Building2 className="size-4 text-primary" />
+    if (kind === 'verification') return <Award className="size-4 text-[#D97706]" />
+    if (kind === 'revision') return <RefreshCw className="size-4 text-[#EA580C]" />
     return <ShieldAlert className="size-4 text-[#DC2626]" />
   }
 
   const getBadgeStyle = (kind: QueueItem['kind']) => {
-    if (kind === 'mandiri') return 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]'
-    if (kind === 'faskes') return 'bg-[#EEF0FF] text-primary border-primary/20'
+    if (kind === 'verification') return 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]'
+    if (kind === 'revision') return 'bg-[#FFF7ED] text-[#C2410C] border-[#FDBA74]'
     return 'bg-[#FEF2F2] text-[#991B1B] border-[#FECACA]'
   }
 
@@ -39,7 +39,7 @@ export function RecentQueueCard({
         <div>
           <h2 className="text-sm font-bold text-ink">Antrean Tindakan Terbaru</h2>
           <p className="text-xs text-ink-muted">
-            5 pendaftaran dan rujukan terbaru yang menunggu verifikasi atau penempatan.
+            Pendaftaran psikolog mandiri dan pantauan pengguna krisis yang memerlukan tinjauan.
           </p>
         </div>
       </div>
@@ -49,7 +49,7 @@ export function RecentQueueCard({
           <CheckCircle2 className="size-8 text-[#16A34A]" />
           <p className="mt-2 text-xs font-semibold text-ink">Tidak ada antrean tertunda</p>
           <p className="text-[11px] text-ink-muted">
-            Semua pengajuan dan rujukan selesai diproses.
+            Semua pengajuan verifikasi psikolog selesai diproses.
           </p>
         </div>
       ) : (
@@ -79,9 +79,7 @@ export function RecentQueueCard({
                       {item.title}
                     </span>
                   </div>
-                  <p className="mt-0.5 line-clamp-1 text-[11px] text-ink-muted">
-                    {item.subtitle}
-                  </p>
+                  <p className="mt-0.5 line-clamp-1 text-[11px] text-ink-muted">{item.subtitle}</p>
                 </div>
               </div>
 
@@ -96,36 +94,34 @@ export function RecentQueueCard({
         </div>
       )}
 
-      {/* Quick Jump Footers */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-[#E2E8F0] pt-3 text-xs">
-        <span className="text-ink-muted">Lihat antrean lengkap:</span>
+        <span className="text-ink-muted">Navigasi cepat:</span>
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={() => onSelectModule('psychologists')}
             className="inline-flex cursor-pointer items-center gap-1 font-semibold text-primary hover:underline"
           >
-            Psikolog &amp; Relawan <ArrowRight className="size-3" />
+            Verifikasi Psikolog <ArrowRight className="size-3" />
           </button>
           <span className="text-[#CBD5E1]">·</span>
           <button
             type="button"
-            onClick={() => onSelectModule('partners')}
+            onClick={() => onSelectModule('settings')}
             className="inline-flex cursor-pointer items-center gap-1 font-semibold text-primary hover:underline"
           >
-            Mitra Faskes <ArrowRight className="size-3" />
+            Pengaturan Tarif <ArrowRight className="size-3" />
           </button>
           <span className="text-[#CBD5E1]">·</span>
           <button
             type="button"
-            onClick={() => onSelectModule('referrals')}
+            onClick={() => onSelectModule('monitoring')}
             className="inline-flex cursor-pointer items-center gap-1 font-semibold text-primary hover:underline"
           >
-            Rujukan Pasien <ArrowRight className="size-3" />
+            Monitoring Sesi <ArrowRight className="size-3" />
           </button>
         </div>
       </div>
     </div>
   )
 }
-

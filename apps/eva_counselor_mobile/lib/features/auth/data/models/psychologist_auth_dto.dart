@@ -23,6 +23,17 @@ class PsychologistRegisterRequestDto {
   final String email;
   final String password;
   final String strNumber;
+  final String? sipNumber;
+  final String documentType; // 'str', 'sip', 'both'
+  final String issuingInstitution;
+  final String documentExpiryDate;
+  final String lastEducation;
+  final String? strIssuingInstitution;
+  final String? strExpiryDate;
+  final String? strDocUrl;
+  final String? sipIssuingInstitution;
+  final String? sipExpiryDate;
+  final String? sipDocUrl;
   final String association;
   final List<String> specializations;
   final int yearsOfExperience;
@@ -33,12 +44,28 @@ class PsychologistRegisterRequestDto {
   final int sessionDurationMinutes;
   final int coinsPerSession;
 
+  String? get strDocFileName => strDocUrl;
+  String? get sipDocFileName => sipDocUrl;
+
   const PsychologistRegisterRequestDto({
     required this.fullName,
     required this.titleDegree,
     required this.email,
     required this.password,
-    required this.strNumber,
+    this.strNumber = '',
+    this.sipNumber,
+    this.documentType = 'str',
+    this.issuingInstitution = 'Kemenkes RI',
+    this.documentExpiryDate = 'Seumur Hidup',
+    this.lastEducation = 'S2 Magister Psikologi Profesi',
+    this.strIssuingInstitution,
+    this.strExpiryDate,
+    String? strDocFileName,
+    String? strDocUrl,
+    this.sipIssuingInstitution,
+    this.sipExpiryDate,
+    String? sipDocFileName,
+    String? sipDocUrl,
     required this.association,
     required this.specializations,
     required this.yearsOfExperience,
@@ -46,9 +73,10 @@ class PsychologistRegisterRequestDto {
     required this.certificateDocFileName,
     this.counselorRole = 'professional_independent',
     this.partnerName,
-    this.sessionDurationMinutes = 50,
+    this.sessionDurationMinutes = 30,
     this.coinsPerSession = 150,
-  });
+  })  : strDocUrl = strDocUrl ?? strDocFileName,
+        sipDocUrl = sipDocUrl ?? sipDocFileName;
 
   Map<String, dynamic> toJson() => {
         'full_name': fullName,
@@ -56,6 +84,17 @@ class PsychologistRegisterRequestDto {
         'email': email,
         'password': password,
         'str_number': strNumber,
+        if (sipNumber != null) 'sip_number': sipNumber,
+        'document_type': documentType,
+        'issuing_institution': issuingInstitution,
+        'document_expiry_date': documentExpiryDate,
+        'last_education': lastEducation,
+        if (strIssuingInstitution != null) 'str_issuing_institution': strIssuingInstitution,
+        if (strExpiryDate != null) 'str_expiry_date': strExpiryDate,
+        if (strDocUrl != null) 'str_doc_url': strDocUrl,
+        if (sipIssuingInstitution != null) 'sip_issuing_institution': sipIssuingInstitution,
+        if (sipExpiryDate != null) 'sip_expiry_date': sipExpiryDate,
+        if (sipDocUrl != null) 'sip_doc_url': sipDocUrl,
         'association': association,
         'specializations': specializations,
         'years_of_experience': yearsOfExperience,
@@ -75,6 +114,17 @@ class PsychologistProfileResponseDto {
   final String titleDegree;
   final String email;
   final String strNumber;
+  final String? sipNumber;
+  final String documentType;
+  final String issuingInstitution;
+  final String documentExpiryDate;
+  final String lastEducation;
+  final String? strIssuingInstitution;
+  final String? strExpiryDate;
+  final String? strDocUrl;
+  final String? sipIssuingInstitution;
+  final String? sipExpiryDate;
+  final String? sipDocUrl;
   final String association;
   final List<String> specializations;
   final int yearsOfExperience;
@@ -104,6 +154,12 @@ class PsychologistProfileResponseDto {
   final DateTime? externalApiKeyCreatedAt;
   final DateTime? externalApiLastSyncAt;
   final int externalSyncCount;
+  final String bankName;
+  final String bankAccountNumber;
+  final String bankAccountHolder;
+
+  String? get strDocFileName => strDocUrl;
+  String? get sipDocFileName => sipDocUrl;
 
   const PsychologistProfileResponseDto({
     required this.id,
@@ -111,6 +167,19 @@ class PsychologistProfileResponseDto {
     required this.titleDegree,
     required this.email,
     required this.strNumber,
+    this.sipNumber,
+    this.documentType = 'str',
+    this.issuingInstitution = 'Kemenkes RI',
+    this.documentExpiryDate = 'Seumur Hidup',
+    this.lastEducation = 'S2 Magister Psikologi Profesi',
+    this.strIssuingInstitution,
+    this.strExpiryDate,
+    String? strDocFileName,
+    String? strDocUrl,
+    this.sipIssuingInstitution,
+    this.sipExpiryDate,
+    String? sipDocFileName,
+    String? sipDocUrl,
     required this.association,
     required this.specializations,
     required this.yearsOfExperience,
@@ -122,25 +191,29 @@ class PsychologistProfileResponseDto {
     this.token,
     this.counselorRole = 'professional_independent',
     this.partnerName,
-    this.sessionDurationMinutes = 50,
+    this.sessionDurationMinutes = 30,
     this.coinsPerSession = 150,
-    this.coinBalance = 1250,
+    this.coinBalance = 0,
     this.googleDriveEmail,
-    this.employeeNip = '198804122019032001',
-    this.isOnlinePracticeEnabled = true,
+    this.employeeNip = '',
+    this.isOnlinePracticeEnabled = false,
     this.isOfflinePracticeEnabled = false,
     this.offlinePlaceName,
     this.offlineAddress,
     this.offlineCity,
     this.offlineNotes,
-    this.offlineScheduleDays = const ['Sel', 'Kam', 'Sab'],
+    this.offlineScheduleDays = const [],
     this.offlineStartTime = '10:00',
     this.offlineEndTime = '16:00',
     this.externalApiKey,
     this.externalApiKeyCreatedAt,
     this.externalApiLastSyncAt,
     this.externalSyncCount = 0,
-  });
+    this.bankName = '',
+    this.bankAccountNumber = '',
+    this.bankAccountHolder = '',
+  })  : strDocUrl = strDocUrl ?? strDocFileName,
+        sipDocUrl = sipDocUrl ?? sipDocFileName;
 
   factory PsychologistProfileResponseDto.fromJson(Map<String, dynamic> json) {
     return PsychologistProfileResponseDto(
@@ -149,6 +222,17 @@ class PsychologistProfileResponseDto {
       titleDegree: json['title_degree']?.toString() ?? 'M.Psi., Psikolog',
       email: json['email']?.toString() ?? '',
       strNumber: json['str_number']?.toString() ?? '',
+      sipNumber: json['sip_number']?.toString(),
+      documentType: json['document_type']?.toString() ?? 'str',
+      issuingInstitution: json['issuing_institution']?.toString() ?? 'Kemenkes RI',
+      documentExpiryDate: json['document_expiry_date']?.toString() ?? 'Seumur Hidup',
+      lastEducation: json['last_education']?.toString() ?? 'S2 Magister Psikologi Profesi',
+      strIssuingInstitution: json['str_issuing_institution']?.toString(),
+      strExpiryDate: json['str_expiry_date']?.toString(),
+      strDocUrl: json['str_doc_url']?.toString(),
+      sipIssuingInstitution: json['sip_issuing_institution']?.toString(),
+      sipExpiryDate: json['sip_expiry_date']?.toString(),
+      sipDocUrl: json['sip_doc_url']?.toString(),
       association: json['association']?.toString() ?? 'HIMPSI',
       specializations: (json['specializations'] as List<dynamic>?)
               ?.map((e) => e.toString())
@@ -159,18 +243,21 @@ class PsychologistProfileResponseDto {
           json['consultation_rate_per_hour'] as int? ?? 150000,
       verificationStatus:
           json['verification_status']?.toString() ?? 'pending',
-      isOnline: json['is_online'] as bool? ?? true,
+      isOnline: json['is_online'] as bool? ?? false,
       profilePhotoUrl: json['profile_photo_url']?.toString(),
       certificateDocUrl: json['certificate_doc_url']?.toString(),
       token: json['token']?.toString(),
       counselorRole: json['counselor_role']?.toString() ?? 'professional_independent',
       partnerName: json['partner_name']?.toString(),
-      sessionDurationMinutes: json['session_duration_minutes'] as int? ?? 50,
+      sessionDurationMinutes: json['session_duration_minutes'] as int? ?? 30,
       coinsPerSession: json['coins_per_session'] as int? ?? 150,
-      coinBalance: json['coin_balance'] as int? ?? 1250,
+      coinBalance: (json['coin_balance'] as num?)?.toInt() ??
+          (json['wallet_balance'] != null
+              ? ((json['wallet_balance'] as num) / 1000).toInt()
+              : 0),
       googleDriveEmail: json['google_drive_email']?.toString(),
-      employeeNip: json['employee_nip']?.toString() ?? '198804122019032001',
-      isOnlinePracticeEnabled: json['is_online_practice_enabled'] as bool? ?? true,
+      employeeNip: json['employee_nip']?.toString() ?? '',
+      isOnlinePracticeEnabled: json['is_online_practice_enabled'] as bool? ?? false,
       isOfflinePracticeEnabled: json['is_offline_practice_enabled'] as bool? ?? false,
       offlinePlaceName: json['offline_place_name']?.toString(),
       offlineAddress: json['offline_address']?.toString(),
@@ -179,7 +266,7 @@ class PsychologistProfileResponseDto {
       offlineScheduleDays: (json['offline_schedule_days'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
-          const ['Sel', 'Kam', 'Sab'],
+          const [],
       offlineStartTime: json['offline_start_time']?.toString() ?? '10:00',
       offlineEndTime: json['offline_end_time']?.toString() ?? '16:00',
       externalApiKey: json['external_api_key']?.toString(),
@@ -190,6 +277,9 @@ class PsychologistProfileResponseDto {
           ? DateTime.tryParse(json['external_api_last_sync_at'].toString())
           : null,
       externalSyncCount: json['external_sync_count'] as int? ?? 0,
+      bankName: json['bank_name']?.toString() ?? '',
+      bankAccountNumber: json['bank_account_number']?.toString() ?? '',
+      bankAccountHolder: json['bank_account_holder']?.toString() ?? '',
     );
   }
 
@@ -199,6 +289,17 @@ class PsychologistProfileResponseDto {
         'title_degree': titleDegree,
         'email': email,
         'str_number': strNumber,
+        if (sipNumber != null) 'sip_number': sipNumber,
+        'document_type': documentType,
+        'issuing_institution': issuingInstitution,
+        'document_expiry_date': documentExpiryDate,
+        'last_education': lastEducation,
+        if (strIssuingInstitution != null) 'str_issuing_institution': strIssuingInstitution,
+        if (strExpiryDate != null) 'str_expiry_date': strExpiryDate,
+        if (strDocUrl != null) 'str_doc_url': strDocUrl,
+        if (sipIssuingInstitution != null) 'sip_issuing_institution': sipIssuingInstitution,
+        if (sipExpiryDate != null) 'sip_expiry_date': sipExpiryDate,
+        if (sipDocUrl != null) 'sip_doc_url': sipDocUrl,
         'association': association,
         'specializations': specializations,
         'years_of_experience': yearsOfExperience,
@@ -230,6 +331,9 @@ class PsychologistProfileResponseDto {
         if (externalApiLastSyncAt != null)
           'external_api_last_sync_at': externalApiLastSyncAt!.toIso8601String(),
         'external_sync_count': externalSyncCount,
+        'bank_name': bankName,
+        'bank_account_number': bankAccountNumber,
+        'bank_account_holder': bankAccountHolder,
       };
 
   PsychologistProfileResponseDto copyWith({
@@ -238,6 +342,11 @@ class PsychologistProfileResponseDto {
     String? titleDegree,
     String? email,
     String? strNumber,
+    String? sipNumber,
+    String? documentType,
+    String? issuingInstitution,
+    String? documentExpiryDate,
+    String? lastEducation,
     String? association,
     List<String>? specializations,
     int? yearsOfExperience,
@@ -267,6 +376,9 @@ class PsychologistProfileResponseDto {
     DateTime? externalApiKeyCreatedAt,
     DateTime? externalApiLastSyncAt,
     int? externalSyncCount,
+    String? bankName,
+    String? bankAccountNumber,
+    String? bankAccountHolder,
   }) {
     return PsychologistProfileResponseDto(
       id: id ?? this.id,
@@ -274,6 +386,11 @@ class PsychologistProfileResponseDto {
       titleDegree: titleDegree ?? this.titleDegree,
       email: email ?? this.email,
       strNumber: strNumber ?? this.strNumber,
+      sipNumber: sipNumber ?? this.sipNumber,
+      documentType: documentType ?? this.documentType,
+      issuingInstitution: issuingInstitution ?? this.issuingInstitution,
+      documentExpiryDate: documentExpiryDate ?? this.documentExpiryDate,
+      lastEducation: lastEducation ?? this.lastEducation,
       association: association ?? this.association,
       specializations: specializations ?? this.specializations,
       yearsOfExperience: yearsOfExperience ?? this.yearsOfExperience,
@@ -309,6 +426,9 @@ class PsychologistProfileResponseDto {
       externalApiLastSyncAt:
           externalApiLastSyncAt ?? this.externalApiLastSyncAt,
       externalSyncCount: externalSyncCount ?? this.externalSyncCount,
+      bankName: bankName ?? this.bankName,
+      bankAccountNumber: bankAccountNumber ?? this.bankAccountNumber,
+      bankAccountHolder: bankAccountHolder ?? this.bankAccountHolder,
     );
   }
 
@@ -353,6 +473,17 @@ class PsychologistProfileResponseDto {
       titleDegree: titleDegree,
       email: email,
       strNumber: strNumber,
+      sipNumber: sipNumber,
+      documentType: documentType,
+      issuingInstitution: issuingInstitution,
+      documentExpiryDate: documentExpiryDate,
+      lastEducation: lastEducation,
+      strIssuingInstitution: strIssuingInstitution,
+      strExpiryDate: strExpiryDate,
+      strDocUrl: strDocUrl ?? certificateDocUrl,
+      sipIssuingInstitution: sipIssuingInstitution,
+      sipExpiryDate: sipExpiryDate,
+      sipDocUrl: sipDocUrl,
       association: association,
       specializations: specializations,
       yearsOfExperience: yearsOfExperience,
@@ -381,6 +512,10 @@ class PsychologistProfileResponseDto {
       externalApiKeyCreatedAt: externalApiKeyCreatedAt,
       externalApiLastSyncAt: externalApiLastSyncAt,
       externalSyncCount: externalSyncCount,
+      bankName: bankName,
+      bankAccountNumber: bankAccountNumber,
+      bankAccountHolder: bankAccountHolder,
+      isScheduleConfigured: isOnlinePracticeEnabled || (offlineScheduleDays.isNotEmpty),
     );
   }
 }

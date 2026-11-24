@@ -1,11 +1,19 @@
-import { Coins, Search, ShieldAlert } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Coins, Plus, Search, ShieldAlert } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
+import { AdminCoinTopupModal } from './AdminCoinTopupModal'
 import { AdminCoinsTransactionsTab } from './AdminCoinsTransactionsTab'
+import { TablePagination } from '@/components/portal/TablePagination'
+import { useUrlPagination } from '@/hooks/useUrlPagination'
 import { cn } from '@/lib/cn'
 import {
+  fetchAdminUsers,
+  fetchCoinEconomyConfig,
+  fetchCoinPackages,
+  fetchCoinTransactions,
   updateGeneralUserStatus,
   type AppUserStatus,
+  type GeneralAppUser,
   type PortalDatabase,
 } from '@/lib/portalStore'
 
@@ -30,11 +38,22 @@ export function AdminUsersCoinsModule({
       } else {
         next.delete('tab')
       }
+      next.delete('page')
       return next
     })
   }
 
   const [userSearch, setUserSearch] = useState('')
+  const [topupTargetUser, setTopupTargetUser] = useState<GeneralAppUser | null>(null)
+  const [isTopupModalOpen, setIsTopupModalOpen] = useState(false)
+  const usersTableCardRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    void fetchAdminUsers()
+    void fetchCoinTransactions()
+    void fetchCoinEconomyConfig()
+    void fetchCoinPackages()
+  }, [])
 
   const filteredUsers = useMemo(() => {
     if (!userSearch.trim()) return db.generalUsers
@@ -48,6 +67,23 @@ export function AdminUsersCoinsModule({
     )
   }, [db.generalUsers, userSearch])
 
+  const {
+    pageSize: usersPageSize,
+    safePage: usersSafePage,
+    paginatedItems: paginatedUsers,
+    resetPage: resetUsersPage,
+    handlePageChange: handleUsersPageChange,
+    handlePageSizeChange: handleUsersPageSizeChange,
+  } = useUrlPagination(filteredUsers, {
+    defaultPageSize: 10,
+    scrollTargetRef: usersTableCardRef,
+  })
+
+  const handleUserSearchChange = (value: string) => {
+    setUserSearch(value)
+    resetUsersPage()
+  }
+
   const pendingCoinTransactionsCount = useMemo(
     () => db.coinTransactions.filter((t) => t.status === 'pending').length,
     [db.coinTransactions],
@@ -58,10 +94,10 @@ export function AdminUsersCoinsModule({
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-xl font-bold tracking-[-0.02em] text-ink sm:text-2xl">
-            Manajemen Pengguna &amp; Koin Suara
+            Manajemen Pengguna &amp; EVA Coin
           </h1>
           <p className="mt-0.5 text-xs text-ink-muted">
-            Pantau direktori pengguna aplikasi mobile EVA, saldo koin bicara (1 Koin = 1 Menit), serta riwayat transaksi top-up koin.
+            Pantau direktori pengguna aplikasi mobile EVA, saldo koin terpadu (Voice AI 1 Koin/mnt &amp; konsultasi psikolog), serta riwayat top-up koin.
           </p>
         </div>
 
@@ -106,43 +142,67 @@ export function AdminUsersCoinsModule({
       </div>
 
       {activeSubTab === 'users' ? (
-        <div className="mt-5 rounded-[12px] border border-[#E2E8F0] bg-white">
-          <div className="flex flex-col justify-between gap-3 border-b border-[#E2E8F0] p-4 sm:flex-row sm:items-center">
-            <div>
-              <h2 className="text-sm font-bold text-ink">
-                Direktori Pengguna Aplikasi Mobile
-              </h2>
-              <p className="text-xs text-ink-muted">
-                Data dianonimkan sesuai standar privasi klinis EVA. 1 Koin setara dengan 1 menit berbicara bersama EVA.
-              </p>
+        <div className="mt-5 space-y-3">
+          <div
+            ref={usersTableCardRef}
+            className="rounded-[12px] border border-[#E2E8F0] bg-white"
+          >
+            <div className="flex flex-col justify-between gap-3 border-b border-[#E2E8F0] p-4 sm:flex-row sm:items-center">
+              <div>
+                <h2 className="text-sm font-bold text-ink">
+                  Direktori Pengguna Aplikasi Mobile
+                </h2>
+                <p className="text-xs text-ink-muted">
+                  Data dianonimkan sesuai standar privasi klinis EVA. 1 Koin setara dengan 1 menit berbicara bersama EVA.
+                </p>
+              </div>
+              <div className="relative w-full sm:w-72">
+                <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-ink-muted" />
+                <input
+                  type="search"
+                  value={userSearch}
+                  onChange={(e) => handleUserSearchChange(e.target.value)}
+                  placeholder="Cari kode user, email, atau kota..."
+                  className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-[#F8FAFC] pr-3 pl-8 text-xs text-ink focus:border-primary focus:bg-white focus:outline-none"
+                />
+              </div>
             </div>
-            <div className="relative w-full sm:w-72">
-              <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-ink-muted" />
-              <input
-                type="search"
-                value={userSearch}
-                onChange={(e) => setUserSearch(e.target.value)}
-                placeholder="Cari kode user, email, atau kota..."
-                className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-[#F8FAFC] pr-3 pl-8 text-xs text-ink focus:border-primary focus:bg-white focus:outline-none"
-              />
-            </div>
-          </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left">
-              <thead>
-                <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC] text-[11px] font-bold tracking-wider text-ink-muted uppercase">
-                  <th className="px-4 py-3">Pengguna &amp; Kota</th>
-                  <th className="px-4 py-3">Aktivitas App</th>
-                  <th className="px-4 py-3">Saldo Koin &amp; Menit</th>
-                  <th className="px-4 py-3">Skrining DASS-21</th>
-                  <th className="px-4 py-3">Protokol Krisis</th>
-                  <th className="px-4 py-3">Status Akun</th>
-                  <th className="px-4 py-3 text-right">Moderasi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E2E8F0] text-xs">
-                {filteredUsers.map((usr) => (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left">
+                <thead>
+                  <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC] text-[11px] font-bold tracking-wider text-ink-muted uppercase">
+                    <th className="px-4 py-3">Pengguna &amp; Kota</th>
+                    <th className="px-4 py-3">Aktivitas App</th>
+                    <th className="px-4 py-3">Saldo Koin &amp; Menit</th>
+                    <th className="px-4 py-3">Skrining DASS-21</th>
+                    <th className="px-4 py-3">Protokol Krisis</th>
+                    <th className="px-4 py-3">Status Akun</th>
+                    <th className="px-4 py-3 text-right">Moderasi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E2E8F0] text-xs">
+                  {paginatedUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-ink-muted">
+                        <p className="font-semibold text-ink">
+                          {userSearch.trim()
+                            ? 'Tidak ada pengguna yang cocok dengan kata kunci pencarian.'
+                            : 'Belum ada pengguna aplikasi terdaftar.'}
+                        </p>
+                        {userSearch.trim() && (
+                          <button
+                            type="button"
+                            onClick={() => handleUserSearchChange('')}
+                            className="mt-2 inline-flex min-h-9 cursor-pointer items-center rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-xs font-semibold text-ink hover:bg-[#F8FAFC]"
+                          >
+                            Reset Pencarian
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedUsers.map((usr) => (
                   <tr key={usr.id} className="hover:bg-[#F8FAFC]">
                     <td className="px-4 py-3.5">
                       <p className="font-semibold text-ink">{usr.displayName}</p>
@@ -209,29 +269,76 @@ export function AdminUsersCoinsModule({
                       </span>
                     </td>
                     <td className="px-4 py-3.5 text-right">
-                      <select
-                        aria-label={`Ubah status ${usr.displayName}`}
-                        value={usr.accountStatus}
-                        onChange={(e) => {
-                          updateGeneralUserStatus(usr.id, e.target.value as AppUserStatus)
-                          onFeedback(`Status akun pengguna "${usr.userCode}" berhasil diperbarui.`)
-                        }}
-                        className="h-8 rounded-[6px] border border-[#CBD5E1] bg-white px-2 text-xs font-semibold text-ink focus:border-primary focus:outline-none"
-                      >
-                        <option value="active">Aktif Normal</option>
-                        <option value="flagged_crisis">Pantauan Prioritas</option>
-                        <option value="suspended">Tangguhkan Akun</option>
-                      </select>
+                      <div className="inline-flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTopupTargetUser(usr)
+                            setIsTopupModalOpen(true)
+                          }}
+                          className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-[6px] border border-primary/30 bg-[#EEF0FF] px-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary hover:text-white"
+                        >
+                          <Plus className="size-3.5" />
+                          <span>Tambah Koin</span>
+                        </button>
+                        <select
+                          aria-label={`Ubah status ${usr.displayName}`}
+                          value={usr.accountStatus}
+                          onChange={(e) => {
+                            updateGeneralUserStatus(usr.id, e.target.value as AppUserStatus)
+                            onFeedback(`Status akun pengguna "${usr.userCode}" berhasil diperbarui.`)
+                          }}
+                          className="h-8 rounded-[6px] border border-[#CBD5E1] bg-white px-2 text-xs font-semibold text-ink focus:border-primary focus:outline-none"
+                        >
+                          <option value="active">Aktif Normal</option>
+                          <option value="flagged_crisis">Pantauan Prioritas</option>
+                          <option value="suspended">Tangguhkan Akun</option>
+                        </select>
+                      </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
+
+          <TablePagination
+            currentPage={usersSafePage}
+            totalItems={filteredUsers.length}
+            pageSize={usersPageSize}
+            pageSizeOptions={[5, 10, 25, 50]}
+            itemLabel="pengguna"
+            ariaLabel="Paginasi pengguna aplikasi"
+            onPageChange={handleUsersPageChange}
+            onPageSizeChange={handleUsersPageSizeChange}
+          />
         </div>
       ) : (
-        <AdminCoinsTransactionsTab db={db} onFeedback={onFeedback} />
+        <AdminCoinsTransactionsTab
+          db={db}
+          onFeedback={onFeedback}
+          onOpenGlobalTopup={() => {
+            setTopupTargetUser(null)
+            setIsTopupModalOpen(true)
+          }}
+        />
       )}
+
+      <AdminCoinTopupModal
+        key={topupTargetUser?.id ?? (isTopupModalOpen ? 'global-open' : 'closed')}
+        isOpen={isTopupModalOpen}
+        users={db.generalUsers}
+        coinPackages={db.coinPackages}
+        economyConfig={db.coinEconomyConfig}
+        preselectedUser={topupTargetUser}
+        onClose={() => {
+          setIsTopupModalOpen(false)
+          setTopupTargetUser(null)
+        }}
+        onSuccess={onFeedback}
+      />
     </div>
   )
 }

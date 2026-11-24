@@ -2,13 +2,16 @@ import {
   CheckCircle2,
   Clock,
   Coins,
+  Plus,
   RotateCcw,
   Search,
   Sparkles,
   Wallet,
   XCircle,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
+import { TablePagination } from '@/components/portal/TablePagination'
+import { useUrlPagination } from '@/hooks/useUrlPagination'
 import { cn } from '@/lib/cn'
 import {
   reviewCoinTransaction,
@@ -19,6 +22,7 @@ import {
 interface AdminCoinsTransactionsTabProps {
   db: PortalDatabase
   onFeedback: (message: string) => void
+  onOpenGlobalTopup?: () => void
 }
 
 type TrxFilter = 'all' | 'pending' | 'completed' | 'refunded_failed'
@@ -26,9 +30,11 @@ type TrxFilter = 'all' | 'pending' | 'completed' | 'refunded_failed'
 export function AdminCoinsTransactionsTab({
   db,
   onFeedback,
+  onOpenGlobalTopup,
 }: AdminCoinsTransactionsTabProps) {
   const [trxFilter, setTrxFilter] = useState<TrxFilter>('all')
   const [trxSearch, setTrxSearch] = useState('')
+  const transactionsCardRef = useRef<HTMLDivElement>(null)
 
   // KPI calculations
   const kpiStats = useMemo(() => {
@@ -79,6 +85,28 @@ export function AdminCoinsTransactionsTab({
       )
     })
   }, [db.coinTransactions, trxFilter, trxSearch])
+
+  const {
+    pageSize,
+    safePage,
+    paginatedItems: paginatedTransactions,
+    resetPage,
+    handlePageChange,
+    handlePageSizeChange,
+  } = useUrlPagination(filteredTransactions, {
+    defaultPageSize: 10,
+    scrollTargetRef: transactionsCardRef,
+  })
+
+  const handleFilterChange = (nextFilter: TrxFilter) => {
+    setTrxFilter(nextFilter)
+    resetPage()
+  }
+
+  const handleSearchChange = (value: string) => {
+    setTrxSearch(value)
+    resetPage()
+  }
 
   const handleUpdateTransactionStatus = (
     trxId: string,
@@ -164,92 +192,107 @@ export function AdminCoinsTransactionsTab({
             Rp{db.coinEconomyConfig.basePricePerCoinIdr.toLocaleString('id-ID')} / Koin
           </p>
           <p className="mt-0.5 text-xs text-ink-muted">
-            1 Koin = 1 Menit bicara · Trial baru: {db.coinEconomyConfig.freeTrialCoinsNewUser} Koin
+            Voice AI (1 Koin/mnt) &amp; konsultasi · Trial: {db.coinEconomyConfig.freeTrialCoinsNewUser} Koin
           </p>
         </div>
       </div>
 
       {/* 2. Top-Up Transactions History Table (Primary Focus) */}
-      <div className="rounded-[12px] border border-[#E2E8F0] bg-white">
-        <div className="flex flex-col justify-between gap-3 border-b border-[#E2E8F0] p-4 sm:flex-row sm:items-center">
-          <div>
-            <h2 className="text-sm font-bold text-ink">
-              Riwayat Transaksi Top-Up Koin Pengguna
-            </h2>
-            <p className="text-xs text-ink-muted">
-              Verifikasi pembayaran masuk dan pantau distribusi koin menit bicara ke akun pengguna.
-            </p>
-          </div>
+      <div className="space-y-3">
+        <div
+          ref={transactionsCardRef}
+          className="rounded-[12px] border border-[#E2E8F0] bg-white"
+        >
+          <div className="flex flex-col justify-between gap-3 border-b border-[#E2E8F0] p-4 sm:flex-row sm:items-center">
+            <div>
+              <h2 className="text-sm font-bold text-ink">
+                Riwayat Transaksi Top-Up Koin Pengguna
+              </h2>
+              <p className="text-xs text-ink-muted">
+                Verifikasi pembayaran masuk dan pantau distribusi EVA Coin ke akun pengguna.
+              </p>
+            </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex rounded-[8px] bg-[#F1F5F9] p-1 text-xs">
-              {(
-                [
-                  { id: 'all', label: `Semua (${db.coinTransactions.length})` },
-                  {
-                    id: 'pending',
-                    label: `Menunggu (${db.coinTransactions.filter((t) => t.status === 'pending').length})`,
-                  },
-                  {
-                    id: 'completed',
-                    label: `Berhasil (${db.coinTransactions.filter((t) => t.status === 'completed').length})`,
-                  },
-                  {
-                    id: 'refunded_failed',
-                    label: `Refund/Batal (${db.coinTransactions.filter((t) => t.status === 'refunded' || t.status === 'failed').length})`,
-                  },
-                ] as const
-              ).map((tab) => (
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex rounded-[8px] bg-[#F1F5F9] p-1 text-xs">
+                {(
+                  [
+                    { id: 'all', label: `Semua (${db.coinTransactions.length})` },
+                    {
+                      id: 'pending',
+                      label: `Menunggu (${db.coinTransactions.filter((t) => t.status === 'pending').length})`,
+                    },
+                    {
+                      id: 'completed',
+                      label: `Berhasil (${db.coinTransactions.filter((t) => t.status === 'completed').length})`,
+                    },
+                    {
+                      id: 'refunded_failed',
+                      label: `Refund/Batal (${db.coinTransactions.filter((t) => t.status === 'refunded' || t.status === 'failed').length})`,
+                    },
+                  ] as const
+                ).map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => handleFilterChange(tab.id)}
+                    className={cn(
+                      'cursor-pointer rounded-[6px] px-2.5 py-1 text-[11px] font-semibold transition-colors',
+                      trxFilter === tab.id
+                        ? 'bg-white text-ink shadow-2xs'
+                        : 'text-ink-muted hover:text-ink',
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="relative w-full sm:w-64">
+                <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-ink-muted" />
+                <input
+                  type="search"
+                  value={trxSearch}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder="Cari invoice, pengguna, metode..."
+                  className="h-8 w-full rounded-[8px] border border-[#CBD5E1] bg-[#F8FAFC] pr-3 pl-8 text-xs text-ink focus:border-primary focus:bg-white focus:outline-none"
+                />
+              </div>
+
+              {onOpenGlobalTopup && (
                 <button
-                  key={tab.id}
                   type="button"
-                  onClick={() => setTrxFilter(tab.id)}
-                  className={cn(
-                    'cursor-pointer rounded-[6px] px-2.5 py-1 text-[11px] font-semibold transition-colors',
-                    trxFilter === tab.id
-                      ? 'bg-white text-ink shadow-2xs'
-                      : 'text-ink-muted hover:text-ink',
-                  )}
+                  onClick={onOpenGlobalTopup}
+                  className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-[8px] bg-primary px-3 text-xs font-semibold text-white shadow-2xs transition-colors hover:bg-primary-hover"
                 >
-                  {tab.label}
+                  <Plus className="size-3.5" />
+                  <span>Top-Up Manual</span>
                 </button>
-              ))}
-            </div>
-
-            <div className="relative w-full sm:w-64">
-              <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-ink-muted" />
-              <input
-                type="search"
-                value={trxSearch}
-                onChange={(e) => setTrxSearch(e.target.value)}
-                placeholder="Cari invoice, pengguna, metode..."
-                className="h-8 w-full rounded-[8px] border border-[#CBD5E1] bg-[#F8FAFC] pr-3 pl-8 text-xs text-ink focus:border-primary focus:bg-white focus:outline-none"
-              />
+              )}
             </div>
           </div>
-        </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left">
-            <thead>
-              <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC] text-[11px] font-bold tracking-wider text-ink-muted uppercase">
-                <th className="px-4 py-3">Invoice &amp; Waktu</th>
-                <th className="px-4 py-3">Pengguna</th>
-                <th className="px-4 py-3">Paket &amp; Kuota Koin</th>
-                <th className="px-4 py-3">Nominal &amp; Metode</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Tindakan Admin</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E2E8F0] text-xs">
-              {filteredTransactions.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-ink-muted">
-                    Tidak ada transaksi top-up koin yang sesuai dengan filter pencarian.
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left">
+              <thead>
+                <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC] text-[11px] font-bold tracking-wider text-ink-muted uppercase">
+                  <th className="px-4 py-3">Invoice &amp; Waktu</th>
+                  <th className="px-4 py-3">Pengguna</th>
+                  <th className="px-4 py-3">Paket &amp; Kuota Koin</th>
+                  <th className="px-4 py-3">Nominal &amp; Metode</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3 text-right">Tindakan Admin</th>
                 </tr>
-              ) : (
-                filteredTransactions.map((trx) => (
+              </thead>
+              <tbody className="divide-y divide-[#E2E8F0] text-xs">
+                {paginatedTransactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-ink-muted">
+                      Tidak ada transaksi top-up koin yang sesuai dengan filter pencarian.
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedTransactions.map((trx) => (
                   <tr key={trx.id} className="hover:bg-[#F8FAFC]">
                     <td className="px-4 py-3.5">
                       <p className="font-mono font-bold text-ink">{trx.invoiceCode}</p>
@@ -346,11 +389,23 @@ export function AdminCoinsTransactionsTab({
                       )}
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
+
+        <TablePagination
+          currentPage={safePage}
+          totalItems={filteredTransactions.length}
+          pageSize={pageSize}
+          pageSizeOptions={[5, 10, 25, 50]}
+          itemLabel="transaksi"
+          ariaLabel="Paginasi riwayat transaksi koin"
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+        />
       </div>
     </div>
   )

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,10 +16,11 @@ import 'package:eva_mobile/features/care/presentation/widgets/psychologist_card.
 import 'package:eva_mobile/features/care/presentation/widgets/psychologist_certificate_carousel.dart';
 import 'package:eva_mobile/features/care/presentation/widgets/clinic_location_map_card.dart';
 import 'package:eva_mobile/features/care/presentation/widgets/consultation_result_bottom_sheet.dart';
-import 'package:eva_mobile/features/care/presentation/widgets/psychologist_role_badge.dart';
+import '../../test_helpers/mock_image_http.dart';
 
 void main() {
   setUp(() {
+    HttpOverrides.global = TestHttpOverrides();
     AppConfig.useMockData = true;
     SharedPreferences.setMockInitialValues({
       'user_name': 'Alexander Agung',
@@ -122,7 +124,9 @@ void main() {
     final card = find.text('Amanda Zahra, M.Psi., Psikolog');
     expect(card, findsOneWidget);
     await tester.tap(card);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 500));
 
     // Verify PsychologistDetailScreen is displayed
     expect(find.byType(PsychologistDetailScreen), findsOneWidget);
@@ -171,7 +175,9 @@ void main() {
     final lihatSemuaBtn = find.text('Lihat Semua');
     expect(lihatSemuaBtn, findsOneWidget);
     await tester.tap(lihatSemuaBtn);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.text('Semua Testimoni Pasien'), findsOneWidget);
     expect(find.text('Semua (5)'), findsOneWidget);
@@ -266,12 +272,14 @@ void main() {
     final historyBtn = find.text('Riwayat');
     expect(historyBtn, findsOneWidget);
     await tester.tap(historyBtn);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
     await tester.pumpAndSettle();
 
     // Verify ConsultationHistoryScreen is displayed
     expect(find.byType(ConsultationHistoryScreen), findsOneWidget);
     expect(find.text('Riwayat Bicara & Konseling'), findsOneWidget);
-    expect(find.text('PSIKOLOG YANG PERNAH DISEWA'), findsOneWidget);
+    expect(find.text('PSIKOLOG & RELAWAN'), findsOneWidget);
 
     // Verify hired psychologists listed
     expect(find.text('Amanda Zahra, M.Psi., Psikolog'), findsOneWidget);
@@ -291,6 +299,11 @@ void main() {
   });
 
   testWidgets('PsychologistCertificateCarousel displays certificates one by one and navigates via swipe and chevron buttons', (tester) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     final certs = [
       'SIPP: 1988-12-04-2021 (HIMPSI)',
       'Magister Profesi Psikologi Klinis Dewasa (S2)',
@@ -307,6 +320,8 @@ void main() {
         ),
       ),
     );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.pumpAndSettle();
 
     // Verify first certificate is shown with photo & clean label (no AI slop)
@@ -335,7 +350,7 @@ void main() {
     expect(find.text('SIPP: 1988-12-04-2021 (HIMPSI)'), findsOneWidget);
 
     // Swipe left on PageView to go to certificate 2
-    await tester.drag(find.byType(PageView), const Offset(-300, 0));
+    await tester.fling(find.byType(PageView), const Offset(-500, 0), 1000);
     await tester.pumpAndSettle();
 
     expect(find.text('2 / 4'), findsOneWidget);

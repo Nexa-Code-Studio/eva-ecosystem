@@ -13,15 +13,18 @@ class VideoCallRepositoryImpl implements VideoCallRepository {
     final dto = await dataSource.joinRoom(session.id);
     return VideoCallStateEntity(
       session: session,
-      connectionState: VideoCallConnectionState.connected,
+      connectionState: VideoCallConnectionState.connecting,
       isMicMuted: false,
       isCameraOff: false,
       isFrontCamera: true,
       isSpeakerOn: true,
-      isRemoteSpeaking: true,
+      isRemoteSpeaking: false,
       callDurationSeconds: 0,
       roomId: dto.roomId,
       token: dto.token,
+      iceServers: dto.iceServerConfigs,
+      wsUrl: dto.wsUrl,
+      isWaitingForCounselor: true,
     );
   }
 

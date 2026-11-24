@@ -1,0 +1,86 @@
+import type {
+  CertificateTemplate,
+  IssuedPsychologistCertificate,
+} from '@/types/domain/portal'
+
+export const INITIAL_CERTIFICATE_TEMPLATES: CertificateTemplate[] = [
+  {
+    id: 'tpl-cert-pro-01',
+    code: 'CERT-PRO-01',
+    title: 'SERTIFIKAT PRAKTIK TELEKONSELING KLINIS',
+    subtitle: 'Clinical Tele-Psychology Excellence & Competence',
+    categoryCode: 'PRO',
+    categoryLabel: 'Psikolog Mandiri',
+    milestoneCriteria: 'Penyelesaian 25 Sesi Klinis Terverifikasi',
+    description:
+      'Diberikan kepada {psychologist_name} (STR: {str_number}) atas dedikasi dan kompetensi klinis prima dalam menyelenggarakan telekonsultasi kesehatan mental dengan standar etika tertinggi. Nomor Registrasi Sertifikat: {certificate_number} (Diterbitkan {issue_date}).',
+    badgeColor: '#2563EB',
+    triggerType: 'sessions_milestone',
+    minCompletedSessions: 25,
+    minAverageRating: null,
+    autoIssueEnabled: true,
+    isActive: true,
+    updatedAt: '2026-11-24',
+  },
+  {
+    id: 'tpl-cert-pro-02',
+    code: 'CERT-PRO-02',
+    title: 'SERTIFIKAT KEPATUHAN REKAM MEDIS SOAP',
+    subtitle: 'Certified Clinical Medical Record Standard',
+    categoryCode: 'SOAP',
+    categoryLabel: 'Psikolog Mandiri',
+    milestoneCriteria: 'Kepatuhan Rekam SOAP 100% pada 50 Sesi',
+    description:
+      'Diberikan kepada {psychologist_name} (STR: {str_number}) atas komitmen integritas dokumentasi SOAP klinis terenkripsi aman demi keselamatan pasien. Nomor: {certificate_number}.',
+    badgeColor: '#D97706',
+    triggerType: 'sessions_milestone',
+    minCompletedSessions: 50,
+    minAverageRating: null,
+    autoIssueEnabled: true,
+    isActive: true,
+    updatedAt: '2026-11-24',
+  },
+  {
+    id: 'tpl-cert-pro-03',
+    code: 'CERT-PRO-03',
+    title: 'SERTIFIKAT KONSELOR TELADAN EVA',
+    subtitle: 'Distinguished Clinical Practitioner',
+    categoryCode: 'TOP',
+    categoryLabel: 'Psikolog Mandiri',
+    milestoneCriteria: '100+ Sesi Terlaksana dengan Rating Kepuasan >= 4.8',
+    description:
+      'Penghargaan tertinggi platform EVA kepada {psychologist_name} (STR: {str_number}) atas loyalitas pelayanan intervensi krisis dan kepuasan pasien prima. Nomor: {certificate_number}.',
+    badgeColor: '#7E22CE',
+    triggerType: 'rating_milestone',
+    minCompletedSessions: 100,
+    minAverageRating: 4.8,
+    autoIssueEnabled: true,
+    isActive: true,
+    updatedAt: '2026-11-24',
+  },
+]
+
+export const INITIAL_ISSUED_CERTIFICATES: IssuedPsychologistCertificate[] = [
+  {
+    id: 'cert-seed-00001',
+    certificateNumber: 'EVA/CERT/2026/PRO/00001',
+    sequenceNumber: 1,
+    issueYear: 2026,
+    categoryCode: 'PRO',
+    counselorId: 'psy-1',
+    templateId: 'tpl-cert-pro-01',
+    title: 'SERTIFIKAT PRAKTIK TELEKONSELING KLINIS',
+    subtitle: 'Clinical Tele-Psychology Excellence & Competence',
+    recipientName: 'dr. Sarah Amelia, M.Psi., Psikolog',
+    strNumber: 'STR-PK-2021-991042',
+    milestoneCriteria: 'Penyelesaian 25 Sesi Klinis Terverifikasi',
+    categoryLabel: 'Psikolog Mandiri',
+    description:
+      'Diberikan kepada dr. Sarah Amelia, M.Psi., Psikolog (STR: STR-PK-2021-991042) atas dedikasi telekonseling klinis resmi EVA. Nomor: EVA/CERT/2026/PRO/00001.',
+    badgeColor: '#2563EB',
+    triggerSource: 'manual',
+    status: 'active',
+    issueDateLabel: '24 November 2026',
+    issuedAt: '2026-11-24T04:00:00Z',
+  },
+]

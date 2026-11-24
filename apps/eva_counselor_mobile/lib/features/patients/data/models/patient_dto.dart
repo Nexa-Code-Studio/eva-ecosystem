@@ -15,6 +15,8 @@ class PatientResponseDto {
   final String? consentRequestedAt;
   final List<DassAssessmentDto>? dassHistory;
   final List<String>? sharedDiarySummaries;
+  final List<Map<String, dynamic>>? triggers;
+  final List<String>? clinicalPoints;
   final PatientScheduleDto? upcomingSchedule;
 
   const PatientResponseDto({
@@ -32,6 +34,8 @@ class PatientResponseDto {
     this.consentRequestedAt,
     this.dassHistory,
     this.sharedDiarySummaries,
+    this.triggers,
+    this.clinicalPoints,
     this.upcomingSchedule,
   });
 
@@ -56,6 +60,12 @@ class PatientResponseDto {
       sharedDiarySummaries: (json['shared_diary_summaries'] as List<dynamic>?)
           ?.map((e) => e.toString())
           .toList(),
+      triggers: (json['triggers'] as List<dynamic>?)
+          ?.map((t) => Map<String, dynamic>.from(t as Map))
+          .toList(),
+      clinicalPoints: (json['clinical_points'] as List<dynamic>?)
+          ?.map((p) => p.toString())
+          .toList(),
       upcomingSchedule: json['upcoming_schedule'] != null
           ? PatientScheduleDto.fromJson(json['upcoming_schedule'] as Map<String, dynamic>)
           : null,
@@ -77,6 +87,8 @@ class PatientResponseDto {
         'consent_requested_at': consentRequestedAt,
         'dass_history': dassHistory?.map((e) => e.toJson()).toList(),
         'shared_diary_summaries': sharedDiarySummaries,
+        'triggers': triggers,
+        'clinical_points': clinicalPoints,
         'upcoming_schedule': upcomingSchedule?.toJson(),
       };
 
@@ -96,6 +108,8 @@ class PatientResponseDto {
       consentRequestedAt: consentRequestedAt,
       dassHistory: dassHistory?.map((e) => e.toEntity()).toList(),
       sharedDiarySummaries: sharedDiarySummaries,
+      triggers: triggers,
+      clinicalPoints: clinicalPoints,
       upcomingSchedule: upcomingSchedule?.toEntity(),
     );
   }
@@ -109,6 +123,7 @@ class PatientScheduleDto {
   final String roomOpensAt;
   final String statusText;
   final String? sessionId;
+  final bool isCompleted;
 
   const PatientScheduleDto({
     required this.formattedTime,
@@ -118,17 +133,63 @@ class PatientScheduleDto {
     required this.roomOpensAt,
     required this.statusText,
     this.sessionId,
+    this.isCompleted = false,
   });
 
   factory PatientScheduleDto.fromJson(Map<String, dynamic> json) {
+    String formattedTime = json['formatted_time']?.toString() ?? '';
+    String dateLabel = json['date_label']?.toString() ?? '';
+    String timeRange = json['time_range']?.toString() ?? '';
+    bool isLiveNow = json['is_live_now'] as bool? ?? false;
+    String roomOpensAt = json['room_opens_at']?.toString() ?? '';
+    String statusText = json['status_text']?.toString() ?? '';
+    final sessionId = json['session_id']?.toString();
+
+    final startTimeStr = json['scheduled_start_time']?.toString();
+    if (startTimeStr != null && startTimeStr.isNotEmpty) {
+      final startTime = DateTime.tryParse(startTimeStr)?.toLocal();
+      if (startTime != null) {
+        final durationMinutes = json['duration_minutes'] as int? ?? 30;
+        final endTime = startTime.add(Duration(minutes: durationMinutes));
+
+        final startHour = startTime.hour.toString().padLeft(2, '0');
+        final startMin = startTime.minute.toString().padLeft(2, '0');
+        final endHour = endTime.hour.toString().padLeft(2, '0');
+        final endMin = endTime.minute.toString().padLeft(2, '0');
+
+        if (timeRange.isEmpty) {
+          timeRange = '$startHour:$startMin - $endHour:$endMin WIB';
+        }
+        if (formattedTime.isEmpty) {
+          formattedTime = 'Hari Ini • $timeRange';
+        }
+        if (roomOpensAt.isEmpty) {
+          final opens = startTime.subtract(const Duration(minutes: 15));
+          roomOpensAt =
+              '${opens.hour.toString().padLeft(2, '0')}:${opens.minute.toString().padLeft(2, '0')} WIB';
+        }
+
+        final now = DateTime.now();
+        final diffStart = startTime.difference(now).inMinutes;
+        final diffEnd = now.difference(endTime).inMinutes;
+        if (diffStart <= 15 && diffEnd <= 15) {
+          isLiveNow = true;
+        }
+        if (statusText.isEmpty) {
+          statusText = isLiveNow ? 'Live' : 'Terjadwal';
+        }
+      }
+    }
+
     return PatientScheduleDto(
-      formattedTime: json['formatted_time']?.toString() ?? '',
-      dateLabel: json['date_label']?.toString() ?? '',
-      timeRange: json['time_range']?.toString() ?? '',
-      isLiveNow: json['is_live_now'] as bool? ?? false,
-      roomOpensAt: json['room_opens_at']?.toString() ?? '',
-      statusText: json['status_text']?.toString() ?? '',
-      sessionId: json['session_id']?.toString(),
+      formattedTime: formattedTime,
+      dateLabel: dateLabel,
+      timeRange: timeRange,
+      isLiveNow: isLiveNow,
+      roomOpensAt: roomOpensAt,
+      statusText: statusText,
+      sessionId: sessionId,
+      isCompleted: json['is_completed'] as bool? ?? false,
     );
   }
 
@@ -140,6 +201,7 @@ class PatientScheduleDto {
         'room_opens_at': roomOpensAt,
         'status_text': statusText,
         'session_id': sessionId,
+        'is_completed': isCompleted,
       };
 
   PatientScheduleInfo toEntity() {
@@ -151,6 +213,7 @@ class PatientScheduleDto {
       roomOpensAt: roomOpensAt,
       statusText: statusText,
       sessionId: sessionId,
+      isCompleted: isCompleted,
     );
   }
 }

@@ -215,6 +215,8 @@ class MockPatientDataSource implements PatientDataSource {
       assessment: request.assessment,
       plan: request.plan,
       recommendedTasks: request.recommendedTasks,
+      points: request.points,
+      narrative: request.narrative,
     );
     _mockNotes.putIfAbsent(request.patientId, () => []).insert(0, newNote);
 

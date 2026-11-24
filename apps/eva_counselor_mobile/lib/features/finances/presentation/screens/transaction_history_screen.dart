@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/bank_constants.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../../core/widgets/top_toast.dart';
@@ -22,10 +23,15 @@ class _TransactionHistoryScreenState
 
   void _showRedeemCoinModal(BuildContext context, int availableCoins) {
     final authUser = ref.read(authStateProvider).value;
-    final coinAmountCtrl = TextEditingController(text: '150');
-    final bankCtrl = TextEditingController(text: authUser?.bankName ?? 'BCA');
-    final accountCtrl = TextEditingController(text: authUser?.bankAccountNumber ?? '8192039182');
-    final nameCtrl = TextEditingController(text: authUser?.bankAccountHolder ?? authUser?.displayName ?? 'Psikolog Mandiri');
+    final coinAmountCtrl = TextEditingController(text: availableCoins >= 50 ? '$availableCoins' : '');
+    String? selectedBank = (authUser?.bankName != null && authUser!.bankName.isNotEmpty)
+        ? (kIndonesianBanks.contains(authUser.bankName) ? authUser.bankName : 'Lainnya')
+        : null;
+    final customBankCtrl = TextEditingController(
+      text: selectedBank == 'Lainnya' ? (authUser?.bankName ?? '') : '',
+    );
+    final accountCtrl = TextEditingController(text: authUser?.bankAccountNumber ?? '');
+    final nameCtrl = TextEditingController(text: authUser?.bankAccountHolder ?? authUser?.displayName ?? '');
     bool isSubmitting = false;
 
     showModalBottomSheet(
@@ -112,15 +118,75 @@ class _TransactionHistoryScreenState
                 _buildModalInput(
                   'Jumlah Koin yang Ditukar (Min. 50 Koin)',
                   coinAmountCtrl,
+                  hintText: 'Contoh: 150',
                   isNumber: true,
                   onChanged: (_) => setModalState(() {}),
                 ),
                 const SizedBox(height: 10),
-                _buildModalInput('Nama Bank Tujuan', bankCtrl),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Nama Bank Tujuan',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedBank,
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        prefixIcon: const Icon(Icons.account_balance_outlined,
+                            color: AppColors.primary, size: 20),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                              color: AppColors.primary, width: 1.5),
+                        ),
+                      ),
+                      hint: const Text('Pilih Nama Bank',
+                          style: TextStyle(
+                              fontSize: 13, color: AppColors.textLight)),
+                      items: kIndonesianBanks
+                          .map((b) => DropdownMenuItem(
+                              value: b,
+                              child: Text(b,
+                                  style: const TextStyle(fontSize: 13))))
+                          .toList(),
+                      onChanged: (val) {
+                        setModalState(() {
+                          selectedBank = val;
+                        });
+                      },
+                    ),
+                    if (selectedBank == 'Lainnya') ...[
+                      const SizedBox(height: 10),
+                      _buildModalInput(
+                          'Nama Bank Lainnya', customBankCtrl,
+                          hintText: 'Ketik nama bank Anda'),
+                    ],
+                  ],
+                ),
                 const SizedBox(height: 10),
-                _buildModalInput('Nomor Rekening', accountCtrl, isNumber: true),
+                _buildModalInput('Nomor Rekening', accountCtrl, hintText: 'Masukkan nomor rekening', isNumber: true),
                 const SizedBox(height: 10),
-                _buildModalInput('Nama Pemilik Rekening (Sesuai KTP)', nameCtrl),
+                _buildModalInput('Nama Pemilik Rekening (Sesuai KTP)', nameCtrl, hintText: 'Nama pemilik rekening bank'),
                 const SizedBox(height: 20),
 
                 CustomButton(
@@ -137,11 +203,24 @@ class _TransactionHistoryScreenState
                       return;
                     }
 
+                    final finalBank = selectedBank == 'Lainnya'
+                        ? customBankCtrl.text.trim()
+                        : (selectedBank ?? '');
+                    if (finalBank.isEmpty || accountCtrl.text.trim().isEmpty || nameCtrl.text.trim().isEmpty) {
+                      TopToast.show(
+                        context,
+                        title: 'Data Belum Lengkap',
+                        message: 'Mohon pilih bank tujuan, nomor rekening, dan nama pemilik.',
+                        type: ToastType.error,
+                      );
+                      return;
+                    }
+
                     setModalState(() => isSubmitting = true);
                     final repo = ref.read(financeRepositoryProvider);
                     await repo.requestPayout(
                       amount: estimatedRp,
-                      bankName: bankCtrl.text,
+                      bankName: finalBank,
                       accountNumber: accountCtrl.text,
                       accountHolderName: nameCtrl.text,
                     );
@@ -158,7 +237,7 @@ class _TransactionHistoryScreenState
                       context,
                       title: 'Redeem Koin Diajukan',
                       message:
-                          'Penukaran $requestedCoins Koin (Rp ${_formatRp(estimatedRp)}) sedang ditransfer ke rekening ${bankCtrl.text}.',
+                          'Penukaran $requestedCoins Koin (Rp ${_formatRp(estimatedRp)}) sedang diproses ke rekening $finalBank.',
                       type: ToastType.success,
                     );
                   },
@@ -174,6 +253,7 @@ class _TransactionHistoryScreenState
   Widget _buildModalInput(
     String label,
     TextEditingController ctrl, {
+    String? hintText,
     bool isNumber = false,
     ValueChanged<String>? onChanged,
   }) {
@@ -199,9 +279,11 @@ class _TransactionHistoryScreenState
             keyboardType: isNumber ? TextInputType.number : TextInputType.text,
             onChanged: onChanged,
             style: const TextStyle(fontSize: 13),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              hintText: hintText,
+              hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             ),
           ),
         ),
@@ -220,9 +302,11 @@ class _TransactionHistoryScreenState
   Widget build(BuildContext context) {
     final authUser = ref.watch(authStateProvider).value;
     final txListAsync = ref.watch(transactionsListProvider);
+    final transactions = txListAsync.value ?? [];
 
     // KASUS 3: PROFESIONAL MANDIRI (SISTEM KOIN & REDEEM RUPIAH)
-    final coins = authUser?.coinBalance ?? 1250;
+    final coins = authUser?.coinBalance ?? 0;
+    final isFreshAccount = transactions.isEmpty && coins == 0;
     final rateCoins = authUser?.coinsPerSession ?? 150;
     final sessionMins = authUser?.sessionDurationMinutes ?? 30;
 
@@ -333,7 +417,7 @@ class _TransactionHistoryScreenState
                             children: [
                               Text('Menunggu Selesai SOAP', style: TextStyle(color: Colors.white70, fontSize: 10)),
                               SizedBox(height: 2),
-                              Text('150 Koin', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                              Text('0 Koin', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                             ],
                           ),
                           Container(width: 1, height: 24, color: Colors.white24),
@@ -342,7 +426,7 @@ class _TransactionHistoryScreenState
                             children: [
                               const Text('Total Koin Bulan Ini', style: TextStyle(color: Colors.white70, fontSize: 10)),
                               const SizedBox(height: 2),
-                              Text('${coins + 2000} Koin', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                              Text('${isFreshAccount ? 0 : coins} Koin', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                             ],
                           ),
                         ],
@@ -501,30 +585,30 @@ class _TransactionHistoryScreenState
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Flexible(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          isPayout ? '-$coinsEarned Koin' : '+$coinsEarned Koin',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 12,
-                            color: isPayout ? const Color(0xFFC2410C) : AppColors.verifiedGreen,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        isPayout ? '-$coinsEarned Koin' : '+$coinsEarned Koin',
+                        textAlign: TextAlign.end,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                          color: isPayout ? const Color(0xFFC2410C) : AppColors.verifiedGreen,
                         ),
-                        if (isPayout)
-                          Text(
-                            'Rp ${_formatRp(t.netEarnings)}',
-                            style: const TextStyle(fontSize: 10, color: Color(0xFFC2410C), fontWeight: FontWeight.w600),
-                          ),
-                        const SizedBox(height: 3),
-                        isPayout
-                            ? StatusBadge.pending('Ditransfer')
-                            : StatusBadge.verified('SOAP Terisi'),
-                      ],
-                    ),
+                      ),
+                      if (isPayout)
+                        Text(
+                          'Rp ${_formatRp(t.netEarnings)}',
+                          textAlign: TextAlign.end,
+                          style: const TextStyle(fontSize: 10, color: Color(0xFFC2410C), fontWeight: FontWeight.w600),
+                        ),
+                      const SizedBox(height: 4),
+                      isPayout
+                          ? StatusBadge.pending('Ditransfer')
+                          : StatusBadge.verified('SOAP Terisi'),
+                    ],
                   ),
                 ],
               ),

@@ -6,49 +6,69 @@ import '../../domain/entities/eva_certificate_entity.dart';
 
 class CounselorCertificatesModal {
   static List<EvaCertificateEntity> getCertificatesForUser(PsychologistUserEntity? user) {
-    final name = user?.displayName ?? 'Psikolog Mandiri';
+    if (user == null || user.verificationStatus != VerificationStatus.verified) {
+      return [];
+    }
+    // Milestone certificates are awarded based on verified completed sessions (Managed in Web Admin #93)
+    final completedSessions = user.coinBalance > 0 ? (user.coinBalance ~/ 120) : 0;
+    final List<EvaCertificateEntity> earned = [];
+    final name = user.displayName;
 
-    return [
-      EvaCertificateEntity(
-        id: 'CERT-PRO-01',
-        title: 'SERTIFIKAT PRAKTIK TELEKONSELING KLINIS',
-        subtitle: 'Clinical Tele-Psychology Excellence & Competence',
-        recipientName: name,
-        milestoneCriteria: 'Penyelesaian 25 Sesi Klinis Terverifikasi',
-        certificateNumber: 'EVA/CERT/2026/PRO/00341',
-        issueDate: '20 Oktober 2026',
-        categoryLabel: 'Psikolog Mandiri',
-        description:
-            'Diberikan atas dedikasi dan kompetensi klinis prima dalam menyelenggarakan telekonsultasi kesehatan mental dengan standar etika tertinggi.',
-        badgeColor: const Color(0xFF2563EB),
-      ),
-      EvaCertificateEntity(
-        id: 'CERT-PRO-02',
-        title: 'SERTIFIKAT KEPATUHAN REKAM MEDIS SOAP',
-        subtitle: 'Certified Clinical Medical Record Standard',
-        recipientName: name,
-        milestoneCriteria: 'Kepatuhan Rekam SOAP 100% pada 50 Sesi',
-        certificateNumber: 'EVA/CERT/2026/PRO/00512',
-        issueDate: '02 November 2026',
-        categoryLabel: 'Psikolog Mandiri',
-        description:
-            'Diberikan atas komitmen integritas dokumentasi SOAP klinis (Subjective, Objective, Assessment, Plan) yang terenkripsi aman demi keselamatan pasien.',
-        badgeColor: const Color(0xFFD97706),
-      ),
-      EvaCertificateEntity(
-        id: 'CERT-PRO-03',
-        title: 'SERTIFIKAT KONSELOR TELADAN EVA 2026',
-        subtitle: 'Distinguished Clinical Practitioner 2026',
-        recipientName: name,
-        milestoneCriteria: '100+ Sesi Terlaksana dengan Rating Kepuasan 4.9+',
-        certificateNumber: 'EVA/CERT/2026/PRO/00789',
-        issueDate: '06 November 2026',
-        categoryLabel: 'Psikolog Mandiri',
-        description:
-            'Penghargaan tertinggi platform Eva atas loyalitas pelayanan intervensi krisis, kepuasan pasien bintang lima, dan kontribusi nyata pada kesehatan jiwa bangsa.',
-        badgeColor: const Color(0xFF7E22CE),
-      ),
-    ];
+    if (completedSessions >= 25) {
+      earned.add(
+        EvaCertificateEntity(
+          id: 'CERT-PRO-01',
+          title: 'SERTIFIKAT PRAKTIK TELEKONSELING KLINIS',
+          subtitle: 'Clinical Tele-Psychology Excellence & Competence',
+          recipientName: name,
+          milestoneCriteria: 'Penyelesaian 25 Sesi Klinis Terverifikasi',
+          certificateNumber: 'EVA/CERT/2026/PRO/00341',
+          issueDate: '20 Oktober 2026',
+          categoryLabel: 'Psikolog Mandiri',
+          description:
+              'Diberikan atas dedikasi dan kompetensi klinis prima dalam menyelenggarakan telekonsultasi kesehatan mental dengan standar etika tertinggi.',
+          badgeColor: const Color(0xFF2563EB),
+        ),
+      );
+    }
+
+    if (completedSessions >= 50) {
+      earned.add(
+        EvaCertificateEntity(
+          id: 'CERT-PRO-02',
+          title: 'SERTIFIKAT KEPATUHAN REKAM MEDIS SOAP',
+          subtitle: 'Certified Clinical Medical Record Standard',
+          recipientName: name,
+          milestoneCriteria: 'Kepatuhan Rekam SOAP 100% pada 50 Sesi',
+          certificateNumber: 'EVA/CERT/2026/PRO/00512',
+          issueDate: '02 November 2026',
+          categoryLabel: 'Psikolog Mandiri',
+          description:
+              'Diberikan atas komitmen integritas dokumentasi SOAP klinis (Subjective, Objective, Assessment, Plan) yang terenkripsi aman demi keselamatan pasien.',
+          badgeColor: const Color(0xFFD97706),
+        ),
+      );
+    }
+
+    if (completedSessions >= 100) {
+      earned.add(
+        EvaCertificateEntity(
+          id: 'CERT-PRO-03',
+          title: 'SERTIFIKAT KONSELOR TELADAN EVA 2026',
+          subtitle: 'Distinguished Clinical Practitioner 2026',
+          recipientName: name,
+          milestoneCriteria: '100+ Sesi Terlaksana dengan Rating Kepuasan 4.9+',
+          certificateNumber: 'EVA/CERT/2026/PRO/00789',
+          issueDate: '06 November 2026',
+          categoryLabel: 'Psikolog Mandiri',
+          description:
+              'Penghargaan tertinggi platform Eva atas loyalitas pelayanan intervensi krisis, kepuasan pasien bintang lima, dan kontribusi nyata pada kesehatan jiwa bangsa.',
+          badgeColor: const Color(0xFF7E22CE),
+        ),
+      );
+    }
+
+    return earned;
   }
 
   static void showGallery(BuildContext context, PsychologistUserEntity? user) {
@@ -123,18 +143,47 @@ class CounselorCertificatesModal {
                 ],
               ),
               const SizedBox(height: 14),
-              ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(ctx).size.height * 0.65,
+              if (certs.isEmpty) ...[
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7).withValues(alpha: 0.5),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.workspace_premium_outlined, size: 40, color: Color(0xFFD97706)),
+                        ),
+                        const SizedBox(height: 14),
+                        const Text('Belum Ada Sertifikat Penghargaan',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary)),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Sertifikat pencapaian klinis Eva akan diterbitkan otomatis setelah Anda menyelesaikan milestone praktik telekonseling.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: certs.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
-                  itemBuilder: (modalCtx, idx) {
-                    final c = certs[idx];
-                    return Container(
+              ] else ...[
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(ctx).size.height * 0.65,
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: certs.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                    itemBuilder: (modalCtx, idx) {
+                      final c = certs[idx];
+                      return Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -229,6 +278,7 @@ class CounselorCertificatesModal {
                   },
                 ),
               ),
+            ],
             ],
           ),
         ),

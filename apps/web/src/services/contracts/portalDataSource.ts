@@ -1,5 +1,36 @@
+import type {
+  AdminCoinTopupRequestDto,
+  AdminCoinTopupResultDto,
+  CreateFaqRequestDto,
+  IssueCertificateRequestDto,
+  PublicFaqsResultDto,
+  RegisterPsychologistRequestDto,
+  UpdateCoinEconomyConfigRequestDto,
+  UpdateCrisisConfigRequestDto,
+  UpdateFaqRequestDto,
+  UpsertCertificateTemplateRequestDto,
+  UpsertCoinPackageRequestDto,
+  UpsertPlatformPricingRequestDto,
+  VerifyPsychologistRequestDto,
+} from '@/types/api/contracts'
 import type { DashboardAnalyticsBaseline } from '@/types/domain/dashboard'
-import type { PortalDatabase, PortalSession } from '@/types/domain/portal'
+import type {
+  CertificateEvaluationSummary,
+  CertificateTemplate,
+  CoinEconomyConfig,
+  CoinPackage,
+  CoinTopupTransaction,
+  ConsultationSessionMonitoring,
+  CounselorCertificateEligibility,
+  CrisisConfig,
+  FaqEntry,
+  GeneralAppUser,
+  IssuedPsychologistCertificate,
+  PlatformPricingConfig,
+  PortalDatabase,
+  PortalSession,
+  Psychologist,
+} from '@/types/domain/portal'
 
 export interface AdminCredentialConfig {
   email: string
@@ -18,5 +49,59 @@ export interface IPortalDataSource {
   setSession(session: PortalSession | null): void
   getDashboardBaseline(): DashboardAnalyticsBaseline
   getAdminAccount(): AdminCredentialConfig
+  registerPsychologist(payload: RegisterPsychologistRequestDto): Promise<Psychologist>
+  fetchAdminPsychologists(): Promise<Psychologist[]>
+  togglePsychologistDocumentVerified(
+    psychologistId: string,
+    docIdOrType: string,
+  ): Promise<Psychologist>
+  verifyPsychologist(
+    psychologistId: string,
+    payload: VerifyPsychologistRequestDto,
+  ): Promise<Psychologist>
+  updatePsychologistAccountStatus(
+    psychologistId: string,
+    status: 'verified' | 'suspended',
+    notes?: string,
+  ): Promise<Psychologist>
+  fetchActivePricing(): Promise<PlatformPricingConfig>
+  fetchPricingHistory(): Promise<PlatformPricingConfig[]>
+  savePlatformPricing(
+    payload: UpsertPlatformPricingRequestDto,
+    existingConfigId?: string,
+  ): Promise<PlatformPricingConfig>
+  fetchConsultationSessions(): Promise<ConsultationSessionMonitoring[]>
+  fetchAdminUsers(): Promise<GeneralAppUser[]>
+  fetchCoinTransactions(): Promise<CoinTopupTransaction[]>
+  topUpUserCoins(payload: AdminCoinTopupRequestDto): Promise<AdminCoinTopupResultDto>
+  fetchCoinEconomyConfig(): Promise<CoinEconomyConfig>
+  updateCoinEconomyConfig(
+    updates: UpdateCoinEconomyConfigRequestDto,
+  ): Promise<CoinEconomyConfig>
+  fetchCoinPackages(): Promise<CoinPackage[]>
+  upsertCoinPackage(input: UpsertCoinPackageRequestDto): Promise<CoinPackage>
+  toggleCoinPackageActive(packageId: string): Promise<CoinPackage>
+  deleteCoinPackage(packageId: string): Promise<void>
+  fetchCrisisConfig(): Promise<CrisisConfig>
+  updateCrisisConfig(updates: UpdateCrisisConfigRequestDto): Promise<CrisisConfig>
+  fetchPublicFaqs(): Promise<PublicFaqsResultDto>
+  fetchAdminFaqs(): Promise<FaqEntry[]>
+  createFaqEntry(input: CreateFaqRequestDto): Promise<FaqEntry>
+  updateFaqEntry(id: string, input: UpdateFaqRequestDto): Promise<FaqEntry>
+  toggleFaqPublished(id: string): Promise<FaqEntry>
+  deleteFaqEntry(id: string): Promise<void>
+  fetchCertificateTemplates(): Promise<CertificateTemplate[]>
+  upsertCertificateTemplate(input: UpsertCertificateTemplateRequestDto): Promise<CertificateTemplate>
+  toggleCertificateTemplateActive(templateId: string): Promise<CertificateTemplate>
+  fetchIssuedCertificates(): Promise<IssuedPsychologistCertificate[]>
+  fetchEligibleCounselorsForCertificates(): Promise<CounselorCertificateEligibility[]>
+  issueCertificateManual(
+    payload: IssueCertificateRequestDto,
+  ): Promise<IssuedPsychologistCertificate>
+  evaluateAutoCertificates(): Promise<CertificateEvaluationSummary>
+  revokeCertificate(
+    certificateId: string,
+    reason: string,
+  ): Promise<IssuedPsychologistCertificate>
+  downloadCertificatePdf(certificateId: string): Promise<{ blob: Blob; filename: string }>
 }
-

@@ -12,6 +12,23 @@ class PsychologistUserEntity {
   final String titleDegree; // e.g., 'S.Psi., M.Psi., Psikolog' or 'Relawan Sebaya'
   final String email;
   final String strNumber; // Surat Tanda Registrasi
+  final String? sipNumber; // Surat Izin Praktik / SIPP
+  final String documentType; // 'str', 'sip', 'both'
+  final String issuingInstitution; // Fallback umum
+  final String documentExpiryDate; // Fallback umum
+  final String lastEducation; // e.g. 'S2 Magister Psikologi Profesi'
+
+  // Granular STR / SIP metadata
+  final String? strIssuingInstitution;
+  final String? strExpiryDate;
+  final String? strDocUrl;
+  final String? sipIssuingInstitution;
+  final String? sipExpiryDate;
+  final String? sipDocUrl;
+
+  // Scheduled Break Window (Replacing ad-hoc toggle)
+  final String breakStartTime;
+  final String breakEndTime;
   final String association; // e.g. 'HIMPSI'
   final List<String> specializations;
   final int yearsOfExperience;
@@ -42,6 +59,7 @@ class PsychologistUserEntity {
   final List<String> offlineScheduleDays; // Hari praktik offline aktif (e.g. ['Sel', 'Kam', 'Sab'])
   final String offlineStartTime; // Jam mulai offline (e.g. '10:00')
   final String offlineEndTime; // Jam selesai offline (e.g. '16:00')
+  final bool isScheduleConfigured; // Status apakah jadwal praktik utama sudah ditentukan
 
   // External Offline Schedule Sync (GitHub-style Personal Access Token / API Key)
   final String? externalApiKey; // API Key / PAT untuk integrasi kalender/SIMRS eksternal
@@ -60,23 +78,36 @@ class PsychologistUserEntity {
     required this.titleDegree,
     required this.email,
     required this.strNumber,
+    this.sipNumber,
+    this.documentType = 'str',
+    this.issuingInstitution = 'Kemenkes RI',
+    this.documentExpiryDate = 'Seumur Hidup',
+    this.lastEducation = 'S2 Magister Psikologi Profesi',
+    this.strIssuingInstitution,
+    this.strExpiryDate,
+    this.strDocUrl,
+    this.sipIssuingInstitution,
+    this.sipExpiryDate,
+    this.sipDocUrl,
+    this.breakStartTime = '12:00',
+    this.breakEndTime = '13:00',
     required this.association,
     required this.specializations,
     required this.yearsOfExperience,
     required this.consultationRatePerHour,
     required this.verificationStatus,
-    this.isOnline = true,
+    this.isOnline = false,
     this.profilePhotoUrl,
     this.certificateDocUrl,
     this.role = CounselorRole.professionalIndependent,
     this.partnerName,
-    this.sessionDurationMinutes = 50,
+    this.sessionDurationMinutes = 30,
     this.coinsPerSession = 150,
-    this.coinBalance = 1250,
+    this.coinBalance = 0,
     this.googleDriveEmail,
     this.lastDriveBackup,
     this.autoBackupFrequency = 'Harian',
-    this.employeeNip = '199807252026012001',
+    this.employeeNip = '',
     this.isOnlinePracticeEnabled = true,
     this.isOfflinePracticeEnabled = false,
     this.offlinePlaceName,
@@ -90,9 +121,10 @@ class PsychologistUserEntity {
     this.externalApiKeyCreatedAt,
     this.externalApiLastSyncAt,
     this.externalSyncCount = 0,
-    this.bankName = 'BCA (Bank Central Asia)',
-    this.bankAccountNumber = '8192039182',
-    this.bankAccountHolder = 'Khoirotun Nisa, M.Psi',
+    this.bankName = '',
+    this.bankAccountNumber = '',
+    this.bankAccountHolder = '',
+    this.isScheduleConfigured = false,
   });
 
   String get effectiveGoogleDriveEmail =>
@@ -118,6 +150,19 @@ class PsychologistUserEntity {
     String? titleDegree,
     String? email,
     String? strNumber,
+    String? sipNumber,
+    String? documentType,
+    String? issuingInstitution,
+    String? documentExpiryDate,
+    String? lastEducation,
+    String? strIssuingInstitution,
+    String? strExpiryDate,
+    String? strDocUrl,
+    String? sipIssuingInstitution,
+    String? sipExpiryDate,
+    String? sipDocUrl,
+    String? breakStartTime,
+    String? breakEndTime,
     String? association,
     List<String>? specializations,
     int? yearsOfExperience,
@@ -152,6 +197,7 @@ class PsychologistUserEntity {
     String? bankName,
     String? bankAccountNumber,
     String? bankAccountHolder,
+    bool? isScheduleConfigured,
   }) {
     return PsychologistUserEntity(
       id: id ?? this.id,
@@ -159,6 +205,19 @@ class PsychologistUserEntity {
       titleDegree: titleDegree ?? this.titleDegree,
       email: email ?? this.email,
       strNumber: strNumber ?? this.strNumber,
+      sipNumber: sipNumber ?? this.sipNumber,
+      documentType: documentType ?? this.documentType,
+      issuingInstitution: issuingInstitution ?? this.issuingInstitution,
+      documentExpiryDate: documentExpiryDate ?? this.documentExpiryDate,
+      lastEducation: lastEducation ?? this.lastEducation,
+      strIssuingInstitution: strIssuingInstitution ?? this.strIssuingInstitution,
+      strExpiryDate: strExpiryDate ?? this.strExpiryDate,
+      strDocUrl: strDocUrl ?? this.strDocUrl,
+      sipIssuingInstitution: sipIssuingInstitution ?? this.sipIssuingInstitution,
+      sipExpiryDate: sipExpiryDate ?? this.sipExpiryDate,
+      sipDocUrl: sipDocUrl ?? this.sipDocUrl,
+      breakStartTime: breakStartTime ?? this.breakStartTime,
+      breakEndTime: breakEndTime ?? this.breakEndTime,
       association: association ?? this.association,
       specializations: specializations ?? this.specializations,
       yearsOfExperience: yearsOfExperience ?? this.yearsOfExperience,
@@ -200,6 +259,7 @@ class PsychologistUserEntity {
       bankName: bankName ?? this.bankName,
       bankAccountNumber: bankAccountNumber ?? this.bankAccountNumber,
       bankAccountHolder: bankAccountHolder ?? this.bankAccountHolder,
+      isScheduleConfigured: isScheduleConfigured ?? this.isScheduleConfigured,
     );
   }
 }

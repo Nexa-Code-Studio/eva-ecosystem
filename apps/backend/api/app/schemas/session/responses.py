@@ -99,6 +99,23 @@ class DassAssessmentItemResponse(BaseModel):
     stress_severity: str = "Normal"
 
 
+class ClinicalTriggerItem(BaseModel):
+    category: str
+    description: str
+    severity: str = "Sedang"
+    source: str = "Observasi Klinis"
+    detected_at: str
+
+
+class PatientClinicalTriggersResponse(BaseModel):
+    patient_id: str
+    chief_complaint: str
+    triggers: list[ClinicalTriggerItem] = []
+    emotional_summary: str = ""
+    privacy_ethics_notice: str = (
+        "Berdasarkan Kode Etik Psikologi Indonesia (HIMPSI Bab IV Pasal 24 Kerahasiaan Rekam dan Data Pribadi Pasien), "
+        "seluruh data pemicu dan keluhan dibatasi pada data esensial klinis dan dilindungi kerahasiaannya."
+    )
 class CounselorPatientResponse(BaseModel):
     id: str
     name: str
@@ -114,6 +131,8 @@ class CounselorPatientResponse(BaseModel):
     consent_requested_at: str | None = None
     dass_history: list[DassAssessmentItemResponse] | None = None
     shared_diary_summaries: list[str] | None = None
+    triggers: list[ClinicalTriggerItem] | None = None
+    clinical_points: list[str] | None = None
     upcoming_schedule: PatientScheduleResponse | None = None
 
 
@@ -131,6 +150,8 @@ class ClinicalNoteDetailResponse(BaseModel):
     objective: str
     assessment: str
     plan: str
+    points: list[str] = []
+    narrative: str = ""
     recommended_tasks: list[str] = []
 
 

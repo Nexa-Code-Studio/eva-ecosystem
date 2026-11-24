@@ -3,6 +3,7 @@ import '../../domain/entities/psychologist_entity.dart';
 import '../../domain/entities/clinic_entity.dart';
 import '../../domain/entities/community_status_entity.dart';
 import '../../domain/entities/consultation_session_entity.dart';
+import '../../domain/entities/counselor_timeline_entity.dart';
 import '../datasources/care_datasource.dart';
 
 class CareRepositoryImpl implements CareRepository {
@@ -36,10 +37,21 @@ class CareRepositoryImpl implements CareRepository {
   }
 
   @override
+  Future<CounselorTimelineEntity> getCounselorTimeline({
+    required String counselorId,
+    required DateTime date,
+  }) async {
+    final dto = await _dataSource.getCounselorTimeline(counselorId: counselorId, date: date);
+    return dto.toEntity();
+  }
+
+  @override
   Future<ConsultationSessionEntity> bookConsultation({
     required String psychologistId,
     required DateTime preferredDateTime,
     required ConsultationType sessionType,
+    int sessionCount = 1,
+    int durationMinutes = 30,
     String? complaints,
     bool shareAiChatHistory = false,
   }) {
@@ -47,6 +59,8 @@ class CareRepositoryImpl implements CareRepository {
       psychologistId: psychologistId,
       preferredDateTime: preferredDateTime,
       sessionType: sessionType,
+      sessionCount: sessionCount,
+      durationMinutes: durationMinutes,
       complaints: complaints,
       shareAiChatHistory: shareAiChatHistory,
     );

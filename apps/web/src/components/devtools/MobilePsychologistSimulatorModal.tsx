@@ -1,128 +1,112 @@
-import { ArrowUpCircle, GraduationCap, HeartHandshake, Users, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
-import { CLINICAL_SPECIALIZATIONS } from '@/constants/portal'
+import {
+  CLINICAL_SPECIALIZATIONS,
+  EDUCATION_LEVELS,
+  PROFESSIONAL_ASSOCIATIONS,
+} from '@/constants/portal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { cn } from '@/lib/cn'
 import {
   isDevToolsEnabled,
-  loadPortalDb,
   simulateMobilePsychologistSubmission,
-  simulateVolunteerUpgradeSubmission,
   type Psychologist,
 } from '@/lib/portalStore'
 
 interface MobilePsychologistSimulatorModalProps {
   isOpen: boolean
   onClose: () => void
-  onCreated: (created: Psychologist, isUpgrade?: boolean) => void
-  psychologists?: Psychologist[]
+  onCreated: (created: Psychologist) => void
 }
+
+const EXPERIENCE_OPTIONS = [
+  { label: '1 - 2 Thn', value: 2 },
+  { label: '3 - 5 Thn', value: 3 },
+  { label: '6 - 10 Thn', value: 7 },
+  { label: '> 10 Thn', value: 10 },
+] as const
 
 export function MobilePsychologistSimulatorModal({
   isOpen,
   onClose,
   onCreated,
-  psychologists,
 }: MobilePsychologistSimulatorModalProps) {
   useBodyScrollLock(isOpen)
 
-  const [simMode, setSimMode] = useState<'register' | 'upgrade'>('register')
-  const [selectedRole, setSelectedRole] = useState<'relawan_biasa' | 'relawan_profesional_non_mitra'>(
-    'relawan_biasa',
-  )
   const [simFullName, setSimFullName] = useState('')
-  const [simSipp, setSimSipp] = useState('')
-  const [simStr, setSimStr] = useState('')
-  const [simCity, setSimCity] = useState('')
-  const [simEducation, setSimEducation] = useState('')
+  const [simTitleDegree, setSimTitleDegree] = useState('M.Psi., Psikolog')
   const [simEmail, setSimEmail] = useState('')
-  const [simPhone, setSimPhone] = useState('')
-  const [simSchedule, setSimSchedule] = useState('Senin - Jumat (17.00 - 21.00 WIB)')
-  const [simValidUntil, setSimValidUntil] = useState('2029-12-31')
-  const [simSpecs, setSimSpecs] = useState<string[]>(['Kecemasan & Panik', 'Remaja & Mahasiswa'])
-
-  const availableVolunteers = (psychologists ?? loadPortalDb().psychologists).filter(
-    (p) =>
-      (p.role === 'relawan_biasa' || (p.role as string) === 'relawan') &&
-      !p.upgradeRequest,
+  const [simEducation, setSimEducation] = useState<string>(EDUCATION_LEVELS[0])
+  const [simAssociation, setSimAssociation] = useState<string>(PROFESSIONAL_ASSOCIATIONS[0])
+  const [simExperienceYears, setSimExperienceYears] = useState<number>(3)
+  const [simDocType, setSimDocType] = useState<'both' | 'str' | 'sip'>('both')
+  const [simStr, setSimStr] = useState('')
+  const [simStrIssuedBy, setSimStrIssuedBy] = useState(
+    'Kemenkes RI / KTKI (Konsil Tenaga Kesehatan Indonesia)',
   )
-  const [selectedVolunteerId, setSelectedVolunteerId] = useState<string>('')
-  const activeVolunteerId = availableVolunteers.some((v) => v.id === selectedVolunteerId)
-    ? selectedVolunteerId
-    : (availableVolunteers[0]?.id ?? '')
-  const [upgradeNotes, setUpgradeNotes] = useState(
-    'Telah lulus S2 Magister Profesi Psikologi Klinis dan memiliki SIPP serta STR-PK resmi.',
-  )
-
+  const [simStrValidUntil, setSimStrValidUntil] = useState('Seumur Hidup (UU Kesehatan No. 17/2023)')
+  const [simSipp, setSimSipp] = useState('')
+  const [simSipIssuedBy, setSimSipIssuedBy] = useState('Dinas Kesehatan Kabupaten / Kota')
+  const [simSipValidUntil, setSimSipValidUntil] = useState('2030-12-31')
+  const [simSpecs, setSimSpecs] = useState<string[]>([
+    CLINICAL_SPECIALIZATIONS[0],
+    CLINICAL_SPECIALIZATIONS[3],
+  ])
   const [simError, setSimError] = useState<string | null>(null)
 
   if (!isDevToolsEnabled() || !isOpen) return null
 
+  const includeStr = simDocType === 'both' || simDocType === 'str'
+  const includeSip = simDocType === 'both' || simDocType === 'sip'
+
+  const toggleSpec = (spec: string) => {
+    setSimSpecs((prev) =>
+      prev.includes(spec) ? prev.filter((item) => item !== spec) : [...prev, spec],
+    )
+  }
+
   const handleRegisterSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!simFullName.trim() || !simCity.trim()) {
-      setSimError('Nama lengkap dan Kota domisili wajib diisi.')
+    if (!simFullName.trim()) {
+      setSimError('Nama lengkap wajib diisi.')
       return
     }
-
-    if (selectedRole === 'relawan_profesional_non_mitra' && (!simSipp.trim() || !simStr.trim())) {
-      setSimError('Nomor SIPP dan STR wajib diisi untuk Relawan Profesional (Non Mitra).')
+    if (includeStr && !simStr.trim()) {
+      setSimError('Nomor STR wajib diisi jika memilih dokumen STR.')
+      return
+    }
+    if (includeSip && !simSipp.trim()) {
+      setSimError('Nomor SIP / SIPP wajib diisi jika memilih dokumen SIP.')
+      return
+    }
+    if (simSpecs.length === 0) {
+      setSimError('Pilih minimal 1 fokus layanan klinis.')
       return
     }
 
     const created = simulateMobilePsychologistSubmission({
-      role: selectedRole,
       fullName: simFullName,
-      sippNumber: simSipp.toUpperCase(),
-      strNumber: simStr.toUpperCase(),
-      city: simCity.toUpperCase(),
-      education:
-        simEducation ||
-        (selectedRole === 'relawan_profesional_non_mitra'
-          ? 'Magister Profesi Psikologi Klinis Universitas Gadjah Mada'
-          : 'S1 Psikologi Universitas Padjadjaran (Semester 6)'),
-      email:
-        simEmail ||
-        (selectedRole === 'relawan_profesional_non_mitra'
-          ? 'psikolog.prof@praktikmandiri.id'
-          : 'relawan.sebaya@kampus.id'),
-      phone: simPhone || '081299887766',
-      practiceSchedule: simSchedule,
-      specializations: simSpecs.length > 0 ? simSpecs : ['Kecemasan & Panik'],
-      sippValidUntil: simValidUntil,
+      titleDegree: simTitleDegree,
+      documentType: simDocType,
+      strNumber: includeStr ? simStr.toUpperCase() : undefined,
+      strIssuedBy: includeStr ? simStrIssuedBy : undefined,
+      strValidUntil: includeStr ? simStrValidUntil : undefined,
+      sippNumber: includeSip ? simSipp.toUpperCase() : undefined,
+      sipIssuedBy: includeSip ? simSipIssuedBy : undefined,
+      sipValidUntil: includeSip ? simSipValidUntil : undefined,
+      association: simAssociation,
+      education: simEducation,
+      email: simEmail || `psikolog.${Date.now().toString().slice(-4)}@praktikmandiri.id`,
+      specializations: simSpecs,
+      yearsOfExperience: simExperienceYears,
     })
 
     setSimFullName('')
-    setSimSipp('')
-    setSimStr('')
-    setSimCity('')
-    setSimEducation('')
     setSimEmail('')
-    setSimPhone('')
+    setSimStr('')
+    setSimSipp('')
     setSimError(null)
-    onCreated(created, false)
-  }
-
-  const handleUpgradeSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const volId = activeVolunteerId
-    if (!volId) {
-      setSimError('Pilih akun relawan yang akan disimulasikan pengajuan upgradenya.')
-      return
-    }
-    if (!upgradeNotes.trim() || upgradeNotes.trim().length < 15) {
-      setSimError('Isi catatan/alasan upgrade minimal 15 karakter.')
-      return
-    }
-
-    const updated = simulateVolunteerUpgradeSubmission(
-      volId,
-      'relawan_profesional_non_mitra',
-      upgradeNotes.trim(),
-    )
-    if (updated) {
-      onCreated(updated, true)
-    }
+    onCreated(created)
   }
 
   return (
@@ -136,358 +120,291 @@ export function MobilePsychologistSimulatorModal({
         <div className="flex items-start justify-between border-b border-[#E2E8F0] pb-4">
           <div>
             <span className="inline-flex items-center gap-1 rounded-[5px] bg-[#EEF0FF] px-2 py-0.5 text-[10px] font-bold text-primary uppercase">
-              Simulasi Layanan Psikolog &amp; Relawan
+              Simulasi Registrasi Eva Counselor Mobile
             </span>
             <h2 id="sim-modal-title" className="mt-1 text-base font-bold text-ink">
-              Simulasi Pendaftaran &amp; Upgrade Relawan
+              Pendaftaran Psikolog Profesional Mandiri
             </h2>
             <p className="text-xs text-ink-muted">
-              Uji coba alur pendaftaran relawan baru dan simulasi pengajuan upgrade.
+              Field identik dengan form pendaftaran pada aplikasi Eva Counselor Mobile untuk ditinjau Admin.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Tutup modal simulasi"
-            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-[8px] border border-[#CBD5E1] text-ink-muted hover:bg-slate-100"
+            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-[8px] border border-[#E2E8F0] text-ink-muted hover:bg-slate-50"
           >
             <X className="size-4" />
           </button>
         </div>
 
-        <div className="mt-4 flex rounded-[8px] border border-[#E2E8F0] bg-[#F8FAFC] p-1">
-          <button
-            type="button"
-            onClick={() => {
-              setSimMode('register')
-              setSimError(null)
-            }}
-            className={cn(
-              'flex-1 cursor-pointer rounded-[6px] py-1.5 text-xs font-semibold transition-colors',
-              simMode === 'register'
-                ? 'bg-white text-primary shadow-2xs'
-                : 'text-ink-muted hover:text-ink',
-            )}
-          >
-            1. Pendaftaran Relawan Baru
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSimMode('upgrade')
-              setSimError(null)
-            }}
-            className={cn(
-              'flex-1 cursor-pointer rounded-[6px] py-1.5 text-xs font-semibold transition-colors',
-              simMode === 'upgrade'
-                ? 'bg-white text-primary shadow-2xs'
-                : 'text-ink-muted hover:text-ink',
-            )}
-          >
-            2. Pengajuan Upgrade Relawan
-          </button>
-        </div>
+        <form onSubmit={handleRegisterSubmit} className="mt-4 space-y-3.5 text-xs">
+          {simError && (
+            <div className="rounded-[8px] border border-crisis-border bg-crisis-bg px-3 py-2 text-crisis-text">
+              {simError}
+            </div>
+          )}
 
-        {simError && (
-          <div className="mt-3 rounded-[8px] border border-[#FECACA] bg-[#FEF2F2] p-3 text-xs font-medium text-[#B91C1C]">
-            {simError}
-          </div>
-        )}
-
-        {simMode === 'register' && (
-          <form onSubmit={handleRegisterSubmit} className="mt-4 space-y-3.5 text-xs">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="block font-semibold text-ink">Pilih Kategori Relawan *</label>
-              <div className="mt-1.5 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedRole('relawan_biasa')
-                    setSimSipp('')
-                    setSimStr('')
-                  }}
-                  className={cn(
-                    'flex cursor-pointer flex-col rounded-[10px] border p-3 text-left transition-all',
-                    selectedRole === 'relawan_biasa'
-                      ? 'border-sky-500 bg-sky-50 ring-1 ring-sky-300'
-                      : 'border-[#CBD5E1] bg-white hover:bg-[#F8FAFC]',
-                  )}
-                >
-                  <div className="flex items-center gap-1.5 font-bold text-sky-800">
-                    <HeartHandshake className="size-4 text-sky-600" />
-                    <span>Relawan</span>
-                  </div>
-                  <p className="mt-1 text-[11px] text-ink-muted">
-                    Mahasiswa psikologi / perorangan tanpa gelar Psi. Mengunggah sertifikat pelatihan sebaya.
-                  </p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedRole('relawan_profesional_non_mitra')
-                    if (!simSipp) setSimSipp('20240812-2029-01-0992')
-                    if (!simStr) setSimStr('STR-PK-2024-991023')
-                  }}
-                  className={cn(
-                    'flex cursor-pointer flex-col rounded-[10px] border p-3 text-left transition-all',
-                    selectedRole === 'relawan_profesional_non_mitra'
-                      ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-300'
-                      : 'border-[#CBD5E1] bg-white hover:bg-[#F8FAFC]',
-                  )}
-                >
-                  <div className="flex items-center gap-1.5 font-bold text-indigo-800">
-                    <GraduationCap className="size-4 text-indigo-600" />
-                    <span>Relawan Profesional (Non Mitra)</span>
-                  </div>
-                  <p className="mt-1 text-[11px] text-ink-muted">
-                    Memiliki gelar profesi Psikolog (S2 Magister Profesi / Psi) dan izin praktik SIPP &amp; STR.
-                  </p>
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <label className="block font-semibold text-ink">
-                  {selectedRole === 'relawan_profesional_non_mitra'
-                    ? 'Nama Lengkap & Gelar Profesi (Psi) *'
-                    : 'Nama Lengkap (Tanpa Gelar Psi) *'}
-                </label>
-                <input
-                  type="text"
-                  value={simFullName}
-                  onChange={(e) => setSimFullName(e.target.value)}
-                  placeholder={
-                    selectedRole === 'relawan_profesional_non_mitra'
-                      ? 'Contoh: Rania Putri Maharani, M.Psi., Psikolog'
-                      : 'Contoh: Dika Ardiansyah (Mahasiswa Psikologi)'
-                  }
-                  className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-ink focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              {selectedRole === 'relawan_profesional_non_mitra' ? (
-                <>
-                  <div>
-                    <label className="block font-semibold text-ink">Nomor SIPP *</label>
-                    <input
-                      type="text"
-                      value={simSipp}
-                      onChange={(e) => setSimSipp(e.target.value.toUpperCase())}
-                      placeholder="20240812-2029-01-0992"
-                      className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 font-mono uppercase text-ink focus:border-primary focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-semibold text-ink">Nomor STR HIMPSI / IPK *</label>
-                    <input
-                      type="text"
-                      value={simStr}
-                      onChange={(e) => setSimStr(e.target.value.toUpperCase())}
-                      placeholder="STR-PK-2024-991023"
-                      className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 font-mono uppercase text-ink focus:border-primary focus:outline-none"
-                    />
-                  </div>
-                </>
-              ) : (
-                <div className="sm:col-span-2 rounded-[8px] border border-sky-200 bg-sky-50/70 p-2.5 text-[11px] text-sky-800">
-                  <span className="font-semibold">Info Relawan:</span> Tidak memerlukan nomor SIPP/STR. Berkas pendaftaran otomatis menyertakan Sertifikat Pelatihan Konseling Sebaya.
-                </div>
-              )}
-
-              <div>
-                <label className="block font-semibold text-ink">Kota Domisili *</label>
-                <input
-                  type="text"
-                  value={simCity}
-                  onChange={(e) => setSimCity(e.target.value.toUpperCase())}
-                  placeholder="SEMARANG"
-                  className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 uppercase text-ink focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-ink">
-                  {selectedRole === 'relawan_profesional_non_mitra' ? 'Masa Berlaku SIPP' : 'Masa Aktif Relawan'}
-                </label>
-                <input
-                  type="date"
-                  value={simValidUntil}
-                  onChange={(e) => setSimValidUntil(e.target.value)}
-                  className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-ink focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="block font-semibold text-ink">Asal Universitas / Instansi</label>
-                <input
-                  type="text"
-                  value={simEducation}
-                  onChange={(e) => setSimEducation(e.target.value)}
-                  placeholder={
-                    selectedRole === 'relawan_profesional_non_mitra'
-                      ? 'Magister Profesi Psikologi Klinis Universitas Diponegoro'
-                      : 'S1 Psikologi Universitas Diponegoro (Semester 6)'
-                  }
-                  className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-ink focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-ink">Email Akun Mobile</label>
-                <input
-                  type="email"
-                  value={simEmail}
-                  onChange={(e) => setSimEmail(e.target.value)}
-                  placeholder="relawan.baru@eva.id"
-                  className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-ink focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-ink">Nomor WhatsApp</label>
-                <input
-                  type="tel"
-                  value={simPhone}
-                  onChange={(e) => setSimPhone(e.target.value)}
-                  placeholder="081234567890"
-                  className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-ink focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="block font-semibold text-ink">Jadwal Praktik / Pendampingan</label>
-                <input
-                  type="text"
-                  value={simSchedule}
-                  onChange={(e) => setSimSchedule(e.target.value)}
-                  placeholder="Senin - Jumat (17.00 - 21.00 WIB)"
-                  className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-ink focus:border-primary focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block font-semibold text-ink">Spesialisasi Pendampingan</label>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {CLINICAL_SPECIALIZATIONS.map((spec) => {
-                  const active = simSpecs.includes(spec)
-                  return (
-                    <button
-                      key={spec}
-                      type="button"
-                      onClick={() =>
-                        setSimSpecs((prev) =>
-                          prev.includes(spec) ? prev.filter((s) => s !== spec) : [...prev, spec],
-                        )
-                      }
-                      className={cn(
-                        'cursor-pointer rounded-[6px] border px-2.5 py-1 text-[11px] font-semibold transition-colors',
-                        active
-                          ? 'border-primary bg-[#EEF0FF] text-primary'
-                          : 'border-[#CBD5E1] bg-white text-ink-soft',
-                      )}
-                    >
-                      {spec}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 border-t border-[#E2E8F0] pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="inline-flex h-9 cursor-pointer items-center rounded-[8px] border border-[#CBD5E1] bg-white px-3.5 font-semibold text-ink"
-              >
-                Batal
-              </button>
-              <button
-                type="submit"
-                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[8px] bg-primary px-4 font-semibold text-white hover:bg-primary-hover"
-              >
-                <Users className="size-3.5" /> Kirim Pendaftaran Relawan
-              </button>
-            </div>
-          </form>
-        )}
-
-        {simMode === 'upgrade' && (
-          <form onSubmit={handleUpgradeSubmit} className="mt-4 space-y-4 text-xs">
-            <div>
-              <label className="block font-semibold text-ink">
-                Pilih Akun Relawan yang Mengajukan Upgrade *
+              <label htmlFor="sim-name" className="mb-1 block font-semibold text-ink">
+                Nama Lengkap *
               </label>
-              {availableVolunteers.length === 0 ? (
-                <div className="mt-1.5 rounded-[8px] border border-amber-200 bg-amber-50 p-3 text-amber-800">
-                  Tidak ada relawan biasa/pro yang belum memiliki pengajuan upgrade aktif. Daftarkan relawan baru terlebih dahulu.
-                </div>
-              ) : (
-                <select
-                  value={activeVolunteerId}
-                  onChange={(e) => setSelectedVolunteerId(e.target.value)}
-                  className="mt-1 h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 font-semibold text-ink focus:border-primary focus:outline-none"
-                >
-                  {availableVolunteers.map((vol) => (
-                    <option key={vol.id} value={vol.id}>
-                      [Relawan Pendamping] {vol.fullName} · {vol.city ?? 'Indonesia'} ({vol.education ?? 'Relawan'})
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            <div>
-              <label className="block font-semibold text-ink">Target Role Upgrade *</label>
-              <div className="mt-1.5 rounded-[10px] border border-indigo-400 bg-indigo-50/80 p-3.5 ring-1 ring-indigo-300">
-                <div className="flex items-center gap-1.5 font-bold text-indigo-900">
-                  <GraduationCap className="size-4 text-indigo-600" />
-                  <span>Upgrade ke Relawan Profesional (Non Mitra)</span>
-                </div>
-                <p className="mt-1 text-[11px] leading-relaxed text-ink-muted">
-                  Simulasi pengajuan upgrade dari Relawan Pendamping ke Relawan Profesional (Non Mitra). Otomatis menyertakan berkas verifikasi Ijazah Magister Profesi Psikolog, SIPP, dan STR Kemenkes.
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <label className="block font-semibold text-ink">
-                Catatan Pengajuan / Bukti Portofolio *
-              </label>
-              <textarea
-                rows={3}
-                value={upgradeNotes}
-                onChange={(e) => setUpgradeNotes(e.target.value)}
-                placeholder="Tuliskan alasan pengajuan upgrade dan ringkasan prestasi / kelulusan..."
-                className="mt-1 w-full rounded-[8px] border border-[#CBD5E1] bg-white p-3 text-ink focus:border-primary focus:outline-none"
+              <input
+                id="sim-name"
+                type="text"
+                placeholder="Rania Putri Maharani"
+                value={simFullName}
+                onChange={(e) => {
+                  setSimFullName(e.target.value)
+                  if (simError) setSimError(null)
+                }}
+                className="h-9 w-full rounded-[8px] border border-[#CBD5E1] px-3 text-xs text-ink focus:border-primary focus:outline-none"
               />
-              <p className="mt-1 text-[11px] text-ink-muted">
-                Simulasi ini otomatis melampirkan berkas sertifikat pendukung (Ijazah Magister Profesi &amp; SIPP untuk Relawan Profesional (Non Mitra)).
-              </p>
             </div>
 
-            <div className="flex items-center justify-end gap-2 border-t border-[#E2E8F0] pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="inline-flex h-9 cursor-pointer items-center rounded-[8px] border border-[#CBD5E1] bg-white px-3.5 font-semibold text-ink"
-              >
-                Batal
-              </button>
-              <button
-                type="submit"
-                disabled={availableVolunteers.length === 0}
-                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[8px] bg-primary px-4 font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <ArrowUpCircle className="size-3.5" /> Kirim Pengajuan Upgrade
-              </button>
+            <div>
+              <label htmlFor="sim-degree" className="mb-1 block font-semibold text-ink">
+                Gelar Profesi
+              </label>
+              <input
+                id="sim-degree"
+                type="text"
+                value={simTitleDegree}
+                onChange={(e) => setSimTitleDegree(e.target.value)}
+                className="h-9 w-full rounded-[8px] border border-[#CBD5E1] px-3 text-xs text-ink focus:border-primary focus:outline-none"
+              />
             </div>
-          </form>
-        )}
+
+            <div>
+              <label htmlFor="sim-email" className="mb-1 block font-semibold text-ink">
+                Email Akun
+              </label>
+              <input
+                id="sim-email"
+                type="email"
+                placeholder="rania.psi@praktikmandiri.id"
+                value={simEmail}
+                onChange={(e) => setSimEmail(e.target.value)}
+                className="h-9 w-full rounded-[8px] border border-[#CBD5E1] px-3 text-xs text-ink focus:border-primary focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="sim-assoc" className="mb-1 block font-semibold text-ink">
+                Organisasi Profesi
+              </label>
+              <select
+                id="sim-assoc"
+                value={simAssociation}
+                onChange={(e) => setSimAssociation(e.target.value)}
+                className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-2.5 text-xs text-ink focus:border-primary focus:outline-none"
+              >
+                {PROFESSIONAL_ASSOCIATIONS.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="sim-edu" className="mb-1 block font-semibold text-ink">
+                Pendidikan Terakhir
+              </label>
+              <select
+                id="sim-edu"
+                value={simEducation}
+                onChange={(e) => setSimEducation(e.target.value)}
+                className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-2.5 text-xs text-ink focus:border-primary focus:outline-none"
+              >
+                {EDUCATION_LEVELS.map((lvl) => (
+                  <option key={lvl} value={lvl}>
+                    {lvl}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="sim-exp" className="mb-1 block font-semibold text-ink">
+                Pengalaman Klinis
+              </label>
+              <select
+                id="sim-exp"
+                value={simExperienceYears}
+                onChange={(e) => setSimExperienceYears(Number(e.target.value))}
+                className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-2.5 text-xs text-ink focus:border-primary focus:outline-none"
+              >
+                {EXPERIENCE_OPTIONS.map((opt) => (
+                  <option key={opt.label} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <span className="mb-1.5 block font-semibold text-ink">Dokumen Legalitas yang Dilampirkan</span>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: 'both' as const, label: 'STR & SIP' },
+                { id: 'str' as const, label: 'Hanya STR' },
+                { id: 'sip' as const, label: 'Hanya SIP / SIPP' },
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => {
+                    setSimDocType(opt.id)
+                    if (simError) setSimError(null)
+                  }}
+                  className={cn(
+                    'h-8 cursor-pointer rounded-[8px] border text-[11px] font-semibold transition-colors',
+                    simDocType === opt.id
+                      ? 'border-primary bg-primary text-white'
+                      : 'border-[#CBD5E1] bg-white text-ink-soft hover:border-primary/40',
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {includeStr && (
+            <div className="grid gap-3 rounded-[10px] border border-[#E2E8F0] bg-[#F8FAFC] p-3 sm:grid-cols-3">
+              <div>
+                <label htmlFor="sim-str" className="mb-1 block font-semibold text-ink">
+                  Nomor STR *
+                </label>
+                <input
+                  id="sim-str"
+                  type="text"
+                  placeholder="STR-PK-2025-991023"
+                  value={simStr}
+                  onChange={(e) => {
+                    setSimStr(e.target.value)
+                    if (simError) setSimError(null)
+                  }}
+                  className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-2.5 font-mono text-xs uppercase text-ink focus:border-primary focus:outline-none"
+                />
+              </div>
+              <div>
+                <label htmlFor="sim-str-issuer" className="mb-1 block font-semibold text-ink">
+                  Instansi Penerbit STR
+                </label>
+                <input
+                  id="sim-str-issuer"
+                  type="text"
+                  value={simStrIssuedBy}
+                  onChange={(e) => setSimStrIssuedBy(e.target.value)}
+                  className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-2.5 text-xs text-ink focus:border-primary focus:outline-none"
+                />
+              </div>
+              <div>
+                <label htmlFor="sim-str-exp" className="mb-1 block font-semibold text-ink">
+                  Masa Berlaku STR
+                </label>
+                <input
+                  id="sim-str-exp"
+                  type="text"
+                  value={simStrValidUntil}
+                  onChange={(e) => setSimStrValidUntil(e.target.value)}
+                  className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-2.5 text-xs text-ink focus:border-primary focus:outline-none"
+                />
+              </div>
+            </div>
+          )}
+
+          {includeSip && (
+            <div className="grid gap-3 rounded-[10px] border border-[#E2E8F0] bg-[#F8FAFC] p-3 sm:grid-cols-3">
+              <div>
+                <label htmlFor="sim-sipp" className="mb-1 block font-semibold text-ink">
+                  Nomor SIP / SIPP *
+                </label>
+                <input
+                  id="sim-sipp"
+                  type="text"
+                  placeholder="20250618-2030-01-1402"
+                  value={simSipp}
+                  onChange={(e) => {
+                    setSimSipp(e.target.value)
+                    if (simError) setSimError(null)
+                  }}
+                  className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-2.5 font-mono text-xs uppercase text-ink focus:border-primary focus:outline-none"
+                />
+              </div>
+              <div>
+                <label htmlFor="sim-sip-issuer" className="mb-1 block font-semibold text-ink">
+                  Instansi Penerbit SIP
+                </label>
+                <input
+                  id="sim-sip-issuer"
+                  type="text"
+                  value={simSipIssuedBy}
+                  onChange={(e) => setSimSipIssuedBy(e.target.value)}
+                  className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-2.5 text-xs text-ink focus:border-primary focus:outline-none"
+                />
+              </div>
+              <div>
+                <label htmlFor="sim-sip-exp" className="mb-1 block font-semibold text-ink">
+                  Masa Berlaku SIP
+                </label>
+                <input
+                  id="sim-sip-exp"
+                  type="text"
+                  value={simSipValidUntil}
+                  onChange={(e) => setSimSipValidUntil(e.target.value)}
+                  className="h-9 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-2.5 text-xs text-ink focus:border-primary focus:outline-none"
+                />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <span className="mb-1.5 block font-semibold text-ink">Fokus Layanan Klinis</span>
+            <div className="flex flex-wrap gap-1.5">
+              {CLINICAL_SPECIALIZATIONS.map((spec) => (
+                <button
+                  key={spec}
+                  type="button"
+                  onClick={() => {
+                    toggleSpec(spec)
+                    if (simError) setSimError(null)
+                  }}
+                  className={cn(
+                    'cursor-pointer rounded-[6px] border px-2.5 py-1 text-[11px] font-medium transition-colors',
+                    simSpecs.includes(spec)
+                      ? 'border-primary bg-primary text-white'
+                      : 'border-[#CBD5E1] bg-white text-ink-soft hover:border-primary/40',
+                  )}
+                >
+                  {spec}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 border-t border-[#E2E8F0] pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-9 cursor-pointer items-center rounded-[8px] border border-[#CBD5E1] bg-white px-4 text-xs font-semibold text-ink hover:bg-slate-50"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              className="inline-flex h-9 cursor-pointer items-center rounded-[8px] bg-primary px-4 text-xs font-semibold text-white hover:bg-[#464BB8]"
+            >
+              Kirim Pendaftaran Simulasi
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )
 }
-

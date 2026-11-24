@@ -7,7 +7,7 @@ class CounselorProfileMenuCard extends StatelessWidget {
   final Color iconBg;
   final String title;
   final String subtitle;
-  final Widget trailingBadge;
+  final Widget? trailingBadge;
   final VoidCallback onTap;
 
   const CounselorProfileMenuCard({
@@ -17,7 +17,7 @@ class CounselorProfileMenuCard extends StatelessWidget {
     required this.iconBg,
     required this.title,
     required this.subtitle,
-    required this.trailingBadge,
+    this.trailingBadge,
     required this.onTap,
   });
 
@@ -66,9 +66,11 @@ class CounselorProfileMenuCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                trailingBadge,
-                const SizedBox(width: 4),
+                if (trailingBadge != null) ...[
+                  const SizedBox(width: 8),
+                  trailingBadge!,
+                  const SizedBox(width: 4),
+                ],
                 const Icon(Icons.chevron_right_rounded, color: AppColors.textLight, size: 20),
               ],
             ),

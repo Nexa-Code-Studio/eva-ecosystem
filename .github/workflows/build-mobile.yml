@@ -40,6 +40,8 @@ on:
       - main
     paths:
       - 'apps/eva_mobile/**'
+      - 'apps/eva_counselor_mobile/**'
+      - 'packages/webrtc_client/**'
       - '.github/workflows/build-mobile.yml'
     tags:
       - 'build-*'

@@ -55,7 +55,7 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: ['Semua', 'Akses Terbuka', 'Akses Terkunci', 'Krisis Darurat'].map((filter) {
+                  children: ['Semua', 'Belum Selesai', 'Sudah Lewat', 'Krisis Darurat'].map((filter) {
                     final isSelected = _selectedFilter == filter;
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
@@ -94,8 +94,12 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
                         p.chiefComplaint.toLowerCase().contains(_searchQuery);
                     if (!matchesSearch) return false;
 
-                    if (_selectedFilter == 'Akses Terbuka') return p.hasConsent;
-                    if (_selectedFilter == 'Akses Terkunci') return !p.hasConsent;
+                    if (_selectedFilter == 'Belum Selesai') {
+                      return p.upcomingSchedule != null;
+                    }
+                    if (_selectedFilter == 'Sudah Lewat') {
+                      return p.totalCompletedSessions > 0 && p.upcomingSchedule == null;
+                    }
                     if (_selectedFilter == 'Krisis Darurat') return p.isHighRisk;
                     return true;
                   }).toList();
@@ -177,53 +181,62 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text(
-                                              '${p.name}, ${p.age} thn',
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                            Row(
+                                              children: [
+                                                Flexible(
+                                                  child: Text(
+                                                    '${p.name} • ${p.gender}',
+                                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                if (p.upcomingSchedule != null) ...[
+                                                  const SizedBox(width: 8),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: AppColors.primaryContainer,
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                    child: const Text(
+                                                      'Terjadwal',
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: AppColors.primary,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
-                                              '${p.totalCompletedSessions} Sesi Selesai • ${p.gender}',
-                                              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                              p.upcomingSchedule != null
+                                                  ? (p.upcomingSchedule!.timeRange.isNotEmpty
+                                                      ? 'Jadwal: ${p.upcomingSchedule!.timeRange}${p.totalCompletedSessions > 0 ? " (${p.totalCompletedSessions} sesi lalu)" : ""} • ${p.age} thn'
+                                                      : 'Jadwal Hari Ini${p.totalCompletedSessions > 0 ? " (${p.totalCompletedSessions} sesi lalu)" : ""} • ${p.age} thn')
+                                                  : (p.totalCompletedSessions > 0
+                                                      ? '${p.totalCompletedSessions} Sesi Selesai • ${p.age} thn'
+                                                      : 'Pasien Baru • ${p.age} thn'),
+                                              style: TextStyle(
+                                                fontSize: 11.5,
+                                                fontWeight: p.upcomingSchedule != null ? FontWeight.w600 : FontWeight.normal,
+                                                color: p.upcomingSchedule != null ? AppColors.primary : AppColors.textSecondary,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ],
                                         ),
                                       ),
+                                      const SizedBox(width: 8),
                                       p.hasConsent
                                           ? StatusBadge.consentGranted('Akses Aktif')
                                           : StatusBadge.consentLocked('Terkunci'),
                                     ],
                                   ),
-                                  const SizedBox(height: 12),
-
-                                  // Chief Complaint Box (Soft light background)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF7F8FC),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.chat_bubble_outline_rounded,
-                                            size: 14, color: AppColors.primary),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            p.chiefComplaint,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: AppColors.textPrimary,
-                                            ),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
                                   if (p.isHighRisk) ...[
-                                    const SizedBox(height: 10),
+                                    const SizedBox(height: 8),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                       decoration: BoxDecoration(

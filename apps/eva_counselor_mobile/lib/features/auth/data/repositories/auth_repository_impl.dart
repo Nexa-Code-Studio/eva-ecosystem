@@ -30,7 +30,18 @@ class AuthRepositoryImpl implements IAuthRepository {
     required String titleDegree,
     required String email,
     required String password,
-    required String strNumber,
+    String strNumber = '',
+    String? sipNumber,
+    String documentType = 'str',
+    String issuingInstitution = 'Kemenkes RI',
+    String documentExpiryDate = 'Seumur Hidup',
+    String lastEducation = 'S2 Magister Psikologi Profesi',
+    String? strIssuingInstitution,
+    String? strExpiryDate,
+    String? strDocFileName,
+    String? sipIssuingInstitution,
+    String? sipExpiryDate,
+    String? sipDocFileName,
     required String association,
     required List<String> specializations,
     required int yearsOfExperience,
@@ -47,6 +58,17 @@ class AuthRepositoryImpl implements IAuthRepository {
       email: email,
       password: password,
       strNumber: strNumber,
+      sipNumber: sipNumber,
+      documentType: documentType,
+      issuingInstitution: issuingInstitution,
+      documentExpiryDate: documentExpiryDate,
+      lastEducation: lastEducation,
+      strIssuingInstitution: strIssuingInstitution,
+      strExpiryDate: strExpiryDate,
+      strDocFileName: strDocFileName,
+      sipIssuingInstitution: sipIssuingInstitution,
+      sipExpiryDate: sipExpiryDate,
+      sipDocFileName: sipDocFileName,
       association: association,
       specializations: specializations,
       yearsOfExperience: yearsOfExperience,
@@ -79,6 +101,36 @@ class AuthRepositoryImpl implements IAuthRepository {
     } catch (_) {
       return null;
     }
+  }
+
+  @override
+  Future<PsychologistUserEntity> updateProfile({
+    String? fullName,
+    String? titleDegree,
+    String? profilePhotoUrl,
+  }) async {
+    final dto = await _dataSource.updateProfile(
+      fullName: fullName,
+      titleDegree: titleDegree,
+      profilePhotoUrl: profilePhotoUrl,
+    );
+    await TokenStorage.saveProfileJson(jsonEncode(dto.toJson()));
+    return dto.toEntity();
+  }
+
+  @override
+  Future<PsychologistUserEntity> updateBankDetails({
+    required String bankName,
+    required String accountNumber,
+    required String accountHolder,
+  }) async {
+    final dto = await _dataSource.updateBankDetails(
+      bankName: bankName,
+      accountNumber: accountNumber,
+      accountHolder: accountHolder,
+    );
+    await TokenStorage.saveProfileJson(jsonEncode(dto.toJson()));
+    return dto.toEntity();
   }
 
   @override

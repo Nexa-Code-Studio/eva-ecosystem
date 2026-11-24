@@ -1,20 +1,21 @@
 export type AdminModuleId =
   | 'dashboard'
   | 'psychologists'
-  | 'partners'
-  | 'referrals'
+  | 'certificates'
+  | 'monitoring'
+  | 'settings'
   | 'users_coins'
   | 'content_config'
 
 export type DashboardRange = 7 | 30
-export type TrendMetric = 'newUsers' | 'voiceSessions' | 'referrals'
+export type TrendMetric = 'newUsers' | 'voiceSessions' | 'consultations'
 
 export interface DailyPoint {
   date: string // ISO yyyy-mm-dd
   label: string // e.g. "24 Okt"
   newUsers: number
   voiceSessions: number
-  referrals: number
+  consultations: number
 }
 
 export interface SparkPoint {
@@ -23,7 +24,7 @@ export interface SparkPoint {
 }
 
 export interface KpiMetric {
-  id: 'users' | 'psychologists' | 'partners' | 'referrals'
+  id: 'users' | 'psychologists' | 'sessions' | 'pricing'
   label: string
   value: number
   formattedValue: string
@@ -49,7 +50,7 @@ export interface PsychologistCompositionItem {
 
 export interface QueueItem {
   id: string
-  kind: 'mandiri' | 'faskes' | 'referral'
+  kind: 'verification' | 'revision' | 'crisis'
   title: string
   subtitle: string
   date: string
@@ -59,9 +60,9 @@ export interface QueueItem {
 }
 
 export interface ActionSummary {
-  mandiri: number
-  faskes: number
-  crisisAndReferral: number
+  pendingVerifications: number
+  needRevision: number
+  crisisUsers: number
   total: number
 }
 
@@ -76,4 +77,3 @@ export interface DashboardAnalyticsBaseline {
   }
   historySeries: DailyPoint[]
 }
-

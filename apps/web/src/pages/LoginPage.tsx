@@ -6,14 +6,12 @@ import {
   type LoginSubmitState,
   type LoginViewMode,
 } from '@/components/portal/login/LoginFormView'
-import { PartnerStatusModal } from '@/components/portal/login/PartnerStatusModal'
 import { QuickLoginDevTool } from '@/components/devtools/PortalDevTools'
 import { EMAIL_RE } from '@/constants/portal'
-import { authenticateUser, usePortalDb, type PartnerAccount } from '@/lib/portalStore'
+import { authenticateUser } from '@/lib/portalStore'
 
 export function LoginPage() {
   const navigate = useNavigate()
-  const { db } = usePortalDb()
 
   const [mode, setMode] = useState<LoginViewMode>('login')
   const [email, setEmail] = useState('')
@@ -26,7 +24,6 @@ export function LoginPage() {
   const [authError, setAuthError] = useState<string | null>(null)
   const [submitState, setSubmitState] = useState<LoginSubmitState>('idle')
 
-  const [statusModalPartner, setStatusModalPartner] = useState<PartnerAccount | null>(null)
   const [demoMenuOpen, setDemoMenuOpen] = useState(false)
 
   const year = new Date().getFullYear()
@@ -34,15 +31,6 @@ export function LoginPage() {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
-
-  useEffect(() => {
-    if (!statusModalPartner) return
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setStatusModalPartner(null)
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [statusModalPartner])
 
   const switchMode = (nextMode: LoginViewMode) => {
     setMode(nextMode)
@@ -59,7 +47,6 @@ export function LoginPage() {
     setEmailError(null)
     setPasswordError(null)
     setAuthError(null)
-    setStatusModalPartner(null)
     setDemoMenuOpen(false)
   }
 
@@ -89,8 +76,8 @@ export function LoginPage() {
     setAuthError(null)
     setSubmitState('submitting')
 
-    window.setTimeout(() => {
-      const result = authenticateUser(trimmedEmail, password)
+    void (async () => {
+      const result = await authenticateUser(trimmedEmail, password)
       setSubmitState('idle')
 
       if (!result.ok) {
@@ -98,19 +85,8 @@ export function LoginPage() {
         return
       }
 
-      if (result.role === 'admin') {
-        navigate('/admin')
-        return
-      }
-
-      const partner = result.partner
-      if (partner.status === 'approved') {
-        navigate('/mitra')
-        return
-      }
-
-      setStatusModalPartner(partner)
-    }, 400)
+      navigate('/admin')
+    })()
   }
 
   const handleForgotSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -127,7 +103,7 @@ export function LoginPage() {
     setSubmitState('submitting')
     window.setTimeout(() => {
       setSubmitState('success')
-    }, 600)
+    }, 500)
   }
 
   return (
@@ -148,6 +124,7 @@ export function LoginPage() {
             <img src="/eva_logo.png" alt="EVA" className="size-12 object-contain" />
             <span className="text-xl font-bold tracking-[-0.02em] text-ink">EVA</span>
           </Link>
+          <p className="mt-1.5 text-xs text-ink-soft">Panel Administrasi Ekosistem EVA</p>
         </div>
 
         <div className="rounded-[12px] border border-[#E2E8F0] bg-white p-6 shadow-[0_1px_3px_rgba(15,23,42,0.04)] sm:p-8">
@@ -180,18 +157,8 @@ export function LoginPage() {
         </div>
       </main>
 
-      <PartnerStatusModal
-        partner={statusModalPartner}
-        onClose={() => setStatusModalPartner(null)}
-        onRevise={(partnerId) => {
-          setStatusModalPartner(null)
-          navigate(`/pengajuan-mitra?revisi=${encodeURIComponent(partnerId)}`)
-        }}
-      />
-
       <QuickLoginDevTool
         isOpen={demoMenuOpen}
-        partners={db.partners}
         onToggleOpen={() => setDemoMenuOpen((v) => !v)}
         onClose={() => setDemoMenuOpen(false)}
         onSelectCredentials={fillDemoCredentials}

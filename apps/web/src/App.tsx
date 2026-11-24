@@ -7,9 +7,6 @@ import { NotFoundPage } from '@/pages/NotFoundPage'
 const LoginPage = lazy(() =>
   import('@/pages/LoginPage').then((m) => ({ default: m.LoginPage })),
 )
-const PartnerApplyPage = lazy(() =>
-  import('@/pages/PartnerApplyPage').then((m) => ({ default: m.PartnerApplyPage })),
-)
 const AdminDashboardPage = lazy(() =>
   import('@/pages/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })),
 )
@@ -17,32 +14,28 @@ const AdminDashboardRoute = lazy(() =>
   import('@/pages/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardRoute })),
 )
 const AdminPsychologistsRoute = lazy(() =>
-  import('@/pages/AdminDashboardPage').then((m) => ({ default: m.AdminPsychologistsRoute })),
+  import('@/pages/AdminDashboardPage').then((m) => ({
+    default: m.AdminPsychologistsRoute,
+  })),
 )
-const AdminPartnersRoute = lazy(() =>
-  import('@/pages/AdminDashboardPage').then((m) => ({ default: m.AdminPartnersRoute })),
+const AdminMonitoringRoute = lazy(() =>
+  import('@/pages/AdminDashboardPage').then((m) => ({ default: m.AdminMonitoringRoute })),
 )
-const AdminReferralsRoute = lazy(() =>
-  import('@/pages/AdminDashboardPage').then((m) => ({ default: m.AdminReferralsRoute })),
+const AdminSettingsRoute = lazy(() =>
+  import('@/pages/AdminDashboardPage').then((m) => ({ default: m.AdminSettingsRoute })),
 )
 const AdminUsersCoinsRoute = lazy(() =>
   import('@/pages/AdminDashboardPage').then((m) => ({ default: m.AdminUsersCoinsRoute })),
 )
 const AdminContentConfigRoute = lazy(() =>
-  import('@/pages/AdminDashboardPage').then((m) => ({ default: m.AdminContentConfigRoute })),
+  import('@/pages/AdminDashboardPage').then((m) => ({
+    default: m.AdminContentConfigRoute,
+  })),
 )
-
-const PartnerDashboardPage = lazy(() =>
-  import('@/pages/PartnerDashboardPage').then((m) => ({ default: m.PartnerDashboardPage })),
-)
-const PartnerPsychologistsRoute = lazy(() =>
-  import('@/pages/PartnerDashboardPage').then((m) => ({ default: m.PartnerPsychologistsRoute })),
-)
-const PartnerReferralsRoute = lazy(() =>
-  import('@/pages/PartnerDashboardPage').then((m) => ({ default: m.PartnerReferralsRoute })),
-)
-const PartnerProfileRoute = lazy(() =>
-  import('@/pages/PartnerDashboardPage').then((m) => ({ default: m.PartnerProfileRoute })),
+const AdminCertificatesRoute = lazy(() =>
+  import('@/pages/AdminDashboardPage').then((m) => ({
+    default: m.AdminCertificatesRoute,
+  })),
 )
 
 const router = createBrowserRouter([
@@ -65,14 +58,6 @@ const router = createBrowserRouter([
     element: (
       <Suspense fallback={<div className="min-h-screen bg-[#F8F9FE]" />}>
         <LoginPage />
-      </Suspense>
-    ),
-  },
-  {
-    path: '/pengajuan-mitra',
-    element: (
-      <Suspense fallback={<div className="min-h-screen bg-[#F8F9FE]" />}>
-        <PartnerApplyPage />
       </Suspense>
     ),
   },
@@ -105,20 +90,36 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: 'partners',
+        path: 'certificates',
         element: (
           <Suspense fallback={<div className="min-h-[400px] animate-pulse rounded-xl bg-white/50" />}>
-            <AdminPartnersRoute />
+            <AdminCertificatesRoute />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'monitoring',
+        element: (
+          <Suspense fallback={<div className="min-h-[400px] animate-pulse rounded-xl bg-white/50" />}>
+            <AdminMonitoringRoute />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'settings',
+        element: (
+          <Suspense fallback={<div className="min-h-[400px] animate-pulse rounded-xl bg-white/50" />}>
+            <AdminSettingsRoute />
           </Suspense>
         ),
       },
       {
         path: 'referrals',
-        element: (
-          <Suspense fallback={<div className="min-h-[400px] animate-pulse rounded-xl bg-white/50" />}>
-            <AdminReferralsRoute />
-          </Suspense>
-        ),
+        element: <Navigate to="/admin/monitoring" replace />,
+      },
+      {
+        path: 'partners',
+        element: <Navigate to="/admin/psychologists" replace />,
       },
       {
         path: 'users-coins',
@@ -139,48 +140,6 @@ const router = createBrowserRouter([
       {
         path: '*',
         element: <Navigate to="/admin/dashboard" replace />,
-      },
-    ],
-  },
-  {
-    path: '/mitra',
-    element: (
-      <Suspense fallback={<div className="min-h-screen bg-[#F8F9FE]" />}>
-        <PartnerDashboardPage />
-      </Suspense>
-    ),
-    children: [
-      {
-        index: true,
-        element: <Navigate to="/mitra/referrals" replace />,
-      },
-      {
-        path: 'psychologists',
-        element: (
-          <Suspense fallback={<div className="min-h-[400px] animate-pulse rounded-xl bg-white/50" />}>
-            <PartnerPsychologistsRoute />
-          </Suspense>
-        ),
-      },
-      {
-        path: 'referrals',
-        element: (
-          <Suspense fallback={<div className="min-h-[400px] animate-pulse rounded-xl bg-white/50" />}>
-            <PartnerReferralsRoute />
-          </Suspense>
-        ),
-      },
-      {
-        path: 'profile',
-        element: (
-          <Suspense fallback={<div className="min-h-[400px] animate-pulse rounded-xl bg-white/50" />}>
-            <PartnerProfileRoute />
-          </Suspense>
-        ),
-      },
-      {
-        path: '*',
-        element: <Navigate to="/mitra/psychologists" replace />,
       },
     ],
   },

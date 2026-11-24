@@ -1,4 +1,6 @@
 from app.schemas.counselor.requests import (
+    DayBreakItem,
+    DayScheduleConfig,
     RegisterPsychologistRequest,
     ResubmitVerificationRequest,
     ToggleAvailabilityRequest,
@@ -6,13 +8,21 @@ from app.schemas.counselor.requests import (
     UpdateBankDetailsRequest,
     UpdateCounselorStatusRequest,
     UpdatePsychologistProfileRequest,
+    UpdateScheduleConfigRequest,
     VerifyPsychologistRequest,
 )
 from app.schemas.counselor.responses import (
+    BlockedRangeItem,
+    CounselorTimelineResponse,
+    DayBreakResponse,
+    DayScheduleResponse,
+    OperatingHoursItem,
     PsychologistMessageResponse,
     PsychologistProfileResponse,
     PsychologistPublicResponse,
     PsychologistVerificationResponse,
+    ScheduleConfigResponse,
+    TimeRangeItem,
 )
 
 __all__ = [
@@ -24,8 +34,18 @@ __all__ = [
     "ToggleDocumentVerificationRequest",
     "UpdateCounselorStatusRequest",
     "ToggleAvailabilityRequest",
+    "DayBreakItem",
+    "DayScheduleConfig",
+    "UpdateScheduleConfigRequest",
     "PsychologistProfileResponse",
     "PsychologistPublicResponse",
     "PsychologistVerificationResponse",
     "PsychologistMessageResponse",
+    "DayBreakResponse",
+    "DayScheduleResponse",
+    "ScheduleConfigResponse",
+    "OperatingHoursItem",
+    "BlockedRangeItem",
+    "TimeRangeItem",
+    "CounselorTimelineResponse",
 ]

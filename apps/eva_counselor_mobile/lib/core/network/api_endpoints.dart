@@ -8,6 +8,10 @@ class ApiEndpoints {
   static const String uploadCertificate = '/counselors/me/resubmit-verification';
   static const String availability = '/counselors/me/availability';
   static const String bankDetails = '/counselors/me/bank-details';
+  static const String scheduleConfig = '/counselors/me/schedule-config';
+  static String counselorTimeline(String id, String date) =>
+      '/counselors/$id/timeline?date=$date';
+  static String patientTriggers(String id) => '/patients/$id/clinical-triggers';
 
   // Pricing
   static const String pricing = '/pricing/active';
@@ -27,6 +31,9 @@ class ApiEndpoints {
   // Video Call & Teleconsultation Sessions
   static const String activeSessions = '/sessions';
   static String sessionDetail(String id) => '/sessions/$id';
+  static String videoToken(String id) => '/care/sessions/$id/video-token';
+  static String careWebSocket(String id, String token) => '/care/ws/$id?token=$token';
+  static String updateCallStatus(String id) => '/care/sessions/$id/status';
   static String sessionExtensionAvailability(String id) =>
       '/sessions/$id/extension-availability';
   static String extendSession(String id) => '/sessions/$id/extend';

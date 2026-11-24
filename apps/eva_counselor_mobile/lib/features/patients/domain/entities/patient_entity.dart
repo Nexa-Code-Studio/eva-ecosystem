@@ -13,6 +13,8 @@ class PatientEntity {
   final String? consentRequestedAt;
   final List<DassAssessmentRecord>? dassHistory;
   final List<String>? sharedDiarySummaries;
+  final List<Map<String, dynamic>>? triggers;
+  final List<String>? clinicalPoints;
   final PatientScheduleInfo? upcomingSchedule;
 
   const PatientEntity({
@@ -30,6 +32,8 @@ class PatientEntity {
     this.consentRequestedAt,
     this.dassHistory,
     this.sharedDiarySummaries,
+    this.triggers,
+    this.clinicalPoints,
     this.upcomingSchedule,
   });
 }
@@ -42,6 +46,7 @@ class PatientScheduleInfo {
   final String roomOpensAt; // e.g. '09:45 WIB'
   final String statusText; // e.g. 'Mulai dalam 15 Mnt', 'Menunggu Waktu Sesi'
   final String? sessionId;
+  final bool isCompleted;
 
   const PatientScheduleInfo({
     required this.formattedTime,
@@ -51,6 +56,7 @@ class PatientScheduleInfo {
     required this.roomOpensAt,
     required this.statusText,
     this.sessionId,
+    this.isCompleted = false,
   });
 }
 

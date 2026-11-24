@@ -48,5 +48,14 @@ void main() {
         throwsA(isA<Exception>()),
       );
     });
+
+    test('AppConfig and GoogleDriveService OAuth2 client ID configuration', () async {
+      final service = RemoteGoogleDriveService();
+      expect(service.googleSignIn.clientId, contains('541439650704'));
+      expect(service.googleSignIn.scopes, contains('https://www.googleapis.com/auth/drive.appdata'));
+      
+      // Sign-out call executes cleanly
+      await service.signOut();
+    });
   });
 }

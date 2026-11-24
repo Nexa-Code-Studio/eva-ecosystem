@@ -1,5 +1,6 @@
 from app.models.ai import AIRun, AIWorkerRun
 from app.models.base import BaseModel
+from app.models.certificate import CertificateTemplate, PsychologistCertificate
 from app.models.coin import CoinEconomyConfig, CoinPackage, CoinTransaction
 from app.models.content import CrisisConfig, FaqEntry
 from app.models.conversation import Conversation, ConversationSummary, Message
@@ -69,6 +70,8 @@ __all__ = [
     "AIWorkerRun",
     "AIWorkerType",
     "BaseModel",
+    "CertificateTemplate",
+    "PsychologistCertificate",
     "CoinEconomyConfig",
     "CoinPackage",
     "CoinTransaction",
@@ -109,6 +112,7 @@ __all__ = [
     "PatientConsent",
     "PlatformPricingConfig",
     "PricingConfigStatus",
+    "PsychologistCertificate",
     "PsychologistProfile",
     "PsychologistVerificationStatus",
     "RAGRetrieval",

@@ -1,37 +1,27 @@
-import { loadPortalDb, savePortalDb } from './storage'
+import { getActivePortalDataSource, loadPortalDb, savePortalDb } from './storage'
+import type {
+  AdminCoinTopupRequestDto,
+  AdminCoinTopupResultDto,
+  CreateFaqRequestDto,
+  PublicFaqsResultDto,
+  UpdateCoinEconomyConfigRequestDto,
+  UpdateCrisisConfigRequestDto,
+  UpdateFaqRequestDto,
+  UpsertCoinPackageRequestDto,
+} from '@/types/api/contracts'
 import type {
   AppUserStatus,
   CoinEconomyConfig,
   CoinPackage,
+  CoinTopupTransaction,
   CoinTransactionStatus,
+  ConsultationSessionMonitoring,
   CopingQuest,
   CrisisConfig,
   FaqEntry,
-  ReferralStatus,
+  GeneralAppUser,
   WaitlistEntry,
 } from '@/types/portal'
-
-export function assignReferral(
-  referralId: string,
-  psychologistId: string | null,
-  status: ReferralStatus,
-) {
-  const db = loadPortalDb()
-  const idx = db.referrals.findIndex((r) => r.id === referralId)
-  if (idx === -1) return
-
-  const assignedPsy = psychologistId
-    ? db.psychologists.find((p) => p.id === psychologistId)
-    : null
-
-  db.referrals[idx] = {
-    ...db.referrals[idx],
-    partnerId: assignedPsy ? assignedPsy.partnerId : db.referrals[idx].partnerId,
-    assignedPsychologistId: psychologistId,
-    status,
-  }
-  savePortalDb(db)
-}
 
 export function updateGeneralUserStatus(userId: string, accountStatus: AppUserStatus) {
   const db = loadPortalDb()
@@ -74,15 +64,14 @@ export function deleteCopingQuest(id: string) {
   savePortalDb(db)
 }
 
-export function updateCrisisConfig(updates: Partial<CrisisConfig>) {
-  const db = loadPortalDb()
-  const today = new Date().toISOString().slice(0, 10)
-  db.crisisConfig = {
-    ...db.crisisConfig,
-    ...updates,
-    updatedAt: today,
-  }
-  savePortalDb(db)
+export async function fetchCrisisConfig(): Promise<CrisisConfig> {
+  return getActivePortalDataSource().fetchCrisisConfig()
+}
+
+export async function updateCrisisConfig(
+  updates: UpdateCrisisConfigRequestDto,
+): Promise<CrisisConfig> {
+  return getActivePortalDataSource().updateCrisisConfig(updates)
 }
 
 export function addWaitlistEntry(contactInput: string, topicInput?: string | null): WaitlistEntry {
@@ -111,30 +100,31 @@ export function updateWaitlistStatus(id: string, status: WaitlistEntry['status']
   savePortalDb(db)
 }
 
-export function addFaqEntry(input: Omit<FaqEntry, 'id' | 'isPublished'>): FaqEntry {
-  const db = loadPortalDb()
-  const created: FaqEntry = {
-    ...input,
-    id: `faq-${Date.now()}`,
-    isPublished: true,
-  }
-  db.faqs.push(created)
-  savePortalDb(db)
-  return created
+export async function fetchPublicFaqs(): Promise<PublicFaqsResultDto> {
+  return getActivePortalDataSource().fetchPublicFaqs()
 }
 
-export function toggleFaqPublished(id: string) {
-  const db = loadPortalDb()
-  const idx = db.faqs.findIndex((f) => f.id === id)
-  if (idx === -1) return
-  db.faqs[idx] = { ...db.faqs[idx], isPublished: !db.faqs[idx].isPublished }
-  savePortalDb(db)
+export async function fetchAdminFaqs(): Promise<FaqEntry[]> {
+  return getActivePortalDataSource().fetchAdminFaqs()
 }
 
-export function deleteFaqEntry(id: string) {
-  const db = loadPortalDb()
-  db.faqs = db.faqs.filter((f) => f.id !== id)
-  savePortalDb(db)
+export async function addFaqEntry(input: CreateFaqRequestDto): Promise<FaqEntry> {
+  return getActivePortalDataSource().createFaqEntry(input)
+}
+
+export async function updateFaqEntry(
+  id: string,
+  input: UpdateFaqRequestDto,
+): Promise<FaqEntry> {
+  return getActivePortalDataSource().updateFaqEntry(id, input)
+}
+
+export async function toggleFaqPublished(id: string): Promise<FaqEntry> {
+  return getActivePortalDataSource().toggleFaqPublished(id)
+}
+
+export async function deleteFaqEntry(id: string): Promise<void> {
+  return getActivePortalDataSource().deleteFaqEntry(id)
 }
 
 export function adjustUserCoinBalance(userId: string, deltaCoins: number, reason: string) {
@@ -214,54 +204,49 @@ export function reviewCoinTransaction(
   savePortalDb(db)
 }
 
-export function updateCoinEconomyConfig(
-  updates: Partial<Pick<CoinEconomyConfig, 'basePricePerCoinIdr' | 'freeTrialCoinsNewUser'>>,
-) {
-  const db = loadPortalDb()
-  const today = new Date().toISOString().slice(0, 10)
-  db.coinEconomyConfig = {
-    ...db.coinEconomyConfig,
-    ...updates,
-    updatedAt: today,
-  }
-  savePortalDb(db)
+export async function fetchCoinEconomyConfig(): Promise<CoinEconomyConfig> {
+  return getActivePortalDataSource().fetchCoinEconomyConfig()
 }
 
-export function upsertCoinPackage(input: Omit<CoinPackage, 'id'> & { id?: string }): CoinPackage {
-  const db = loadPortalDb()
-  if (input.id) {
-    const idx = db.coinPackages.findIndex((p) => p.id === input.id)
-    if (idx !== -1) {
-      const updated: CoinPackage = {
-        ...db.coinPackages[idx],
-        ...input,
-        id: input.id,
-        code: input.code.trim().toUpperCase(),
-      }
-      db.coinPackages[idx] = updated
-      savePortalDb(db)
-      return updated
-    }
-  }
-
-  const created: CoinPackage = {
-    ...input,
-    id: `pkg-${Date.now()}`,
-    code: input.code.trim().toUpperCase(),
-  }
-  db.coinPackages.push(created)
-  savePortalDb(db)
-  return created
+export async function updateCoinEconomyConfig(
+  updates: UpdateCoinEconomyConfigRequestDto,
+): Promise<CoinEconomyConfig> {
+  return getActivePortalDataSource().updateCoinEconomyConfig(updates)
 }
 
-export function toggleCoinPackageActive(packageId: string) {
-  const db = loadPortalDb()
-  const idx = db.coinPackages.findIndex((p) => p.id === packageId)
-  if (idx === -1) return
-  db.coinPackages[idx] = {
-    ...db.coinPackages[idx],
-    isActive: !db.coinPackages[idx].isActive,
-  }
-  savePortalDb(db)
+export async function fetchCoinPackages(): Promise<CoinPackage[]> {
+  return getActivePortalDataSource().fetchCoinPackages()
+}
+
+export async function upsertCoinPackage(
+  input: UpsertCoinPackageRequestDto,
+): Promise<CoinPackage> {
+  return getActivePortalDataSource().upsertCoinPackage(input)
+}
+
+export async function deleteCoinPackage(packageId: string): Promise<void> {
+  return getActivePortalDataSource().deleteCoinPackage(packageId)
+}
+
+export async function toggleCoinPackageActive(packageId: string): Promise<CoinPackage> {
+  return getActivePortalDataSource().toggleCoinPackageActive(packageId)
+}
+
+export async function fetchConsultationSessions(): Promise<ConsultationSessionMonitoring[]> {
+  return getActivePortalDataSource().fetchConsultationSessions()
+}
+
+export async function fetchAdminUsers(): Promise<GeneralAppUser[]> {
+  return getActivePortalDataSource().fetchAdminUsers()
+}
+
+export async function fetchCoinTransactions(): Promise<CoinTopupTransaction[]> {
+  return getActivePortalDataSource().fetchCoinTransactions()
+}
+
+export async function topUpUserCoins(
+  payload: AdminCoinTopupRequestDto,
+): Promise<AdminCoinTopupResultDto> {
+  return getActivePortalDataSource().topUpUserCoins(payload)
 }
 

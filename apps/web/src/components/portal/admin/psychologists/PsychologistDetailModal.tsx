@@ -1,77 +1,112 @@
 import { CheckCircle2, FileText, UserCheck, X } from 'lucide-react'
 import { useState } from 'react'
 import { CertificatePreviewCard } from './CertificatePreviewCard'
-import { MitraPsychologistDetailView } from './MitraPsychologistDetailView'
 import { PsychologistModalFooter } from './PsychologistModalFooter'
 import { PsychologistProfileSidebar } from './PsychologistProfileSidebar'
 import { PsychologistRejectModal } from './PsychologistRejectModal'
-import { PsychologistRejectUpgradeModal } from './PsychologistRejectUpgradeModal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { cn } from '@/lib/cn'
 import {
-  approvePsychologistUpgrade,
-  reviewIndependentPsychologist,
+  reactivatePsychologistAccount,
+  suspendPsychologistAccount,
   togglePsychologistDocumentVerified,
-  updatePsychologistStatus,
 } from '@/lib/portalStore'
-import type { PartnerAccount, Psychologist, PsychologistCertificate } from '@/types/portal'
+import type { Psychologist, PsychologistCertificate } from '@/types/portal'
 
 interface PsychologistDetailModalProps {
   isOpen: boolean
   psy: Psychologist | null
-  partner: PartnerAccount | null
   onClose: () => void
-  onApproveMandiri: (psyId: string, fullName: string) => void
+  onApprove: (psyId: string, fullName: string, notes?: string) => Promise<void>
   onFeedback: (msg: string) => void
 }
 
 export function PsychologistDetailModal({
   isOpen,
   psy,
-  partner,
   onClose,
-  onApproveMandiri,
+  onApprove,
   onFeedback,
 }: PsychologistDetailModalProps) {
   useBodyScrollLock(isOpen && Boolean(psy))
 
   const [activeDocId, setActiveDocId] = useState<string | null>(null)
   const [mobileTab, setMobileTab] = useState<'documents' | 'profile'>('documents')
-  const [isRejectOpen, setIsRejectOpen] = useState(false)
-  const [isRejectUpgradeOpen, setIsRejectUpgradeOpen] = useState(false)
+  const [approvalNote, setApprovalNote] = useState('')
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [rejectModalOpen, setRejectModalOpen] = useState(false)
 
   if (!isOpen || !psy) return null
 
-  const isMitra = psy.role === 'relawan_profesional_mitra' || (!psy.role && psy.partnerId)
-  const isMandiri = !isMitra
-  const hasUpgrade = Boolean(psy.upgradeRequest)
-  const targetUpgradeLabel = 'Relawan Profesional (Non Mitra)'
+  const docs: PsychologistCertificate[] = (psy.documents ?? []).filter(
+    (doc) => doc.docType === 'STR HIMPSI' || doc.docType === 'SIPP',
+  )
+  const activeDoc = docs.find((d) => d.id === activeDocId) ?? docs[0] ?? null
+  const verifiedCount = docs.filter((d) => d.verified).length
 
-  // Combine regular documents and upgrade request documents
-  const standardDocs: PsychologistCertificate[] = psy.documents ?? []
-  const upgradeDocs: PsychologistCertificate[] = psy.upgradeRequest?.documents ?? []
-  const allDocs: PsychologistCertificate[] = [...upgradeDocs, ...standardDocs]
-
-  const activeDoc =
-    allDocs.find((d) => d.id === activeDocId) ?? upgradeDocs[0] ?? standardDocs[0] ?? null
-  const verifiedCount = standardDocs.filter((d) => d.verified).length
-
-  const handleToggleDoc = (docId: string) => {
-    togglePsychologistDocumentVerified(psy.id, docId)
-    onFeedback('Status validitas dokumen sertifikat berhasil diperbarui.')
+  const handleToggleDoc = async (docId: string) => {
+    setActionError(null)
+    setSubmitting(true)
+    try {
+      await togglePsychologistDocumentVerified(psy.id, docId)
+      onFeedback('Status validitas dokumen sertifikat berhasil diperbarui.')
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : 'Gagal memperbarui status validitas dokumen.',
+      )
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  const handleSuspend = () => {
-    reviewIndependentPsychologist(psy.id, 'suspended')
-    onFeedback(`Akun "${psy.fullName}" dinonaktifkan sementara.`)
+  const handleApproveClick = async () => {
+    setActionError(null)
+    setSubmitting(true)
+    try {
+      await onApprove(psy.id, psy.fullName, approvalNote.trim() || undefined)
+      setApprovalNote('')
+      onClose()
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : 'Gagal menyetujui kredensial psikolog.',
+      )
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  const handleApproveUpgrade = () => {
-    approvePsychologistUpgrade(psy.id)
-    onFeedback(
-      `Permohonan upgrade "${psy.fullName}" ke ${targetUpgradeLabel} telah disetujui! Status peran diperbarui.`,
-    )
-    onClose()
+  const handleSuspend = async () => {
+    setActionError(null)
+    setSubmitting(true)
+    try {
+      await suspendPsychologistAccount(psy.id)
+      onFeedback(`Akun "${psy.fullName}" dinonaktifkan sementara.`)
+      onClose()
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : 'Gagal menonaktifkan sementara akun psikolog.',
+      )
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleReactivate = async () => {
+    setActionError(null)
+    setSubmitting(true)
+    try {
+      await reactivatePsychologistAccount(psy.id, approvalNote.trim() || undefined)
+      setApprovalNote('')
+      onFeedback(`Akun "${psy.fullName}" berhasil diaktifkan kembali.`)
+      onClose()
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : 'Gagal mengaktifkan kembali akun psikolog.',
+      )
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -82,43 +117,25 @@ export function PsychologistDetailModal({
         aria-labelledby="psy-detail-title"
         className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-3 sm:p-6"
       >
-        <div
-          className={cn(
-            'flex max-h-[94dvh] w-full flex-col overflow-hidden rounded-[20px] border border-[#E2E8F0] bg-white shadow-2xl transition-all',
-            isMitra ? 'max-w-3xl' : 'max-w-7xl',
-          )}
-        >
-          {/* 1. Modal Top Header (Kontekstual Bersih - Tanpa Duplikasi Identitas) */}
-          <div className="flex items-center justify-between gap-3 border-b border-[#E2E8F0] px-4 py-3.5 sm:px-6 sm:py-4 bg-white">
+        <div className="flex max-h-[94dvh] w-full max-w-7xl flex-col overflow-hidden rounded-[20px] border border-[#E2E8F0] bg-white shadow-2xl">
+          <div className="flex items-center justify-between gap-3 border-b border-[#E2E8F0] bg-white px-4 py-3.5 sm:px-6 sm:py-4">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <h2
                   id="psy-detail-title"
-                  className="text-base font-bold text-ink sm:text-lg tracking-tight"
+                  className="text-base font-bold tracking-tight text-ink sm:text-lg"
                 >
-                  {isMitra
-                    ? 'Detail Profil Relawan Profesional (Mitra)'
-                    : hasUpgrade
-                      ? 'Tinjau Pengajuan Upgrade Relawan'
-                      : psy.verificationStatus === 'pending'
-                        ? 'Verifikasi Pendaftaran Relawan'
-                        : 'Pemeriksaan Profil & Legalitas'}
+                  {psy.verificationStatus === 'verified'
+                    ? 'Profil & Kredensial Psikolog Terverifikasi'
+                    : 'Verifikasi Kredensial STR/SIP Psikolog Mandiri'}
                 </h2>
-                <span className="hidden sm:inline-block text-xs text-ink-muted">
-                  ·
-                </span>
-                <span className="hidden sm:inline-block text-xs font-mono text-ink-muted">
+                <span className="hidden text-xs text-ink-muted sm:inline-block">·</span>
+                <span className="hidden font-mono text-xs text-ink-muted sm:inline-block">
                   ID: {psy.id.slice(0, 8)}
                 </span>
               </div>
               <p className="mt-0.5 line-clamp-1 text-xs text-ink-muted">
-                {isMitra
-                  ? `Data profil, kredensial PKS, dan pengaturan status praktik faskes ${partner?.facilityName ?? 'mitra'}.`
-                  : hasUpgrade
-                    ? `Pemeriksaan berkas dan bukti jam terbang untuk peningkatan jenjang ${targetUpgradeLabel}.`
-                    : psy.verificationStatus === 'pending'
-                      ? 'Pemeriksaan kelengkapan dokumen pendaftaran akun baru sebelum disetujui.'
-                      : 'Informasi profil, riwayat verifikasi berkas, dan pengaturan status praktik.'}
+                Tinjau kecocokan nomor STR, SIP/SIPP, dan keabsahan dokumen sebelum mengaktifkan akun di Eva Counselor Mobile.
               </p>
             </div>
             <button
@@ -131,8 +148,7 @@ export function PsychologistDetailModal({
             </button>
           </div>
 
-          {/* 2. Segmented Tab Switch (Mobile Only, < lg) - Khusus Relawan/Mandiri jika memiliki berkas */}
-          {!isMitra && allDocs.length > 0 && (
+          {docs.length > 0 && (
             <div className="flex border-b border-[#E2E8F0] bg-[#F8FAFC] p-2 lg:hidden">
               <button
                 type="button"
@@ -145,7 +161,7 @@ export function PsychologistDetailModal({
                 )}
               >
                 <span className="inline-flex items-center gap-1.5">
-                  <FileText className="size-3.5" /> Berkas Sertifikat ({allDocs.length})
+                  <FileText className="size-3.5" /> Dokumen STR/SIP ({docs.length})
                 </span>
               </button>
               <button
@@ -165,158 +181,117 @@ export function PsychologistDetailModal({
             </div>
           )}
 
-          {/* 3. Modal Body: Khusus Mitra (Single-Column) vs Relawan/Mandiri (Studio Split 4:8) */}
-          {isMitra ? (
-            <div className="flex-1 overflow-y-auto">
-              <MitraPsychologistDetailView
-                psy={psy}
-                partner={partner}
-                onUpdateStatus={(status) => {
-                  updatePsychologistStatus(psy.id, status)
-                  onFeedback(`Status praktik "${psy.fullName}" berhasil diperbarui.`)
-                }}
-              />
+          <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-12 lg:overflow-hidden">
+            <div
+              className={cn(
+                'border-b border-[#E2E8F0] bg-[#F8FAFC]/60 p-5 lg:col-span-4 lg:block lg:h-full lg:overflow-y-auto lg:border-r lg:border-b-0',
+                mobileTab === 'profile' ? 'block' : 'hidden',
+              )}
+            >
+              <PsychologistProfileSidebar psy={psy} />
             </div>
-          ) : (
-            <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-12">
-              {/* Left Column: Sidebar Profil Psikolog Terpadu (Col-span 4) */}
-              <div
-                className={cn(
-                  'border-b border-[#E2E8F0] bg-[#F8FAFC]/60 p-5 lg:col-span-4 lg:border-r lg:border-b-0 lg:block',
-                  mobileTab === 'profile' ? 'block' : 'hidden',
-                )}
-              >
-                <PsychologistProfileSidebar psy={psy} partner={partner} />
-              </div>
 
-              {/* Right Column: Focus Document Canvas Inspector (Col-span 8 with Sticky Pinning) */}
-              <div
-                className={cn(
-                  'flex flex-col space-y-4 p-5 lg:col-span-8 lg:p-6',
-                  'lg:sticky lg:top-0 lg:bottom-0 lg:self-start lg:h-fit',
-                  mobileTab === 'documents' ? 'block' : 'hidden',
-                )}
-              >
-                {/* Document Selection & Preview Canvas */}
-                {allDocs.length > 0 ? (
-                  <>
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold tracking-wider text-ink-muted uppercase">
-                          Pilih Dokumen Sertifikat ({allDocs.length})
-                        </span>
-                        <span className="text-xs font-semibold text-primary">
-                          {hasUpgrade
-                            ? `${allDocs.filter((d) => d.verified).length}/${allDocs.length} Dokumen Terverifikasi`
-                            : `${verifiedCount}/${standardDocs.length} Dokumen Valid`}
-                        </span>
-                      </div>
-
-                      <div className="mt-2.5 flex flex-wrap gap-2">
-                        {allDocs.map((doc) => {
-                          const isSelected = activeDoc?.id === doc.id
-                          const isUpgradeDoc = upgradeDocs.some((d) => d.id === doc.id)
-                          return (
-                            <button
-                              key={doc.id}
-                              type="button"
-                              onClick={() => setActiveDocId(doc.id)}
-                              className={cn(
-                                'inline-flex cursor-pointer items-center gap-2 rounded-[10px] border px-3 py-1.5 text-xs font-semibold transition-all',
-                                isSelected
-                                  ? isUpgradeDoc
-                                    ? 'border-amber-600 bg-amber-600 text-white shadow-2xs'
-                                    : 'border-primary bg-primary text-white shadow-2xs'
-                                  : isUpgradeDoc
-                                    ? 'border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100'
-                                    : 'border-[#CBD5E1] bg-white text-ink hover:bg-[#F8FAFC]',
-                              )}
-                            >
-                              <span>{doc.docType}</span>
-                              {isUpgradeDoc && (
-                                <span
-                                  className={cn(
-                                    'rounded px-1 py-0.2 text-[9px] font-bold',
-                                    isSelected ? 'bg-amber-800 text-white' : 'bg-amber-200 text-amber-900',
-                                  )}
-                                >
-                                  Berkas Upgrade
-                                </span>
-                              )}
-                              {doc.verified ? (
-                                <CheckCircle2
-                                  className={cn('size-3.5', isSelected ? 'text-white' : 'text-[#16A34A]')}
-                                />
-                              ) : (
-                                <span
-                                  className={cn(
-                                    'size-2 rounded-full',
-                                    isSelected ? 'bg-white' : 'bg-[#F59E0B]',
-                                  )}
-                                />
-                              )}
-                            </button>
-                          )
-                        })}
-                      </div>
+            <div
+              className={cn(
+                'flex-col space-y-4 p-5 lg:col-span-8 lg:flex lg:h-full lg:overflow-y-auto lg:p-6',
+                mobileTab === 'documents' ? 'flex' : 'hidden',
+              )}
+            >
+              {docs.length > 0 ? (
+                <>
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold tracking-wider text-ink-muted uppercase">
+                        Pilih Dokumen Kredensial ({docs.length})
+                      </span>
+                      <span className="text-xs font-semibold text-primary">
+                        {verifiedCount}/{docs.length} Dokumen Valid
+                      </span>
                     </div>
 
-                    {/* Focus Document Preview Card */}
-                    {activeDoc && (
-                      <CertificatePreviewCard activeDoc={activeDoc} onToggleDoc={handleToggleDoc} />
-                    )}
-                  </>
-                ) : (
-                  <div className="flex h-full flex-col justify-center rounded-[12px] border border-[#E2E8F0] bg-[#F8FAFC] p-6 text-center">
-                    <FileText className="mx-auto size-12 text-[#94A3B8]" />
-                    <h4 className="mt-2 text-sm font-bold text-ink">Belum Ada Berkas</h4>
-                    <p className="mt-1 text-xs text-ink-muted">
-                      Relawan ini belum melampirkan berkas dokumen digital.
-                    </p>
+                    <div className="mt-2.5 flex flex-wrap gap-2">
+                      {docs.map((doc) => {
+                        const isSelected = activeDoc?.id === doc.id
+                        return (
+                          <button
+                            key={doc.id}
+                            type="button"
+                            onClick={() => setActiveDocId(doc.id)}
+                            className={cn(
+                              'inline-flex cursor-pointer items-center gap-2 rounded-[10px] border px-3 py-1.5 text-xs font-semibold transition-all',
+                              isSelected
+                                ? 'border-primary bg-primary text-white shadow-2xs'
+                                : 'border-[#CBD5E1] bg-white text-ink hover:bg-[#F8FAFC]',
+                            )}
+                          >
+                            <span>{doc.docType}</span>
+                            {doc.verified ? (
+                              <CheckCircle2
+                                className={cn(
+                                  'size-3.5',
+                                  isSelected ? 'text-white' : 'text-[#16A34A]',
+                                )}
+                              />
+                            ) : (
+                              <span
+                                className={cn(
+                                  'size-2 rounded-full',
+                                  isSelected ? 'bg-white' : 'bg-[#F59E0B]',
+                                )}
+                              />
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
-                )}
-              </div>
+
+                  {activeDoc && (
+                    <CertificatePreviewCard activeDoc={activeDoc} onToggleDoc={handleToggleDoc} />
+                  )}
+                </>
+              ) : (
+                <div className="flex h-full flex-col justify-center rounded-[12px] border border-[#E2E8F0] bg-[#F8FAFC] p-6 text-center">
+                  <FileText className="mx-auto size-12 text-[#94A3B8]" />
+                  <h4 className="mt-2 text-sm font-bold text-ink">Belum Ada Lampiran Digital</h4>
+                  <p className="mt-1 text-xs text-ink-muted">
+                    {psy.certificateDocUrl
+                      ? `Tautan dokumen terdaftar: ${psy.certificateDocUrl}`
+                      : 'Psikolog belum mengunggah salinan gambar STR/SIP digital.'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {actionError && (
+            <div className="border-t border-[#FECACA] bg-[#FEF2F2] px-4 py-2 text-xs font-semibold text-[#B91C1C] sm:px-6">
+              {actionError}
             </div>
           )}
 
-          {/* 4. Sticky Footer Action Bar */}
           <PsychologistModalFooter
-            isMandiri={isMandiri}
             verificationStatus={psy.verificationStatus}
-            documentsCount={standardDocs.length}
+            documentsCount={docs.length}
             verifiedCount={verifiedCount}
-            upgradeRequest={psy.upgradeRequest}
+            approvalNote={approvalNote}
+            submitting={submitting}
+            onApprovalNoteChange={setApprovalNote}
             onClose={onClose}
-            onOpenReject={() => setIsRejectOpen(true)}
-            onApprove={() => {
-              onApproveMandiri(psy.id, psy.fullName)
-              onClose()
-            }}
+            onOpenReject={() => setRejectModalOpen(true)}
+            onApprove={handleApproveClick}
             onSuspend={handleSuspend}
-            onApproveUpgrade={handleApproveUpgrade}
-            onOpenRejectUpgrade={() => setIsRejectUpgradeOpen(true)}
+            onReactivate={handleReactivate}
           />
         </div>
       </div>
 
-      {/* Pop-up Dialog Penolakan Berkas Pendaftaran Awal */}
       <PsychologistRejectModal
-        isOpen={isRejectOpen}
+        isOpen={rejectModalOpen}
         psyId={psy.id}
         psyFullName={psy.fullName}
-        initialReason={psy.rejectionReason}
-        onClose={() => setIsRejectOpen(false)}
-        onFeedback={onFeedback}
-        onSuccess={() => onClose()}
-      />
-
-      {/* Pop-up Dialog Penolakan Permohonan Upgrade */}
-      <PsychologistRejectUpgradeModal
-        isOpen={isRejectUpgradeOpen}
-        psyId={psy.id}
-        psyFullName={psy.fullName}
-        upgradeRequest={psy.upgradeRequest}
-        onClose={() => setIsRejectUpgradeOpen(false)}
+        initialReason={psy.verificationNotes}
+        onClose={() => setRejectModalOpen(false)}
         onFeedback={onFeedback}
         onSuccess={() => onClose()}
       />

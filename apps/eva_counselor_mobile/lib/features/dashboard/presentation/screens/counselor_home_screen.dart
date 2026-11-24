@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/storage/schedule_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/widgets/top_toast.dart';
+import '../../../../core/utils/image_helper.dart';
 import '../../../../core/widgets/status_badge.dart';
+import '../../../auth/domain/entities/psychologist_user_entity.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../finances/presentation/providers/finance_provider.dart';
 import '../../../patients/presentation/providers/patient_provider.dart';
+import '../../../profile/presentation/screens/counselor_schedule_settings_screen.dart';
 import '../providers/counselor_nav_provider.dart';
+import '../providers/counselor_notification_provider.dart';
 
 class CounselorHomeScreen extends ConsumerStatefulWidget {
   const CounselorHomeScreen({super.key});
@@ -19,11 +24,20 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
   int _selectedCalendarIndex = 0;
   late List<Map<String, dynamic>> _calendarDays;
   late String _monthYearLabel;
+  bool _isSchedulePersistentlyConfigured = true;
 
   @override
   void initState() {
     super.initState();
     _initDynamicCalendar();
+    _checkPersistedSchedule();
+  }
+
+  Future<void> _checkPersistedSchedule() async {
+    final isConfigured = await ScheduleStorage.isConfigured();
+    if (mounted) {
+      setState(() => _isSchedulePersistentlyConfigured = isConfigured);
+    }
   }
 
   void _initDynamicCalendar() {
@@ -43,69 +57,14 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
       final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
       final isWeekend = index >= 5;
 
-      List<Map<String, dynamic>> sessions = [];
-      if (isToday) {
-        sessions = [
-          {
-            'time': '10:00 - 10:30 WIB',
-            'patientName': 'Rian Pratama (24 Thn)',
-            'chiefComplaint': 'Kecemasan akademik & insomnia',
-            'status': 'Sesi Siap Dimulai (Live)',
-            'isLive': true,
-            'patientId': 'patient-001',
-            'sessionId': 'session-live-001',
-          },
-          {
-            'time': '14:00 - 14:30 WIB',
-            'patientName': 'Dinda Kirana (23 Thn)',
-            'chiefComplaint': 'Burnout & serangan panik akut',
-            'status': 'Perhatian Krisis 🚨',
-            'isHighRisk': true,
-            'patientId': 'patient-002',
-          },
-        ];
-      } else if (!isWeekend) {
-        if (index == 0) {
-          sessions = [
-            {
-              'time': '10:00 - 10:30 WIB',
-              'patientName': 'Aditya Nugraha',
-              'chiefComplaint': 'Regulasi emosi & relasi sosial',
-              'status': 'Selesai',
-              'isCompleted': true,
-              'patientId': 'patient-003',
-            },
-          ];
-        } else if (index == 2 || index == 3) {
-          sessions = [
-            {
-              'time': '11:00 - 11:30 WIB',
-              'patientName': 'Maya Lestari (21 Thn)',
-              'chiefComplaint': 'Quarter-life crisis & eksplorasi karier',
-              'status': 'Terkonfirmasi',
-              'patientId': 'patient-004',
-            },
-          ];
-        } else if (index == 4) {
-          sessions = [
-            {
-              'time': '13:30 - 14:00 WIB',
-              'patientName': 'Budi Santoso',
-              'chiefComplaint': 'Konseling evaluasi lanjutan',
-              'status': 'Terkonfirmasi',
-              'patientId': 'patient-001',
-            },
-          ];
-        }
-      }
-
+      final List<Map<String, dynamic>> sessions = [];
       return {
         'day': dayNames[index],
         'date': '${date.day}',
         'fullDate': date,
         'isToday': isToday,
-        'hasSession': sessions.isNotEmpty,
-        'isHighRisk': sessions.any((s) => s['isHighRisk'] == true),
+        'hasSession': false,
+        'isHighRisk': false,
         'isOffDay': isWeekend,
         'sessions': sessions,
       };
@@ -119,16 +78,86 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
     final authState = ref.watch(authStateProvider);
     final user = authState.value;
     final patientsAsync = ref.watch(patientsListProvider);
+    final patients = patientsAsync.value ?? [];
 
     final selectedDayData = _calendarDays[_selectedCalendarIndex];
-    final selectedSessions = (selectedDayData['sessions'] as List<dynamic>?) ?? [];
+    final isSelectedDayToday =
+        _selectedCalendarIndex == (DateTime.now().weekday - 1);
+
+    // Dynamically derive today's sessions from real patient data
+    final List<Map<String, dynamic>> realTodaySessions = [];
+    for (final p in patients) {
+      if (p.upcomingSchedule != null) {
+        realTodaySessions.add({
+          'time': p.upcomingSchedule!.timeRange.isNotEmpty
+              ? p.upcomingSchedule!.timeRange
+              : (p.upcomingSchedule!.formattedTime.isNotEmpty
+                  ? p.upcomingSchedule!.formattedTime
+                  : 'Terjadwal Hari Ini'),
+          'patientName': '${p.name} (${p.age} Thn)',
+          'chiefComplaint': p.chiefComplaint,
+          'status': '', // Hapus text 'siap dimulai live' agar rapi dan tidak penuh
+          'isLive': true,
+          'patientId': p.id,
+          'sessionId': p.upcomingSchedule!.sessionId,
+        });
+      } else if (p.totalCompletedSessions > 0) {
+        realTodaySessions.add({
+          'time': 'Selesai',
+          'patientName': '${p.name} (${p.age} Thn)',
+          'chiefComplaint': p.chiefComplaint,
+          'status': 'Selesai',
+          'isCompleted': true,
+          'patientId': p.id,
+          'sessionId': 'session-prev-${p.id}',
+        });
+      }
+    }
+
+    final todayWeekdayIndex = DateTime.now().weekday - 1;
+    if (todayWeekdayIndex >= 0 && todayWeekdayIndex < _calendarDays.length) {
+      _calendarDays[todayWeekdayIndex]['hasSession'] = realTodaySessions.isNotEmpty;
+    }
+
+    final selectedSessions = isSelectedDayToday && realTodaySessions.isNotEmpty
+        ? realTodaySessions
+        : (selectedDayData['sessions'] as List<dynamic>? ?? []);
     final isSelectedDayOff = selectedDayData['isOffDay'] == true;
+
+    // Unread notifications count
+    final unreadNotifs = ref.watch(unreadNotificationsCountProvider);
+
+    // Upcoming consultation patient (real active patient with upcoming session)
+    final upcomingPatient = patients.where((p) => p.upcomingSchedule != null).isNotEmpty
+        ? patients.firstWhere((p) => p.upcomingSchedule != null)
+        : null;
+    final highRiskPatients = patients.where((p) => p.isHighRisk).toList();
+
+    // Financial & session metrics (dynamically calculated)
+    final financesAsync = ref.watch(financialSummaryProvider);
+    final finances = financesAsync.value;
+    final activePatientsCount = patients.length;
+    final completedSessionsCount =
+        patients.fold<int>(0, (sum, p) => sum + p.totalCompletedSessions);
+    final balanceAmount = finances?.availableBalance ??
+        (user?.coinBalance != null ? (user!.coinBalance * 1000) : 0);
+    final balanceFormatted = 'Rp ${balanceAmount.toString().replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]}.',
+        )}';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(patientsListProvider);
+            ref.invalidate(financialSummaryProvider);
+            await ref.read(patientsListProvider.future);
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -226,22 +255,23 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                             size: 20,
                           ),
                         ),
-                        Positioned(
-                          right: -2,
-                          top: -2,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppColors.error,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.white, width: 1.5),
-                            ),
-                            child: const Text(
-                              '2',
-                              style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                        if (unreadNotifs > 0)
+                          Positioned(
+                            right: -2,
+                            top: -2,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.error,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.white, width: 1.5),
+                              ),
+                              child: Text(
+                                '$unreadNotifs',
+                                style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ),
@@ -271,10 +301,8 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                         CircleAvatar(
                           radius: 24,
                           backgroundColor: AppColors.primaryContainer,
-                          backgroundImage: user?.profilePhotoUrl != null
-                              ? NetworkImage(user!.profilePhotoUrl!)
-                              : null,
-                          child: user?.profilePhotoUrl == null
+                          backgroundImage: getProfileImageProvider(user?.profilePhotoUrl),
+                          child: getProfileImageProvider(user?.profilePhotoUrl) == null
                               ? const Icon(Icons.person, color: AppColors.primary)
                               : null,
                         ),
@@ -311,7 +339,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               StatusBadge.proIndependent('Psikolog Mandiri'),
-                              StatusBadge.coins(user?.coinBalance ?? 1250),
+                              StatusBadge.coins(user?.coinBalance ?? 0),
                             ],
                           ),
                         ],
@@ -322,260 +350,437 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
               ),
               const SizedBox(height: 8),
 
-              // STATUS INFO PILL (Online / Menerima Konsultasi - Interactive Toggle)
-              InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: () {
-                  final currentlyOnline = user?.isOnline ?? true;
-                  ref.read(authStateProvider.notifier).updateAvailability(!currentlyOnline);
-                  TopToast.show(
-                    context,
-                    title: !currentlyOnline ? 'Status: Online 🟢' : 'Status: Istirahat ⏸️',
-                    message: !currentlyOnline
-                        ? 'Anda siap menerima jadwal telekonsultasi 30 menit.'
-                        : 'Jadwal Anda dijeda, pasien baru tidak dapat booking sesi.',
-                    type: !currentlyOnline ? ToastType.success : ToastType.info,
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: (user?.isOnline ?? true)
-                          ? const Color(0xFFECEFF8)
-                          : AppColors.pendingAmber.withValues(alpha: 0.3),
+              // STATUS PRAKTIK OTOMATIS (Berdasarkan Jam Operasional & Jam Istirahat Terjadwal)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFECEFF8)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.verifiedGreen,
+                        shape: BoxShape.circle,
+                      ),
                     ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Aktif • Istirahat ${user?.breakStartTime ?? '12:00'}-${user?.breakEndTime ?? '13:00'}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const CounselorScheduleSettingsScreen(),
+                          ),
+                        );
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        child: Text(
+                          'Ubah',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildDailyTimelineProgressBar(user),
+              const SizedBox(height: 16),
+
+              // 3. UPCOMING TELECONSULTATION HERO CARD (Hidden if no session scheduled today)
+              if (upcomingPatient != null) ...[
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFF4B53BB),
+                        Color(0xFF6B72E5),
+                      ],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF4B53BB).withValues(alpha: 0.28),
+                        blurRadius: 24,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Top Badges
                       Row(
                         children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: (user?.isOnline ?? true)
-                                  ? AppColors.verifiedGreen
-                                  : AppColors.pendingAmber,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            (user?.isOnline ?? true)
-                                ? 'Online (Menerima Konsultasi)'
-                                : 'Istirahat (Sesi Dijeda)',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.access_time_rounded, color: Colors.white, size: 12),
+                                  const SizedBox(width: 5),
+                                  Flexible(
+                                    child: Text(
+                                      upcomingPatient.upcomingSchedule?.formattedTime ??
+                                          'Sesi Konsultasi Terjadwal Hari Ini',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: (user?.isOnline ?? true)
-                              ? AppColors.primary
-                              : const Color(0xFF94A3B8),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          (user?.isOnline ?? true) ? 'Aktif' : 'Istirahat',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
+                      const SizedBox(height: 16),
+
+                      // Patient Photo + Info
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 66,
+                            height: 72,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(18),
+                              color: Colors.white.withValues(alpha: 0.2),
+                              image: const DecorationImage(
+                                image: NetworkImage(
+                                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+                                ),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
                           ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${upcomingPatient.name} (${upcomingPatient.age} Thn)',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  upcomingPatient.chiefComplaint,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'Durasi 30 Menit • Video Call',
+                                  style: TextStyle(color: Colors.white60, fontSize: 11),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Actions
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.white54),
+                                padding: const EdgeInsets.symmetric(vertical: 11),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onPressed: () {
+                                Navigator.of(context).pushNamed(
+                                  '/counselor-patient-detail',
+                                  arguments: upcomingPatient.id,
+                                );
+                              },
+                              child: const Text(
+                                'Rekam Medis',
+                                style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            flex: 3,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: AppColors.primary,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(vertical: 11),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              icon: const Icon(Icons.videocam_rounded, size: 17),
+                              label: const Text(
+                                'Masuk Sesi VC',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                              ),
+                              onPressed: () async {
+                                final sessionId = upcomingPatient.upcomingSchedule?.sessionId;
+                                if (sessionId == null || sessionId.isEmpty) return;
+                                final finished = await Navigator.of(context).pushNamed(
+                                  '/counselor-video-call',
+                                  arguments: sessionId,
+                                );
+                                if (finished == true && context.mounted) {
+                                  Navigator.of(context).pushNamed(
+                                    '/counselor-patient-detail',
+                                    arguments: {
+                                      'patientId': upcomingPatient.id,
+                                      'sessionFinished': true,
+                                      'sessionId': sessionId,
+                                    },
+                                  );
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+              ] else if (!_isSchedulePersistentlyConfigured && user?.isScheduleConfigured != true && user?.isOnlinePracticeEnabled != true) ...[
+                // Onboarding Banner: Setup Practice Schedule
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryContainer,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.edit_calendar_rounded,
+                          color: AppColors.primary,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Atur Jadwal Praktik Anda',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            const Text(
+                              'Pasien belum dapat booking sesi sebelum Anda menentukan hari & jam praktik.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                                height: 1.35,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              height: 32,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.tune_rounded, size: 14),
+                                label: const Text(
+                                  'Atur Jadwal Sekarang',
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                ),
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const CounselorScheduleSettingsScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 18),
-
-              // 3. UPCOMING TELECONSULTATION HERO CARD (No Overflows, Soft Gradient)
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF4B53BB),
-                      Color(0xFF6B72E5),
+                const SizedBox(height: 18),
+              ] else ...[
+                // Clean Active Schedule State: No session scheduled today
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
                     ],
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF4B53BB).withValues(alpha: 0.28),
-                      blurRadius: 24,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Top Badges
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.18),
-                              borderRadius: BorderRadius.circular(12),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.verifiedBg,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.event_available_rounded,
+                          color: AppColors.verifiedGreen,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Tidak Ada Sesi Konsultasi Hari Ini',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.access_time_rounded, color: Colors.white, size: 12),
-                                SizedBox(width: 5),
-                                Flexible(
-                                  child: Text(
-                                    'Mulai dalam 15 Mnt • 10:00 WIB',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                            const SizedBox(height: 3),
+                            const Text(
+                              'Jadwal telekonseling Anda aktif. Sesi akan otomatis terisi saat pasien melakukan booking.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                                height: 1.35,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              height: 30,
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Color(0xFFD0D4E5)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10),
                                 ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Patient Photo + Info
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 66,
-                          height: 72,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(18),
-                            color: Colors.white.withValues(alpha: 0.2),
-                            image: const DecorationImage(
-                              image: NetworkImage(
-                                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-                              ),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Rian Pratama (24 Thn)',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
+                                icon: const Icon(Icons.tune_rounded, size: 13, color: AppColors.primary),
+                                label: const Text(
+                                  'Kelola Jam Praktik',
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
                                 ),
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const CounselorScheduleSettingsScreen(),
+                                    ),
+                                  );
+                                },
                               ),
-                              SizedBox(height: 3),
-                              Text(
-                                'Generalized Anxiety & Insomnia',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(color: Colors.white70, fontSize: 12),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'Durasi 30 Menit • Video Call',
-                                style: TextStyle(color: Colors.white60, fontSize: 11),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Actions
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.white54),
-                              padding: const EdgeInsets.symmetric(vertical: 11),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            onPressed: () {
-                              Navigator.of(context).pushNamed(
-                                '/counselor-patient-detail',
-                                arguments: 'patient-001',
-                              );
-                            },
-                            child: const Text(
-                              'Rekam Medis',
-                              style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 3,
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: AppColors.primary,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 11),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            icon: const Icon(Icons.videocam_rounded, size: 17),
-                            label: const Text(
-                              'Masuk Sesi VC',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                            ),
-                            onPressed: () async {
-                              final finished = await Navigator.of(context).pushNamed(
-                                '/counselor-video-call',
-                                arguments: 'session-live-001',
-                              );
-                              if (finished == true && context.mounted) {
-                                Navigator.of(context).pushNamed(
-                                  '/counselor-patient-detail',
-                                  arguments: 'patient-001',
-                                );
-                              }
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 18),
+                const SizedBox(height: 18),
+              ],
 
-              // 5. HORIZONTAL SCHEDULE MINI-CALENDAR STRIP (LENGKAP 7 HARI, MERAH JIKA LIBUR)
+              // 5. HORIZONTAL SCHEDULE MINI-CALENDAR STRIP (LENGKAP 7 HARI)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Jadwal Praktik Mingguan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                  Text(
-                    _monthYearLabel,
-                    style: AppTypography.bodySmall.copyWith(fontSize: 11, fontWeight: FontWeight.w600),
+                  Expanded(
+                    child: Text(
+                      'Jadwal Praktik • $_monthYearLabel',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  TextButton.icon(
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    icon: const Icon(Icons.calendar_month_rounded, size: 14, color: AppColors.primary),
+                    label: const Text(
+                      'Lihat Semua',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pushNamed('/counselor-full-schedule');
+                    },
                   ),
                 ],
               ),
@@ -801,17 +1006,17 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                                       session['time'] as String,
                                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppColors.textPrimary),
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      session['status'] as String,
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w600,
-                                        color: isLive
-                                            ? AppColors.primary
-                                            : (isRisk ? AppColors.highRiskRed : AppColors.textSecondary),
+                                    if ((session['status'] as String? ?? '').isNotEmpty && !isLive) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        session['status'] as String,
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: isRisk ? AppColors.highRiskRed : AppColors.textSecondary,
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ],
                                 ),
                                 const SizedBox(width: 12),
@@ -847,10 +1052,13 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                     ),
                                     onPressed: () {
-                                      Navigator.of(context).pushNamed(
-                                        '/counselor-video-call',
-                                        arguments: 'session-live-001',
-                                      );
+                                      final sessId = session['sessionId'] as String?;
+                                      if (sessId != null && sessId.isNotEmpty) {
+                                        Navigator.of(context).pushNamed(
+                                          '/counselor-video-call',
+                                          arguments: sessId,
+                                        );
+                                      }
                                     },
                                     child: const Text('Buka VC', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                                   )
@@ -898,12 +1106,26 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                                   color: AppColors.verifiedBg,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
-                                child: const Text('+2', style: TextStyle(color: AppColors.verifiedGreen, fontSize: 10, fontWeight: FontWeight.bold)),
+                                child: Text(
+                                  activePatientsCount > 0 ? '+$activePatientsCount' : '0',
+                                  style: const TextStyle(
+                                    color: AppColors.verifiedGreen,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 10),
-                          const Text('14', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                          Text(
+                            '$activePatientsCount',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
                           const SizedBox(height: 2),
                           const Text('Pasien Aktif', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                         ],
@@ -937,7 +1159,14 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                             ],
                           ),
                           const SizedBox(height: 10),
-                          const Text('38', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                          Text(
+                            '$completedSessionsCount',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
                           const SizedBox(height: 2),
                           const Text('Sesi Selesai', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                         ],
@@ -979,9 +1208,13 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                               ],
                             ),
                             const SizedBox(height: 10),
-                            const Text(
-                              'Rp 4.250.000',
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                            Text(
+                              balanceFormatted,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -996,7 +1229,14 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        Navigator.of(context).pushNamed('/counselor-patient-detail', arguments: 'patient-002');
+                        if (highRiskPatients.isNotEmpty) {
+                          Navigator.of(context).pushNamed(
+                            '/counselor-patient-detail',
+                            arguments: highRiskPatients.first.id,
+                          );
+                        } else {
+                          ref.read(counselorBottomNavIndexProvider.notifier).state = 1;
+                        }
                       },
                       child: Container(
                         padding: const EdgeInsets.all(14),
@@ -1025,14 +1265,34 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child: const Text('Perhatian', style: TextStyle(color: AppColors.highRiskRed, fontSize: 9, fontWeight: FontWeight.bold)),
+                                  child: Text(
+                                    highRiskPatients.isNotEmpty ? 'Perhatian' : 'Aman',
+                                    style: TextStyle(
+                                      color: highRiskPatients.isNotEmpty ? AppColors.highRiskRed : AppColors.verifiedGreen,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 10),
-                            const Text('1 Pasien', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.highRiskRed)),
+                            Text(
+                              '${highRiskPatients.length} Pasien',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: highRiskPatients.isNotEmpty ? AppColors.highRiskRed : AppColors.verifiedGreen,
+                              ),
+                            ),
                             const SizedBox(height: 2),
-                            const Text('Peringatan Berisiko', style: TextStyle(fontSize: 11, color: AppColors.highRiskRed)),
+                            Text(
+                              highRiskPatients.isNotEmpty ? 'Peringatan Berisiko' : 'Risiko Terkendali',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: highRiskPatients.isNotEmpty ? AppColors.highRiskRed : AppColors.verifiedGreen,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -1058,6 +1318,33 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
               const SizedBox(height: 10),
               patientsAsync.when(
                 data: (patients) {
+                  if (patients.isEmpty) {
+                    return Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFFECEFF8)),
+                      ),
+                      child: const Column(
+                        children: [
+                          Icon(Icons.people_outline_rounded, size: 36, color: AppColors.textLight),
+                          SizedBox(height: 8),
+                          Text(
+                            'Belum Ada Pasien Terdaftar',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Pasien yang menjadwalkan sesi telekonsultasi akan otomatis muncul di sini.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
                   return Column(
                     children: patients.take(3).map((p) {
                       return Container(
@@ -1097,7 +1384,37 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            p.name,
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (p.upcomingSchedule != null) ...[
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primaryContainer,
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              p.upcomingSchedule!.timeRange.isNotEmpty
+                                                  ? p.upcomingSchedule!.timeRange
+                                                  : 'Terjadwal',
+                                              style: const TextStyle(
+                                                fontSize: 9.5,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppColors.primary,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
                                     const SizedBox(height: 2),
                                     Text(
                                       p.chiefComplaint,
@@ -1127,6 +1444,131 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
           ),
         ),
       ),
+    ),
+  );
+}
+
+  Widget _buildDailyTimelineProgressBar(PsychologistUserEntity? user) {
+    final breakStart = user?.breakStartTime ?? '12:00';
+    final breakEnd = user?.breakEndTime ?? '13:00';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFECEFF8)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.access_time_filled_rounded, size: 16, color: AppColors.primary),
+                  SizedBox(width: 6),
+                  Text(
+                    'Timeline Jam Praktik Hari Ini',
+                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  '09:00 - 17:00 WIB',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              height: 14,
+              child: Row(
+                children: [
+                  // Selesai (1 session completed earlier)
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      color: const Color(0xFF10B981),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  // Terjadwal Live / Upcoming
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      color: const Color(0xFF2563EB),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  // Jam Istirahat Terjadwal
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      color: const Color(0xFFF59E0B),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  // Slot Tersedia (Available)
+                  Expanded(
+                    flex: 6,
+                    child: Container(
+                      color: const Color(0xFFE2E8F0),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Legend / Indicators (Wrap prevents RenderFlex overflow on small screens)
+          Wrap(
+            spacing: 12,
+            runSpacing: 6,
+            children: [
+              _buildLegendDot(const Color(0xFF10B981), 'Selesai'),
+              _buildLegendDot(const Color(0xFF2563EB), 'Terjadwal'),
+              _buildLegendDot(const Color(0xFFF59E0B), 'Istirahat ($breakStart-$breakEnd)'),
+              _buildLegendDot(const Color(0xFF94A3B8), 'Tersedia'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegendDot(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 10, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+        ),
+      ],
     );
   }
 }

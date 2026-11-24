@@ -1,170 +1,133 @@
-import { ArrowUpCircle, CheckCircle2, FileCheck2, Sparkles, XCircle } from 'lucide-react'
+import { CheckCircle2, FileCheck2, Loader2, XCircle } from 'lucide-react'
 import { cn } from '@/lib/cn'
-import type { UpgradeRequest, VerificationStatus } from '@/types/portal'
+import type { VerificationStatus } from '@/types/portal'
 
 interface PsychologistModalFooterProps {
-  isMandiri: boolean
-  verificationStatus?: VerificationStatus
+  verificationStatus: VerificationStatus
   documentsCount: number
   verifiedCount: number
-  upgradeRequest?: UpgradeRequest | null
+  approvalNote: string
+  submitting: boolean
+  onApprovalNoteChange: (val: string) => void
   onClose: () => void
   onOpenReject: () => void
   onApprove: () => void
   onSuspend: () => void
-  onApproveUpgrade?: () => void
-  onOpenRejectUpgrade?: () => void
+  onReactivate?: () => void
 }
 
 export function PsychologistModalFooter({
-  isMandiri,
   verificationStatus,
   documentsCount,
   verifiedCount,
-  upgradeRequest,
+  approvalNote,
+  submitting,
+  onApprovalNoteChange,
   onClose,
   onOpenReject,
   onApprove,
   onSuspend,
-  onApproveUpgrade,
-  onOpenRejectUpgrade,
+  onReactivate,
 }: PsychologistModalFooterProps) {
-  const allVerified = documentsCount > 0 && verifiedCount === documentsCount
-  const isApproved = verificationStatus === 'approved'
-  const isRejected = verificationStatus === 'rejected'
-  const hasUpgrade = Boolean(upgradeRequest)
-  const targetUpgradeLabel = 'Relawan Profesional (Non Mitra)'
+  const canApprove = verifiedCount >= 1
+  const isVerified = verificationStatus === 'verified'
+  const isSuspended = verificationStatus === 'suspended'
 
   return (
-    <div className="flex flex-col gap-3 border-t border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 sm:px-6 sm:py-3.5 sm:flex-row sm:items-center sm:justify-between">
-      {/* Left side: Validation summary indicator */}
-      <div className="flex items-center gap-2.5">
-        <span
-          className={cn(
-            'flex size-7 shrink-0 items-center justify-center rounded-full',
-            hasUpgrade
-              ? 'bg-[#FEF3C7] text-[#B45309]'
-              : allVerified
-                ? 'bg-[#DCFCE7] text-[#16A34A]'
-                : verifiedCount > 0
-                  ? 'bg-[#FEF3C7] text-[#B45309]'
-                  : 'bg-slate-200 text-slate-600',
-          )}
-        >
-          {hasUpgrade ? (
-            <Sparkles className="size-4" />
-          ) : (
-            <FileCheck2 className="size-4" />
-          )}
-        </span>
-        <div className="text-xs">
-          <span className="font-bold text-ink">
-            {hasUpgrade
-              ? `Pengajuan Upgrade: Menunggu Persetujuan ke ${targetUpgradeLabel}`
-              : isMandiri
-                ? `${verifiedCount} dari ${documentsCount} Dokumen Terverifikasi`
-                : 'Terdaftar via Kemitraan Faskes'}
-          </span>
-          <span className="text-ink-muted block text-[11px]">
-            {hasUpgrade
-              ? 'Periksa portofolio pendampingan atau keabsahan ijazah dan SIPP sebelum menyetujui.'
-              : allVerified
-                ? 'Semua dokumen sertifikat telah diverifikasi valid.'
-                : isMandiri
-                  ? 'Periksa kesesuaian nomor registrasi dan masa berlaku dokumen.'
-                  : 'Status akun dikelola melalui portal faskes mitra.'}
-          </span>
+    <div className="space-y-3 border-t border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3.5 sm:px-6">
+      {!isVerified && (
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+          <label
+            htmlFor="psy-approval-note"
+            className="shrink-0 text-[11px] font-semibold text-ink-soft"
+          >
+            Catatan Verifikasi (Opsional):
+          </label>
+          <input
+            id="psy-approval-note"
+            type="text"
+            value={approvalNote}
+            onChange={(e) => onApprovalNoteChange(e.target.value)}
+            placeholder="Misal: STR-PK & SIPP valid melalui direktori HIMPSI."
+            className="h-8 w-full rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-xs text-ink placeholder:text-ink-muted/70 focus:border-primary focus:outline-none"
+          />
         </div>
-      </div>
+      )}
 
-      {/* Right side: Decision buttons (Mobile-optimized layout) */}
-      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
-        {/* CASE A: Active Upgrade Request - Show ONLY Upgrade Decision Buttons */}
-        {hasUpgrade ? (
-          <>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2.5">
+          <span
+            className={cn(
+              'flex size-7 shrink-0 items-center justify-center rounded-full',
+              canApprove
+                ? 'bg-[#DCFCE7] text-[#16A34A]'
+                : 'bg-slate-200 text-slate-600',
+            )}
+          >
+            <FileCheck2 className="size-4" />
+          </span>
+          <div className="text-xs">
+            <span className="font-bold text-ink">
+              {verifiedCount} dari {documentsCount} Dokumen STR/SIP Terverifikasi (Min. 1)
+            </span>
+            <span className="block text-[11px] text-ink-muted">
+              {canApprove
+                ? 'Minimal 1 dokumen legalitas telah valid. Siap disetujui.'
+                : 'Tandai valid minimal 1 dokumen STR atau SIP untuk menyetujui.'}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
+          {!isVerified && (
             <button
               type="button"
-              onClick={onApproveUpgrade}
-              className="order-1 inline-flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-[10px] bg-[#16A34A] px-4 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#15803D] sm:order-3 sm:h-9 sm:w-auto"
+              disabled={submitting || !canApprove}
+              onClick={isSuspended && onReactivate ? onReactivate : onApprove}
+              className="order-1 inline-flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-[10px] bg-[#16A34A] px-4 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#15803D] disabled:cursor-not-allowed disabled:opacity-50 sm:order-4 sm:h-9 sm:w-auto"
             >
-              <ArrowUpCircle className="size-4" />
-              <span>Setujui Upgrade ke {targetUpgradeLabel}</span>
+              {submitting ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="size-4" />
+              )}
+              <span>{isSuspended ? 'Aktifkan Kembali' : 'Approve & Aktifkan'}</span>
+            </button>
+          )}
+
+          <div className="order-2 flex flex-wrap items-center gap-2 sm:order-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-9 flex-1 cursor-pointer items-center justify-center rounded-[10px] border border-[#CBD5E1] bg-white px-3.5 text-xs font-semibold text-ink transition-colors hover:bg-slate-100 sm:flex-none"
+            >
+              Tutup
             </button>
 
-            <div className="order-2 grid grid-cols-2 gap-2 sm:order-1 sm:flex sm:items-center">
+            {!isVerified && !isSuspended && (
               <button
                 type="button"
-                onClick={onClose}
-                className="inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-[10px] border border-[#CBD5E1] bg-white px-3.5 text-xs font-semibold text-ink transition-colors hover:bg-slate-100 sm:h-9 sm:w-auto"
-              >
-                Tutup
-              </button>
-
-              <button
-                type="button"
-                onClick={onOpenRejectUpgrade}
-                className="inline-flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border border-[#FECACA] bg-[#FEF2F2] px-3.5 text-xs font-semibold text-[#B91C1C] transition-colors hover:bg-[#FEE2E2] sm:h-9 sm:w-auto"
+                disabled={submitting}
+                onClick={onOpenReject}
+                className="inline-flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border border-[#FECACA] bg-[#FEF2F2] px-3 text-xs font-semibold text-[#B91C1C] transition-colors hover:bg-[#FEE2E2] sm:flex-none"
               >
                 <XCircle className="size-3.5" />
-                <span className="truncate">Tolak Upgrade...</span>
-              </button>
-            </div>
-          </>
-        ) : (
-          /* CASE B: Normal Psychologist / Volunteer Verification Workflow */
-          <>
-            {isMandiri && !isApproved && (
-              <button
-                type="button"
-                onClick={onApprove}
-                className="order-1 inline-flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-[10px] bg-[#16A34A] px-4 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#15803D] sm:order-3 sm:h-9 sm:w-auto"
-              >
-                <CheckCircle2 className="size-4" />
-                <span>Setujui &amp; Aktifkan Akun</span>
+                <span>Tolak Pendaftaran</span>
               </button>
             )}
 
-            <div
-              className={cn(
-                'w-full sm:w-auto sm:flex sm:items-center sm:gap-2',
-                isMandiri && !isApproved && !isRejected
-                  ? 'order-2 grid grid-cols-2 gap-2 sm:order-1 sm:grid-cols-none'
-                  : isMandiri && isApproved
-                    ? 'grid grid-cols-2 gap-2 sm:grid-cols-none'
-                    : 'flex',
-              )}
-            >
+            {isVerified && (
               <button
                 type="button"
-                onClick={onClose}
-                className="inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-[10px] border border-[#CBD5E1] bg-white px-3.5 text-xs font-semibold text-ink transition-colors hover:bg-slate-100 sm:h-9 sm:w-auto"
+                disabled={submitting}
+                onClick={onSuspend}
+                className="inline-flex h-9 cursor-pointer items-center justify-center rounded-[10px] border border-[#CBD5E1] bg-white px-3.5 text-xs font-semibold text-ink transition-colors hover:bg-slate-100 disabled:opacity-50"
               >
-                Tutup
+                Nonaktifkan Sementara
               </button>
-
-              {isMandiri && !isApproved && !isRejected && (
-                <button
-                  type="button"
-                  onClick={onOpenReject}
-                  className="inline-flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border border-[#FECACA] bg-[#FEF2F2] px-3.5 text-xs font-semibold text-[#B91C1C] transition-colors hover:bg-[#FEE2E2] sm:h-9 sm:w-auto"
-                >
-                  <XCircle className="size-3.5" />
-                  <span className="truncate">Tolak Berkas...</span>
-                </button>
-              )}
-
-              {isMandiri && isApproved && (
-                <button
-                  type="button"
-                  onClick={onSuspend}
-                  className="inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-[10px] border border-[#CBD5E1] bg-white px-3.5 text-xs font-semibold text-ink transition-colors hover:bg-slate-100 sm:h-9 sm:w-auto"
-                >
-                  <span className="truncate">Nonaktifkan Sementara</span>
-                </button>
-              )}
-            </div>
-          </>
-        )}
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

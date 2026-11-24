@@ -1,14 +1,8 @@
-import { Building2, KeyRound, X } from 'lucide-react'
-import { Link } from 'react-router'
-import {
-  getAdminAccountConfig,
-  isDevToolsEnabled,
-  type PartnerAccount,
-} from '@/lib/portalStore'
+import { KeyRound, ShieldCheck, X } from 'lucide-react'
+import { getAdminAccountConfig, isQuickLoginEnabled } from '@/lib/portalStore'
 
 interface QuickLoginDevToolProps {
   isOpen: boolean
-  partners: PartnerAccount[]
   onToggleOpen: () => void
   onClose: () => void
   onSelectCredentials: (email: string, password: string) => void
@@ -16,17 +10,13 @@ interface QuickLoginDevToolProps {
 
 export function QuickLoginDevTool({
   isOpen,
-  partners,
   onToggleOpen,
   onClose,
   onSelectCredentials,
 }: QuickLoginDevToolProps) {
-  if (!isDevToolsEnabled()) return null
+  if (!isQuickLoginEnabled()) return null
 
   const adminAccount = getAdminAccountConfig()
-  const approvedDemo = partners.find((p) => p.status === 'approved') ?? partners[0]
-  const pendingDemo = partners.find((p) => p.status === 'pending')
-  const rejectedDemo = partners.find((p) => p.status === 'rejected')
 
   return (
     <div className="fixed right-5 bottom-5 z-40 flex flex-col items-end">
@@ -39,7 +29,7 @@ export function QuickLoginDevTool({
           <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-2.5">
             <div>
               <p className="text-xs font-semibold text-ink">Akun Demo (Isi Otomatis)</p>
-              <p className="text-[11px] text-ink-muted">Klik untuk mengisi form login</p>
+              <p className="text-[11px] text-ink-muted">Klik untuk mengisi form login admin</p>
             </div>
             <button
               type="button"
@@ -52,7 +42,7 @@ export function QuickLoginDevTool({
           </div>
 
           <div className="mt-2.5 flex flex-col gap-1.5">
-            {adminAccount.password && (
+            {adminAccount.password ? (
               <button
                 type="button"
                 onClick={() => onSelectCredentials(adminAccount.email, adminAccount.password!)}
@@ -63,65 +53,17 @@ export function QuickLoginDevTool({
                 </span>
                 <span className="mt-0.5 text-[11px] text-ink-soft">{adminAccount.email}</span>
               </button>
-            )}
-
-            {approvedDemo && (
-              <button
-                type="button"
-                onClick={() => onSelectCredentials(approvedDemo.email, approvedDemo.password)}
-                className="flex w-full cursor-pointer flex-col items-start rounded-[8px] border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-left transition-colors hover:border-primary/50 hover:bg-primary-container/25"
-              >
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink">
-                  <span className="size-2 rounded-full bg-success" /> Mitra Faskes (Terverifikasi)
-                </span>
-                <span className="mt-0.5 w-full truncate text-[11px] text-ink-soft">
-                  {approvedDemo.email}
-                </span>
-              </button>
-            )}
-
-            {pendingDemo && (
-              <button
-                type="button"
-                onClick={() => onSelectCredentials(pendingDemo.email, pendingDemo.password)}
-                className="flex w-full cursor-pointer flex-col items-start rounded-[8px] border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-left transition-colors hover:border-primary/50 hover:bg-primary-container/25"
-              >
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink">
-                  <span className="size-2 rounded-full bg-warning" /> Mitra Faskes (Pending)
-                </span>
-                <span className="mt-0.5 w-full truncate text-[11px] text-ink-soft">
-                  {pendingDemo.email}
-                </span>
-              </button>
-            )}
-
-            {rejectedDemo && (
-              <button
-                type="button"
-                onClick={() => onSelectCredentials(rejectedDemo.email, rejectedDemo.password)}
-                className="flex w-full cursor-pointer flex-col items-start rounded-[8px] border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-left transition-colors hover:border-primary/50 hover:bg-primary-container/25"
-              >
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink">
-                  <span className="size-2 rounded-full bg-error" /> Mitra Faskes (Ditolak / Revisi)
-                </span>
-                <span className="mt-0.5 w-full truncate text-[11px] text-ink-soft">
-                  {rejectedDemo.email}
-                </span>
-              </button>
+            ) : (
+              <p className="rounded-[8px] bg-[#F8FAFC] px-3 py-2 text-[11px] text-ink-muted">
+                Akun demo admin belum dikonfigurasi pada environment.
+              </p>
             )}
           </div>
 
           <div className="mt-2.5 flex items-center justify-between border-t border-[#E2E8F0] pt-2 text-[11px] text-ink-muted">
             <span className="inline-flex items-center gap-1">
-              <Building2 className="size-3" /> {partners.length} Faskes
+              <ShieldCheck className="size-3 text-primary" /> Khusus Akses Admin EVA
             </span>
-            <Link
-              to="/pengajuan-mitra"
-              onClick={onClose}
-              className="font-semibold text-primary hover:underline"
-            >
-              + Pengajuan Baru
-            </Link>
           </div>
         </div>
       )}
@@ -129,9 +71,9 @@ export function QuickLoginDevTool({
       <button
         type="button"
         onClick={onToggleOpen}
+        aria-label="Buka daftar akun demo cepat"
         aria-expanded={isOpen}
-        aria-label="Buka daftar akun demo"
-        className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-full border border-[#CBD5E1] bg-white px-4 text-xs font-semibold text-ink shadow-[0_4px_12px_rgba(15,23,42,0.08)] transition-colors hover:border-primary/50 hover:text-primary"
+        className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-full border border-[#E2E8F0] bg-white px-3.5 text-xs font-semibold text-ink shadow-[0_6px_18px_rgba(15,23,42,0.1)] transition-all hover:border-primary/50 hover:text-primary"
       >
         <KeyRound className="size-3.5 text-primary" />
         <span>Akun Demo</span>
@@ -139,4 +81,3 @@ export function QuickLoginDevTool({
     </div>
   )
 }
-

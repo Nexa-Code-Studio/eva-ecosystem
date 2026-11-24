@@ -2,8 +2,14 @@ import '../models/psychologist_auth_dto.dart';
 import 'auth_datasource.dart';
 
 class MockAuthDataSource implements AuthDataSource {
-  bool _mockOnlineState = true;
+  bool _mockOnlineState = false;
   final Map<String, PsychologistProfileResponseDto> _registeredAccounts = {};
+  static final Set<String> _configuredScheduleEmails = {
+    'khoirotunnisa2507@gmail.com',
+    'counselor@eva.id',
+    'dr.sarah@eva.id',
+  };
+  PsychologistProfileResponseDto? _currentProfile;
 
   @override
   Future<PsychologistProfileResponseDto> login(
@@ -12,7 +18,13 @@ class MockAuthDataSource implements AuthDataSource {
     final lowerEmail = request.email.toLowerCase().trim();
 
     if (_registeredAccounts.containsKey(lowerEmail)) {
-      return _registeredAccounts[lowerEmail]!.copyWith(isOnline: _mockOnlineState);
+      final acc = _registeredAccounts[lowerEmail]!;
+      final isConfigured = _configuredScheduleEmails.contains(lowerEmail) || acc.isOnlinePracticeEnabled;
+      _currentProfile = acc.copyWith(
+        isOnline: _mockOnlineState,
+        isOnlinePracticeEnabled: isConfigured,
+      );
+      return _currentProfile!;
     }
 
     final isPending = lowerEmail.contains('pending');
@@ -25,7 +37,12 @@ class MockAuthDataSource implements AuthDataSource {
     String displayName = 'Psikolog Mandiri';
     String titleDegree = 'S.Psi., M.Psi., Psikolog';
     String strNum = 'STR-PK-19980725-2026-01';
-    if (isPending) {
+
+    if (lowerEmail.contains('khoirotun') || lowerEmail.contains('sarah')) {
+      displayName = 'dr. Sarah Amelia';
+      titleDegree = 'M.Psi., Psikolog';
+      strNum = 'STR-PK-19980725-2026-01';
+    } else if (isPending) {
       displayName = 'Dimas Wicaksono';
       titleDegree = 'M.Psi., Psikolog Klinis';
       strNum = 'STR-PK-19920115-PENDING';
@@ -35,14 +52,14 @@ class MockAuthDataSource implements AuthDataSource {
       strNum = 'STR-PK-19950310-REVISI';
     }
 
-    return PsychologistProfileResponseDto(
+    _currentProfile = PsychologistProfileResponseDto(
       id: 'counselor-uuid-001',
       fullName: displayName,
       titleDegree: titleDegree,
       email: request.email,
       strNumber: strNum,
       association: 'Himpunan Psikologi Indonesia (HIMPSI)',
-      specializations: [
+      specializations: const [
         'Kecemasan Dewasa & Burnout',
         'Manajemen Stres',
         'Konseling Hubungan & Keluarga',
@@ -58,7 +75,7 @@ class MockAuthDataSource implements AuthDataSource {
       partnerName: null,
       sessionDurationMinutes: 30,
       coinsPerSession: 150,
-      coinBalance: 1250,
+      coinBalance: 0,
       googleDriveEmail: request.email,
       employeeNip: '199807252026012001',
       isOnlinePracticeEnabled: true,
@@ -74,7 +91,12 @@ class MockAuthDataSource implements AuthDataSource {
       externalApiKeyCreatedAt: DateTime(2026, 11, 3, 14, 0),
       externalApiLastSyncAt: DateTime(2026, 11, 9, 12, 15),
       externalSyncCount: 4,
+      bankName: 'Bank Central Asia (BCA)',
+      bankAccountNumber: '8830192831',
+      bankAccountHolder: displayName,
     );
+
+    return _currentProfile!;
   }
 
   @override
@@ -88,6 +110,17 @@ class MockAuthDataSource implements AuthDataSource {
       titleDegree: request.titleDegree,
       email: request.email,
       strNumber: request.strNumber,
+      sipNumber: request.sipNumber,
+      documentType: request.documentType,
+      issuingInstitution: request.issuingInstitution,
+      documentExpiryDate: request.documentExpiryDate,
+      lastEducation: request.lastEducation,
+      strIssuingInstitution: request.strIssuingInstitution,
+      strExpiryDate: request.strExpiryDate,
+      strDocUrl: request.strDocFileName,
+      sipIssuingInstitution: request.sipIssuingInstitution,
+      sipExpiryDate: request.sipExpiryDate,
+      sipDocUrl: request.sipDocFileName,
       association: request.association,
       specializations: request.specializations,
       yearsOfExperience: request.yearsOfExperience,
@@ -100,25 +133,29 @@ class MockAuthDataSource implements AuthDataSource {
       partnerName: null,
       sessionDurationMinutes: request.sessionDurationMinutes,
       coinsPerSession: request.coinsPerSession,
-      coinBalance: 1250,
+      coinBalance: 0,
       googleDriveEmail: request.email,
     );
 
     _registeredAccounts[request.email.toLowerCase().trim()] = dto;
+    _currentProfile = dto;
     return dto;
   }
 
   @override
   Future<PsychologistProfileResponseDto> getProfile() async {
     await Future.delayed(const Duration(milliseconds: 300));
-    return PsychologistProfileResponseDto(
+    if (_currentProfile != null) {
+      return _currentProfile!.copyWith(isOnline: _mockOnlineState);
+    }
+    _currentProfile = PsychologistProfileResponseDto(
       id: 'counselor-uuid-001',
-      fullName: 'Psikolog Mandiri',
-      titleDegree: 'S.Psi., M.Psi., Psikolog',
-      email: 'psikolog.mandiri@eva.id',
+      fullName: 'dr. Sarah Amelia',
+      titleDegree: 'M.Psi., Psikolog',
+      email: 'khoirotunnisa2507@gmail.com',
       strNumber: 'STR-PK-19980725-2026-01',
       association: 'Himpunan Psikologi Indonesia (HIMPSI)',
-      specializations: [
+      specializations: const [
         'Kecemasan Dewasa & Burnout',
         'Manajemen Stres',
         'Konseling Hubungan & Keluarga',
@@ -130,10 +167,10 @@ class MockAuthDataSource implements AuthDataSource {
       profilePhotoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400',
       token: 'mock-jwt-token-counselor-secret-xyz',
       counselorRole: 'professional_independent',
-      sessionDurationMinutes: 50,
+      sessionDurationMinutes: 30,
       coinsPerSession: 150,
-      coinBalance: 1250,
-      googleDriveEmail: 'psikolog.mandiri@eva.id',
+      coinBalance: 0,
+      googleDriveEmail: 'khoirotunnisa2507@gmail.com',
       employeeNip: '199807252026012001',
       isOnlinePracticeEnabled: true,
       isOfflinePracticeEnabled: true,
@@ -148,13 +185,55 @@ class MockAuthDataSource implements AuthDataSource {
       externalApiKeyCreatedAt: DateTime(2026, 11, 3, 14, 0),
       externalApiLastSyncAt: DateTime(2026, 11, 9, 12, 15),
       externalSyncCount: 4,
+      bankName: 'Bank Central Asia (BCA)',
+      bankAccountNumber: '8830192831',
+      bankAccountHolder: 'dr. Sarah Amelia',
     );
+    return _currentProfile!;
+  }
+
+  @override
+  Future<PsychologistProfileResponseDto> updateProfile({
+    String? fullName,
+    String? titleDegree,
+    String? profilePhotoUrl,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final base = _currentProfile ?? await getProfile();
+    _currentProfile = base.copyWith(
+      fullName: fullName ?? base.fullName,
+      titleDegree: titleDegree ?? base.titleDegree,
+      profilePhotoUrl: profilePhotoUrl ?? base.profilePhotoUrl,
+    );
+    return _currentProfile!;
+  }
+
+  @override
+  Future<PsychologistProfileResponseDto> updateBankDetails({
+    required String bankName,
+    required String accountNumber,
+    required String accountHolder,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final base = _currentProfile ?? await getProfile();
+    _currentProfile = base.copyWith(
+      bankName: bankName,
+      bankAccountNumber: accountNumber,
+      bankAccountHolder: accountHolder,
+    );
+    return _currentProfile!;
   }
 
   @override
   Future<bool> updateAvailability(bool isOnline) async {
-    await Future.delayed(const Duration(milliseconds: 300));
     _mockOnlineState = isOnline;
+    if (_currentProfile != null) {
+      _configuredScheduleEmails.add(_currentProfile!.email.toLowerCase().trim());
+      _currentProfile = _currentProfile!.copyWith(
+        isOnline: isOnline,
+        isOnlinePracticeEnabled: true,
+      );
+    }
     return true;
   }
 }

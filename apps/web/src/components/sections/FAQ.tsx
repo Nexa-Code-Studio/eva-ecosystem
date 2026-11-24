@@ -1,20 +1,61 @@
 import { ChevronDown, HelpCircle, Sparkles } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Container, SectionHeading } from '@/components/ui'
-import { faqs as defaultFaqs } from '@/content/landing'
+import { APP_CONFIG } from '@/config/appConfig'
+import { faqs as defaultFaqs, type FaqItem } from '@/content/landing'
 import { cn } from '@/lib/cn'
-import { usePortalDb } from '@/lib/portalStore'
+import { fetchPublicFaqs, usePortalDb, type FaqEntry } from '@/lib/portalStore'
 
 export function FAQ() {
   const { db } = usePortalDb()
-  const faqs = useMemo(() => {
-    const published = db.faqs?.filter((item) => item.isPublished)
-    return published && published.length > 0 ? published : defaultFaqs
-  }, [db.faqs])
+  const [serverFaqs, setServerFaqs] = useState<FaqEntry[] | null>(null)
+  const [loadedFromServer, setLoadedFromServer] = useState(false)
 
-  const [openId, setOpenId] = useState<string | null>(() => faqs[0]?.id ?? null)
+  useEffect(() => {
+    if (APP_CONFIG.useMockData) return
+    let active = true
+    fetchPublicFaqs()
+      .then((res) => {
+        if (!active) return
+        if (res.fromServer) {
+          setServerFaqs(res.items)
+          setLoadedFromServer(true)
+        } else {
+          setLoadedFromServer(false)
+        }
+      })
+      .catch(() => {
+        if (active) setLoadedFromServer(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const faqs: Array<FaqItem | FaqEntry> = useMemo(() => {
+    if (APP_CONFIG.useMockData) {
+      return [...(db.faqs ?? [])]
+        .filter((item) => item.isPublished)
+        .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
+    }
+    if (loadedFromServer && serverFaqs !== null) {
+      return serverFaqs
+    }
+    return defaultFaqs
+  }, [db.faqs, loadedFromServer, serverFaqs])
+
+  const [openId, setOpenId] = useState<string | null>(() => defaultFaqs[0]?.id ?? null)
+  const [userToggled, setUserToggled] = useState(false)
+
+  const activeOpenId = useMemo(() => {
+    if (userToggled) {
+      return openId && faqs.some((item) => item.id === openId) ? openId : null
+    }
+    return openId && faqs.some((item) => item.id === openId) ? openId : (faqs[0]?.id ?? null)
+  }, [faqs, openId, userToggled])
 
   const toggle = (id: string) => {
+    setUserToggled(true)
     setOpenId((prev) => (prev === id ? null : id))
   }
 
@@ -36,76 +77,82 @@ export function FAQ() {
         />
 
         <div className="mx-auto mt-14 max-w-3xl space-y-4">
-          {faqs.map((item) => {
-            const isOpen = openId === item.id
-            const panelId = `faq-panel-${item.id}`
-            const triggerId = `faq-trigger-${item.id}`
+          {faqs.length === 0 ? (
+            <div className="rounded-[20px] border border-border-subtle/80 bg-white/80 px-6 py-8 text-center text-body-md text-ink-muted shadow-subtle">
+              Belum ada pertanyaan FAQ yang dipublikasikan saat ini.
+            </div>
+          ) : (
+            faqs.map((item) => {
+              const isOpen = activeOpenId === item.id
+              const panelId = `faq-panel-${item.id}`
+              const triggerId = `faq-trigger-${item.id}`
 
-            return (
-              <div
-                key={item.id}
-                className={cn(
-                  'reveal overflow-hidden rounded-[22px] border-[1.2px] transition-[border-color,background-color,box-shadow] duration-300 ease-luna',
-                  isOpen
-                    ? 'border-primary/30 bg-white shadow-nav'
-                    : 'border-border-subtle/80 bg-white/80 shadow-subtle hover:border-primary/20 hover:bg-white',
-                )}
-              >
-                <h3>
-                  <button
-                    id={triggerId}
-                    type="button"
-                    aria-expanded={isOpen}
-                    aria-controls={panelId}
-                    data-cursor={isOpen ? 'TUTUP' : 'BUKA'}
-                    onClick={() => toggle(item.id)}
-                    className="flex w-full items-center justify-between gap-4 p-5 text-left sm:p-6"
-                  >
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-extrabold tracking-widest text-primary uppercase">
-                        {item.category}
-                      </span>
-                      <span className="text-title-md sm:text-[17px] font-bold text-ink">
-                        {item.question}
-                      </span>
-                    </div>
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        'flex size-9 shrink-0 items-center justify-center rounded-full transition-colors duration-300',
-                        isOpen
-                          ? 'bg-primary text-white shadow-btn'
-                          : 'bg-primary-container/60 text-primary',
-                      )}
-                    >
-                      <ChevronDown
-                        className={cn(
-                          'size-4 transition-transform duration-300 ease-luna',
-                          isOpen && 'rotate-180',
-                        )}
-                      />
-                    </span>
-                  </button>
-                </h3>
-
+              return (
                 <div
-                  id={panelId}
-                  role="region"
-                  aria-labelledby={triggerId}
+                  key={item.id}
                   className={cn(
-                    'grid transition-[grid-template-rows,opacity] duration-300 ease-luna',
-                    isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+                    'reveal overflow-hidden rounded-[22px] border-[1.2px] transition-[border-color,background-color,box-shadow] duration-300 ease-luna',
+                    isOpen
+                      ? 'border-primary/30 bg-white shadow-nav'
+                      : 'border-border-subtle/80 bg-white/80 shadow-subtle hover:border-primary/20 hover:bg-white',
                   )}
                 >
-                  <div className="overflow-hidden">
-                    <p className="border-t border-border-subtle/60 px-5 pt-4 pb-6 text-body-md leading-relaxed text-ink-soft sm:px-6">
-                      {item.answer}
-                    </p>
+                  <h3>
+                    <button
+                      id={triggerId}
+                      type="button"
+                      aria-expanded={isOpen}
+                      aria-controls={panelId}
+                      data-cursor={isOpen ? 'TUTUP' : 'BUKA'}
+                      onClick={() => toggle(item.id)}
+                      className="flex w-full items-center justify-between gap-4 p-5 text-left sm:p-6"
+                    >
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] font-extrabold tracking-widest text-primary uppercase">
+                          {item.category}
+                        </span>
+                        <span className="text-title-md sm:text-[17px] font-bold text-ink">
+                          {item.question}
+                        </span>
+                      </div>
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          'flex size-9 shrink-0 items-center justify-center rounded-full transition-colors duration-300',
+                          isOpen
+                            ? 'bg-primary text-white shadow-btn'
+                            : 'bg-primary-container/60 text-primary',
+                        )}
+                      >
+                        <ChevronDown
+                          className={cn(
+                            'size-4 transition-transform duration-300 ease-luna',
+                            isOpen && 'rotate-180',
+                          )}
+                        />
+                      </span>
+                    </button>
+                  </h3>
+
+                  <div
+                    id={panelId}
+                    role="region"
+                    aria-labelledby={triggerId}
+                    className={cn(
+                      'grid transition-[grid-template-rows,opacity] duration-300 ease-luna',
+                      isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+                    )}
+                  >
+                    <div className="overflow-hidden">
+                      <p className="border-t border-border-subtle/60 px-5 pt-4 pb-6 text-body-md leading-relaxed text-ink-soft sm:px-6">
+                        {item.answer}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })
+          )}
         </div>
 
         {/* Calming micro-prompt below FAQ */}
@@ -131,4 +178,3 @@ export function FAQ() {
     </section>
   )
 }
-

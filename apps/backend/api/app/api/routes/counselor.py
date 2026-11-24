@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, Query, status
 
 from app.api.dependencies import (
-    get_care_service,
+
     get_counselor_service,
     get_current_admin,
     get_current_user,
@@ -18,14 +18,17 @@ from app.schemas.care import (
     SubmitRatingRequest,
 )
 from app.schemas.counselor import (
+    CounselorTimelineResponse,
     PsychologistProfileResponse,
     PsychologistPublicResponse,
     PsychologistVerificationResponse,
     RegisterPsychologistRequest,
     ResubmitVerificationRequest,
+    ScheduleConfigResponse,
     ToggleAvailabilityRequest,
     UpdateBankDetailsRequest,
     UpdatePsychologistProfileRequest,
+    UpdateScheduleConfigRequest,
     VerifyPsychologistRequest,
 )
 from app.schemas.session import AvailableSlotsResponse, BookSessionRequest, ConsultationSessionResponse
@@ -94,6 +97,25 @@ async def update_counselor_bank_details(
     return await service.update_bank_details(user.id, payload)
 
 
+@router.get("/me/schedule-config", response_model=ScheduleConfigResponse)
+async def get_my_schedule_config(
+    user: User = Depends(get_current_user),
+    service: CounselorService = Depends(get_counselor_service),
+) -> ScheduleConfigResponse:
+    """Retrieve counselor weekly schedule configuration and break periods."""
+    return await service.get_schedule_config(user.id)
+
+
+@router.put("/me/schedule-config", response_model=ScheduleConfigResponse)
+async def update_my_schedule_config(
+    payload: UpdateScheduleConfigRequest,
+    user: User = Depends(get_current_user),
+    service: CounselorService = Depends(get_counselor_service),
+) -> ScheduleConfigResponse:
+    """Update counselor weekly schedule configuration with multi-breaks."""
+    return await service.update_schedule_config(user.id, payload)
+
+
 @router.get("", response_model=list[PsychologistPublicResponse])
 async def list_verified_counselors(
     limit: int = Query(default=20, ge=1, le=100),
@@ -138,13 +160,13 @@ async def get_counselor_available_slots(
 async def get_counselor_timeline(
     counselor_id: uuid.UUID,
     date: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"),
-    service: CareService = Depends(get_care_service),
+    service: SchedulingService = Depends(get_scheduling_service),
 ) -> CounselorTimelineResponse:
-    """Get availability timeline progress bar data with multi-break schedules and bookings."""
+    """Get counselor availability timeline with operating hours, multi-breaks, and booked slots."""
     return await service.get_counselor_timeline(counselor_id, date)
 
 
-@router.post("/{counselor_id}/book", response_model=CareSessionResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/{counselor_id}/book", response_model=ConsultationSessionResponse, status_code=status.HTTP_201_CREATED)
 async def book_counselor_session(
     counselor_id: uuid.UUID,
     payload: BookConsultationRequest,

@@ -2,41 +2,30 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class CounselorReviewsModal {
-  static void show(BuildContext context) {
-    final reviews = [
-      {
-        'name': 'R**** P****',
-        'topic': 'Konseling Kecemasan & Insomnia',
-        'rating': 5,
-        'date': '2 hari lalu',
-        'comment': 'Ibu Nisa sangat mendengarkan tanpa menghakimi. Teknik regulasi napas dan CBT yang diajarkan sangat membantu mengendalikan serangan panik saya. Terima kasih banyak!',
-        'tag': 'Sangat Empatik',
-      },
-      {
-        'name': 'M**** S****',
-        'topic': 'Burnout Akademik & Skripsi',
-        'rating': 5,
-        'date': '5 hari lalu',
-        'comment': 'Sesi konsultasi sangat terstruktur dan menenangkan. Saya mendapat sudut pandang baru dan langkah tindak lanjut yang sangat realistis untuk dijalankan.',
-        'tag': 'Solutif & Tenang',
-      },
-      {
-        'name': 'A**** N****',
-        'topic': 'Regulasi Emosi & Hubungan',
-        'rating': 5,
-        'date': '1 minggu lalu',
-        'comment': 'Dokter sangat ramah, hangat, dan memberikan insight mendalam tentang pola komunikasi saya dengan keluarga.',
-        'tag': 'Insight Mendalam',
-      },
-      {
-        'name': 'D**** K****',
-        'topic': 'Stres Kerja & Manajemen Waktu',
-        'rating': 4,
-        'date': '2 minggu lalu',
-        'comment': 'Sangat membantu memetakan prioritas hidup. Telekonsultasi tepat waktu dan rangkuman SOAP Eva AI sangat memudahkan saya mereview kembali.',
-        'tag': 'Tepat Waktu',
-      },
-    ];
+  static void show(BuildContext context, {int totalSessions = 0}) {
+    final bool hasReviews = totalSessions > 0;
+    final reviews = hasReviews
+        ? [
+            {
+              'name': 'R**** P****',
+              'topic': 'Konseling Kecemasan & Insomnia',
+              'rating': 5,
+              'date': '2 hari lalu',
+              'comment':
+                  'Sangat mendengarkan tanpa menghakimi. Teknik regulasi napas dan CBT yang diajarkan sangat membantu mengendalikan serangan panik saya.',
+              'tag': 'Sangat Empatik',
+            },
+            {
+              'name': 'M**** S****',
+              'topic': 'Burnout Akademik & Skripsi',
+              'rating': 5,
+              'date': '5 hari lalu',
+              'comment':
+                  'Sesi konsultasi sangat terstruktur dan menenangkan. Saya mendapat sudut pandang baru dan langkah tindak lanjut yang sangat realistis.',
+              'tag': 'Solutif & Tenang',
+            },
+          ]
+        : <Map<String, dynamic>>[];
 
     showModalBottomSheet(
       context: context,
@@ -75,6 +64,43 @@ class CounselorReviewsModal {
                 ],
               ),
               const SizedBox(height: 12),
+              if (!hasReviews) ...[
+                const SizedBox(height: 32),
+                Center(
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7).withValues(alpha: 0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.star_outline_rounded,
+                            size: 40, color: Color(0xFFD97706)),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Belum Ada Ulasan Pasien',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                      const SizedBox(height: 6),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24),
+                        child: Text(
+                          'Ulasan dan rating kepuasan pasien akan tampil di sini setelah Anda menyelesaikan sesi telekonseling pertama Anda.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                              height: 1.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ] else ...[
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -197,6 +223,7 @@ class CounselorReviewsModal {
                   ),
                 );
               }),
+              ],
               const SizedBox(height: 20),
             ],
           ),

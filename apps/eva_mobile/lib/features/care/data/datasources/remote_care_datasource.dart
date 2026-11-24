@@ -4,6 +4,7 @@ import '../models/psychologist_model.dart';
 import '../models/clinic_model.dart';
 import '../models/community_status_model.dart';
 import '../models/consultation_session_model.dart';
+import '../models/counselor_timeline_dto.dart';
 import 'care_datasource.dart';
 
 class RemoteCareDataSource implements CareDataSource {
@@ -66,19 +67,41 @@ class RemoteCareDataSource implements CareDataSource {
   }
 
   @override
+  Future<CounselorTimelineDto> getCounselorTimeline({
+    required String counselorId,
+    required DateTime date,
+  }) async {
+    final dateString =
+        '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final response = await _apiClient.get(
+      '/counselors/$counselorId/timeline',
+      queryParams: {'date': dateString},
+    );
+
+    if (response is Map<String, dynamic>) {
+      return CounselorTimelineDto.fromJson(response);
+    }
+    throw Exception('Failed to load counselor availability timeline');
+  }
+
+  @override
   Future<ConsultationSessionModel> bookConsultation({
     required String psychologistId,
     required DateTime preferredDateTime,
     required ConsultationType sessionType,
+    int sessionCount = 1,
+    int durationMinutes = 30,
     String? complaints,
     bool shareAiChatHistory = false,
   }) async {
     final response = await _apiClient.post(
-      '/care/book',
+      '/counselors/$psychologistId/book',
       body: {
         'psychologist_id': psychologistId,
         'preferred_datetime': preferredDateTime.toIso8601String(),
         'session_type': sessionType.name,
+        'session_count': sessionCount,
+        'duration_minutes': durationMinutes,
         'complaints': complaints,
         'share_ai_chat_history': shareAiChatHistory,
       },

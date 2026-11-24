@@ -1,18 +1,14 @@
-import { ArrowUpRight, Building2, Heart, PhoneCall, Stethoscope } from 'lucide-react'
-import { useState } from 'react'
-import { Link } from 'react-router'
-import { ClinicalEvaluationModal } from '@/components/modals/ClinicalEvaluationModal'
-import { Button, Container, Logo } from '@/components/ui'
+import { Heart, PhoneCall } from 'lucide-react'
+import { Container, Logo } from '@/components/ui'
 import { crisisHotline, navLinks } from '@/content/landing'
 
 export function Footer() {
   const year = new Date().getFullYear()
-  const [isModalOpen, setIsModalOpen] = useState(false)
 
   return (
     <footer className="relative border-t border-divider bg-white/60 pt-16 pb-10">
       <Container>
-        <div className="grid gap-12 lg:grid-cols-[1.5fr_1fr_1.3fr] lg:gap-16">
+        <div className="grid gap-12 lg:grid-cols-[1.5fr_1fr] lg:gap-16">
           <div className="max-w-md">
             <a href="#top" data-cursor="BERANDA" aria-label="EVA: kembali ke atas" className="inline-block">
               <Logo />
@@ -45,56 +41,8 @@ export function Footer() {
                   </a>
                 </li>
               ))}
-              <li>
-                <Link
-                  to="/login"
-                  data-cursor="MASUK"
-                  className="text-body-md text-ink-soft transition-colors duration-[250ms] hover:text-primary"
-                >
-                  Masuk Portal
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/pengajuan-mitra"
-                  data-cursor="MITRA"
-                  className="text-body-md text-ink-soft transition-colors duration-[250ms] hover:text-primary"
-                >
-                  Pengajuan Mitra Faskes
-                </Link>
-              </li>
             </ul>
           </nav>
-
-          <div>
-            <p className="text-overline text-ink-muted uppercase">Untuk Profesional &amp; Mitra Faskes</p>
-            <div className="mt-4 flex flex-col items-start gap-3">
-              <Button
-                id="footer-partner-apply"
-                to="/pengajuan-mitra"
-                data-cursor="MITRA"
-                variant="social"
-                size="md"
-                className="w-full sm:w-auto"
-                leftIcon={<Building2 />}
-                rightIcon={<ArrowUpRight />}
-              >
-                Ajukan Kemitraan Faskes
-              </Button>
-              <Button
-                id="footer-partner-evaluation"
-                type="button"
-                data-cursor="LIHAT"
-                onClick={() => setIsModalOpen(true)}
-                variant="social"
-                size="md"
-                className="w-full sm:w-auto"
-                leftIcon={<Stethoscope />}
-              >
-                Baca Evaluasi Klinis Psikolog
-              </Button>
-            </div>
-          </div>
         </div>
 
         <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-divider pt-8 text-caption !font-medium text-ink-muted sm:flex-row">
@@ -104,8 +52,6 @@ export function Footer() {
           </p>
         </div>
       </Container>
-
-      <ClinicalEvaluationModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </footer>
   )
 }

@@ -8,6 +8,10 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Eva</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Eva memerlukan akses kamera untuk sesi telekonsultasi video call dengan psikolog.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Eva memerlukan akses mikrofon untuk komunikasi suara selama sesi telekonsultasi.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

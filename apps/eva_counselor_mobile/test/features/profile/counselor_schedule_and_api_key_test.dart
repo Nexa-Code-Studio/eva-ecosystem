@@ -7,12 +7,18 @@ import 'package:eva_counselor_mobile/features/auth/presentation/providers/auth_p
 import 'package:eva_counselor_mobile/features/profile/presentation/screens/counselor_profile_screen.dart';
 import 'package:eva_counselor_mobile/features/profile/presentation/screens/counselor_schedule_settings_screen.dart';
 import 'package:eva_counselor_mobile/features/profile/presentation/widgets/counselor_profile_schedule_card.dart';
+import 'package:eva_counselor_mobile/core/config/app_config.dart';
 import 'package:eva_counselor_mobile/features/profile/presentation/widgets/counselor_external_api_key_modal.dart';
 
 void main() {
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized();
     SharedPreferences.setMockInitialValues({});
+    AppConfig.useMockData = true;
+  });
+
+  tearDown(() {
+    AppConfig.useMockData = false;
   });
 
   group('Psychologist Schedule & External API Key Tests', () {
@@ -416,7 +422,18 @@ class _MockAuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEn
     required String titleDegree,
     required String email,
     required String password,
-    required String strNumber,
+    String strNumber = '',
+    String? sipNumber,
+    String documentType = 'str',
+    String issuingInstitution = 'Kemenkes RI',
+    String documentExpiryDate = 'Seumur Hidup',
+    String lastEducation = 'S2 Magister Psikologi Profesi',
+    String? strIssuingInstitution,
+    String? strExpiryDate,
+    String? strDocFileName,
+    String? sipIssuingInstitution,
+    String? sipExpiryDate,
+    String? sipDocFileName,
     required String association,
     required List<String> specializations,
     required int yearsOfExperience,
@@ -471,6 +488,8 @@ class _MockAuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEn
   void updateSessionSettings({
     required int sessionDurationMinutes,
     required int coinsPerSession,
+    String? breakStartTime,
+    String? breakEndTime,
   }) {}
 
   @override
@@ -497,11 +516,18 @@ class _MockAuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEn
   void setVerificationStatus(VerificationStatus status) {}
 
   @override
-  void updateBankDetails({
+  Future<void> updateProfile({
+    String? fullName,
+    String? titleDegree,
+    String? profilePhotoUrl,
+  }) async {}
+
+  @override
+  Future<void> updateBankDetails({
     required String bankName,
     required String accountNumber,
     required String accountHolder,
-  }) {}
+  }) async {}
 
   @override
   Future<void> toggleAvailability(bool isOnline) async {}

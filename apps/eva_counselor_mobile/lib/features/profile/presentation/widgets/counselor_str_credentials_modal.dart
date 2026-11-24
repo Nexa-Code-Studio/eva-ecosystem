@@ -1,9 +1,19 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/top_toast.dart';
+import '../../../auth/domain/entities/psychologist_user_entity.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class CounselorStrCredentialsModal {
-  static void show(BuildContext context) {
+  static void show(BuildContext context,
+      {PsychologistUserEntity? user, WidgetRef? ref}) {
+    final strNum = (user?.strNumber != null && user!.strNumber.isNotEmpty)
+        ? user.strNumber
+        : 'STR-KTKI-2026-001';
+    final currentDoc = user?.certificateDocUrl ?? 'Belum diunggah';
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -20,8 +30,12 @@ class CounselorStrCredentialsModal {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Kredensial SIPP & STR Psikolog', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                IconButton(icon: const Icon(Icons.close, size: 20), onPressed: () => Navigator.pop(ctx)),
+                const Text('Kredensial SIPP & STR Psikolog',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(ctx)),
               ],
             ),
             const SizedBox(height: 6),
@@ -35,24 +49,39 @@ class CounselorStrCredentialsModal {
               decoration: BoxDecoration(
                 color: AppColors.verifiedBg,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.verifiedGreen.withValues(alpha: 0.3)),
+                border: Border.all(
+                    color: AppColors.verifiedGreen.withValues(alpha: 0.3)),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Surat Tanda Registrasi (STR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.verifiedGreen)),
-                      Icon(Icons.verified_rounded, color: AppColors.verifiedGreen, size: 18),
+                      Text('Surat Tanda Registrasi (STR)',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: AppColors.verifiedGreen)),
+                      Icon(Icons.verified_rounded,
+                          color: AppColors.verifiedGreen, size: 18),
                     ],
                   ),
-                  SizedBox(height: 6),
-                  Text('Nomor: 4192-PSI-2024', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  SizedBox(height: 2),
-                  Text('Penerbit: KTKI (Konsil Tenaga Kesehatan Indonesia)', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                  SizedBox(height: 2),
-                  Text('Masa Berlaku: 18 Oktober 2029 (Aktif)', style: TextStyle(fontSize: 11, color: AppColors.verifiedGreen, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 6),
+                  Text('Nomor: $strNum',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 14)),
+                  const SizedBox(height: 2),
+                  const Text(
+                      'Penerbit: KTKI (Konsil Tenaga Kesehatan Indonesia)',
+                      style: TextStyle(
+                          fontSize: 11, color: AppColors.textSecondary)),
+                  const SizedBox(height: 2),
+                  const Text('Masa Berlaku: Aktif (Terdaftar Resmi)',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.verifiedGreen,
+                          fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
@@ -64,36 +93,72 @@ class CounselorStrCredentialsModal {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFFECEFF8)),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Surat Izin Praktik Psikologi (SIPP)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary)),
-                  SizedBox(height: 6),
-                  Text('Nomor: 503/SIPP/DKS/2023', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  SizedBox(height: 2),
-                  Text('Wilayah Layanan: Nasional (Telekonsultasi)', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                  SizedBox(height: 2),
-                  Text('Keanggotaan HIMPSI: Aktif (#HM-9214)', style: TextStyle(fontSize: 11, color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+                  const Text('Surat Izin Praktik Psikologi (SIPP)',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: AppColors.primary)),
+                  const SizedBox(height: 6),
+                  Text('Dokumen: $currentDoc',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 2),
+                  const Text('Wilayah Layanan: Nasional (Telekonsultasi)',
+                      style: TextStyle(
+                          fontSize: 11, color: AppColors.textSecondary)),
+                  const SizedBox(height: 2),
+                  Text(
+                      'Asosiasi: ${user?.association.isNotEmpty == true ? user!.association : "HIMPSI"}',
+                      style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
             const SizedBox(height: 18),
-            OutlinedButton(
+            OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Color(0xFFD6D9E4)),
                 minimumSize: const Size.fromHeight(44),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
-              onPressed: () {
-                Navigator.pop(ctx);
-                TopToast.show(
-                  context,
-                  title: 'Perpanjangan Kredensial',
-                  message: 'Upload pembaruan STR/SIPP melalui portal web admin psikolog.',
-                  type: ToastType.info,
+              icon: const Icon(Icons.upload_file_rounded,
+                  size: 18, color: AppColors.primary),
+              label: const Text('Perbarui Dokumen Kredensial',
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary)),
+              onPressed: () async {
+                final file = await FilePicker.pickFile(
+                  type: FileType.custom,
+                  allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
                 );
+                if (file != null) {
+                  if (ref != null) {
+                    await ref
+                        .read(authStateProvider.notifier)
+                        .uploadCertificate(file.name);
+                  }
+                  if (context.mounted) {
+                    Navigator.pop(ctx);
+                    TopToast.show(
+                      context,
+                      title: 'Dokumen Kredensial Diperbarui',
+                      message:
+                          'Dokumen ${file.name} berhasil diajukan untuk verifikasi ulang.',
+                      type: ToastType.success,
+                    );
+                  }
+                }
               },
-              child: const Text('Perbarui Dokumen Kredensial', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary)),
             ),
             const SizedBox(height: 10),
           ],

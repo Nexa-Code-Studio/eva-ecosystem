@@ -51,7 +51,7 @@ export function TrendChartCard({
   const metricConfig: Record<TrendMetric, { label: string; unit: string; color: string }> = {
     newUsers: { label: 'Pengguna Baru', unit: 'pengguna', color: '#5358cb' },
     voiceSessions: { label: 'Sesi Suara AI', unit: 'sesi', color: '#6c63ff' },
-    referrals: { label: 'Rujukan DASS-21', unit: 'pasien', color: '#10b981' },
+    consultations: { label: 'Sesi Konsultasi', unit: 'sesi', color: '#10b981' },
   }
 
   const activeConf = metricConfig[metric]
@@ -99,7 +99,7 @@ export function TrendChartCard({
 
       {/* Metric Tabs */}
       <div className="mt-4 flex flex-wrap gap-1.5 border-b border-[#E2E8F0] pb-3">
-        {(['newUsers', 'voiceSessions', 'referrals'] as const).map((mKey) => (
+        {(['newUsers', 'voiceSessions', 'consultations'] as const).map((mKey) => (
           <button
             key={mKey}
             type="button"

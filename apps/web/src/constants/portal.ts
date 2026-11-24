@@ -1,23 +1,28 @@
-import type { FacilityType } from '@/types/portal'
-
 export const CLINICAL_SPECIALIZATIONS = [
-  'Kecemasan & Panik',
-  'Depresi & Mood',
-  'Remaja & Mahasiswa',
-  'Regulasi Emosi & Stres Akademik',
-  'Trauma & Krisis',
-  'Relasi & Keluarga',
+  'Kecemasan Dewasa',
+  'Depresi & Suasana Hati',
+  'Manajemen Stres & Burnout',
+  'Konseling Remaja & Akademik',
+  'Hubungan & Komunikasi',
+  'Trauma & Regulasi Emosi',
+  'Quarter-life Crisis',
 ] as const
 
-export const FACILITY_TYPES: FacilityType[] = [
-  'Rumah Sakit',
-  'Klinik Utama',
-  'Klinik Pratama',
-  'Biro Psikologi',
-]
+export const PROFESSIONAL_ASSOCIATIONS = [
+  'Himpunan Psikologi Indonesia (HIMPSI)',
+  'Ikatan Psikolog Klinis (IPK) Indonesia',
+  'Asosiasi Psikologi Pendidikan Indonesia (APPI)',
+] as const
 
-export const SESSION_DURATION_PRESETS = [30, 45, 60] as const
-export const DEFAULT_SESSION_DURATION_MINUTES = 45
+export const EDUCATION_LEVELS = [
+  'S2 Magister Psikologi Profesi (Psikolog Klinis)',
+  'S2 Magister Psikologi Terapan',
+  'S1 Sarjana Psikologi',
+  'S3 Doktor Psikologi',
+] as const
+
+export const STANDARD_SESSION_DURATION_MINUTES = 30
+export const EXTENDED_SESSION_DURATION_MINUTES = 60
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export const PHONE_RE = /^(\+62|62|0)[0-9]{8,13}$/

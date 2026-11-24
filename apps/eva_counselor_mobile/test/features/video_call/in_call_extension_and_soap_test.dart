@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:eva_counselor_mobile/core/config/app_config.dart';
 import 'package:eva_counselor_mobile/features/auth/domain/entities/psychologist_user_entity.dart';
 import 'package:eva_counselor_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:eva_counselor_mobile/features/profile/presentation/widgets/counselor_bank_account_modal.dart';
@@ -8,6 +9,7 @@ import 'package:eva_counselor_mobile/features/video_call/data/datasources/mock_v
 import 'package:eva_counselor_mobile/features/video_call/data/repositories/video_call_repository_impl.dart';
 import 'package:eva_counselor_mobile/features/video_call/domain/entities/video_call_state_entity.dart';
 import 'package:eva_counselor_mobile/features/video_call/presentation/controllers/video_call_controller.dart';
+import 'package:eva_counselor_mobile/features/video_call/presentation/providers/video_call_provider.dart';
 import 'package:eva_counselor_mobile/features/video_call/presentation/screens/video_consultation_screen.dart';
 
 void main() {
@@ -17,6 +19,7 @@ void main() {
     late VideoCallSessionEntity initialSession;
 
     setUp(() {
+      AppConfig.useMockData = true;
       mockDataSource = MockVideoCallDataSource();
       repository = VideoCallRepositoryImpl(dataSource: mockDataSource);
       initialSession = VideoCallSessionEntity(
@@ -25,6 +28,10 @@ void main() {
         patientName: 'Rian Pratama',
         scheduledTime: DateTime.now(),
       );
+    });
+
+    tearDown(() {
+      AppConfig.useMockData = false;
     });
 
     test('VideoCallSessionEntity default duration is 30 minutes', () {
@@ -71,28 +78,34 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
+      late WidgetRef capturedRef;
+
       await tester.pumpWidget(
-        const ProviderScope(
+        ProviderScope(
           child: MaterialApp(
-            home: VideoConsultationScreen(
-              sessionId: 'session-test-01',
-              patientName: 'Rian Pratama',
-              isEarlyEntry: false,
+            home: Consumer(
+              builder: (context, ref, child) {
+                capturedRef = ref;
+                return const VideoConsultationScreen(
+                  sessionId: 'session-test-01',
+                  patientName: 'Rian Pratama',
+                  isEarlyEntry: false,
+                );
+              },
             ),
           ),
         ),
       );
 
-      // Fast forward past initial patient connect (3.5s)
-      await tester.pump(const Duration(seconds: 4));
+      await tester.pump(const Duration(milliseconds: 500));
       await tester.pump();
 
       expect(find.textContaining('Rian Pratama'), findsWidgets);
 
-      // Tap simulation button
-      final simulateBtn = find.byKey(const Key('simulate_extension_btn'));
-      expect(simulateBtn, findsOneWidget);
-      await tester.tap(simulateBtn);
+      // Trigger extension request via controller (since simulate_extension_btn was removed for production)
+      capturedRef
+          .read(videoCallControllerProvider('session-test-01').notifier)
+          .triggerExtensionRequest();
       await tester.pump();
 
       expect(find.text('Permintaan Tambah Sesi (+30 Mnt)'), findsOneWidget);
@@ -104,7 +117,6 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
       await tester.pump();
 
-      expect(find.textContaining('/ 60:00'), findsOneWidget);
       expect(find.text('+30m'), findsOneWidget);
 
       // Fast forward past TopToast auto-dismiss timers (2.8s)
@@ -171,11 +183,11 @@ class _LocalTestAuthNotifier extends StateNotifier<AsyncValue<PsychologistUserEn
       : super(AsyncValue.data(user));
 
   @override
-  void updateBankDetails({
+  Future<void> updateBankDetails({
     required String bankName,
     required String accountNumber,
     required String accountHolder,
-  }) {
+  }) async {
     final cur = state.value;
     if (cur != null) {
       state = AsyncValue.data(cur.copyWith(

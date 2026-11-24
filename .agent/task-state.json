@@ -63,6 +63,13 @@
     "updated_at": 1794984686,
     "evidence_summary": "Evidence accepted: completion and merge/approval verified."
   },
+  "60": {
+    "issue": 60,
+    "branch": "feat/60-web-psychologist-verification-settings",
+    "state": "In Progress",
+    "updated_at": 1794991724,
+    "evidence_summary": "Evidence accepted: active task branch verified."
+  },
   "71": {
     "issue": 71,
     "branch": "main",
@@ -84,5 +91,58 @@
     "state": "In Progress",
     "updated_at": 1795254026,
     "evidence_summary": "Evidence accepted: active task branch verified."
+  },
+  "81": {
+    "issue": 81,
+    "branch": "main",
+    "state": "Done",
+    "updated_at": 1795144702,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified."
+  },
+  "83": {
+    "issue": 83,
+    "branch": "main",
+    "state": "Done",
+    "updated_at": 1795146475,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified."
+  },
+  "79": {
+    "issue": 79,
+    "branch": "feat/79-counselor-webrtc-videocall",
+    "state": "Done",
+    "updated_at": 1795148092,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/85"
+  },
+  "86": {
+    "issue": 86,
+    "branch": "feat/86-counselor-drive-backup",
+    "state": "Done",
+    "updated_at": 1795151718,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/88"
+  },
+  "89": {
+    "issue": 89,
+    "branch": "feat/89-counselor-register-dashboard-realcase",
+    "state": "Done",
+    "updated_at": 1795156778,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified."
+  },
+  "91": {
+    "issue": 91,
+    "branch": "feat/91-counselor-first-time-ux-profile",
+    "state": "In Review",
+    "updated_at": 1795161178,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/92"
+  },
+  "102": {
+    "issue": 102,
+    "branch": "feat/102-interactive-availability-timeline-booking",
+    "state": "In Review",
+    "updated_at": 1795432369,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/109"
   }
 }
