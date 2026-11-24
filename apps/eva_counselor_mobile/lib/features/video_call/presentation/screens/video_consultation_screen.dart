@@ -63,10 +63,12 @@ class _VideoConsultationScreenState
     WidgetsBinding.instance.removeObserver(this);
     _quickNoteCtrl.dispose();
     // Matikan kamera, mikrofon, dan koneksi media seketika saat konselor keluar dari ruang VC
-    final session = ref.read(videoCallControllerProvider(widget.sessionId));
-    if (session.status != VideoCallStatus.ended) {
-      ref.read(videoCallControllerProvider(widget.sessionId).notifier).endCall();
-    }
+    try {
+      final session = ref.read(videoCallControllerProvider(widget.sessionId));
+      if (session.status != VideoCallStatus.ended) {
+        ref.read(videoCallControllerProvider(widget.sessionId).notifier).endCall();
+      }
+    } catch (_) {}
     super.dispose();
   }
 

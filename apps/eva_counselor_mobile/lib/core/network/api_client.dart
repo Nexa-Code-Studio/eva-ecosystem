@@ -83,6 +83,20 @@ class ApiClient {
     return _handleResponse(response);
   }
 
+  Future<List<int>> getRawBytes(String path, {Map<String, dynamic>? queryParams}) async {
+    final uri = _buildUri(path, queryParams);
+    final headers = await _buildHeaders(extra: {'Accept': 'application/pdf, application/octet-stream, */*'});
+    final response = await _client.get(uri, headers: headers).timeout(AppConfig.connectTimeout);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return response.bodyBytes;
+    }
+    throw ApiException(
+      statusCode: response.statusCode,
+      message: 'Gagal mengunduh berkas (${response.statusCode})',
+      details: response.body,
+    );
+  }
+
   dynamic _handleResponse(http.Response res) {
     dynamic decoded;
     try {

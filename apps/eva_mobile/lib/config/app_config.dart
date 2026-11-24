@@ -12,7 +12,7 @@ class AppConfig {
   /// Compile-time hybrid fallback flag: --dart-define=USE_HYBRID_FALLBACK=true or --dart-define=HYBRID=true
   static const bool useHybridFallback = bool.fromEnvironment(
     'USE_HYBRID_FALLBACK',
-    defaultValue: bool.fromEnvironment('HYBRID', defaultValue: false),
+    defaultValue: bool.fromEnvironment('HYBRID', defaultValue: true),
   );
 
   /// Fast failover timeout for hybrid fallback requests to keep UI responsive

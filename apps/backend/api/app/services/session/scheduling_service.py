@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 from fastapi import HTTPException, status
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.coin import CoinTransaction
 from app.models.counselor import (
@@ -161,7 +162,11 @@ class SchedulingService:
     ) -> ConsultationSessionResponse:
         """Book a fixed 30-minute consultation slot with anti-collision validation."""
         # 1. Fetch Counselor Profile
-        query = select(PsychologistProfile).where(PsychologistProfile.id == payload.counselor_id)
+        query = (
+            select(PsychologistProfile)
+            .options(selectinload(PsychologistProfile.current_level))
+            .where(PsychologistProfile.id == payload.counselor_id)
+        )
         res = await self.db.execute(query)
         counselor = res.scalar_one_or_none()
         if not counselor:
@@ -229,11 +234,17 @@ class SchedulingService:
                 detail=f"Slot waktu ({duration_minutes} menit) bertabrakan dengan jadwal konsultasi lain atau jeda buffer ({counselor.buffer_time_minutes} menit). Silakan pilih slot waktu berikutnya.",
             )
 
-        # 4. Snapshot Pricing Policy & Validate Patient Coins
-        pricing = await self.pricing_service.get_active_pricing()
-        total_price = pricing.price_per_session * Decimal(str(session_count))
-        counselor_share = (total_price * pricing.counselor_share_percentage) / Decimal("100.0")
-        platform_fee = (total_price * pricing.platform_fee_percentage) / Decimal("100.0")
+        # 4. Snapshot Tiered/Level Pricing Policy & Validate Patient Coins
+        from app.services.level import LevelService
+
+        resolved_pricing = await LevelService(self.db).resolve_counselor_pricing(
+            payload.counselor_id,
+            profile=counselor,
+            pricing_service=self.pricing_service,
+        )
+        total_price = resolved_pricing.price_per_session * Decimal(str(session_count))
+        counselor_share = (total_price * resolved_pricing.counselor_share_percentage) / Decimal("100.0")
+        platform_fee = (total_price * resolved_pricing.platform_fee_percentage) / Decimal("100.0")
         required_coins = max(0, int(total_price))
         patient = await self._lock_and_validate_patient_coins(
             patient_id=patient_id,
@@ -251,7 +262,7 @@ class SchedulingService:
             session_code=session_code,
             patient_id=patient_id,
             counselor_id=payload.counselor_id,
-            pricing_config_id=pricing.id,
+            pricing_config_id=resolved_pricing.fallback_pricing_config_id,
             scheduled_start_time=start_time,
             scheduled_end_time=end_time,
             duration_minutes=duration_minutes,
@@ -339,8 +350,13 @@ class SchedulingService:
         collision_res = await self.db.execute(collision_query)
         has_collision = collision_res.scalars().first() is not None
 
-        pricing = await self.pricing_service.get_active_pricing()
-        extension_price = float(pricing.extension_price_per_session)
+        from app.services.level import LevelService
+
+        resolved_pricing = await LevelService(self.db).resolve_counselor_pricing(
+            session.counselor_id,
+            pricing_service=self.pricing_service,
+        )
+        extension_price = float(resolved_pricing.extension_price_per_session)
 
         if has_collision:
             # Query next available open slots
@@ -393,10 +409,15 @@ class SchedulingService:
             )
 
         # Pricing calculation & Patient Coin validation for extension
-        pricing = await self.pricing_service.get_active_pricing()
-        ext_price = pricing.extension_price_per_session
-        ext_counselor = (ext_price * pricing.counselor_share_percentage) / Decimal("100.0")
-        ext_fee = (ext_price * pricing.platform_fee_percentage) / Decimal("100.0")
+        from app.services.level import LevelService
+
+        resolved_pricing = await LevelService(self.db).resolve_counselor_pricing(
+            session.counselor_id,
+            pricing_service=self.pricing_service,
+        )
+        ext_price = resolved_pricing.extension_price_per_session
+        ext_counselor = (ext_price * resolved_pricing.counselor_share_percentage) / Decimal("100.0")
+        ext_fee = (ext_price * resolved_pricing.platform_fee_percentage) / Decimal("100.0")
         ext_coins = max(0, int(ext_price))
         patient = await self._lock_and_validate_patient_coins(
             patient_id=patient_id,
@@ -551,7 +572,9 @@ class SchedulingService:
 
         try:
             from app.services.certificate import CertificateService
+            from app.services.level import LevelService
 
+            await LevelService(self.db).recalculate_and_evaluate(counselor_id=counselor.id)
             await CertificateService(self.db).evaluate_auto_issuance(counselor_id=counselor.id)
         except Exception:
             pass
@@ -853,6 +876,7 @@ class SchedulingService:
                 and s.scheduled_start_time > now
             ]
             upcoming_session = min(future_candidates, key=lambda s: s.scheduled_start_time, default=None)
+
         upcoming_dto = None
         if upcoming_session:
             upcoming_dto = PatientScheduleResponse(

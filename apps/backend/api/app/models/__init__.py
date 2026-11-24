@@ -42,6 +42,7 @@ from app.models.counselor import (
     PlatformPricingConfig,
     PsychologistProfile,
 )
+from app.models.level import CounselorReview, PsychologistLevel
 from app.models.dass import DASSAssessment
 from app.models.diary import DiaryEntry
 from app.models.memory import Memory
@@ -82,7 +83,9 @@ __all__ = [
     "ConditionStatus",
     "ConsultationSession",
     "ConsultationSessionStatus",
+    "CounselorReview",
     "CounselorTransaction",
+    "PsychologistLevel",
     "CrisisConfig",
     "DASSAssessment",
     "ConditionSymptom",

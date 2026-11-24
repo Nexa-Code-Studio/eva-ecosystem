@@ -8,7 +8,7 @@ import {
   Sliders,
 } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { cn } from '@/lib/cn'
 import {
   STANDARD_SESSION_DURATION_MINUTES,
@@ -16,13 +16,15 @@ import {
   fetchActivePlatformPricing,
   fetchCoinEconomyConfig,
   fetchCoinPackages,
+  fetchPsychologistLevels,
   savePlatformPricingConfig,
   type PlatformPricingConfig,
   type PortalDatabase,
 } from '@/lib/portalStore'
 import { AdminCoinPackagesConfigTab } from './AdminCoinPackagesConfigTab'
+import { AdminPsychologistLevelsTab } from './AdminPsychologistLevelsTab'
 
-type SettingsSubTab = 'pricing' | 'coins_catalog'
+type SettingsSubTab = 'pricing' | 'coins_catalog' | 'psychologist_levels'
 
 interface AdminPlatformSettingsModuleProps {
   db: PortalDatabase
@@ -448,62 +450,90 @@ export function AdminPlatformSettingsModule({
   db,
   onFeedback,
 }: AdminPlatformSettingsModuleProps) {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const tabParam = searchParams.get('tab')
-  const activeSubTab: SettingsSubTab =
-    tabParam === 'coins_catalog' ? 'coins_catalog' : 'pricing'
+  const activeSubTab: SettingsSubTab = location.pathname.includes('/psychologist-levels')
+    ? 'psychologist_levels'
+    : tabParam === 'coins_catalog'
+      ? 'coins_catalog'
+      : tabParam === 'psychologist_levels'
+        ? 'psychologist_levels'
+        : 'pricing'
 
   const handleSubTabChange = (tab: SettingsSubTab) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev)
-      if (tab === 'pricing') {
-        next.delete('tab')
-      } else {
-        next.set('tab', tab)
-      }
-      next.delete('page')
-      return next
-    })
+    if (tab === 'psychologist_levels') {
+      navigate('/admin/settings/psychologist-levels')
+    } else if (tab === 'coins_catalog') {
+      navigate('/admin/settings?tab=coins_catalog')
+    } else {
+      navigate('/admin/settings')
+    }
   }
 
   useEffect(() => {
     void fetchActivePlatformPricing().catch(() => undefined)
     void fetchCoinEconomyConfig().catch(() => undefined)
     void fetchCoinPackages().catch(() => undefined)
+    void fetchPsychologistLevels().catch(() => undefined)
   }, [])
 
   const activePackagesCount = db.coinPackages.filter((pkg) => pkg.isActive).length
+  const activeLevelsCount = db.psychologistLevels.filter((lvl) => lvl.isActive).length
 
   return (
     <div>
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
         <div>
           <h1 className="text-xl font-bold tracking-[-0.02em] text-ink sm:text-2xl">
             Pengaturan Platform EVA
           </h1>
           <p className="mt-0.5 text-xs text-ink-muted">
-            Kelola tarif master telekonsultasi dalam satuan EVA Coin, rasio bagi hasil resmi, kurs dasar koin, serta katalog paket top-up.
+            Kelola tarif master telekonsultasi dalam satuan EVA Coin, jenjang level &amp; tarif berjenjang psikolog, kurs dasar koin, serta katalog paket top-up.
           </p>
         </div>
 
-        <div className="inline-flex flex-wrap rounded-[8px] border border-[#E2E8F0] bg-white p-1">
+        <div
+          role="tablist"
+          aria-label="Submenu Pengaturan Platform EVA"
+          className="inline-flex w-fit shrink-0 flex-wrap gap-1 rounded-[8px] border border-[#E2E8F0] bg-white p-1"
+        >
           <button
             type="button"
+            role="tab"
+            aria-selected={activeSubTab === 'pricing'}
             onClick={() => handleSubTabChange('pricing')}
             className={cn(
-              'cursor-pointer rounded-[6px] px-3 py-1.5 text-xs font-semibold transition-colors',
+              'min-h-11 cursor-pointer rounded-[6px] px-3 py-1.5 text-xs font-semibold transition-colors sm:min-h-0',
               activeSubTab === 'pricing'
                 ? 'bg-primary text-white'
                 : 'text-ink-soft hover:text-ink',
             )}
           >
-            Tarif Konsultasi
+            Tarif Dasar
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={activeSubTab === 'psychologist_levels'}
+            onClick={() => handleSubTabChange('psychologist_levels')}
+            className={cn(
+              'min-h-11 cursor-pointer rounded-[6px] px-3 py-1.5 text-xs font-semibold transition-colors sm:min-h-0',
+              activeSubTab === 'psychologist_levels'
+                ? 'bg-primary text-white'
+                : 'text-ink-soft hover:text-ink',
+            )}
+          >
+            Level &amp; Tarif Psikolog ({activeLevelsCount})
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeSubTab === 'coins_catalog'}
             onClick={() => handleSubTabChange('coins_catalog')}
             className={cn(
-              'cursor-pointer rounded-[6px] px-3 py-1.5 text-xs font-semibold transition-colors',
+              'min-h-11 cursor-pointer rounded-[6px] px-3 py-1.5 text-xs font-semibold transition-colors sm:min-h-0',
               activeSubTab === 'coins_catalog'
                 ? 'bg-primary text-white'
                 : 'text-ink-soft hover:text-ink',
@@ -516,6 +546,8 @@ export function AdminPlatformSettingsModule({
 
       {activeSubTab === 'coins_catalog' ? (
         <AdminCoinPackagesConfigTab db={db} onFeedback={onFeedback} />
+      ) : activeSubTab === 'psychologist_levels' ? (
+        <AdminPsychologistLevelsTab db={db} onFeedback={onFeedback} />
       ) : (
         <PricingSettingsForm
           key={db.pricingConfig.id}

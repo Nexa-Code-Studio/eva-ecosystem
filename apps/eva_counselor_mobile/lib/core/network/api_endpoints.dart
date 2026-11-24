@@ -13,9 +13,13 @@ class ApiEndpoints {
       '/counselors/$id/timeline?date=$date';
   static String patientTriggers(String id) => '/patients/$id/clinical-triggers';
 
-  // Pricing
+  // Pricing & Leveling
   static const String pricing = '/pricing/active';
   static const String calculatePricing = '/pricing/calculate';
+  static const String levelMetrics = '/counselors/me/level-metrics';
+  static const String updatePricing = '/counselors/me/pricing';
+  static const String myReviews = '/counselors/me/reviews';
+  static String counselorReviews(String id) => '/counselors/$id/reviews';
 
   // Patients & Consent
   static const String patients = '/patients';
@@ -42,6 +46,10 @@ class ApiEndpoints {
   static String startSession(String id) => '/sessions/$id/start';
   static String endSession(String id) => '/sessions/$id/end';
   static String sessionSignaling(String id) => '/sessions/$id/signal';
+
+  // Certificates
+  static const String counselorCertificates = '/counselor/certificates';
+  static String downloadCertificatePdf(String id) => '/counselor/certificates/$id/download';
 
   // Financials & Transactions
   static const String financialSummary = '/finances/summary';

@@ -144,5 +144,51 @@
     "updated_at": 1795432369,
     "evidence_summary": "Evidence accepted: PR and test verification documented.",
     "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/109"
+  },
+  "101": {
+    "issue": 101,
+    "branch": "main",
+    "state": "Done",
+    "updated_at": 1795530996,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/119"
+  },
+  "121": {
+    "issue": 121,
+    "branch": "feat/121-counselor-leveling-and-reviews",
+    "state": "In Review",
+    "updated_at": 1795533180,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/123"
+  },
+  "120": {
+    "issue": 120,
+    "branch": "feat/120-psychologist-levels-pricing",
+    "state": "Done",
+    "updated_at": 1795533931,
+    "evidence_summary": "Evidence accepted: active task branch verified."
+  },
+  "34": {
+    "issue": 34,
+    "branch": "feat/34-users-coins-uiux-improvement",
+    "state": "In Progress",
+    "updated_at": 1795536901,
+    "evidence_summary": "Evidence accepted: active task branch verified."
+  },
+  "125": {
+    "issue": 125,
+    "branch": "feat/125-counselor-certificates-integration",
+    "state": "In Review",
+    "updated_at": 1795554674,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/129"
+  },
+  "130": {
+    "issue": 130,
+    "branch": "fix/130-backend-models-import",
+    "state": "In Review",
+    "updated_at": 1795555308,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/131"
   }
 }

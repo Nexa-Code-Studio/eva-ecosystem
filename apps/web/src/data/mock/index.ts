@@ -32,6 +32,7 @@ import {
   buildPsychologistCertificates,
   buildSimulatedMobilePsychologist,
 } from './psychologists.mock'
+import { INITIAL_PSYCHOLOGIST_LEVELS } from './levels.mock'
 import type { PortalDatabase } from '@/types/domain/portal'
 
 export {
@@ -50,6 +51,7 @@ export {
   INITIAL_WAITLIST,
   INITIAL_CERTIFICATE_TEMPLATES,
   INITIAL_ISSUED_CERTIFICATES,
+  INITIAL_PSYCHOLOGIST_LEVELS,
   MOCK_ADMIN_ACCOUNT,
   MOCK_BASELINE_DASS,
   MOCK_BASELINE_USERS,
@@ -77,4 +79,5 @@ export const INITIAL_MOCK_DB: PortalDatabase = {
   certificateTemplates: INITIAL_CERTIFICATE_TEMPLATES,
   issuedCertificates: INITIAL_ISSUED_CERTIFICATES,
   eligibleCounselorSummaries: [],
+  psychologistLevels: INITIAL_PSYCHOLOGIST_LEVELS,
 }

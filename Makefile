@@ -1,4 +1,4 @@
-.PHONY: help dev dev-d dev-build dev-api dev-mcp dev-worker prod prod-down logs logs-api logs-worker logs-prod ps down db-shell migrate migration-gen db-reset seed mobile-usb mobile-emu mobile-mock mobile-hybrid mobile-emu-hybrid mobile-web-hybrid mobile-web-build mobile-vercel mobile-web mobile-usb-cloud mobile-emu-cloud mobile-web-cloud mobile-cloud counselor-mock counselor-web test-counselor web-dev web-build web-lint test test-backend test-mobile lint format doctor tasks bootstrap test-agentic link-project view-project check-server
+.PHONY: help dev dev-d dev-build dev-api dev-mcp dev-worker prod prod-down logs logs-api logs-worker logs-prod ps down db-shell migrate migration-gen db-reset seed mobile-usb mobile-emu mobile-mock mobile-hybrid mobile-emu-hybrid mobile-web-hybrid mobile-web-build mobile-vercel mobile-web mobile-usb-cloud mobile-emu-cloud mobile-web-cloud mobile-cloud counselor-usb counselor-emu counselor-web counselor-mock counselor-usb-cloud counselor-emu-cloud counselor-web-cloud counselor-cloud counselor-build-web test-counselor web-dev web-build web-lint test test-backend test-mobile lint format doctor tasks bootstrap test-agentic link-project view-project check-server
 
 help:
 	@echo "EVA Ecosystem Management Commands (Full Docker Environment):"
@@ -42,8 +42,18 @@ help:
 	@echo "    make mobile-emu-cloud  - Jalankan di Android Emulator nembak ke Cloud (eva.nexacode.dev)"
 	@echo "    make mobile-web-cloud  - Jalankan di Chrome Web nembak ke Cloud (eva.nexacode.dev)"
 	@echo "    make mobile-cloud      - Shortcut jalankan mobile nembak ke Cloud"
-	@echo "    make counselor-mock    - Jalankan Eva Counselor (Psikolog) dengan Mock Data"
-	@echo "    make counselor-web     - Jalankan Eva Counselor di Chrome Web Simulator"
+	@echo ""
+	@echo "  Mobile Applications (Eva Counselor):"
+	@echo "    make counselor-usb        - Jalankan di HP Fisik (DEFAULT: API Lokal via reverse 8888)"
+	@echo "    make counselor-emu        - Jalankan di Android Emulator (DEFAULT: API Lokal 10.0.2.2:8888)"
+	@echo "    make counselor-web        - Jalankan di Chrome Web (DEFAULT: API Lokal 127.0.0.1:8888)"
+	@echo "    make counselor-mock       - Jalankan dengan Mock Data lokal (offline)"
+	@echo "    make counselor-usb-cloud  - Jalankan di HP Fisik nembak ke Cloud (eva.nexacode.dev)"
+	@echo "    make counselor-emu-cloud  - Jalankan di Android Emulator nembak ke Cloud (eva.nexacode.dev)"
+	@echo "    make counselor-web-cloud  - Jalankan di Chrome Web nembak ke Cloud (eva.nexacode.dev)"
+	@echo "    make counselor-cloud      - Shortcut jalankan counselor nembak ke Cloud (HP Fisik)"
+	@echo "    make counselor-build-web  - Build Flutter Web Eva Counselor (Release)"
+	@echo "    make test-counselor       - Jalankan flutter test untuk Eva Counselor"
 	@echo ""
 	@echo "  Web Application (Eva Web Portal):"
 	@echo "    make web-dev           - Jalankan server development Vite apps/web (port 5174)"
@@ -178,11 +188,28 @@ mobile-web-cloud:
 
 mobile-cloud: mobile-usb-cloud
 
-counselor-mock:
-	@APP=eva_counselor_mobile ./scripts/run_mobile.sh mock $(ARGS)
+counselor-usb:
+	@APP=eva_counselor_mobile ./scripts/run_mobile.sh usb $(ARGS)
+
+counselor-emu:
+	@APP=eva_counselor_mobile ./scripts/run_mobile.sh emu $(ARGS)
 
 counselor-web:
 	@APP=eva_counselor_mobile ./scripts/run_mobile.sh web $(ARGS)
+
+counselor-mock:
+	@APP=eva_counselor_mobile ./scripts/run_mobile.sh mock $(ARGS)
+
+counselor-usb-cloud:
+	@APP=eva_counselor_mobile ./scripts/run_mobile.sh usb-cloud $(ARGS)
+
+counselor-emu-cloud:
+	@APP=eva_counselor_mobile ./scripts/run_mobile.sh emu-cloud $(ARGS)
+
+counselor-web-cloud:
+	@APP=eva_counselor_mobile ./scripts/run_mobile.sh web-cloud $(ARGS)
+
+counselor-cloud: counselor-usb-cloud
 
 counselor-build-web:
 	cd apps/eva_counselor_mobile && flutter build web --release

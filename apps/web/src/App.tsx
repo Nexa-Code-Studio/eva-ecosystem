@@ -114,6 +114,14 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: 'settings/psychologist-levels',
+        element: (
+          <Suspense fallback={<div className="min-h-[400px] animate-pulse rounded-xl bg-white/50" />}>
+            <AdminSettingsRoute />
+          </Suspense>
+        ),
+      },
+      {
         path: 'referrals',
         element: <Navigate to="/admin/monitoring" replace />,
       },

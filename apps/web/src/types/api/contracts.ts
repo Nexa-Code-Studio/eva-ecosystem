@@ -393,4 +393,45 @@ export interface BackendAuthTokenResponseDto {
   }
 }
 
+export interface UpsertPsychologistLevelRequestDto {
+  levelTier: number
+  name: string
+  badgeIcon: string
+  minCompletedSessions: number
+  minAverageRating: number
+  minConsultationHours: number
+  minReviewCount: number
+  defaultSessionPrice: number
+  platformFeePercentage: number
+  allowCustomPrice: boolean
+  minCustomPrice?: number | null
+  maxCustomPrice?: number | null
+  isActive: boolean
+}
+
+export interface BackendPsychologistLevelDto {
+  id: string
+  level_tier: number
+  name: string
+  badge_icon: string
+  min_completed_sessions: number
+  min_average_rating: number
+  min_consultation_hours: number
+  min_review_count: number
+  default_session_price: number
+  platform_fee_percentage: number
+  allow_custom_price: boolean
+  min_custom_price?: number | null
+  max_custom_price?: number | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface BackendLevelEvaluationBatchDto {
+  evaluated_counselors: number
+  upgraded_count: number
+  message: string
+}
+
 export type PortalDatabaseSnapshot = PortalDatabase

@@ -6,6 +6,8 @@ import '../../../../core/widgets/top_toast.dart';
 import '../../../auth/domain/entities/psychologist_user_entity.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../dashboard/presentation/screens/counselor_main_shell_screen.dart';
+import '../providers/counselor_certificate_provider.dart';
+import '../providers/counselor_level_metrics_provider.dart';
 import '../widgets/counselor_bank_account_modal.dart';
 import '../widgets/counselor_certificates_modal.dart';
 import '../widgets/counselor_edit_profile_modal.dart';
@@ -118,15 +120,27 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
     final user = authState.value;
-    final userCerts = CounselorCertificatesModal.getCertificatesForUser(user);
+    final liveCertsAsync = ref.watch(counselorCertificatesProvider);
+    final userCerts = liveCertsAsync.value ?? CounselorCertificatesModal.getCertificatesForUser(user);
     final hasBank = (user?.bankName ?? '').isNotEmpty;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(counselorLevelMetricsProvider);
+            ref.invalidate(counselorCertificatesProvider);
+            ref.invalidate(authStateProvider);
+            await Future.wait([
+              ref.read(counselorLevelMetricsProvider.future),
+              ref.read(counselorCertificatesProvider.future),
+            ]);
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Profile Banner Card
@@ -231,7 +245,7 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                 iconBg: const Color(0xFFFEF3C7),
                 title: 'Sertifikat Penghargaan & Pencapaian',
                 subtitle: '${userCerts.length} Sertifikat Resmi Diraih • Siap Diunduh (PDF)',
-                onTap: () => CounselorCertificatesModal.showGallery(context, user),
+                onTap: () => CounselorCertificatesModal.showGallery(context, user, ref: ref),
               ),
               const SizedBox(height: 16),
 
@@ -249,8 +263,8 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                 icon: Icons.menu_book_outlined,
                 iconColor: const Color(0xFFD97706),
                 iconBg: const Color(0xFFFEF3C7),
-                title: 'Panduan Etik & SOP HIMPSI',
-                subtitle: 'Kode etik layanan telekonseling & penanganan krisis',
+                title: 'Kode Etik Psikologi Indonesia',
+                subtitle: 'Berdasarkan Kode Etik HIMPSI (Tahun 2010) & SOP Layanan',
                 onTap: () => CounselorGuidelinesModal.showProfessional(context),
               ),
               const SizedBox(height: 16),
@@ -302,8 +316,9 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Future<void> _confirmLogout() async {
     final shouldLogout = await showDialog<bool>(

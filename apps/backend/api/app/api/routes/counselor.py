@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query, status
 
 from app.api.dependencies import (
 
+    get_care_service,
     get_counselor_service,
     get_current_admin,
     get_current_user,
@@ -18,6 +19,8 @@ from app.schemas.care import (
     SubmitRatingRequest,
 )
 from app.schemas.counselor import (
+    CounselorLevelMetricsResponse,
+    CounselorReviewsListResponse,
     CounselorTimelineResponse,
     PsychologistProfileResponse,
     PsychologistPublicResponse,
@@ -27,6 +30,7 @@ from app.schemas.counselor import (
     ScheduleConfigResponse,
     ToggleAvailabilityRequest,
     UpdateBankDetailsRequest,
+    UpdatePricingRequest,
     UpdatePsychologistProfileRequest,
     UpdateScheduleConfigRequest,
     VerifyPsychologistRequest,
@@ -116,6 +120,43 @@ async def update_my_schedule_config(
     return await service.update_schedule_config(user.id, payload)
 
 
+@router.get("/me/level-metrics", response_model=CounselorLevelMetricsResponse)
+async def get_my_level_metrics(
+    user: User = Depends(get_current_user),
+    service: CounselorService = Depends(get_counselor_service),
+) -> CounselorLevelMetricsResponse:
+    """Get real-time counselor gamification level, reputation metrics, and dynamic tariff."""
+    return await service.get_level_metrics(user.id)
+
+
+@router.patch("/me/pricing", response_model=CounselorLevelMetricsResponse)
+async def update_my_pricing(
+    payload: UpdatePricingRequest,
+    user: User = Depends(get_current_user),
+    service: CounselorService = Depends(get_counselor_service),
+) -> CounselorLevelMetricsResponse:
+    """Update custom consultation price (only allowed for qualifying level tiers)."""
+    return await service.update_pricing(user.id, payload.custom_price_per_session)
+
+
+@router.get("/me/reviews", response_model=CounselorReviewsListResponse)
+async def get_my_reviews(
+    user: User = Depends(get_current_user),
+    service: CounselorService = Depends(get_counselor_service),
+) -> CounselorReviewsListResponse:
+    """Get verified patient reviews and ratings for current logged-in counselor."""
+    return await service.get_my_reviews(user.id)
+
+
+@router.get("/{counselor_id}/reviews", response_model=CounselorReviewsListResponse)
+async def get_counselor_reviews(
+    counselor_id: uuid.UUID,
+    service: CounselorService = Depends(get_counselor_service),
+) -> CounselorReviewsListResponse:
+    """Publicly retrieve verified patient reviews and ratings for a psychologist."""
+    return await service.get_reviews(counselor_id)
+
+
 @router.get("", response_model=list[PsychologistPublicResponse])
 async def list_verified_counselors(
     limit: int = Query(default=20, ge=1, le=100),
@@ -166,7 +207,7 @@ async def get_counselor_timeline(
     return await service.get_counselor_timeline(counselor_id, date)
 
 
-@router.post("/{counselor_id}/book", response_model=ConsultationSessionResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/{counselor_id}/book", response_model=CareSessionResponse, status_code=status.HTTP_201_CREATED)
 async def book_counselor_session(
     counselor_id: uuid.UUID,
     payload: BookConsultationRequest,

@@ -94,3 +94,14 @@ class UpdateScheduleConfigRequest(BaseModel):
         description="Day-by-day practice schedule config keyed by lowercase day name (monday..sunday)",
     )
     buffer_time_minutes: int | None = Field(default=None, ge=0, le=60)
+
+
+class UpdatePricingRequest(BaseModel):
+    custom_price_per_session: float = Field(..., ge=10000.0, description="Custom consultation fee per 30-min session")
+
+
+class SubmitSessionReviewRequest(BaseModel):
+    rating: float = Field(..., ge=1.0, le=5.0, description="Star rating from 1.0 to 5.0")
+    label: str | None = Field(default=None, max_length=150, description="Short review highlight label")
+    review_text: str | None = Field(default=None, max_length=1000, description="Qualitative feedback comments")
+    is_anonymous: bool = Field(default=True, description="Whether to hide patient identity")
