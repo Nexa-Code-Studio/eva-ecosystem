@@ -28,8 +28,10 @@ class CounselorProfileRemoteDataSource implements ICounselorProfileDataSource {
         ? ApiEndpoints.counselorReviews(counselorId)
         : ApiEndpoints.myReviews;
     final response = await _apiClient.get(endpoint);
-    return CounselorReviewsListEntity.fromJson(
-        response as Map<String, dynamic>);
+    return CounselorReviewsListEntity.fromResponse(
+      response,
+      counselorId: counselorId ?? '',
+    );
   }
 
   @override
