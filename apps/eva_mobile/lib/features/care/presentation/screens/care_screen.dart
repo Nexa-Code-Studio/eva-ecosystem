@@ -337,9 +337,8 @@ class CareScreenState extends ConsumerState<CareScreen> {
                     ),
                   );
                 },
-                loading: () => SliverToBoxAdapter(
-                  key: widget.firstPsychologistCardKey,
-                  child: const Padding(
+                loading: () => const SliverToBoxAdapter(
+                  child: Padding(
                     padding: EdgeInsets.all(40),
                     child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
                   ),

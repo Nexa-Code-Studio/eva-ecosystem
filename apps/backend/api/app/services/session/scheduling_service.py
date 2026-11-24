@@ -862,12 +862,23 @@ class SchedulingService:
             elif assessment:
                 chief_complaint = assessment[:60] + ("..." if len(assessment) > 60 else "")
 
-        # Upcoming schedule
+        # Upcoming schedule (prioritize active session right now, or soonest future session)
         now = datetime.now(UTC)
-        upcoming_session = next(
-            (s for s in sessions if s.status == ConsultationSessionStatus.SCHEDULED.value and s.scheduled_start_time >= now - timedelta(hours=1)),
-            None,
-        )
+        active_candidates = [
+            s for s in sessions
+            if s.status in (ConsultationSessionStatus.SCHEDULED.value, ConsultationSessionStatus.LIVE.value)
+            and s.scheduled_start_time <= now <= (s.scheduled_end_time or (s.scheduled_start_time + timedelta(minutes=s.duration_minutes or 30)))
+        ]
+        if active_candidates:
+            upcoming_session = max(active_candidates, key=lambda s: s.scheduled_start_time)
+        else:
+            future_candidates = [
+                s for s in sessions
+                if s.status in (ConsultationSessionStatus.SCHEDULED.value, ConsultationSessionStatus.LIVE.value)
+                and s.scheduled_start_time > now
+            ]
+            upcoming_session = min(future_candidates, key=lambda s: s.scheduled_start_time, default=None)
+
         upcoming_dto = None
         if upcoming_session:
             upcoming_dto = PatientScheduleResponse(

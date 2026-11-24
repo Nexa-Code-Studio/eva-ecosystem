@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from app.db.session import engine, AsyncSessionLocal
 from app.models.counselor import ConsultationSession, PlatformPricingConfig, PsychologistProfile
-from app.models.enums import ConsultationSessionStatus, PricingConfigStatus
+from app.models.enums import ConsultationSessionStatus, PricingConfigStatus, PsychologistVerificationStatus
 from app.models.user import User
 from app.main import app
 
@@ -24,7 +24,7 @@ async def consultation_fixture():
     async with AsyncSessionLocal() as session:
         # Create Patient user
         patient_email = f"patient.{uuid.uuid4().hex[:6]}@eva.id"
-        patient = User(email=patient_email, password_hash="hash123")
+        patient = User(email=patient_email, password_hash="hash123", coin_balance=1000000)
         session.add(patient)
 
         # Create Counselor user & profile
@@ -43,6 +43,9 @@ async def consultation_fixture():
             str_number=f"STR-{uuid.uuid4().hex[:8]}",
             specializations=["Telekonsultasi"],
             years_of_experience=4,
+            verification_status=PsychologistVerificationStatus.VERIFIED.value,
+            is_online=True,
+            buffer_time_minutes=15,
         )
         session.add(profile)
 
@@ -81,6 +84,7 @@ async def consultation_fixture():
 
         return {
             "session_id": str(consult_session.id),
+            "counselor_id": str(profile.id),
             "patient_headers": {"Authorization": f"Bearer {patient_token}"},
             "counselor_headers": {"Authorization": f"Bearer {counselor_token}"},
             "unrelated_headers": {"Authorization": f"Bearer {unrelated_token}"},
@@ -164,3 +168,98 @@ async def test_care_video_token_and_status(consultation_fixture):
         )
         assert end_res.status_code == 200
         assert end_res.json()["status"] == "completed"
+
+
+@pytest.mark.asyncio
+async def test_care_psychologists_and_clinics_endpoints(consultation_fixture):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        # 1. Get Psychologists
+        res = await client.get("/api/v1/care/psychologists")
+        assert res.status_code == 200
+        psychs = res.json()
+        assert isinstance(psychs, list)
+        assert len(psychs) >= 1
+        first = psychs[0]
+        assert "name" in first
+        assert "registration_number" in first
+        assert "testimonials" in first
+        assert "patient_stats" in first
+
+        # 2. Filter by category
+        res_cat = await client.get("/api/v1/care/psychologists?category=psychologist")
+        assert res_cat.status_code == 200
+
+        # 3. Get Clinics
+        res_clinics = await client.get("/api/v1/care/clinics")
+        assert res_clinics.status_code == 200
+        clinics = res_clinics.json()
+        assert isinstance(clinics, list)
+        assert len(clinics) >= 1
+        assert "facilities" in clinics[0]
+
+
+@pytest.mark.asyncio
+async def test_care_community_and_timeline_and_booking(consultation_fixture):
+    patient_headers = consultation_fixture["patient_headers"]
+    counselor_id = consultation_fixture["counselor_id"]
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        # 1. Community Status
+        res_comm = await client.get("/api/v1/community/status")
+        assert res_comm.status_code == 200
+        assert res_comm.json()["server_name"] == "Eva Safe Space ID"
+
+        res_join = await client.post("/api/v1/community/join", headers=patient_headers)
+        assert res_join.status_code == 200
+        assert res_join.json()["is_member"] is True
+
+        # 2. Timeline
+        today_str = datetime.now(UTC).strftime("%Y-%m-%d")
+        res_timeline = await client.get(f"/api/v1/counselors/{counselor_id}/timeline?date={today_str}")
+        assert res_timeline.status_code == 200
+        timeline = res_timeline.json()
+        assert "operating_hours" in timeline
+        assert "blocked_ranges" in timeline
+        assert "available_windows" in timeline
+
+        # 3. Dynamic Multi-Session Booking
+        future_start = (datetime.now(UTC) + timedelta(days=2)).replace(hour=14, minute=0, second=0, microsecond=0)
+        book_payload = {
+            "psychologist_id": counselor_id,
+            "preferred_date_time": future_start.isoformat(),
+            "session_type": "onlineVideo",
+            "session_count": 2,
+            "duration_minutes": 60,
+            "complaints": "Kecemasan menghadapi presentasi kerja",
+            "share_ai_chat_history": True,
+        }
+        res_book = await client.post(
+            f"/api/v1/counselors/{counselor_id}/book",
+            headers=patient_headers,
+            json=book_payload,
+        )
+        assert res_book.status_code == 201
+        booked_sess = res_book.json()
+        assert booked_sess["duration_minutes"] == 60
+        assert "psychologist" in booked_sess
+        assert booked_sess["notes"] == "Kecemasan menghadapi presentasi kerja"
+
+        # 4. User Care Sessions list
+        res_sessions = await client.get("/api/v1/care/sessions", headers=patient_headers)
+        assert res_sessions.status_code == 200
+        my_sessions = res_sessions.json()
+        assert len(my_sessions) >= 1
+
+        # 5. Rating submission
+        res_rate = await client.post(
+            f"/api/v1/counselors/{counselor_id}/ratings",
+            headers=patient_headers,
+            json={
+                "rating": 5.0,
+                "review_text": "Sesi sangat membantu dan memberi kejelasan.",
+                "is_anonymous": True,
+                "tags": ["Sangat Sabar & Empati"],
+            },
+        )
+        assert res_rate.status_code == 200
+        assert res_rate.json()["success"] is True
+

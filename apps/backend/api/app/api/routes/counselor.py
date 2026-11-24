@@ -3,12 +3,19 @@ import uuid
 from fastapi import APIRouter, Depends, Query, status
 
 from app.api.dependencies import (
+    get_care_service,
     get_counselor_service,
     get_current_admin,
     get_current_user,
     get_scheduling_service,
 )
 from app.models.user import User
+from app.schemas.care import (
+    BookConsultationRequest,
+    CareRatingResponse,
+    CareSessionResponse,
+    SubmitRatingRequest,
+)
 from app.schemas.counselor import (
     CounselorLevelMetricsResponse,
     CounselorReviewsListResponse,
@@ -27,6 +34,7 @@ from app.schemas.counselor import (
     VerifyPsychologistRequest,
 )
 from app.schemas.session import AvailableSlotsResponse, BookSessionRequest, ConsultationSessionResponse
+from app.services.care import CareService
 from app.services.counselor import CounselorService
 from app.services.session import SchedulingService
 
@@ -197,13 +205,25 @@ async def get_counselor_timeline(
     return await service.get_counselor_timeline(counselor_id, date)
 
 
-@router.post("/{counselor_id}/book", response_model=ConsultationSessionResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/{counselor_id}/book", response_model=CareSessionResponse, status_code=status.HTTP_201_CREATED)
 async def book_counselor_session(
     counselor_id: uuid.UUID,
-    payload: BookSessionRequest,
+    payload: BookConsultationRequest,
     patient: User = Depends(get_current_user),
-    service: SchedulingService = Depends(get_scheduling_service),
-) -> ConsultationSessionResponse:
-    """Book a 30-minute teleconsultation session with anti-collision validation."""
-    return await service.book_session(patient.id, payload)
+    service: CareService = Depends(get_care_service),
+) -> CareSessionResponse:
+    """Book a teleconsultation session with dynamic duration and anti-collision validation."""
+    return await service.book_consultation(patient.id, counselor_id, payload)
+
+
+@router.post("/{counselor_id}/ratings", response_model=CareRatingResponse)
+async def submit_counselor_rating(
+    counselor_id: uuid.UUID,
+    payload: SubmitRatingRequest,
+    user: User = Depends(get_current_user),
+    service: CareService = Depends(get_care_service),
+) -> CareRatingResponse:
+    """Submit rating review and feedback for a psychologist."""
+    return await service.submit_counselor_rating(user.id, counselor_id, payload)
+
 

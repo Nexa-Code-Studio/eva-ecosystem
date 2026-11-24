@@ -18,6 +18,7 @@ from app.models.counselor import (
     PlatformPricingConfig,
     PsychologistProfile,
 )
+from app.models.certificate import CertificateTemplate, PsychologistCertificate
 from app.models.conversation import Conversation, Message
 from app.models.diary import DiaryEntry
 from app.models.coping_activity import CopingActivity, UserActivityCompletion
@@ -565,8 +566,8 @@ async def seed_master_data() -> User:
         return user
 
 
-async def seed_counselor_master_data(session: AsyncSessionLocal, patient_user: User) -> PsychologistProfile:
-    """Seed certified professional psychologist, platform pricing, and realistic consultation history."""
+async def seed_counselor_master_data(session: AsyncSessionLocal, patient_user: User) -> list[PsychologistProfile]:
+    """Seed comprehensive certified psychologists, psychiatrists, and realistic consultation history."""
     # 1. Platform Pricing Config
     query_pricing = select(PlatformPricingConfig).where(
         PlatformPricingConfig.status == PricingConfigStatus.ACTIVE.value
@@ -587,90 +588,7 @@ async def seed_counselor_master_data(session: AsyncSessionLocal, patient_user: U
         await session.refresh(pricing)
         logger.info("Seeded Platform Pricing Config.")
 
-    # 2. Seed Psychologist User Account
-    counselor_email = "khoirotunnisa2507@gmail.com"
-    query_c_user = select(User).where(User.email == counselor_email)
-    res_c_user = await session.execute(query_c_user)
-    counselor_user = res_c_user.scalar_one_or_none()
-
-    if not counselor_user:
-        # Check if legacy demo counselor email exists and migrate to user's real email
-        old_user_query = select(User).where(User.email == "psikolog.mandiri@eva.id")
-        old_res = await session.execute(old_user_query)
-        old_user = old_res.scalar_one_or_none()
-        if old_user:
-            counselor_user = old_user
-            counselor_user.email = counselor_email
-            counselor_user.display_name = "dr. Sarah Amelia, M.Psi., Psikolog"
-            counselor_user.password_hash = hash_password("password123")
-            await session.commit()
-            logger.info(f"Migrated legacy demo counselor email to {counselor_email}")
-        else:
-            counselor_user = User(
-                email=counselor_email,
-                username="dr_sarah_amelia",
-                display_name="dr. Sarah Amelia, M.Psi., Psikolog",
-                password_hash=hash_password("password123"),
-                is_active=True,
-                is_verified=True,
-            )
-            session.add(counselor_user)
-            await session.commit()
-            await session.refresh(counselor_user)
-            logger.info(f"Seeded Counselor User: {counselor_email}")
-    else:
-        counselor_user.display_name = "dr. Sarah Amelia, M.Psi., Psikolog"
-        counselor_user.password_hash = hash_password("password123")
-        await session.commit()
-
-    # 3. Seed PsychologistProfile
-    query_prof = select(PsychologistProfile).where(PsychologistProfile.user_id == counselor_user.id)
-    res_prof = await session.execute(query_prof)
-    profile = res_prof.scalar_one_or_none()
-
-    if not profile:
-        profile = PsychologistProfile(
-            user_id=counselor_user.id,
-            full_name="dr. Sarah Amelia, M.Psi., Psikolog",
-            title_degree="M.Psi., Psikolog Klinis",
-            education="S2 Magister Psikologi Profesi (Psikolog Klinis)",
-            str_number="STR-PSI-19940822-2024",
-            str_issuing_institution="Kemenkes RI / KTKI",
-            str_expiry_date="Seumur Hidup (UU Kesehatan No. 17/2023)",
-            str_verified=True,
-            sip_number="SIP-PK-2024-0089",
-            sip_issuing_institution="Dinas Kesehatan Provinsi DKI Jakarta",
-            sip_expiry_date="2029-08-22",
-            sip_verified=True,
-            association="Himpunan Psikologi Indonesia (HIMPSI)",
-            specializations=["Anxiety & Stress", "Trauma & PTSD", "Depression", "Family & Relationship"],
-            years_of_experience=7,
-            verification_status=PsychologistVerificationStatus.VERIFIED.value,
-            is_online=True,
-            bio="Psikolog klinis spesialis regulasi emosi, trauma, dan manajemen kecemasan.",
-            bank_name="BCA",
-            bank_account_number="8830192831",
-            bank_account_holder="dr. Sarah Amelia",
-            wallet_balance=Decimal("360000.00"),
-        )
-        session.add(profile)
-        await session.commit()
-        await session.refresh(profile)
-        logger.info("Seeded Verified Psychologist Profile.")
-    else:
-        profile.verification_status = PsychologistVerificationStatus.VERIFIED.value
-        profile.education = profile.education or "S2 Magister Psikologi Profesi (Psikolog Klinis)"
-        profile.str_issuing_institution = profile.str_issuing_institution or "Kemenkes RI / KTKI"
-        profile.str_expiry_date = profile.str_expiry_date or "Seumur Hidup (UU Kesehatan No. 17/2023)"
-        profile.str_verified = True
-        profile.sip_issuing_institution = profile.sip_issuing_institution or "Dinas Kesehatan Provinsi DKI Jakarta"
-        profile.sip_expiry_date = profile.sip_expiry_date or "2029-08-22"
-        profile.sip_verified = True
-        profile.wallet_balance = Decimal("360000.00")
-        profile.is_online = True
-        await session.commit()
-
-    # 3b. Seed 1 Sample Pending Psychologist Applicant for Admin Portal Verification Queue
+    # 2. Seed 1 Sample Pending Psychologist Applicant for Admin Portal Verification Queue
     pending_email = "larasati.psi@praktikmandiri.id"
     res_pending = await session.execute(select(User).where(User.email == pending_email))
     pending_user = res_pending.scalar_one_or_none()
@@ -710,262 +628,413 @@ async def seed_counselor_master_data(session: AsyncSessionLocal, patient_user: U
         await session.commit()
         logger.info("Seeded Pending Psychologist Applicant: larasati.psi@praktikmandiri.id")
 
-    # 4. Patient Consent
-    query_consent = select(PatientConsent).where(
-        PatientConsent.patient_id == patient_user.id,
-        PatientConsent.counselor_id == profile.id,
-    )
-    res_consent = await session.execute(query_consent)
-    existing_consent = res_consent.scalar_one_or_none()
-    if not existing_consent:
-        consent = PatientConsent(
-            patient_id=patient_user.id,
-            counselor_id=profile.id,
-            status="granted",
-            granted_at=datetime.now(UTC),
-        )
-        session.add(consent)
-        await session.commit()
-        logger.info("Seeded Patient Consent between Samsul & Sarah Amelia.")
-    else:
-        existing_consent.status = "granted"
-        existing_consent.granted_at = datetime.now(UTC)
-        await session.commit()
-        logger.info("Ensured Patient Consent status is granted for Samsul.")
-
-    # 5. Consultation Sessions & SOAP Notes
-    query_sess = select(ConsultationSession).where(
-        ConsultationSession.counselor_id == profile.id,
-        ConsultationSession.patient_id == patient_user.id,
-    )
-    res_sess = await session.execute(query_sess)
-    existing_sessions = res_sess.scalars().all()
-
-    if not existing_sessions:
-        now = datetime.now(UTC)
-        past_session = ConsultationSession(
-            session_code="EVA-20261120-001",
-            patient_id=patient_user.id,
-            counselor_id=profile.id,
-            pricing_config_id=pricing.id if pricing else None,
-            scheduled_start_time=now - timedelta(hours=3),
-            scheduled_end_time=now - timedelta(hours=2, minutes=30),
-            actual_start_time=now - timedelta(hours=3),
-            actual_end_time=now - timedelta(hours=2, minutes=30),
-            duration_minutes=30,
-            status=ConsultationSessionStatus.COMPLETED.value,
-            total_price=Decimal("150.00"),
-            counselor_earning=Decimal("120.00"),
-            platform_fee=Decimal("30.00"),
-            soap_notes={
+    # 3. Comprehensive Psychologists & Psychiatrists Master Data
+    counselors_data = [
+        {
+            "email": "khoirotunnisa2507@gmail.com",
+            "username": "dr_sarah_amelia",
+            "full_name": "dr. Sarah Amelia, M.Psi., Psikolog",
+            "title_degree": "M.Psi., Psikolog Klinis",
+            "str_number": "STR-PSI-19940822-2024",
+            "sip_number": "SIP-PK-2024-0089",
+            "association": "Himpunan Psikologi Indonesia (HIMPSI)",
+            "specializations": ["Anxiety & Stress", "Trauma & PTSD", "Depression", "Family & Relationship"],
+            "years_of_experience": 7,
+            "profile_photo_url": "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&auto=format&fit=crop&q=80",
+            "bio": "Psikolog klinis spesialis regulasi emosi, trauma, dan manajemen kecemasan.",
+            "buffer_time_minutes": 10,
+            "wallet_balance": Decimal("360000.00"),
+            "soap": {
                 "subjective": "Pasien merasa cemas dan kesulitan tidur karena beban pekerjaan meningkat.",
                 "objective": "Kontak mata baik, respon afektif cemas ringan, skor DASS kecemasan sedang.",
                 "assessment": "Mild Generalized Anxiety Disorder yang dipicu oleh stres lingkungan kerja.",
                 "plan": "Latihan pernapasan 4-7-8, pembatasan kafein setelah jam 4 sore, dan evaluasi dalam 1 minggu.",
                 "recommended_tasks": ["Latihan napas 4-7-8 pagi & malam", "Jurnal pemicu kecemasan harian"],
             },
-        )
-        upcoming_session = ConsultationSession(
-            session_code="EVA-20261120-002",
-            patient_id=patient_user.id,
-            counselor_id=profile.id,
-            pricing_config_id=pricing.id if pricing else None,
-            scheduled_start_time=now + timedelta(hours=3),
-            scheduled_end_time=now + timedelta(hours=3, minutes=30),
-            duration_minutes=30,
-            status=ConsultationSessionStatus.SCHEDULED.value,
-            total_price=Decimal("150.00"),
-            counselor_earning=Decimal("120.00"),
-            platform_fee=Decimal("30.00"),
-        )
-        extended_session = ConsultationSession(
-            session_code="EVA-20261120-003",
-            patient_id=patient_user.id,
-            counselor_id=profile.id,
-            pricing_config_id=pricing.id if pricing else None,
-            scheduled_start_time=now - timedelta(days=1, hours=2),
-            scheduled_end_time=now - timedelta(days=1, hours=1),
-            actual_start_time=now - timedelta(days=1, hours=2),
-            actual_end_time=now - timedelta(days=1, hours=1),
-            duration_minutes=60,
-            is_extended=True,
-            extension_requested_at=now - timedelta(days=1, hours=1, minutes=35),
-            extension_granted_at=now - timedelta(days=1, hours=1, minutes=35),
-            status=ConsultationSessionStatus.COMPLETED.value,
-            total_price=Decimal("300.00"),
-            counselor_earning=Decimal("240.00"),
-            platform_fee=Decimal("60.00"),
-        )
-        session.add_all([past_session, upcoming_session, extended_session])
-        await session.commit()
-        await session.refresh(past_session)
-        logger.info("Seeded Consultation Sessions (Completed, Scheduled, and Extended 60m).")
+        },
+        {
+            "email": "amanda.zahra@eva.id",
+            "username": "amanda_zahra",
+            "full_name": "Amanda Zahra, M.Psi., Psikolog",
+            "title_degree": "Psikolog Klinis Dewasa",
+            "str_number": "STR-PSI-19881204-2021",
+            "sip_number": "SIPP: 1988-12-04-2021",
+            "association": "Himpunan Psikologi Indonesia (HIMPSI)",
+            "specializations": ["Kecemasan", "Quarter-Life Crisis", "Burnout Karir", "Self-Esteem"],
+            "years_of_experience": 6,
+            "profile_photo_url": "https://images.unsplash.com/photo-1594824813583-059df30f1484?w=400&auto=format&fit=crop&q=80",
+            "bio": "Psikolog klinis dewasa berfokus pada terapi penerimaan, regulasi emosi, dan penanganan overthinking karir.",
+            "buffer_time_minutes": 10,
+            "wallet_balance": Decimal("480000.00"),
+            "soap": {
+                "subjective": "Pasien merasa cemas dan kesulitan tidur karena beban pekerjaan meningkat tajam.",
+                "objective": "Kontak mata baik, respon afektif cemas ringan, skor DASS kecemasan sedang.",
+                "assessment": "Mild Generalized Anxiety Disorder yang dipicu oleh stres lingkungan kerja.",
+                "plan": "Praktikkan teknik relaksasi napas 4-7-8 setiap malam 15 menit sebelum waktu tidur.",
+                "recommended_tasks": ["Latihan napas 4-7-8 setiap malam", "Batasi konsumsi kafein setelah jam 14:00"],
+            },
+        },
+        {
+            "email": "dimas.wicaksono@eva.id",
+            "username": "dimas_wicaksono",
+            "full_name": "Dimas Wicaksono, M.Psi., Psikolog",
+            "title_degree": "Psikolog Anak & Remaja",
+            "str_number": "STR-PSI-20120518-2022",
+            "sip_number": "SIPP: 2012-05-18-2022",
+            "association": "Ikatan Psikolog Klinis Indonesia (IPK)",
+            "specializations": ["Pengembangan Karakter Remaja", "Stres Akademik", "Kecanduan Gadget", "Komunikasi Keluarga"],
+            "years_of_experience": 5,
+            "profile_photo_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80",
+            "bio": "Membantu remaja dan dewasa muda menemukan arah tujuan hidup serta menjalin komunikasi harmonis dengan keluarga.",
+            "buffer_time_minutes": 10,
+            "wallet_balance": Decimal("360000.00"),
+            "soap": {
+                "subjective": "Pasien mendiskusikan relasi komunikasi dan batasan emosional (boundaries) dengan keluarga.",
+                "objective": "Kontak mata baik, respon afektif stabil dan terbuka.",
+                "assessment": "Peningkatan pemahaman batasan relasi interpersonal dan regulasi stres sosial.",
+                "plan": "Terapkan assertive communication saat berinteraksi dengan lingkungan keluarga.",
+                "recommended_tasks": ["Tulis jurnal refleksi komunikasi harian", "Latihan teknik grounding saat merasa overwhelmed"],
+            },
+        },
+        {
+            "email": "rian.pratama@eva.id",
+            "username": "rian_pratama",
+            "full_name": "Rian Pratama, M.Psi., Psikolog",
+            "title_degree": "Konselor Karir & Relawan",
+            "str_number": "STR-PSI-20191120-2023",
+            "sip_number": "SIPP: 2019-11-20-2023",
+            "association": "Himpunan Psikologi Indonesia (HIMPSI)",
+            "specializations": ["Career Transition", "Workplace Bullying", "Mindfulness", "Relawan Safe Space"],
+            "years_of_experience": 4,
+            "profile_photo_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80",
+            "bio": "Praktisi konseling karir dan relawan komunitas kesehatan mental terpadu.",
+            "buffer_time_minutes": 10,
+            "wallet_balance": Decimal("240000.00"),
+            "soap": {
+                "subjective": "Pasien mengutarakan kebingungan arah karir dan gejala quarter-life crisis.",
+                "objective": "Pasien sangat antusias mengeksplorasi potensi keahlian baru.",
+                "assessment": "Eksplorasi transisi karir dan penataan nilai personal (values clarification).",
+                "plan": "Susun matriks kelebihan diri dan langkah realistis pencarian peluang baru.",
+                "recommended_tasks": ["Pemetaan keahlian utama mingguan", "Jeda digital 15 menit sebelum tidur"],
+            },
+        },
+        {
+            "email": "dr.budi.santoso@eva.id",
+            "username": "dr_budi_santoso",
+            "full_name": "dr. Budi Santoso, Sp.KJ",
+            "title_degree": "Psikiater & Spesialis Kedokteran Jiwa (Sp.KJ)",
+            "str_number": "STR-DOK-311100120123",
+            "sip_number": "SIP-DOK-2020-0012",
+            "association": "Perhimpunan Dokter Spesialis Kedokteran Jiwa Indonesia (PDSKJI)",
+            "specializations": ["Depresi Mayor", "Bipolar Disorder", "Insomnia Kronis", "Farmakoterapi"],
+            "years_of_experience": 9,
+            "profile_photo_url": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80",
+            "bio": "Dokter spesialis kedokteran jiwa menangani gangguan afektif, insomnia kronis, dan evaluasi psikiatri komprehensif.",
+            "buffer_time_minutes": 15,
+            "wallet_balance": Decimal("600000.00"),
+            "soap": {
+                "subjective": "Evaluasi psikiatri berkala mengenai pola tidur dan mood stability.",
+                "objective": "Pola afek stabil, tidak ditemukan gejala depresi berat atau mania.",
+                "assessment": "Remisi parsial gangguan tidur dengan penyesuaian sleep hygiene.",
+                "plan": "Lanjutkan sleep hygiene harian dan konsultasi ulang jika diperlukan.",
+                "recommended_tasks": ["Sleep schedule konsisten", "Hindari layar sebelum tidur"],
+            },
+        },
+    ]
 
-        # 6. Counselor Transactions
-        tx1 = CounselorTransaction(
-            counselor_id=profile.id,
-            session_id=past_session.id,
-            transaction_type=TransactionType.EARNING.value,
-            status=TransactionStatus.COMPLETED.value,
-            amount=Decimal("120000.00"),
-            description="Honorarium Sesi Konsultasi #EVA-20261120-001 (Samsul)",
-            reference_number="TX-20261118-001",
+    seeded_profiles = []
+    now = datetime.now(UTC)
+
+    for idx, c_data in enumerate(counselors_data, start=1):
+        email = c_data["email"]
+        query_user = select(User).where(User.email == email)
+        res_user = await session.execute(query_user)
+        c_user = res_user.scalar_one_or_none()
+
+        if not c_user:
+            c_user = User(
+                email=email,
+                username=c_data["username"],
+                display_name=c_data["full_name"],
+                password_hash=hash_password("password123"),
+                is_active=True,
+                is_verified=True,
+            )
+            session.add(c_user)
+            await session.commit()
+            await session.refresh(c_user)
+            logger.info(f"Seeded Counselor User: {email}")
+        else:
+            c_user.display_name = c_data["full_name"]
+            c_user.is_verified = True
+            await session.commit()
+
+        # PsychologistProfile
+        query_prof = select(PsychologistProfile).where(PsychologistProfile.user_id == c_user.id)
+        res_prof = await session.execute(query_prof)
+        profile = res_prof.scalar_one_or_none()
+
+        if not profile:
+            profile = PsychologistProfile(
+                user_id=c_user.id,
+                full_name=c_data["full_name"],
+                title_degree=c_data["title_degree"],
+                education="S2 Magister Psikologi Profesi (Psikolog Klinis)",
+                str_number=c_data["str_number"],
+                str_issuing_institution="Kemenkes RI / KTKI",
+                str_expiry_date="Seumur Hidup (UU Kesehatan No. 17/2023)",
+                str_verified=True,
+                sip_number=c_data["sip_number"],
+                sip_issuing_institution="Dinas Kesehatan Provinsi DKI Jakarta",
+                sip_expiry_date="2029-08-22",
+                sip_verified=True,
+                association=c_data["association"],
+                specializations=c_data["specializations"],
+                years_of_experience=c_data["years_of_experience"],
+                bio=c_data["bio"],
+                profile_photo_url=c_data["profile_photo_url"],
+                verification_status=PsychologistVerificationStatus.VERIFIED.value,
+                is_online=True,
+                buffer_time_minutes=c_data["buffer_time_minutes"],
+                wallet_balance=c_data["wallet_balance"],
+            )
+            session.add(profile)
+            await session.commit()
+            await session.refresh(profile)
+            logger.info(f"Seeded Verified Profile for: {c_data['full_name']}")
+        else:
+            profile.full_name = c_data["full_name"]
+            profile.title_degree = c_data["title_degree"]
+            profile.education = profile.education or "S2 Magister Psikologi Profesi (Psikolog Klinis)"
+            profile.str_number = c_data["str_number"]
+            profile.sip_number = c_data["sip_number"]
+            profile.profile_photo_url = c_data["profile_photo_url"]
+            profile.verification_status = PsychologistVerificationStatus.VERIFIED.value
+            profile.is_online = True
+            await session.commit()
+
+        seeded_profiles.append(profile)
+
+        # Patient Consent for Samsul
+        query_consent = select(PatientConsent).where(
+            PatientConsent.patient_id == patient_user.id,
+            PatientConsent.counselor_id == profile.id,
         )
-        tx2 = CounselorTransaction(
-            counselor_id=profile.id,
-            session_id=None,
-            transaction_type=TransactionType.EARNING.value,
-            status=TransactionStatus.COMPLETED.value,
-            amount=Decimal("120000.00"),
-            description="Honorarium Sesi Konsultasi Sebelumnya",
-            reference_number="TX-20261115-002",
+        res_consent = await session.execute(query_consent)
+        consent = res_consent.scalar_one_or_none()
+        if not consent:
+            consent = PatientConsent(
+                patient_id=patient_user.id,
+                counselor_id=profile.id,
+                status="granted",
+                granted_at=now,
+            )
+            session.add(consent)
+            await session.commit()
+
+        # Seed Consultation Sessions for Samsul
+        sess_query = select(ConsultationSession).where(
+            ConsultationSession.patient_id == patient_user.id,
+            ConsultationSession.counselor_id == profile.id,
         )
-        tx3 = CounselorTransaction(
-            counselor_id=profile.id,
-            session_id=None,
-            transaction_type=TransactionType.EARNING.value,
-            status=TransactionStatus.COMPLETED.value,
-            amount=Decimal("120000.00"),
-            description="Honorarium Sesi Konseling Kelompok",
-            reference_number="TX-20261110-003",
-        )
-        session.add_all([tx1, tx2, tx3])
-        await session.commit()
-        logger.info("Seeded Counselor Transactions.")
-    else:
-        now = datetime.now(UTC)
-        has_extended_sample = any(s.session_code == "EVA-20261120-003" for s in existing_sessions)
-        for s in existing_sessions:
-            if s.session_code == "EVA-20261120-001":
-                s.scheduled_start_time = now - timedelta(hours=3)
-                s.scheduled_end_time = now - timedelta(hours=2, minutes=30)
-                s.actual_start_time = now - timedelta(hours=3)
-                s.actual_end_time = now - timedelta(hours=2, minutes=30)
-            if s.total_price > Decimal("1000.00"):
-                s.total_price = Decimal("300.00") if s.is_extended else Decimal("150.00")
-                s.counselor_earning = Decimal("240.00") if s.is_extended else Decimal("120.00")
-                s.platform_fee = Decimal("60.00") if s.is_extended else Decimal("30.00")
-        if not has_extended_sample:
-            session.add(
-                ConsultationSession(
-                    session_code="EVA-20261120-003",
+        res_sess = await session.execute(sess_query)
+        existing_sess = res_sess.scalars().all()
+
+        if existing_sess:
+            if c_data["email"] == "khoirotunnisa2507@gmail.com":
+                # Ensure stable dedicated LIVE test session is actively happening right now
+                stable_code = "EVA-SES-LIVE-SARAH-SAMSUL"
+                live_sess = next((s for s in existing_sess if s.session_code == stable_code), None)
+                live_start = now - timedelta(minutes=5)
+                live_end = now + timedelta(minutes=25)
+                if live_sess:
+                    live_sess.scheduled_start_time = live_start
+                    live_sess.scheduled_end_time = live_end
+                    live_sess.status = ConsultationSessionStatus.SCHEDULED.value
+                else:
+                    live_sess = ConsultationSession(
+                        session_code=stable_code,
+                        patient_id=patient_user.id,
+                        counselor_id=profile.id,
+                        pricing_config_id=pricing.id if pricing else None,
+                        scheduled_start_time=live_start,
+                        scheduled_end_time=live_end,
+                        duration_minutes=30,
+                        status=ConsultationSessionStatus.SCHEDULED.value,
+                        total_price=Decimal("150000.00"),
+                        counselor_earning=Decimal("120000.00"),
+                        platform_fee=Decimal("30000.00"),
+                    )
+                    session.add(live_sess)
+
+                # Clean up any duplicate ad-hoc LIVE sessions created previously
+                for s in existing_sess:
+                    if s.session_code != stable_code and s.session_code.startswith("EVA-SES-LIVE-"):
+                        await session.delete(s)
+
+                await session.commit()
+                logger.info(f"Ensured active LIVE session ({stable_code}, id={live_sess.id}) for Sarah Amelia & Samsul.")
+        else:
+            past_start = now - timedelta(days=idx, hours=2)
+            past_sess = ConsultationSession(
+                session_code=f"EVA-SES-{past_start.strftime('%Y%m%d')}-00{idx}",
+                patient_id=patient_user.id,
+                counselor_id=profile.id,
+                pricing_config_id=pricing.id if pricing else None,
+                scheduled_start_time=past_start,
+                scheduled_end_time=past_start + timedelta(minutes=30),
+                actual_start_time=past_start,
+                actual_end_time=past_start + timedelta(minutes=30),
+                duration_minutes=30,
+                status=ConsultationSessionStatus.COMPLETED.value,
+                total_price=Decimal("150000.00"),
+                counselor_earning=Decimal("120000.00"),
+                platform_fee=Decimal("30000.00"),
+                soap_notes=c_data["soap"],
+            )
+
+            if c_data["email"] == "khoirotunnisa2507@gmail.com":
+                live_start = now - timedelta(minutes=5)
+                upcoming_sess = ConsultationSession(
+                    session_code=f"EVA-SES-LIVE-{now.strftime('%Y%m%d')}-001",
                     patient_id=patient_user.id,
                     counselor_id=profile.id,
                     pricing_config_id=pricing.id if pricing else None,
-                    scheduled_start_time=now - timedelta(days=1, hours=2),
-                    scheduled_end_time=now - timedelta(days=1, hours=1),
-                    actual_start_time=now - timedelta(days=1, hours=2),
-                    actual_end_time=now - timedelta(days=1, hours=1),
-                    duration_minutes=60,
-                    is_extended=True,
-                    extension_requested_at=now - timedelta(days=1, hours=1, minutes=35),
-                    extension_granted_at=now - timedelta(days=1, hours=1, minutes=35),
-                    status=ConsultationSessionStatus.COMPLETED.value,
-                    total_price=Decimal("300.00"),
-                    counselor_earning=Decimal("240.00"),
-                    platform_fee=Decimal("60.00"),
-                    patient_rating=Decimal("4.95"),
+                    scheduled_start_time=live_start,
+                    scheduled_end_time=live_start + timedelta(minutes=30),
+                    duration_minutes=30,
+                    status=ConsultationSessionStatus.SCHEDULED.value,
+                    total_price=Decimal("150000.00"),
+                    counselor_earning=Decimal("120000.00"),
+                    platform_fee=Decimal("30000.00"),
                 )
+            else:
+                upcoming_start = now + timedelta(days=idx, hours=3)
+                upcoming_sess = ConsultationSession(
+                    session_code=f"EVA-SES-{upcoming_start.strftime('%Y%m%d')}-00{idx}",
+                    patient_id=patient_user.id,
+                    counselor_id=profile.id,
+                    pricing_config_id=pricing.id if pricing else None,
+                    scheduled_start_time=upcoming_start,
+                    scheduled_end_time=upcoming_start + timedelta(minutes=30),
+                    duration_minutes=30,
+                    status=ConsultationSessionStatus.SCHEDULED.value,
+                    total_price=Decimal("150000.00"),
+                    counselor_earning=Decimal("120000.00"),
+                    platform_fee=Decimal("30000.00"),
+                )
+            session.add_all([past_sess, upcoming_sess])
+            await session.commit()
+            logger.info(f"Seeded Sessions for {c_data['full_name']}")
+
+            # Seed transactions for counselor
+            tx1 = CounselorTransaction(
+                counselor_id=profile.id,
+                session_id=past_sess.id,
+                transaction_type=TransactionType.EARNING.value,
+                status=TransactionStatus.COMPLETED.value,
+                amount=Decimal("120000.00"),
+                description=f"Honorarium Telekonsultasi ({past_sess.session_code})",
+                reference_number=f"TX-{uuid.uuid4().hex[:10].upper()}",
             )
-        for s in existing_sessions:
-            if s.status == ConsultationSessionStatus.COMPLETED.value and s.patient_rating is None:
-                s.patient_rating = Decimal("4.95")
-        await session.commit()
-        logger.info("Updated existing sessions and ensured extended 60m sample.")
+            session.add(tx1)
+            await session.commit()
 
     # 7. Seed Default Certificate Templates & Initial Issued Certificate (only if empty)
-    tpl_count = await session.scalar(select(func.count(CertificateTemplate.id)))
-    if (tpl_count or 0) == 0:
-        t1 = CertificateTemplate(
-            code="CERT-PRO-01",
-            title="SERTIFIKAT PRAKTIK TELEKONSELING KLINIS",
-            subtitle="Clinical Tele-Psychology Excellence & Competence",
-            category_code="PRO",
-            category_label="Psikolog Mandiri",
-            milestone_criteria="Penyelesaian 25 Sesi Klinis Terverifikasi",
-            description=(
-                "Diberikan kepada {psychologist_name} (STR: {str_number}) atas dedikasi dan kompetensi "
-                "klinis prima dalam menyelenggarakan telekonsultasi kesehatan mental dengan standar etika tertinggi. "
-                "Nomor Registrasi Sertifikat: {certificate_number} (Diterbitkan {issue_date})."
-            ),
-            badge_color="#2563EB",
-            trigger_type="sessions_milestone",
-            min_completed_sessions=25,
-            min_average_rating=None,
-            auto_issue_enabled=True,
-            is_active=True,
-        )
-        t2 = CertificateTemplate(
-            code="CERT-PRO-02",
-            title="SERTIFIKAT KEPATUHAN REKAM MEDIS SOAP",
-            subtitle="Certified Clinical Medical Record Standard",
-            category_code="SOAP",
-            category_label="Psikolog Mandiri",
-            milestone_criteria="Kepatuhan Rekam SOAP 100% pada 50 Sesi",
-            description=(
-                "Diberikan kepada {psychologist_name} (STR: {str_number}) atas komitmen integritas dokumentasi "
-                "SOAP klinis terenkripsi aman demi keselamatan pasien. Nomor: {certificate_number}."
-            ),
-            badge_color="#D97706",
-            trigger_type="sessions_milestone",
-            min_completed_sessions=50,
-            min_average_rating=None,
-            auto_issue_enabled=True,
-            is_active=True,
-        )
-        t3 = CertificateTemplate(
-            code="CERT-PRO-03",
-            title="SERTIFIKAT KONSELOR TELADAN EVA",
-            subtitle="Distinguished Clinical Practitioner",
-            category_code="TOP",
-            category_label="Psikolog Mandiri",
-            milestone_criteria="100+ Sesi Terlaksana dengan Rating Kepuasan >= 4.8",
-            description=(
-                "Penghargaan tertinggi platform EVA kepada {psychologist_name} (STR: {str_number}) atas loyalitas "
-                "pelayanan intervensi krisis dan kepuasan pasien prima. Nomor: {certificate_number}."
-            ),
-            badge_color="#7E22CE",
-            trigger_type="rating_milestone",
-            min_completed_sessions=100,
-            min_average_rating=Decimal("4.80"),
-            auto_issue_enabled=True,
-            is_active=True,
-        )
-        session.add_all([t1, t2, t3])
-        await session.commit()
-        await session.refresh(t1)
-        logger.info("Seeded 3 default CertificateTemplate milestones.")
-
-        cert_count = await session.scalar(select(func.count(PsychologistCertificate.id)))
-        if (cert_count or 0) == 0:
-            now_cert = datetime.now(UTC)
-            cert_num = f"EVA/CERT/{now_cert.year}/PRO/00001"
-            session.add(
-                PsychologistCertificate(
-                    certificate_number=cert_num,
-                    sequence_number=1,
-                    issue_year=now_cert.year,
-                    category_code="PRO",
-                    counselor_id=profile.id,
-                    template_id=t1.id,
-                    title=t1.title,
-                    subtitle=t1.subtitle,
-                    recipient_name=profile.full_name,
-                    str_number=profile.str_number,
-                    milestone_criteria=t1.milestone_criteria,
-                    category_label=t1.category_label,
-                    description=(
-                        f"Diberikan kepada {profile.full_name} (STR: {profile.str_number}) atas dedikasi "
-                        f"telekonseling klinis resmi EVA. Nomor: {cert_num}."
-                    ),
-                    badge_color=t1.badge_color,
-                    trigger_source="manual",
-                    status="active",
-                    issued_at=now_cert,
-                )
+    if seeded_profiles:
+        primary_counselor = seeded_profiles[0]
+        tpl_count = await session.scalar(select(func.count(CertificateTemplate.id)))
+        if (tpl_count or 0) == 0:
+            t1 = CertificateTemplate(
+                code="CERT-PRO-01",
+                title="SERTIFIKAT PRAKTIK TELEKONSELING KLINIS",
+                subtitle="Clinical Tele-Psychology Excellence & Competence",
+                category_code="PRO",
+                category_label="Psikolog Mandiri",
+                milestone_criteria="Penyelesaian 25 Sesi Klinis Terverifikasi",
+                description=(
+                    "Diberikan kepada {psychologist_name} (STR: {str_number}) atas dedikasi dan kompetensi "
+                    "klinis prima dalam menyelenggarakan telekonsultasi kesehatan mental dengan standar etika tertinggi. "
+                    "Nomor Registrasi Sertifikat: {certificate_number} (Diterbitkan {issue_date})."
+                ),
+                badge_color="#2563EB",
+                trigger_type="sessions_milestone",
+                min_completed_sessions=25,
+                min_average_rating=None,
+                auto_issue_enabled=True,
+                is_active=True,
             )
+            t2 = CertificateTemplate(
+                code="CERT-PRO-02",
+                title="SERTIFIKAT KEPATUHAN REKAM MEDIS SOAP",
+                subtitle="Certified Clinical Medical Record Standard",
+                category_code="SOAP",
+                category_label="Psikolog Mandiri",
+                milestone_criteria="Kepatuhan Rekam SOAP 100% pada 50 Sesi",
+                description=(
+                    "Diberikan kepada {psychologist_name} (STR: {str_number}) atas komitmen integritas dokumentasi "
+                    "SOAP klinis terenkripsi aman demi keselamatan pasien. Nomor: {certificate_number}."
+                ),
+                badge_color="#D97706",
+                trigger_type="sessions_milestone",
+                min_completed_sessions=50,
+                min_average_rating=None,
+                auto_issue_enabled=True,
+                is_active=True,
+            )
+            t3 = CertificateTemplate(
+                code="CERT-PRO-03",
+                title="SERTIFIKAT KONSELOR TELADAN EVA",
+                subtitle="Distinguished Clinical Practitioner",
+                category_code="TOP",
+                category_label="Psikolog Mandiri",
+                milestone_criteria="100+ Sesi Terlaksana dengan Rating Kepuasan >= 4.8",
+                description=(
+                    "Penghargaan tertinggi platform EVA kepada {psychologist_name} (STR: {str_number}) atas loyalitas "
+                    "pelayanan intervensi krisis dan kepuasan pasien prima. Nomor: {certificate_number}."
+                ),
+                badge_color="#7E22CE",
+                trigger_type="rating_milestone",
+                min_completed_sessions=100,
+                min_average_rating=Decimal("4.80"),
+                auto_issue_enabled=True,
+                is_active=True,
+            )
+            session.add_all([t1, t2, t3])
             await session.commit()
-            logger.info(f"Seeded initial official certificate {cert_num} for {profile.full_name}.")
+            await session.refresh(t1)
+            logger.info("Seeded 3 default CertificateTemplate milestones.")
+
+            cert_count = await session.scalar(select(func.count(PsychologistCertificate.id)))
+            if (cert_count or 0) == 0:
+                now_cert = datetime.now(UTC)
+                cert_num = f"EVA/CERT/{now_cert.year}/PRO/00001"
+                session.add(
+                    PsychologistCertificate(
+                        certificate_number=cert_num,
+                        sequence_number=1,
+                        issue_year=now_cert.year,
+                        category_code="PRO",
+                        counselor_id=primary_counselor.id,
+                        template_id=t1.id,
+                        title=t1.title,
+                        subtitle=t1.subtitle,
+                        recipient_name=primary_counselor.full_name,
+                        str_number=primary_counselor.str_number,
+                        milestone_criteria=t1.milestone_criteria,
+                        category_label=t1.category_label,
+                        description=(
+                            f"Diberikan kepada {primary_counselor.full_name} (STR: {primary_counselor.str_number}) atas dedikasi "
+                            f"telekonseling klinis resmi EVA. Nomor: {cert_num}."
+                        ),
+                        badge_color=t1.badge_color,
+                        trigger_source="manual",
+                        status="active",
+                        issued_at=now_cert,
+                    )
+                )
+                await session.commit()
+                logger.info(f"Seeded initial official certificate {cert_num} for {primary_counselor.full_name}.")
 
     # 8. Seed Dynamic Master Psychologist Levels & Sample Per-Session Reviews
     level_count = await session.scalar(select(func.count(PsychologistLevel.id)))
@@ -1068,7 +1137,7 @@ async def seed_counselor_master_data(session: AsyncSessionLocal, patient_user: U
 
     await LevelService(session).evaluate_all_counselors()
 
-    return profile
+    return seeded_profiles
 
 
 def main() -> None:

@@ -88,10 +88,18 @@ jobs:
           cd apps/eva_counselor_mobile
           flutter pub get
           if [ "$BUILD_TYPE" = "debug" ]; then
-            flutter build apk --debug --android-skip-build-dependency-validation
+            flutter build apk --debug --android-skip-build-dependency-validation \
+              --dart-define=USE_LOCAL_API=false \
+              --dart-define=USE_HYBRID_FALLBACK=true \
+              --dart-define=HYBRID=true \
+              --dart-define=API_BASE_URL=https://eva.nexacode.dev/api/v1
             cp build/app/outputs/flutter-apk/app-debug.apk "$GITHUB_WORKSPACE/eva-counselor-mobile-debug.apk"
           else
-            flutter build apk --release --android-skip-build-dependency-validation
+            flutter build apk --release --android-skip-build-dependency-validation \
+              --dart-define=USE_LOCAL_API=false \
+              --dart-define=USE_HYBRID_FALLBACK=true \
+              --dart-define=HYBRID=true \
+              --dart-define=API_BASE_URL=https://eva.nexacode.dev/api/v1
             cp build/app/outputs/flutter-apk/app-release.apk "$GITHUB_WORKSPACE/eva-counselor-mobile-release.apk"
           fi
 
@@ -103,10 +111,18 @@ jobs:
           cd apps/eva_mobile
           flutter pub get
           if [ "$BUILD_TYPE" = "debug" ]; then
-            flutter build apk --debug --android-skip-build-dependency-validation
+            flutter build apk --debug --android-skip-build-dependency-validation \
+              --dart-define=USE_LOCAL_API=false \
+              --dart-define=USE_HYBRID_FALLBACK=true \
+              --dart-define=HYBRID=true \
+              --dart-define=API_BASE_URL=https://eva.nexacode.dev/api/v1
             cp build/app/outputs/flutter-apk/app-debug.apk "$GITHUB_WORKSPACE/eva-mobile-debug.apk"
           else
-            flutter build apk --release --android-skip-build-dependency-validation
+            flutter build apk --release --android-skip-build-dependency-validation \
+              --dart-define=USE_LOCAL_API=false \
+              --dart-define=USE_HYBRID_FALLBACK=true \
+              --dart-define=HYBRID=true \
+              --dart-define=API_BASE_URL=https://eva.nexacode.dev/api/v1
             cp build/app/outputs/flutter-apk/app-release.apk "$GITHUB_WORKSPACE/eva-mobile-release.apk"
           fi
 
@@ -139,7 +155,11 @@ jobs:
           echo "Building Eva Counselor Web Release..."
           cd apps/eva_counselor_mobile
           flutter pub get
-          flutter build web --release
+          flutter build web --release \
+            --dart-define=USE_LOCAL_API=false \
+            --dart-define=USE_HYBRID_FALLBACK=true \
+            --dart-define=HYBRID=true \
+            --dart-define=API_BASE_URL=https://eva.nexacode.dev/api/v1
           cd build
           tar -czf "$GITHUB_WORKSPACE/eva-counselor-web.tar.gz" web/
           zip -r -q "$GITHUB_WORKSPACE/eva-counselor-web.zip" web/
@@ -150,7 +170,11 @@ jobs:
           echo "Building Eva Mobile Web Release..."
           cd apps/eva_mobile
           flutter pub get
-          flutter build web --release
+          flutter build web --release \
+            --dart-define=USE_LOCAL_API=false \
+            --dart-define=USE_HYBRID_FALLBACK=true \
+            --dart-define=HYBRID=true \
+            --dart-define=API_BASE_URL=https://eva.nexacode.dev/api/v1
           cd build
           tar -czf "$GITHUB_WORKSPACE/eva-mobile-web.tar.gz" web/
           zip -r -q "$GITHUB_WORKSPACE/eva-mobile-web.zip" web/

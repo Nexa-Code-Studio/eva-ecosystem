@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "id.eva.counselor"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
