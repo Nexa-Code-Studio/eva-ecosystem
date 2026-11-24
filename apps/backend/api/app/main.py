@@ -14,6 +14,10 @@ from app.api.routes.auth import router as auth_router
 from app.api.routes.call import router as call_router
 from app.api.routes.care import router as care_router
 from app.api.routes.coins import router as coins_router
+from app.api.routes.content import (
+    admin_router as content_admin_router,
+    public_router as content_public_router,
+)
 from app.api.routes.conversations import router as conversations_router
 from app.api.routes.counselor import router as counselor_router
 from app.api.routes.dass import router as dass_router
@@ -79,6 +83,8 @@ app.include_router(admin_coins_router, prefix="/api/v1")
 app.include_router(coins_router, prefix="/api/v1")
 app.include_router(admin_counselors_router, prefix="/api/v1")
 app.include_router(admin_sessions_router, prefix="/api/v1")
+app.include_router(content_public_router, prefix="/api/v1")
+app.include_router(content_admin_router, prefix="/api/v1")
 
 
 @app.get("/")

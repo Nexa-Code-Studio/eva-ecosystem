@@ -206,6 +206,7 @@ export interface FaqEntry {
   question: string
   answer: string
   isPublished: boolean
+  sortOrder?: number
 }
 
 export interface PortalSession {

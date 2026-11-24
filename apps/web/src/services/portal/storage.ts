@@ -24,6 +24,10 @@ export function isDevToolsEnabled(): boolean {
   return APP_CONFIG.enableDevTools
 }
 
+export function isQuickLoginEnabled(): boolean {
+  return APP_CONFIG.enableQuickLogin
+}
+
 export function loadPortalDb(): PortalDatabase {
   return activeDataSource.loadSnapshot()
 }

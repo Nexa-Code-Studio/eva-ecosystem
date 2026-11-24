@@ -5,6 +5,8 @@ import type {
   BackendCoinEconomyConfigDto,
   BackendCoinPackageDto,
   BackendCoinTransactionDto,
+  BackendCrisisConfigDto,
+  BackendFaqEntryDto,
   BackendPricingConfigResponseDto,
   BackendPsychologistProfileResponseDto,
   RegisterPsychologistRequestDto,
@@ -17,6 +19,8 @@ import type {
   CoinTransactionStatus,
   ConsultationSessionMonitoring,
   ConsultationSessionStatus,
+  CrisisConfig,
+  FaqEntry,
   GeneralAppUser,
   PlatformPricingConfig,
   PricingCalculation,
@@ -283,5 +287,28 @@ export function mapBackendAdminSessionToDomain(
     counselorEarningCoins: dto.counselor_earning_coins,
     platformFeeCoins: dto.platform_fee_coins,
     clinicalSummary: dto.clinical_summary ?? undefined,
+  }
+}
+
+export function mapBackendCrisisConfigToDomain(dto: BackendCrisisConfigDto): CrisisConfig {
+  return {
+    hotlineNumber: dto.hotline_number,
+    hotlineLabel: dto.hotline_label,
+    extremeDepressionThreshold: dto.extreme_depression_threshold,
+    extremeAnxietyThreshold: dto.extreme_anxiety_threshold,
+    autoSafetyNetModal: dto.auto_safety_net_modal,
+    allowDirectIndependentReferral: dto.allow_direct_independent_referral,
+    updatedAt: dto.updated_at.slice(0, 10),
+  }
+}
+
+export function mapBackendFaqToDomain(dto: BackendFaqEntryDto): FaqEntry {
+  return {
+    id: dto.id,
+    category: dto.category,
+    question: dto.question,
+    answer: dto.answer,
+    isPublished: dto.is_published,
+    sortOrder: dto.sort_order,
   }
 }

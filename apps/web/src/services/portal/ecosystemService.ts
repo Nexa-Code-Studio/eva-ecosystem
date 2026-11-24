@@ -2,7 +2,11 @@ import { getActivePortalDataSource, loadPortalDb, savePortalDb } from './storage
 import type {
   AdminCoinTopupRequestDto,
   AdminCoinTopupResultDto,
+  CreateFaqRequestDto,
+  PublicFaqsResultDto,
   UpdateCoinEconomyConfigRequestDto,
+  UpdateCrisisConfigRequestDto,
+  UpdateFaqRequestDto,
   UpsertCoinPackageRequestDto,
 } from '@/types/api/contracts'
 import type {
@@ -60,15 +64,14 @@ export function deleteCopingQuest(id: string) {
   savePortalDb(db)
 }
 
-export function updateCrisisConfig(updates: Partial<CrisisConfig>) {
-  const db = loadPortalDb()
-  const today = new Date().toISOString().slice(0, 10)
-  db.crisisConfig = {
-    ...db.crisisConfig,
-    ...updates,
-    updatedAt: today,
-  }
-  savePortalDb(db)
+export async function fetchCrisisConfig(): Promise<CrisisConfig> {
+  return getActivePortalDataSource().fetchCrisisConfig()
+}
+
+export async function updateCrisisConfig(
+  updates: UpdateCrisisConfigRequestDto,
+): Promise<CrisisConfig> {
+  return getActivePortalDataSource().updateCrisisConfig(updates)
 }
 
 export function addWaitlistEntry(contactInput: string, topicInput?: string | null): WaitlistEntry {
@@ -97,30 +100,31 @@ export function updateWaitlistStatus(id: string, status: WaitlistEntry['status']
   savePortalDb(db)
 }
 
-export function addFaqEntry(input: Omit<FaqEntry, 'id' | 'isPublished'>): FaqEntry {
-  const db = loadPortalDb()
-  const created: FaqEntry = {
-    ...input,
-    id: `faq-${Date.now()}`,
-    isPublished: true,
-  }
-  db.faqs.push(created)
-  savePortalDb(db)
-  return created
+export async function fetchPublicFaqs(): Promise<PublicFaqsResultDto> {
+  return getActivePortalDataSource().fetchPublicFaqs()
 }
 
-export function toggleFaqPublished(id: string) {
-  const db = loadPortalDb()
-  const idx = db.faqs.findIndex((f) => f.id === id)
-  if (idx === -1) return
-  db.faqs[idx] = { ...db.faqs[idx], isPublished: !db.faqs[idx].isPublished }
-  savePortalDb(db)
+export async function fetchAdminFaqs(): Promise<FaqEntry[]> {
+  return getActivePortalDataSource().fetchAdminFaqs()
 }
 
-export function deleteFaqEntry(id: string) {
-  const db = loadPortalDb()
-  db.faqs = db.faqs.filter((f) => f.id !== id)
-  savePortalDb(db)
+export async function addFaqEntry(input: CreateFaqRequestDto): Promise<FaqEntry> {
+  return getActivePortalDataSource().createFaqEntry(input)
+}
+
+export async function updateFaqEntry(
+  id: string,
+  input: UpdateFaqRequestDto,
+): Promise<FaqEntry> {
+  return getActivePortalDataSource().updateFaqEntry(id, input)
+}
+
+export async function toggleFaqPublished(id: string): Promise<FaqEntry> {
+  return getActivePortalDataSource().toggleFaqPublished(id)
+}
+
+export async function deleteFaqEntry(id: string): Promise<void> {
+  return getActivePortalDataSource().deleteFaqEntry(id)
 }
 
 export function adjustUserCoinBalance(userId: string, deltaCoins: number, reason: string) {

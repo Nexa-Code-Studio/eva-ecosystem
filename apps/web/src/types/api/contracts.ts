@@ -131,7 +131,7 @@ export type CreateCopingQuestRequestDto = Omit<
   'id' | 'completionCount' | 'isActive'
 >
 
-export type UpdateCrisisConfigRequestDto = Partial<CrisisConfig>
+export type UpdateCrisisConfigRequestDto = Partial<Omit<CrisisConfig, 'updatedAt'>>
 
 export interface CreateWaitlistRequestDto {
   contact: string
@@ -143,7 +143,26 @@ export interface UpdateWaitlistStatusRequestDto {
   status: WaitlistEntry['status']
 }
 
-export type CreateFaqRequestDto = Omit<FaqEntry, 'id' | 'isPublished'>
+export interface CreateFaqRequestDto {
+  category: string
+  question: string
+  answer: string
+  sortOrder?: number
+  isPublished?: boolean
+}
+
+export interface UpdateFaqRequestDto {
+  category: string
+  question: string
+  answer: string
+  sortOrder?: number
+  isPublished?: boolean
+}
+
+export interface PublicFaqsResultDto {
+  items: FaqEntry[]
+  fromServer: boolean
+}
 
 export interface AdjustUserCoinBalanceRequestDto {
   userId: string
@@ -227,6 +246,27 @@ export interface BackendCoinPackageDto {
 export interface BackendCoinEconomyConfigDto {
   base_price_per_coin_idr: number
   free_trial_coins_new_user: number
+  updated_at: string
+}
+
+export interface BackendCrisisConfigDto {
+  hotline_number: string
+  hotline_label: string
+  extreme_depression_threshold: number
+  extreme_anxiety_threshold: number
+  auto_safety_net_modal: boolean
+  allow_direct_independent_referral: boolean
+  updated_at: string
+}
+
+export interface BackendFaqEntryDto {
+  id: string
+  category: string
+  question: string
+  answer: string
+  is_published: boolean
+  sort_order: number
+  created_at: string
   updated_at: string
 }
 

@@ -24,6 +24,7 @@ import {
 import {
   fetchAdminPsychologists,
   fetchConsultationSessions,
+  fetchCrisisConfig,
   resetPortalDbToDefault,
   setPortalSession,
   usePortalDb,
@@ -51,6 +52,7 @@ export function AdminDashboardPage() {
     }
     void fetchAdminPsychologists()
     void fetchConsultationSessions()
+    void fetchCrisisConfig()
   }, [navigate, sessionRole, sessionToken])
 
   const counts = useMemo<AdminSummaryCounts>(() => {
