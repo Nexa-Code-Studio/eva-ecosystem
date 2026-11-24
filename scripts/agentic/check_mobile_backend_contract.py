@@ -81,9 +81,10 @@ def scan_mobile_api_calls(mobile_lib: Path) -> Dict[str, Any]:
 
             # WebSocket calls
             for match in ws_pattern.finditer(content):
+                raw_ws_path = match.group(1).split("?")[0]
                 ws_calls.append({
                     "protocol": "WebSocket",
-                    "path": match.group(1),
+                    "path": raw_ws_path,
                     "file": str(rel_path),
                 })
 
@@ -149,6 +150,8 @@ def scan_backend_routes(backend_app: Path) -> List[Dict[str, Any]]:
 
 def normalize_path(path: str) -> str:
     """Normalize variable placeholders in paths for fuzzy contract matching."""
+    # Strip query parameters if present
+    path = path.split("?")[0]
     # Replace $id, {id}, {contact_id}, {session_id} with wildcard {*}
     p = re.sub(r"\{[^}]+\}", "{*}", path)
     p = re.sub(r"\$[a-zA-Z0-9_]+", "{*}", p)

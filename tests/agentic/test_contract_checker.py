@@ -27,6 +27,7 @@ class TestMobileBackendContractChecker(unittest.TestCase):
         self.assertEqual(normalize_path("/users/emergency-contacts/$id"), "/users/emergency-contacts/{*}")
         self.assertEqual(normalize_path("/diaries/{diary_id}"), "/diaries/{*}")
         self.assertEqual(normalize_path("/conversations/$conversationId/messages"), "/conversations/{*}/messages")
+        self.assertEqual(normalize_path("/call/ws/$sessionId?token=$token&privacy_mode=local_private"), "/call/ws/{*}")
 
     def test_parity_audit_execution(self):
         results = run_parity_audit(self.repo_root)
@@ -46,10 +47,17 @@ class TestMobileBackendContractChecker(unittest.TestCase):
         self.assertIn("/dass/today", connected_paths)
         self.assertIn("/recommendations/today", connected_paths)
 
-        # Verify care endpoints are recognized as missing in backend
+        # Verify core and care endpoints are recognized as connected
+        connected_paths = [c["mobile_path"] for c in results["connected"]]
+        self.assertIn("/auth/login", connected_paths)
+        self.assertIn("/dass/today", connected_paths)
+        self.assertIn("/recommendations/today", connected_paths)
+        self.assertIn("/care/psychologists", connected_paths)
+
+        # Verify unlinked endpoints are recognized as missing in backend
         missing_paths = [m["mobile_path"] for m in results["missing_in_backend"]]
-        self.assertIn("/care/psychologists", missing_paths)
-        self.assertIn("/care/book", missing_paths)
+        self.assertIn("/community/status", missing_paths)
+        self.assertIn("/community/join", missing_paths)
 
 
 if __name__ == "__main__":
