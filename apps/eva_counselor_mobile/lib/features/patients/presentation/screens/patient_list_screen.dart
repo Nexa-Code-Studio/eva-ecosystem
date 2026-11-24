@@ -181,15 +181,49 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text(
-                                              '${p.name} • ${p.gender}',
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
-                                              overflow: TextOverflow.ellipsis,
+                                            Row(
+                                              children: [
+                                                Flexible(
+                                                  child: Text(
+                                                    '${p.name} • ${p.gender}',
+                                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                if (p.upcomingSchedule != null) ...[
+                                                  const SizedBox(width: 8),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: AppColors.primaryContainer,
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                    child: const Text(
+                                                      'Terjadwal',
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: AppColors.primary,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
-                                              '${p.totalCompletedSessions} Sesi Selesai • ${p.age} thn',
-                                              style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                                              p.upcomingSchedule != null
+                                                  ? (p.upcomingSchedule!.timeRange.isNotEmpty
+                                                      ? 'Jadwal: ${p.upcomingSchedule!.timeRange}${p.totalCompletedSessions > 0 ? " (${p.totalCompletedSessions} sesi lalu)" : ""} • ${p.age} thn'
+                                                      : 'Jadwal Hari Ini${p.totalCompletedSessions > 0 ? " (${p.totalCompletedSessions} sesi lalu)" : ""} • ${p.age} thn')
+                                                  : (p.totalCompletedSessions > 0
+                                                      ? '${p.totalCompletedSessions} Sesi Selesai • ${p.age} thn'
+                                                      : 'Pasien Baru • ${p.age} thn'),
+                                              style: TextStyle(
+                                                fontSize: 11.5,
+                                                fontWeight: p.upcomingSchedule != null ? FontWeight.w600 : FontWeight.normal,
+                                                color: p.upcomingSchedule != null ? AppColors.primary : AppColors.textSecondary,
+                                              ),
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           ],

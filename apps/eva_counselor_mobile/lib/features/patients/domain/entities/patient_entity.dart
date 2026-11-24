@@ -42,6 +42,7 @@ class PatientScheduleInfo {
   final String roomOpensAt; // e.g. '09:45 WIB'
   final String statusText; // e.g. 'Mulai dalam 15 Mnt', 'Menunggu Waktu Sesi'
   final String? sessionId;
+  final bool isCompleted;
 
   const PatientScheduleInfo({
     required this.formattedTime,
@@ -51,6 +52,7 @@ class PatientScheduleInfo {
     required this.roomOpensAt,
     required this.statusText,
     this.sessionId,
+    this.isCompleted = false,
   });
 }
 
