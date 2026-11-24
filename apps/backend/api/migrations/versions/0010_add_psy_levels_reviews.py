@@ -14,10 +14,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "0010_add_psy_levels_reviews"
-down_revision: str | tuple[str, ...] | None = (
-    "0009_add_psy_certificates",
-    "0009_counselor_schedule_config",
-)
+down_revision: str | tuple[str, ...] | None = ("0009_add_psy_certificates", "0009_counselor_schedule_config")
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
