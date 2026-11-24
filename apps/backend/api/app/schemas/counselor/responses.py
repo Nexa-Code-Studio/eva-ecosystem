@@ -111,3 +111,52 @@ class CounselorTimelineResponse(BaseModel):
     buffer_time_minutes: int
     blocked_ranges: list[BlockedRangeItem] = []
     available_windows: list[TimeRangeItem] = []
+
+
+class NextLevelTargetResponse(BaseModel):
+    level_tier: int
+    level_name: str
+    badge_icon: str
+    target_sessions: int
+    target_rating: float
+    target_hours: float
+    sessions_remaining: int
+    hours_remaining: float
+    rating_achieved: bool
+
+
+class CounselorLevelMetricsResponse(BaseModel):
+    counselor_id: str
+    level_tier: int
+    level_name: str
+    badge_icon: str
+    total_completed_sessions: int
+    total_consultation_hours: float
+    average_rating: float
+    rating_count: int
+    active_session_price: float
+    platform_fee_percentage: float
+    allow_custom_price: bool
+    custom_price_per_session: float | None = None
+    min_custom_price: float | None = None
+    max_custom_price: float | None = None
+    next_level: NextLevelTargetResponse | None = None
+
+
+class CounselorReviewItemResponse(BaseModel):
+    id: str
+    session_id: str
+    patient_name: str
+    rating: float
+    label: str | None = None
+    review_text: str | None = None
+    is_anonymous: bool = True
+    created_at: datetime
+
+
+class CounselorReviewsListResponse(BaseModel):
+    counselor_id: str
+    items: list[CounselorReviewItemResponse] = []
+    total: int = 0
+    average_rating: float = 5.0
+

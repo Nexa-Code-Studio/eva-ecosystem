@@ -6,6 +6,7 @@ import '../../../../core/widgets/top_toast.dart';
 import '../../../auth/domain/entities/psychologist_user_entity.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../dashboard/presentation/screens/counselor_main_shell_screen.dart';
+import '../providers/counselor_level_metrics_provider.dart';
 import '../widgets/counselor_bank_account_modal.dart';
 import '../widgets/counselor_certificates_modal.dart';
 import '../widgets/counselor_edit_profile_modal.dart';
@@ -124,9 +125,16 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(counselorLevelMetricsProvider);
+            ref.invalidate(authStateProvider);
+            await ref.read(counselorLevelMetricsProvider.future);
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Profile Banner Card
@@ -302,8 +310,9 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Future<void> _confirmLogout() async {
     final shouldLogout = await showDialog<bool>(

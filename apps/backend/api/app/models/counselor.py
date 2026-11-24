@@ -125,9 +125,33 @@ class PsychologistProfile(BaseModel):
         server_default="0.00",
     )
 
+    # Leveling, Reputation & Dynamic Pricing
+    current_level_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("psychologist_levels.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    custom_price_per_session: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    total_completed_sessions: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    total_consultation_hours: Mapped[Decimal] = mapped_column(
+        Numeric(6, 1),
+        nullable=False,
+        default=Decimal("0.0"),
+        server_default="0.0",
+    )
+    average_rating: Mapped[Decimal] = mapped_column(
+        Numeric(3, 2),
+        nullable=False,
+        default=Decimal("5.00"),
+        server_default="5.00",
+    )
+    rating_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+
     # Relationships
     user: Mapped["User"] = orm_relationship("User", foreign_keys=[user_id])
     verified_by: Mapped["User | None"] = orm_relationship("User", foreign_keys=[verified_by_user_id])
+    level: Mapped["PsychologistLevel | None"] = orm_relationship("PsychologistLevel", back_populates="psychologists")
     sessions: Mapped[list["ConsultationSession"]] = orm_relationship(
         "ConsultationSession",
         back_populates="counselor",
@@ -138,6 +162,71 @@ class PsychologistProfile(BaseModel):
         back_populates="counselor",
         cascade="all, delete-orphan",
     )
+    reviews: Mapped[list["CounselorReview"]] = orm_relationship(
+        "CounselorReview",
+        back_populates="counselor",
+        cascade="all, delete-orphan",
+    )
+
+
+class PsychologistLevel(BaseModel):
+    """Dynamic leveling tier for psychologists configurable via Web Admin."""
+
+    __tablename__ = "psychologist_levels"
+
+    level_tier: Mapped[int] = mapped_column(Integer, nullable=False, unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    badge_icon: Mapped[str] = mapped_column(String(100), nullable=False, default="verified")
+    min_completed_sessions: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    min_average_rating: Mapped[Decimal] = mapped_column(Numeric(3, 2), nullable=False, default=Decimal("0.00"))
+    min_consultation_hours: Mapped[Decimal] = mapped_column(Numeric(6, 1), nullable=False, default=Decimal("0.0"))
+    min_review_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    default_session_price: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, default=Decimal("50000.00"))
+    platform_fee_percentage: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False, default=Decimal("20.00"))
+    allow_custom_price: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    min_custom_price: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    max_custom_price: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    psychologists: Mapped[list["PsychologistProfile"]] = orm_relationship(
+        "PsychologistProfile",
+        back_populates="level",
+    )
+
+
+class CounselorReview(BaseModel):
+    """Patient rating and review per completed consultation session."""
+
+    __tablename__ = "counselor_reviews"
+
+    session_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("consultation_sessions.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    counselor_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("psychologist_profiles.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    patient_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    rating: Mapped[Decimal] = mapped_column(Numeric(2, 1), nullable=False)
+    label: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    review_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_anonymous: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    # Relationships
+    counselor: Mapped["PsychologistProfile"] = orm_relationship("PsychologistProfile", back_populates="reviews")
+    session: Mapped["ConsultationSession"] = orm_relationship("ConsultationSession")
+    patient: Mapped["User"] = orm_relationship("User")
 
 
 class PlatformPricingConfig(BaseModel):

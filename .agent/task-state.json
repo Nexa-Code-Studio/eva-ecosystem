@@ -137,5 +137,20 @@
     "updated_at": 1795432369,
     "evidence_summary": "Evidence accepted: PR and test verification documented.",
     "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/109"
+  },
+  "101": {
+    "issue": 101,
+    "branch": "main",
+    "state": "Done",
+    "updated_at": 1795530996,
+    "evidence_summary": "Evidence accepted: completion and merge/approval verified.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/119"
+  },
+  "121": {
+    "issue": 121,
+    "branch": "feat/121-counselor-leveling-and-reviews",
+    "state": "In Progress",
+    "updated_at": 1795531473,
+    "evidence_summary": "Evidence accepted: active task branch verified."
   }
 }

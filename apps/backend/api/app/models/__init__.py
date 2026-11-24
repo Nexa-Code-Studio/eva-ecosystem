@@ -36,9 +36,11 @@ from app.models.enums import (
 )
 from app.models.counselor import (
     ConsultationSession,
+    CounselorReview,
     CounselorTransaction,
     PatientConsent,
     PlatformPricingConfig,
+    PsychologistLevel,
     PsychologistProfile,
 )
 from app.models.dass import DASSAssessment

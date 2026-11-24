@@ -1,24 +1,30 @@
 import logging
+from decimal import Decimal
 from typing import Literal
 import uuid
 from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
-from sqlalchemy import case, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.security import hash_password
-from app.models.counselor import PsychologistProfile
+from app.models.counselor import ConsultationSession, CounselorReview, PsychologistLevel, PsychologistProfile
 from app.models.enums import PsychologistVerificationStatus
 from app.models.user import User
 from app.schemas.counselor import (
+    CounselorLevelMetricsResponse,
+    CounselorReviewItemResponse,
+    CounselorReviewsListResponse,
+    NextLevelTargetResponse,
     PsychologistProfileResponse,
     PsychologistPublicResponse,
     PsychologistVerificationResponse,
     RegisterPsychologistRequest,
     ResubmitVerificationRequest,
     ScheduleConfigResponse,
+    SubmitSessionReviewRequest,
     UpdateBankDetailsRequest,
     UpdateCounselorStatusRequest,
     UpdatePsychologistProfileRequest,
@@ -586,4 +592,277 @@ class CounselorService:
             counselor_id=str(profile.id),
             buffer_time_minutes=profile.buffer_time_minutes,
             schedule_config=profile.schedule_config,
+        )
+
+    async def _get_or_evaluate_level(self, profile: PsychologistProfile) -> tuple[PsychologistLevel, PsychologistLevel | None]:
+        """Evaluate and retrieve active level and next tier target based on dynamic database rules."""
+        levels_query = select(PsychologistLevel).where(PsychologistLevel.is_active == True).order_by(PsychologistLevel.level_tier.asc())
+        levels_res = await self.db.execute(levels_query)
+        all_levels = list(levels_res.scalars().all())
+
+        if not all_levels:
+            # Fallback level if none configured in DB
+            fallback = PsychologistLevel(
+                level_tier=1,
+                name="Junior Practitioner",
+                badge_icon="shield",
+                min_completed_sessions=0,
+                min_average_rating=Decimal("0.00"),
+                min_consultation_hours=Decimal("0.0"),
+                min_review_count=0,
+                default_session_price=Decimal("50000.00"),
+                platform_fee_percentage=Decimal("20.00"),
+                allow_custom_price=False,
+                is_active=True,
+            )
+            self.db.add(fallback)
+            await self.db.flush()
+            all_levels = [fallback]
+
+        # Determine highest qualified level
+        assigned_level = all_levels[0]
+        for lvl in all_levels:
+            if (
+                profile.total_completed_sessions >= lvl.min_completed_sessions
+                and profile.average_rating >= lvl.min_average_rating
+                and profile.total_consultation_hours >= lvl.min_consultation_hours
+                and profile.rating_count >= lvl.min_review_count
+            ):
+                assigned_level = lvl
+
+        if profile.current_level_id != assigned_level.id:
+            profile.current_level_id = assigned_level.id
+            await self.db.flush()
+
+        # Find next target level
+        next_level = None
+        for lvl in all_levels:
+            if lvl.level_tier == assigned_level.level_tier + 1:
+                next_level = lvl
+                break
+
+        return assigned_level, next_level
+
+    async def get_level_metrics(self, user_id: uuid.UUID) -> CounselorLevelMetricsResponse:
+        """Retrieve real-time gamification level, reputation metrics, and dynamic pricing."""
+        query = select(PsychologistProfile).where(PsychologistProfile.user_id == user_id)
+        res = await self.db.execute(query)
+        profile = res.scalar_one_or_none()
+        if not profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Profil psikolog tidak ditemukan.",
+            )
+
+        current_level, next_level = await self._get_or_evaluate_level(profile)
+
+        # Build next level target response
+        next_target = None
+        if next_level:
+            target_sessions = next_level.min_completed_sessions
+            target_rating = float(next_level.min_average_rating)
+            target_hours = float(next_level.min_consultation_hours)
+            sessions_remaining = max(0, target_sessions - profile.total_completed_sessions)
+            hours_remaining = max(0.0, target_hours - float(profile.total_consultation_hours))
+            rating_achieved = float(profile.average_rating) >= target_rating
+
+            next_target = NextLevelTargetResponse(
+                level_tier=next_level.level_tier,
+                level_name=next_level.name,
+                badge_icon=next_level.badge_icon,
+                target_sessions=target_sessions,
+                target_rating=target_rating,
+                target_hours=target_hours,
+                sessions_remaining=sessions_remaining,
+                hours_remaining=hours_remaining,
+                rating_achieved=rating_achieved,
+            )
+
+        active_price = (
+            float(profile.custom_price_per_session)
+            if current_level.allow_custom_price and profile.custom_price_per_session is not None
+            else float(current_level.default_session_price)
+        )
+
+        return CounselorLevelMetricsResponse(
+            counselor_id=str(profile.id),
+            level_tier=current_level.level_tier,
+            level_name=current_level.name,
+            badge_icon=current_level.badge_icon,
+            total_completed_sessions=profile.total_completed_sessions,
+            total_consultation_hours=float(profile.total_consultation_hours),
+            average_rating=float(profile.average_rating),
+            rating_count=profile.rating_count,
+            active_session_price=active_price,
+            platform_fee_percentage=float(current_level.platform_fee_percentage),
+            allow_custom_price=current_level.allow_custom_price,
+            custom_price_per_session=float(profile.custom_price_per_session) if profile.custom_price_per_session is not None else None,
+            min_custom_price=float(current_level.min_custom_price) if current_level.min_custom_price is not None else None,
+            max_custom_price=float(current_level.max_custom_price) if current_level.max_custom_price is not None else None,
+            next_level=next_target,
+        )
+
+    async def update_pricing(self, user_id: uuid.UUID, custom_price: float) -> CounselorLevelMetricsResponse:
+        """Set psychologist custom session fee if allowed by current level tier."""
+        query = select(PsychologistProfile).where(PsychologistProfile.user_id == user_id)
+        res = await self.db.execute(query)
+        profile = res.scalar_one_or_none()
+        if not profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Profil psikolog tidak ditemukan.",
+            )
+
+        current_level, _ = await self._get_or_evaluate_level(profile)
+
+        if not current_level.allow_custom_price:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Tingkat level Anda saat ini ({current_level.name}) belum memenuhi syarat untuk mengatur tarif mandiri. Tingkatkan rating dan jam terbang Anda untuk membuka tier Master.",
+            )
+
+        if current_level.min_custom_price and custom_price < float(current_level.min_custom_price):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Tarif minimal untuk tier {current_level.name} adalah Rp{float(current_level.min_custom_price):,.0f}.",
+            )
+
+        if current_level.max_custom_price and custom_price > float(current_level.max_custom_price):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Tarif maksimal untuk tier {current_level.name} adalah Rp{float(current_level.max_custom_price):,.0f}.",
+            )
+
+        profile.custom_price_per_session = Decimal(str(custom_price))
+        await self.db.commit()
+        await self.db.refresh(profile)
+
+        return await self.get_level_metrics(user_id)
+
+    async def get_my_reviews(self, user_id: uuid.UUID) -> CounselorReviewsListResponse:
+        """Get reviews for currently authenticated counselor."""
+        query = select(PsychologistProfile).where(PsychologistProfile.user_id == user_id)
+        res = await self.db.execute(query)
+        profile = res.scalar_one_or_none()
+        if not profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Profil psikolog tidak ditemukan.",
+            )
+        return await self.get_reviews(profile.id)
+
+    async def get_reviews(self, counselor_id: uuid.UUID) -> CounselorReviewsListResponse:
+        """Fetch all verified patient reviews for a psychologist, sorted by latest."""
+        query = (
+            select(CounselorReview)
+            .where(CounselorReview.counselor_id == counselor_id)
+            .options(selectinload(CounselorReview.patient))
+            .order_by(CounselorReview.created_at.desc())
+        )
+        res = await self.db.execute(query)
+        reviews = list(res.scalars().all())
+
+        items = []
+        for r in reviews:
+            p_name = "Pasien Terverifikasi (Anonim)"
+            if not r.is_anonymous and r.patient and r.patient.display_name:
+                p_name = r.patient.display_name
+            items.append(
+                CounselorReviewItemResponse(
+                    id=str(r.id),
+                    session_id=str(r.session_id),
+                    patient_name=p_name,
+                    rating=float(r.rating),
+                    label=r.label,
+                    review_text=r.review_text,
+                    is_anonymous=r.is_anonymous,
+                    created_at=r.created_at,
+                )
+            )
+
+        # Calculate average rating
+        avg_rating = sum(float(r.rating) for r in reviews) / len(reviews) if reviews else 5.0
+
+        return CounselorReviewsListResponse(
+            counselor_id=str(counselor_id),
+            items=items,
+            total=len(items),
+            average_rating=round(avg_rating, 2),
+        )
+
+    async def submit_review(
+        self, session_id: uuid.UUID, patient_id: uuid.UUID, payload: SubmitSessionReviewRequest
+    ) -> CounselorReviewItemResponse:
+        """Submit a rating and review for a specific consultation session."""
+        session_query = select(ConsultationSession).where(ConsultationSession.id == session_id)
+        session_res = await self.db.execute(session_query)
+        session = session_res.scalar_one_or_none()
+        if not session:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Sesi konsultasi tidak ditemukan.",
+            )
+
+        if session.patient_id != patient_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Anda tidak memiliki akses untuk mengulas sesi konsultasi ini.",
+            )
+
+        # Check existing review for this session (1 review per session invariant)
+        existing_query = select(CounselorReview).where(CounselorReview.session_id == session_id)
+        existing_res = await self.db.execute(existing_query)
+        if existing_res.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Ulasan untuk sesi konsultasi ini sudah pernah dikirimkan.",
+            )
+
+        review = CounselorReview(
+            session_id=session_id,
+            counselor_id=session.counselor_id,
+            patient_id=patient_id,
+            rating=Decimal(str(payload.rating)),
+            label=payload.label,
+            review_text=payload.review_text,
+            is_anonymous=payload.is_anonymous,
+        )
+        self.db.add(review)
+        await self.db.flush()
+
+        # Update counselor profile rating aggregates
+        profile_query = select(PsychologistProfile).where(PsychologistProfile.id == session.counselor_id)
+        profile_res = await self.db.execute(profile_query)
+        profile = profile_res.scalar_one_or_none()
+        if profile:
+            # Recompute average rating from all reviews
+            avg_q = select(func.avg(CounselorReview.rating), func.count(CounselorReview.id)).where(
+                CounselorReview.counselor_id == profile.id
+            )
+            avg_res = await self.db.execute(avg_q)
+            avg_val, count_val = avg_res.one()
+            profile.average_rating = Decimal(str(round(avg_val or 5.0, 2)))
+            profile.rating_count = count_val or 0
+            await self._get_or_evaluate_level(profile)
+
+        await self.db.commit()
+        await self.db.refresh(review)
+
+        p_name = "Pasien Terverifikasi (Anonim)"
+        if not payload.is_anonymous:
+            u_query = select(User).where(User.id == patient_id)
+            u_res = await self.db.execute(u_query)
+            user_obj = u_res.scalar_one_or_none()
+            if user_obj and user_obj.display_name:
+                p_name = user_obj.display_name
+
+        return CounselorReviewItemResponse(
+            id=str(review.id),
+            session_id=str(review.session_id),
+            patient_name=p_name,
+            rating=float(review.rating),
+            label=review.label,
+            review_text=review.review_text,
+            is_anonymous=review.is_anonymous,
+            created_at=review.created_at,
         )
