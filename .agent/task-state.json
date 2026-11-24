@@ -167,5 +167,12 @@
     "state": "In Progress",
     "updated_at": 1795536901,
     "evidence_summary": "Evidence accepted: active task branch verified."
+  },
+  "125": {
+    "issue": 125,
+    "branch": "feat/125-counselor-certificates-integration",
+    "state": "In Progress",
+    "updated_at": 1795554004,
+    "evidence_summary": "Evidence accepted: active task branch verified."
   }
 }

@@ -47,6 +47,10 @@ class ApiEndpoints {
   static String endSession(String id) => '/sessions/$id/end';
   static String sessionSignaling(String id) => '/sessions/$id/signal';
 
+  // Certificates
+  static const String counselorCertificates = '/counselor/certificates';
+  static String downloadCertificatePdf(String id) => '/counselor/certificates/$id/download';
+
   // Financials & Transactions
   static const String financialSummary = '/finances/summary';
   static const String transactions = '/finances/transactions';
