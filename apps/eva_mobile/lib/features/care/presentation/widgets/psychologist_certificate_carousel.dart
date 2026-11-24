@@ -398,19 +398,6 @@ class _PsychologistCertificateCarouselState
                           ),
                         ),
                       ),
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          color: const Color(0xFFF8FAFC),
-                          child: const Center(
-                            child: SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          ),
-                        );
-                      },
                     ),
 
                     // Tap to zoom hint overlay

@@ -129,5 +129,13 @@
     "updated_at": 1795161178,
     "evidence_summary": "Evidence accepted: PR and test verification documented.",
     "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/92"
+  },
+  "102": {
+    "issue": 102,
+    "branch": "feat/102-interactive-availability-timeline-booking",
+    "state": "In Review",
+    "updated_at": 1795432369,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/109"
   }
 }

@@ -558,7 +558,7 @@ class _ConsultationRatingScreenState
           Switch(
             value: _isAnonymous,
             onChanged: (val) => setState(() => _isAnonymous = val),
-            activeColor: AppColors.primary,
+            activeThumbColor: AppColors.primary,
           ),
         ],
       ),
