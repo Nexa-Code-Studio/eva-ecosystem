@@ -11,6 +11,7 @@ from app.schemas.session import (
     ConsentStatusResponse,
     CounselorPatientResponse,
     CreateClinicalNoteRequest,
+    PatientClinicalTriggersResponse,
     RequestConsentResponse,
     UpdateConsentStatusRequest,
 )
@@ -67,6 +68,16 @@ async def get_patient_clinical_notes(
 ) -> list[ClinicalNotesResponse]:
     """Get history of verified SOAP clinical notes for a patient."""
     return await service.get_patient_clinical_notes(patient_id)
+
+
+@router.get("/{patient_id}/clinical-triggers", response_model=PatientClinicalTriggersResponse)
+async def get_patient_clinical_triggers(
+    patient_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    service: SchedulingService = Depends(get_scheduling_service),
+) -> PatientClinicalTriggersResponse:
+    """Retrieve essential clinical triggers and complaints adhering to psychological confidentiality ethics."""
+    return await service.get_patient_clinical_triggers(user.id, patient_id)
 
 
 @router.get("/{patient_id}/consent/{counselor_id}", response_model=ConsentStatusResponse)

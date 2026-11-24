@@ -15,6 +15,8 @@ class PatientResponseDto {
   final String? consentRequestedAt;
   final List<DassAssessmentDto>? dassHistory;
   final List<String>? sharedDiarySummaries;
+  final List<Map<String, dynamic>>? triggers;
+  final List<String>? clinicalPoints;
   final PatientScheduleDto? upcomingSchedule;
 
   const PatientResponseDto({
@@ -32,6 +34,8 @@ class PatientResponseDto {
     this.consentRequestedAt,
     this.dassHistory,
     this.sharedDiarySummaries,
+    this.triggers,
+    this.clinicalPoints,
     this.upcomingSchedule,
   });
 
@@ -56,6 +60,12 @@ class PatientResponseDto {
       sharedDiarySummaries: (json['shared_diary_summaries'] as List<dynamic>?)
           ?.map((e) => e.toString())
           .toList(),
+      triggers: (json['triggers'] as List<dynamic>?)
+          ?.map((t) => Map<String, dynamic>.from(t as Map))
+          .toList(),
+      clinicalPoints: (json['clinical_points'] as List<dynamic>?)
+          ?.map((p) => p.toString())
+          .toList(),
       upcomingSchedule: json['upcoming_schedule'] != null
           ? PatientScheduleDto.fromJson(json['upcoming_schedule'] as Map<String, dynamic>)
           : null,
@@ -77,6 +87,8 @@ class PatientResponseDto {
         'consent_requested_at': consentRequestedAt,
         'dass_history': dassHistory?.map((e) => e.toJson()).toList(),
         'shared_diary_summaries': sharedDiarySummaries,
+        'triggers': triggers,
+        'clinical_points': clinicalPoints,
         'upcoming_schedule': upcomingSchedule?.toJson(),
       };
 
@@ -96,6 +108,8 @@ class PatientResponseDto {
       consentRequestedAt: consentRequestedAt,
       dassHistory: dassHistory?.map((e) => e.toEntity()).toList(),
       sharedDiarySummaries: sharedDiarySummaries,
+      triggers: triggers,
+      clinicalPoints: clinicalPoints,
       upcomingSchedule: upcomingSchedule?.toEntity(),
     );
   }

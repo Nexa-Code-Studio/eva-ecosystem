@@ -107,8 +107,14 @@ class _CounselorFullScheduleScreenState
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(patientsListProvider);
+            await ref.read(patientsListProvider.future);
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -481,10 +487,12 @@ class _CounselorFullScheduleScreenState
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Text('Error: $e'),
               ),
+              const SizedBox(height: 40),
             ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

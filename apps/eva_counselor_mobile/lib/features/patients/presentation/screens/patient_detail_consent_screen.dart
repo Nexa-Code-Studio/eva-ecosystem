@@ -32,11 +32,11 @@ class _PatientDetailConsentScreenState
   bool _isRequestingConsent = false;
   late bool _sessionUnlocked;
 
-  // Clinical Note Form (Manual - Encrypted in DB)
-  final _subjCtrl = TextEditingController();
-  final _objCtrl = TextEditingController();
-  final _assessCtrl = TextEditingController();
+  // Clinical Note Form (Manual Observational Notes - NOT Hospital SOAP)
+  final _newPointCtrl = TextEditingController();
+  final _narrativeCtrl = TextEditingController();
   final _planCtrl = TextEditingController();
+  final List<String> _clinicalPoints = [];
   bool _isSavingNote = false;
 
   @override
@@ -52,11 +52,26 @@ class _PatientDetailConsentScreenState
   @override
   void dispose() {
     ScreenSecurityHelper.disableSecureScreen();
-    _subjCtrl.dispose();
-    _objCtrl.dispose();
-    _assessCtrl.dispose();
+    _newPointCtrl.dispose();
+    _narrativeCtrl.dispose();
     _planCtrl.dispose();
     super.dispose();
+  }
+
+  void _addClinicalPoint() {
+    final text = _newPointCtrl.text.trim();
+    if (text.isNotEmpty) {
+      setState(() {
+        _clinicalPoints.add(text);
+        _newPointCtrl.clear();
+      });
+    }
+  }
+
+  void _removeClinicalPoint(int index) {
+    setState(() {
+      _clinicalPoints.removeAt(index);
+    });
   }
 
   void _handleRequestConsent() async {
@@ -77,11 +92,11 @@ class _PatientDetailConsentScreenState
   }
 
   void _handleSaveSoapNote() async {
-    if (_subjCtrl.text.isEmpty || _assessCtrl.text.isEmpty) {
+    if (_clinicalPoints.isEmpty && _narrativeCtrl.text.trim().isEmpty) {
       TopToast.show(
         context,
         title: 'Form Belum Lengkap',
-        message: 'Harap lengkapi kolom Subjective dan Assessment.',
+        message: 'Harap tambahkan minimal 1 poin observasi klinis atau narasi evaluasi.',
         type: ToastType.warning,
       );
       return;
@@ -89,14 +104,23 @@ class _PatientDetailConsentScreenState
 
     setState(() => _isSavingNote = true);
     final repo = ref.read(patientRepositoryProvider);
+    final subjFormatted = _clinicalPoints.isNotEmpty
+        ? _clinicalPoints.map((p) => '• $p').join('\n')
+        : _narrativeCtrl.text.trim();
+    final assessFormatted = _narrativeCtrl.text.trim().isNotEmpty
+        ? _narrativeCtrl.text.trim()
+        : (_clinicalPoints.isNotEmpty ? _clinicalPoints.first : 'Observasi klinis tercatat.');
+
     await repo.saveClinicalNote(
       patientId: widget.patientId,
       sessionId: widget.activeSessionId ?? 'session-manual-${DateTime.now().millisecondsSinceEpoch}',
-      subjective: _subjCtrl.text,
-      objective: _objCtrl.text.isNotEmpty ? _objCtrl.text : 'Afek tenang dan kooperatif.',
-      assessment: _assessCtrl.text,
-      plan: _planCtrl.text.isNotEmpty ? _planCtrl.text : 'Latihan relaksasi mandiri.',
-      recommendedTasks: ['Pernapasan diafragma harian', 'Journaling emosi malam'],
+      subjective: subjFormatted,
+      objective: 'Observasi klinis langsung psikolog via telekonseling.',
+      assessment: assessFormatted,
+      plan: _planCtrl.text.trim().isNotEmpty ? _planCtrl.text.trim() : 'Latihan relaksasi & psikoedukasi berkala.',
+      recommendedTasks: ['Pernapasan diafragma mandiri', 'Journaling emosi malam'],
+      points: List.from(_clinicalPoints),
+      narrative: _narrativeCtrl.text.trim(),
     );
 
     ref.invalidate(patientNotesProvider(widget.patientId));
@@ -106,9 +130,9 @@ class _PatientDetailConsentScreenState
     setState(() {
       _isSavingNote = false;
       _sessionUnlocked = false;
-      _subjCtrl.clear();
-      _objCtrl.clear();
-      _assessCtrl.clear();
+      _clinicalPoints.clear();
+      _newPointCtrl.clear();
+      _narrativeCtrl.clear();
       _planCtrl.clear();
     });
 
@@ -466,10 +490,14 @@ class _PatientDetailConsentScreenState
     );
   }
 
-  // TAB 1: GRANTED CONSENT VIEW (GATED BY ACTIVE/UPCOMING SCHEDULE)
+  // TAB 1: GRANTED CONSENT VIEW (GATED BY PATIENT STATUS OR ACTIVE SCHEDULE)
   Widget _buildConsentGrantedContent(dynamic patient) {
-    final bool hasActiveSchedule = patient.upcomingSchedule != null;
-    final bool isAccessAllowed = hasActiveSchedule || _sessionUnlocked;
+    // Sesuai kode etik & etika klinis: jika pengguna sudah menjadi pasien (memiliki consent aktif,
+    // riwayat sesi sebelumnya, atau jadwal aktif), rekam medis tidak dikunci dan selalu dapat diakses.
+    final bool isPatient = patient.hasConsent ||
+        patient.totalCompletedSessions > 0 ||
+        patient.upcomingSchedule != null;
+    final bool isAccessAllowed = isPatient || _sessionUnlocked;
 
     if (!isAccessAllowed) {
       return Container(
@@ -580,20 +608,44 @@ class _PatientDetailConsentScreenState
         const SizedBox(height: 16),
         const Row(
           children: [
-            Icon(Icons.auto_stories_rounded, size: 18, color: AppColors.primary),
+            Icon(Icons.psychology_rounded, size: 18, color: AppColors.primary),
             SizedBox(width: 6),
             Text(
-              'Riwayat Pemicu & Keluhan yang Dirangkum Eva',
+              'Riwayat Pemicu & Keluhan Klinis (Clinical Triggers)',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
             ),
           ],
         ),
         const SizedBox(height: 4),
         const Text(
-          'Rangkuman pemicu dan keluhan pasien yang dicatat serta disintesis oleh Eva dari jurnal mandiri pasien.',
+          'Daftar keluhan klinis dan pemicu emosional esensial yang dievaluasi untuk proses konseling.',
           style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
+
+        // ETHICAL PRIVACY BADGE (Kode Etik HIMPSI)
+        Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFF6FF),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFDBEAFE)),
+          ),
+          child: const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.shield_outlined, color: Color(0xFF2563EB), size: 16),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Kode Etik HIMPSI (Pasal 24 Kerahasiaan Rekam Psikologi): Data dibatasi pada pemicu klinis esensial & keluhan utama demi menjaga kerahasiaan penuh privasi pasien.',
+                  style: TextStyle(fontSize: 10.5, color: Color(0xFF1D4ED8), height: 1.4),
+                ),
+              ),
+            ],
+          ),
+        ),
 
         // Keluhan Awal Pasien
         Container(
@@ -621,7 +673,7 @@ class _PatientDetailConsentScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Keluhan Awal Pasien:',
+                      'Keluhan Utama Pasien:',
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5, color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: 2),
@@ -636,7 +688,73 @@ class _PatientDetailConsentScreenState
           ),
         ),
 
-        if (patient.sharedDiarySummaries != null)
+        // DAFTAR PEMICU & STRESOR KLINIS
+        if (patient.triggers != null && patient.triggers!.isNotEmpty)
+          ...patient.triggers!.map((t) {
+            final cat = t['category']?.toString() ?? 'Pemicu Klinis';
+            final desc = t['description']?.toString() ?? '';
+            final sev = t['severity']?.toString() ?? 'Sedang';
+            final src = t['source']?.toString() ?? 'Observasi Klinis';
+            final isHigh = sev == 'Tinggi' || sev == 'Parah';
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFECEFF8)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryContainer.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          cat,
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isHigh ? const Color(0xFFFEF2F2) : const Color(0xFFFFFBEB),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: isHigh ? const Color(0xFFFECACA) : const Color(0xFFFDE68A)),
+                        ),
+                        child: Text(
+                          sev,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: isHigh ? AppColors.highRiskRed : const Color(0xFFB45309),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    desc,
+                    style: const TextStyle(fontSize: 12, color: AppColors.textPrimary, height: 1.4),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Sumber: $src',
+                    style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            );
+          }).toList()
+        else if (patient.sharedDiarySummaries != null)
           ...patient.sharedDiarySummaries!.map((s) {
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
@@ -655,7 +773,7 @@ class _PatientDetailConsentScreenState
                       color: AppColors.primaryContainer,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.psychology_outlined, color: AppColors.primary, size: 16),
+                    child: const Icon(Icons.bolt_rounded, color: AppColors.primary, size: 16),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -672,17 +790,65 @@ class _PatientDetailConsentScreenState
     );
   }
 
-  // TAB 2: SOAP TAB CONTENT (PSIKOLOG MANDIRI: FORM SOAP LENGKAP + TRANSKRIP)
+  // TAB 2: CLINICAL OBSERVATIONAL NOTES (MANUAL - NOT HOSPITAL SOAP)
   Widget _buildSoapTabContent(dynamic patient, AsyncValue<List<dynamic>> notesAsync) {
     final schedule = patient.upcomingSchedule;
+    final bool isExistingPatient = patient.hasConsent ||
+        patient.totalCompletedSessions > 0 ||
+        schedule != null;
+    final bool canEditNotes = isExistingPatient || _sessionUnlocked;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (!_sessionUnlocked) ...[
+        // 1. VIDEO CALL STATUS / ENTRY CARD (IF ACTIVE SCHEDULE)
+        if (schedule != null) ...[
           _buildScheduleGatedSoapCard(patient, schedule),
-        ] else ...[
-          // UNLOCKED: MANUAL CLINICAL NOTE & DIAGNOSIS (NO AI TRANSCRIPT DEPENDENCY)
+          const SizedBox(height: 14),
+        ],
+
+        // 2. UNLOCKED / EDITABLE CLINICAL NOTE FORM
+        if (canEditNotes) ...[
+          // WARNING BANNER: Sesi telah selesai namun catatan klinis belum disimpan
+          if (_sessionUnlocked || patient.totalCompletedSessions > 0)
+            Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 22),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Perhatian: Catatan Medis Sesi Belum Disimpan!',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12.5,
+                            color: Color(0xFFB45309),
+                          ),
+                        ),
+                        SizedBox(height: 3),
+                        Text(
+                          'Sesuai kode etik klinis & ketentuan honorarium, koin honorarium sesi (150 Koin) akan otomatis dikreditkan ke saldo dompet Anda setelah Anda menyimpan catatan observasi ini.',
+                          style: TextStyle(fontSize: 11, color: Color(0xFF92400E), height: 1.45),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // INFO HEADER CARD
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -710,12 +876,12 @@ class _PatientDetailConsentScreenState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Catatan Medis & Diagnosa Klinis (Manual)',
+                            'Catatan Observasi Klinis Psikolog (Manual)',
                             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
                           ),
                           SizedBox(height: 2),
                           Text(
-                            'Dicatat langsung secara manual oleh psikolog pemeriksa. Data tersimpan aman dengan enkripsi database (AES-256) tanpa bergantung pada transkrip AI.',
+                            'Sesuai Kode Etik Psikologi Indonesia (HIMPSI), psikolog mencatat poin observasi esensial, riwayat trauma, dan narasi evaluasi secara manual. Data tersimpan aman dengan enkripsi database (AES-256).',
                             style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
                           ),
                         ],
@@ -748,9 +914,9 @@ class _PatientDetailConsentScreenState
           ),
           const SizedBox(height: 14),
 
-          // IN-CALL QUICK NOTES (Catatan Singkat Selama Sesi Video Call)
+          // IN-CALL QUICK NOTES IMPORT (Catatan Singkat Selama Sesi Video Call)
           Builder(builder: (context) {
-            final sessionId = patient.upcomingSchedule?.sessionId;
+            final sessionId = schedule?.sessionId;
             if (sessionId == null || sessionId.isEmpty) return const SizedBox.shrink();
             final liveNotes = ref.watch(videoCallControllerProvider(sessionId)).realTimeNotes;
             if (liveNotes.isEmpty) return const SizedBox.shrink();
@@ -785,19 +951,20 @@ class _PatientDetailConsentScreenState
                       ),
                       TextButton(
                         onPressed: () {
-                          final joined = liveNotes.join('\n• ');
-                          if (_subjCtrl.text.isEmpty) {
-                            _subjCtrl.text = 'Catatan observasi sesi:\n• $joined';
-                          } else {
-                            _subjCtrl.text += '\n• $joined';
-                          }
+                          setState(() {
+                            for (final n in liveNotes) {
+                              if (!_clinicalPoints.contains(n)) {
+                                _clinicalPoints.add(n);
+                              }
+                            }
+                          });
                           TopToast.show(
                             context,
-                            message: 'Catatan disalin ke kolom S (Subjective).',
+                            message: 'Semua catatan video call telah diimpor ke poin observasi.',
                             type: ToastType.success,
                           );
                         },
-                        child: const Text('Salin ke S (Subjective)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        child: const Text('Impor ke Poin Observasi', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
@@ -817,7 +984,7 @@ class _PatientDetailConsentScreenState
             );
           }),
 
-          // SOAP INPUTS (Soft, No Harsh Outlines)
+          // FORM CATATAN OBSERVASI KLINIS (Poin Real-Time + Narasi Manual)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -828,17 +995,121 @@ class _PatientDetailConsentScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildSoftInput('S (Subjective) - Keluhan & Riwayat Penting Pasien', _subjCtrl),
+                // POIN-POIN OBSERVASI KLINIS (REAL-TIME BUILDER)
+                const Text(
+                  'Poin-Poin Observasi Klinis (Real-Time)',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Catat poin penting (misal: riwayat trauma masa kecil, pemicu emosi utama, dinamika keluarga) lalu klik tombol "+".',
+                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 10),
+
+                // Input + Tombol Tambah Poin
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF7F8FC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: TextField(
+                          controller: _newPointCtrl,
+                          style: const TextStyle(fontSize: 12.5),
+                          onSubmitted: (_) => _addClinicalPoint(),
+                          decoration: const InputDecoration(
+                            hintText: 'Ketik poin observasi klinis...',
+                            hintStyle: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        elevation: 0,
+                      ),
+                      onPressed: _addClinicalPoint,
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.add, size: 18),
+                          SizedBox(width: 4),
+                          Text('Tambah', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // Daftar Poin yang Telah Ditambahkan
+                if (_clinicalPoints.isNotEmpty) ...[
+                  ..._clinicalPoints.asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    final pt = entry.value;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.lens, size: 7, color: AppColors.primary),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              pt,
+                              style: const TextStyle(fontSize: 12, color: AppColors.textPrimary, height: 1.35),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, size: 16, color: AppColors.textSecondary),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () => _removeClinicalPoint(idx),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 12),
+                ],
+
+                // NARASI CATATAN OBSERVASI MANUAL
+                _buildSoftInput(
+                  'Narasi Observasi & Dinamika Masalah (Manual)',
+                  _narrativeCtrl,
+                  minLines: 3,
+                  maxLines: 6,
+                ),
                 const SizedBox(height: 12),
-                _buildSoftInput('O (Objective) - Pemeriksaan Status Mental & Afek', _objCtrl),
-                const SizedBox(height: 12),
-                _buildSoftInput('A (Assessment) - Diagnosa Klinis & Dinamika Masalah', _assessCtrl),
-                const SizedBox(height: 12),
-                _buildSoftInput('P (Plan) - Rencana Intervensi & Tindak Lanjut', _planCtrl),
+
+                // RENCANA TINDAK LANJUT / EDUKASI
+                _buildSoftInput(
+                  'Rencana Intervensi & Tindak Lanjut Pasien (PR/Edukasi)',
+                  _planCtrl,
+                  minLines: 2,
+                  maxLines: 4,
+                ),
                 const SizedBox(height: 16),
+
                 CustomButton(
-                  label: 'Simpan & Enkripsi Catatan Medis',
-                  icon: Icons.lock_outline_rounded,
+                  label: 'Simpan Catatan Medis Observasi',
+                  icon: Icons.save_rounded,
                   isLoading: _isSavingNote,
                   onPressed: _handleSaveSoapNote,
                 ),
@@ -848,6 +1119,7 @@ class _PatientDetailConsentScreenState
           const SizedBox(height: 14),
         ],
 
+        // 3. RIWAYAT CATATAN MEDIS LALU (PAST RECORDS)
         notesAsync.when(
           data: (notes) {
             final validNotes = notes.where((note) {
@@ -863,7 +1135,8 @@ class _PatientDetailConsentScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 20),
-                const Text('Riwayat Catatan Konseling Lalu', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                const Text('Riwayat Catatan Medis Observasi Terdahulu',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 const SizedBox(height: 10),
                 ...validNotes.map((note) {
                   return Container(
@@ -888,10 +1161,35 @@ class _PatientDetailConsentScreenState
                           ],
                         ),
                         const SizedBox(height: 8),
-                        _buildSoapSummaryItem('S', note.subjective),
-                        _buildSoapSummaryItem('O', note.objective),
-                        _buildSoapSummaryItem('A', note.assessment),
-                        _buildSoapSummaryItem('P', note.plan),
+                        if (note.points != null && note.points.isNotEmpty) ...[
+                          const Text('Poin Observasi Klinis:',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppColors.primary)),
+                          const SizedBox(height: 4),
+                          ...note.points.map((p) => Padding(
+                            padding: const EdgeInsets.only(bottom: 2),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('• ', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                                Expanded(child: Text(p, style: const TextStyle(fontSize: 12, color: AppColors.textPrimary))),
+                              ],
+                            ),
+                          )),
+                          const SizedBox(height: 6),
+                        ],
+                        if (note.narrative != null && note.narrative.isNotEmpty) ...[
+                          const Text('Narasi Observasi:',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppColors.textPrimary)),
+                          const SizedBox(height: 2),
+                          Text(note.narrative, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4)),
+                          const SizedBox(height: 6),
+                        ] else if (note.subjective.isNotEmpty) ...[
+                          _buildSoapSummaryItem('Observasi', note.subjective),
+                        ],
+                        if (note.assessment.isNotEmpty && note.assessment != note.narrative)
+                          _buildSoapSummaryItem('Evaluasi', note.assessment),
+                        if (note.plan.isNotEmpty)
+                          _buildSoapSummaryItem('Tindak Lanjut', note.plan),
                       ],
                     ),
                   );
@@ -906,7 +1204,12 @@ class _PatientDetailConsentScreenState
     );
   }
 
-  Widget _buildSoftInput(String label, TextEditingController controller) {
+  Widget _buildSoftInput(
+    String label,
+    TextEditingController controller, {
+    int minLines = 3,
+    int maxLines = 6,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -919,8 +1222,8 @@ class _PatientDetailConsentScreenState
           ),
           child: TextField(
             controller: controller,
-            minLines: 4,
-            maxLines: 8,
+            minLines: minLines,
+            maxLines: maxLines,
             style: const TextStyle(fontSize: 12.5, height: 1.45),
             decoration: const InputDecoration(
               border: InputBorder.none,
@@ -1071,8 +1374,10 @@ class _PatientDetailConsentScreenState
                   setState(() {
                     _sessionUnlocked = true;
                     final liveNotes = ref.read(videoCallControllerProvider(sessionId)).realTimeNotes;
-                    if (liveNotes.isNotEmpty) {
-                      _subjCtrl.text = 'Catatan observasi sesi:\n• ${liveNotes.join('\n• ')}';
+                    for (final n in liveNotes) {
+                      if (!_clinicalPoints.contains(n)) {
+                        _clinicalPoints.add(n);
+                      }
                     }
                   });
                 }
@@ -1199,8 +1504,10 @@ class _PatientDetailConsentScreenState
                   setState(() {
                     _sessionUnlocked = true;
                     final liveNotes = ref.read(videoCallControllerProvider(sessionId)).realTimeNotes;
-                    if (liveNotes.isNotEmpty) {
-                      _subjCtrl.text = 'Catatan observasi sesi:\n• ${liveNotes.join('\n• ')}';
+                    for (final n in liveNotes) {
+                      if (!_clinicalPoints.contains(n)) {
+                        _clinicalPoints.add(n);
+                      }
                     }
                   });
                 }

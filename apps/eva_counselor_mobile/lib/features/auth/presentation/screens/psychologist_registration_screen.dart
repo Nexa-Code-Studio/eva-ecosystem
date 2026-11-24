@@ -34,7 +34,7 @@ class _PsychologistRegistrationScreenState
   final _customSipInstitutionCtrl = TextEditingController();
   final _customAssociationCtrl = TextEditingController();
   final _strExpiryCtrl = TextEditingController(text: 'Seumur Hidup (UU Kesehatan No. 17/2023)');
-  final _sipExpiryCtrl = TextEditingController(text: '${DateTime.now().year + 5}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}');
+  final _sipExpiryCtrl = TextEditingController();
 
   // Dokumen Legalitas: 'both', 'str', 'sip'
   String _documentType = 'both';
