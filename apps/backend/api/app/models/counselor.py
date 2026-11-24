@@ -37,6 +37,7 @@ class PsychologistProfile(BaseModel):
         kwargs.setdefault("sip_verified", False)
         kwargs.setdefault("is_online", True)
         kwargs.setdefault("buffer_time_minutes", 10)
+        kwargs.setdefault("schedule_config", {})
         kwargs.setdefault("wallet_balance", Decimal("0.00"))
         super().__init__(**kwargs)
 
@@ -106,6 +107,12 @@ class PsychologistProfile(BaseModel):
     # Practice & Availability Settings (100% Digital Teleconsultation)
     is_online: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     buffer_time_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=10)
+    schedule_config: Mapped[dict[str, Any]] = mapped_column(
+        JSONB,
+        nullable=False,
+        default=dict,
+        server_default="{}",
+    )
 
     # Bank Account & Financial Details
     bank_name: Mapped[str | None] = mapped_column(String(100), nullable=True)

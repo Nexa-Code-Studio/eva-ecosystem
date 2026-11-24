@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 from pydantic import BaseModel, ConfigDict
 
 
@@ -32,6 +33,7 @@ class PsychologistProfileResponse(BaseModel):
     verified_at: datetime | None = None
     is_online: bool
     buffer_time_minutes: int
+    schedule_config: dict[str, Any] = {}
     bank_name: str | None = None
     bank_account_number: str | None = None
     bank_account_holder: str | None = None
@@ -65,3 +67,47 @@ class PsychologistVerificationResponse(BaseModel):
 
 class PsychologistMessageResponse(BaseModel):
     message: str
+
+
+class DayBreakResponse(BaseModel):
+    start: str
+    end: str
+    label: str = "Istirahat"
+
+
+class DayScheduleResponse(BaseModel):
+    is_active: bool = True
+    operating_hours: dict[str, str] = {"start": "08:00", "end": "17:00"}
+    breaks: list[DayBreakResponse] = []
+
+
+class ScheduleConfigResponse(BaseModel):
+    counselor_id: str
+    buffer_time_minutes: int
+    schedule_config: dict[str, Any]
+
+
+class OperatingHoursItem(BaseModel):
+    start: str
+    end: str
+
+
+class BlockedRangeItem(BaseModel):
+    start: str
+    end: str
+    type: str  # "break", "booked", "buffer"
+    label: str | None = None
+
+
+class TimeRangeItem(BaseModel):
+    start: str
+    end: str
+
+
+class CounselorTimelineResponse(BaseModel):
+    counselor_id: str
+    date: str
+    operating_hours: OperatingHoursItem
+    buffer_time_minutes: int
+    blocked_ranges: list[BlockedRangeItem] = []
+    available_windows: list[TimeRangeItem] = []

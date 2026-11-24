@@ -27,18 +27,26 @@ from app.models.enums import (
     TransactionStatus,
     TransactionType,
 )
+from app.schemas.counselor import (
+    BlockedRangeItem,
+    CounselorTimelineResponse,
+    OperatingHoursItem,
+    TimeRangeItem,
+)
 from app.schemas.session import (
     AdminSessionMonitoringResponse,
     AvailableSlotsResponse,
     BookSessionRequest,
     ClinicalNoteDetailResponse,
     ClinicalNotesResponse,
+    ClinicalTriggerItem,
     ConsentStatusResponse,
     ConsultationSessionResponse,
     CounselorPatientResponse,
     CreateClinicalNoteRequest,
     DassAssessmentItemResponse,
     ExtensionAvailabilityResponse,
+    PatientClinicalTriggersResponse,
     PatientScheduleResponse,
     RequestConsentResponse,
     TimeSlotResponse,
@@ -176,8 +184,37 @@ class SchedulingService:
             start_time = start_time.replace(tzinfo=UTC)
         end_time = start_time + timedelta(minutes=duration_minutes)
 
-        # 3. Anti-Collision Lock & Check (respecting counselor buffer time across full block)
+        # 3. Anti-Collision Lock & Check (respecting counselor buffer time and break intervals)
         buffer_delta = timedelta(minutes=counselor.buffer_time_minutes)
+
+        # Check multi-break collisions from schedule_config
+        day_name = start_time.strftime("%A").lower()
+        sched_cfg = counselor.schedule_config or {}
+        day_cfg = sched_cfg.get(day_name)
+        if day_cfg:
+            if not day_cfg.get("is_active", True):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Konselor tidak membuka jadwal praktik pada hari {day_name.capitalize()}.",
+                )
+            for brk in day_cfg.get("breaks", []):
+                b_start_str = brk.get("start")
+                b_end_str = brk.get("end")
+                if b_start_str and b_end_str:
+                    try:
+                        b_s_h, b_s_m = [int(x) for x in b_start_str.split(":")]
+                        b_e_h, b_e_m = [int(x) for x in b_end_str.split(":")]
+                        brk_start = datetime.combine(start_time.date(), time(b_s_h, b_s_m), tzinfo=start_time.tzinfo)
+                        brk_end = datetime.combine(start_time.date(), time(b_e_h, b_e_m), tzinfo=start_time.tzinfo)
+                        if start_time < brk_end and end_time > brk_start:
+                            brk_label = brk.get("label", "Istirahat")
+                            raise HTTPException(
+                                status_code=status.HTTP_409_CONFLICT,
+                                detail=f"Slot waktu bertabrakan dengan jam istirahat konselor ({brk_label}: {b_start_str} - {b_end_str}).",
+                            )
+                    except (ValueError, IndexError):
+                        pass
+
         collision_query = select(ConsultationSession).where(
             ConsultationSession.counselor_id == payload.counselor_id,
             ConsultationSession.status.in_([
@@ -494,11 +531,15 @@ class SchedulingService:
                 detail="Sesi konsultasi tidak ditemukan.",
             )
 
+        subj_text = payload.subjective or (payload.narrative if not payload.points else "\n".join(f"• {p}" for p in payload.points))
+        assess_text = payload.assessment or payload.narrative or (payload.points[0] if payload.points else "Observasi klinis tercatat.")
         session.soap_notes = {
-            "subjective": payload.subjective,
-            "objective": payload.objective,
-            "assessment": payload.assessment,
-            "plan": payload.plan,
+            "points": payload.points,
+            "narrative": payload.narrative,
+            "subjective": subj_text,
+            "objective": payload.objective or "Observasi klinis langsung telekonseling",
+            "assessment": assess_text,
+            "plan": payload.plan or "Evaluasi mandiri berkala pasien",
             "status": payload.status,
             "updated_at": datetime.now(UTC).isoformat(),
             "counselor_name": counselor.full_name,
@@ -857,6 +898,59 @@ class SchedulingService:
 
         name = user.display_name or user.username or "Pasien Eva"
 
+        triggers_list: list[ClinicalTriggerItem] = []
+        clinical_points_list: list[str] = []
+
+        for cs in completed_sessions:
+            if cs.soap_notes:
+                pts = cs.soap_notes.get("points") or []
+                for p in pts:
+                    if str(p).strip():
+                        clinical_points_list.append(str(p).strip())
+                        triggers_list.append(
+                            ClinicalTriggerItem(
+                                category="Observasi Klinis",
+                                description=str(p).strip(),
+                                severity="Sedang",
+                                source="Catatan Sesi",
+                                detected_at=cs.scheduled_start_time.strftime("%Y-%m-%d"),
+                            )
+                        )
+
+        if dass_items:
+            for di in dass_items:
+                if "Parah" in di.anxiety_severity:
+                    triggers_list.append(
+                        ClinicalTriggerItem(
+                            category="Skrining Afektif",
+                            description=f"Kecemasan {di.anxiety_severity} (Skor: {di.anxiety_score})",
+                            severity="Tinggi",
+                            source="Skrining DASS-21",
+                            detected_at=di.date,
+                        )
+                    )
+                if "Parah" in di.depression_severity:
+                    triggers_list.append(
+                        ClinicalTriggerItem(
+                            category="Skrining Afektif",
+                            description=f"Depresi {di.depression_severity} (Skor: {di.depression_score})",
+                            severity="Tinggi",
+                            source="Skrining DASS-21",
+                            detected_at=di.date,
+                        )
+                    )
+
+        if not triggers_list and chief_complaint and chief_complaint != "-":
+            triggers_list.append(
+                ClinicalTriggerItem(
+                    category="Keluhan Utama",
+                    description=chief_complaint,
+                    severity="Sedang",
+                    source="Pendaftaran Konseling",
+                    detected_at=last_session_date[:10],
+                )
+            )
+
         return CounselorPatientResponse(
             id=str(patient_id),
             name=name,
@@ -872,6 +966,8 @@ class SchedulingService:
             consent_requested_at=consent_requested_at,
             dass_history=dass_items if dass_items else None,
             shared_diary_summaries=diary_summaries if diary_summaries else None,
+            triggers=triggers_list if triggers_list else None,
+            clinical_points=clinical_points_list if clinical_points_list else None,
             upcoming_schedule=upcoming_dto,
         )
 
@@ -912,11 +1008,15 @@ class SchedulingService:
             res = await self.db.execute(s_query)
             target_session = res.scalars().first()
 
+        subj_text = payload.subjective or (payload.narrative if not payload.points else "\n".join(f"• {p}" for p in payload.points))
+        assess_text = payload.assessment or payload.narrative or (payload.points[0] if payload.points else "Observasi klinis tercatat.")
         soap_dict = {
-            "subjective": payload.subjective,
-            "objective": payload.objective,
-            "assessment": payload.assessment,
-            "plan": payload.plan,
+            "points": payload.points,
+            "narrative": payload.narrative,
+            "subjective": subj_text,
+            "objective": payload.objective or "Observasi klinis langsung telekonseling",
+            "assessment": assess_text,
+            "plan": payload.plan or "Evaluasi mandiri berkala pasien",
             "recommended_tasks": payload.recommended_tasks,
             "updated_at": datetime.now(UTC).isoformat(),
             "encrypted": True,
@@ -938,10 +1038,12 @@ class SchedulingService:
             patient_id=str(patient_id),
             session_id=session_id_str,
             created_at=datetime.now(UTC).isoformat(),
-            subjective=payload.subjective,
-            objective=payload.objective,
-            assessment=payload.assessment,
-            plan=payload.plan,
+            subjective=subj_text,
+            objective=payload.objective or "Observasi klinis langsung telekonseling",
+            assessment=assess_text,
+            plan=payload.plan or "Evaluasi mandiri berkala pasien",
+            points=payload.points,
+            narrative=payload.narrative,
             recommended_tasks=payload.recommended_tasks,
         )
 
@@ -1042,4 +1144,276 @@ class SchedulingService:
             counselor_earning_coins=round(float(sess.counselor_earning or 0)),
             platform_fee_coins=round(float(sess.platform_fee or 0)),
             clinical_summary=clinical_summary,
+        )
+
+    async def get_counselor_timeline(
+        self, counselor_id: uuid.UUID, date_str: str
+    ) -> CounselorTimelineResponse:
+        """Calculate operating hours, break intervals, booked sessions, buffers, and open windows."""
+        query = select(PsychologistProfile).where(PsychologistProfile.id == counselor_id)
+        res = await self.db.execute(query)
+        counselor = res.scalar_one_or_none()
+        if not counselor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Profil psikolog tidak ditemukan.",
+            )
+
+        try:
+            target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Format tanggal tidak valid. Gunakan YYYY-MM-DD.",
+            )
+
+        day_name = target_date.strftime("%A").lower()
+        sched_cfg = counselor.schedule_config or {}
+        day_cfg = sched_cfg.get(day_name, {})
+
+        op_start = day_cfg.get("operating_hours", {}).get("start", "08:00")
+        op_end = day_cfg.get("operating_hours", {}).get("end", "17:00")
+        is_active = day_cfg.get("is_active", True)
+
+        blocked_ranges: list[BlockedRangeItem] = []
+
+        breaks = day_cfg.get("breaks", [])
+        if not breaks and day_name in ["monday", "tuesday", "wednesday", "thursday"]:
+            breaks = [{"start": "12:00", "end": "13:00", "label": "Istirahat Siang"}]
+        elif not breaks and day_name == "friday":
+            breaks = [
+                {"start": "11:30", "end": "13:00", "label": "Shalat Jumat & Istirahat"},
+                {"start": "15:30", "end": "16:00", "label": "Istirahat Sore"},
+            ]
+
+        if is_active:
+            for brk in breaks:
+                b_start = brk.get("start", "12:00")
+                b_end = brk.get("end", "13:00")
+                b_label = brk.get("label", "Istirahat")
+                blocked_ranges.append(
+                    BlockedRangeItem(
+                        start=b_start,
+                        end=b_end,
+                        type="break",
+                        label=b_label,
+                    )
+                )
+
+        day_start = datetime.combine(target_date, time(0, 0), tzinfo=UTC)
+        day_end = datetime.combine(target_date, time(23, 59, 59), tzinfo=UTC)
+
+        s_query = (
+            select(ConsultationSession)
+            .where(
+                ConsultationSession.counselor_id == counselor_id,
+                ConsultationSession.status.in_([
+                    ConsultationSessionStatus.SCHEDULED.value,
+                    ConsultationSessionStatus.LIVE.value,
+                    ConsultationSessionStatus.COMPLETED.value,
+                ]),
+                ConsultationSession.scheduled_start_time >= day_start,
+                ConsultationSession.scheduled_start_time <= day_end,
+            )
+            .order_by(ConsultationSession.scheduled_start_time.asc())
+        )
+        s_res = await self.db.execute(s_query)
+        sessions = s_res.scalars().all()
+
+        for sess in sessions:
+            s_start = sess.scheduled_start_time.strftime("%H:%M")
+            s_end = sess.scheduled_end_time.strftime("%H:%M")
+            code_suffix = sess.session_code[-6:] if sess.session_code else "LIVE"
+            blocked_ranges.append(
+                BlockedRangeItem(
+                    start=s_start,
+                    end=s_end,
+                    type="booked",
+                    label=f"Sesi Pasien #{code_suffix}",
+                )
+            )
+            if counselor.buffer_time_minutes > 0:
+                buf_end_dt = sess.scheduled_end_time + timedelta(minutes=counselor.buffer_time_minutes)
+                buf_end = buf_end_dt.strftime("%H:%M")
+                blocked_ranges.append(
+                    BlockedRangeItem(
+                        start=s_end,
+                        end=buf_end,
+                        type="buffer",
+                        label=f"Jeda Antar Sesi ({counselor.buffer_time_minutes} menit)",
+                    )
+                )
+
+        blocked_ranges.sort(key=lambda r: r.start)
+
+        available_windows: list[TimeRangeItem] = []
+        if is_active:
+            def to_minutes(t_str: str) -> int:
+                parts = t_str.split(":")
+                return int(parts[0]) * 60 + int(parts[1])
+
+            def to_str(mins: int) -> str:
+                return f"{mins // 60:02d}:{mins % 60:02d}"
+
+            current_min = to_minutes(op_start)
+            op_end_min = to_minutes(op_end)
+
+            for br in blocked_ranges:
+                br_start = to_minutes(br.start)
+                br_end = to_minutes(br.end)
+
+                if br_start > current_min and current_min < op_end_min:
+                    window_end = min(br_start, op_end_min)
+                    if window_end - current_min >= 30:
+                        available_windows.append(
+                            TimeRangeItem(start=to_str(current_min), end=to_str(window_end))
+                        )
+                current_min = max(current_min, br_end)
+
+            if current_min < op_end_min and (op_end_min - current_min >= 30):
+                available_windows.append(
+                    TimeRangeItem(start=to_str(current_min), end=to_str(op_end_min))
+                )
+
+        return CounselorTimelineResponse(
+            counselor_id=str(counselor_id),
+            date=date_str,
+            operating_hours=OperatingHoursItem(start=op_start, end=op_end),
+            buffer_time_minutes=counselor.buffer_time_minutes,
+            blocked_ranges=blocked_ranges,
+            available_windows=available_windows,
+        )
+
+    async def get_patient_clinical_triggers(
+        self, counselor_user_id: uuid.UUID, patient_id: uuid.UUID
+    ) -> PatientClinicalTriggersResponse:
+        """Provide structured clinical triggers & complaints minimizing personal raw journals (Indonesian Psychological Code of Ethics)."""
+        c_query = select(PsychologistProfile).where(PsychologistProfile.user_id == counselor_user_id)
+        c_res = await self.db.execute(c_query)
+        profile = c_res.scalar_one_or_none()
+        if not profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Profil psikolog tidak ditemukan.",
+            )
+
+        consent_query = select(PatientConsent).where(
+            PatientConsent.patient_id == patient_id,
+            PatientConsent.counselor_id == profile.id,
+        )
+        c_res = await self.db.execute(consent_query)
+        consent = c_res.scalar_one_or_none()
+        has_consent = consent is not None and consent.status == "granted"
+
+        triggers: list[ClinicalTriggerItem] = []
+        chief_complaint = "Konseling Evaluasi Klinis & Regulasi Emosi"
+
+        sess_query = (
+            select(ConsultationSession)
+            .where(
+                ConsultationSession.patient_id == patient_id,
+                ConsultationSession.counselor_id == profile.id,
+            )
+            .order_by(ConsultationSession.scheduled_start_time.desc())
+        )
+        s_res = await self.db.execute(sess_query)
+        sessions = s_res.scalars().all()
+        completed = [s for s in sessions if s.status == ConsultationSessionStatus.COMPLETED.value]
+
+        for s in completed:
+            if s.soap_notes:
+                notes = s.soap_notes
+                if notes.get("assessment"):
+                    chief_complaint = str(notes["assessment"])[:80]
+                points = notes.get("points") or []
+                for p in points:
+                    triggers.append(
+                        ClinicalTriggerItem(
+                            category="Observasi Klinis Sesi",
+                            description=str(p),
+                            severity="Sedang",
+                            source="Catatan Sesi Psikolog",
+                            detected_at=s.scheduled_start_time.strftime("%Y-%m-%d"),
+                        )
+                    )
+
+        if has_consent or len(completed) > 0:
+            dass_query = (
+                select(DASSAssessment)
+                .where(DASSAssessment.user_id == patient_id)
+                .order_by(DASSAssessment.assessed_date.desc())
+                .limit(3)
+            )
+            d_res = await self.db.execute(dass_query)
+            dass_records = d_res.scalars().all()
+            for d in dass_records:
+                if d.anxiety_severity in ["Sedang", "Parah", "Sangat Parah"]:
+                    triggers.append(
+                        ClinicalTriggerItem(
+                            category="Skrining Afektif",
+                            description=f"Kecemasan tingkat {d.anxiety_severity} (Skor: {d.anxiety_score})",
+                            severity="Tinggi" if "Parah" in d.anxiety_severity else "Sedang",
+                            source="Skrining DASS-21",
+                            detected_at=str(d.assessed_date),
+                        )
+                    )
+                if d.depression_severity in ["Sedang", "Parah", "Sangat Parah"]:
+                    triggers.append(
+                        ClinicalTriggerItem(
+                            category="Skrining Afektif",
+                            description=f"Depresi tingkat {d.depression_severity} (Skor: {d.depression_score})",
+                            severity="Tinggi" if "Parah" in d.depression_severity else "Sedang",
+                            source="Skrining DASS-21",
+                            detected_at=str(d.assessed_date),
+                        )
+                    )
+                if d.stress_severity in ["Sedang", "Parah", "Sangat Parah"]:
+                    triggers.append(
+                        ClinicalTriggerItem(
+                            category="Stresor Lingkungan",
+                            description=f"Stres psikologis tingkat {d.stress_severity} (Skor: {d.stress_score})",
+                            severity="Tinggi" if "Parah" in d.stress_severity else "Sedang",
+                            source="Skrining DASS-21",
+                            detected_at=str(d.assessed_date),
+                        )
+                    )
+
+            dy_query = (
+                select(DiaryEntry)
+                .where(
+                    DiaryEntry.user_id == patient_id,
+                    or_(DiaryEntry.emotional_level <= 2, DiaryEntry.safety_event_id.is_not(None)),
+                )
+                .order_by(DiaryEntry.entry_date.desc())
+                .limit(3)
+            )
+            dy_res = await self.db.execute(dy_query)
+            distress_diaries = dy_res.scalars().all()
+            for dy in distress_diaries:
+                triggers.append(
+                    ClinicalTriggerItem(
+                        category="Pemicu Emosi Harian",
+                        description=f"Pemicu: {dy.title} - {dy.mood_tag or 'Kondisi Rentan'}",
+                        severity="Tinggi" if dy.safety_event_id else "Sedang",
+                        source="Deteksi Sentimen Eva",
+                        detected_at=str(dy.entry_date),
+                    )
+                )
+
+        if not triggers:
+            triggers.append(
+                ClinicalTriggerItem(
+                    category="Keluhan Awal",
+                    description=chief_complaint,
+                    severity="Sedang",
+                    source="Pendaftaran Konseling",
+                    detected_at=datetime.now(UTC).strftime("%Y-%m-%d"),
+                )
+            )
+
+        return PatientClinicalTriggersResponse(
+            patient_id=str(patient_id),
+            chief_complaint=chief_complaint,
+            triggers=triggers,
+            emotional_summary="Pasien menunjukkan kebutuhan dukungan regulasi emosi dan penanganan pemicu stres.",
         )

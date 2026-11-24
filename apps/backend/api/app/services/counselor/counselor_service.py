@@ -18,9 +18,11 @@ from app.schemas.counselor import (
     PsychologistVerificationResponse,
     RegisterPsychologistRequest,
     ResubmitVerificationRequest,
+    ScheduleConfigResponse,
     UpdateBankDetailsRequest,
     UpdateCounselorStatusRequest,
     UpdatePsychologistProfileRequest,
+    UpdateScheduleConfigRequest,
     VerifyPsychologistRequest,
 )
 
@@ -521,9 +523,67 @@ class CounselorService:
             verified_at=profile.verified_at,
             is_online=profile.is_online,
             buffer_time_minutes=profile.buffer_time_minutes,
+            schedule_config=profile.schedule_config or {},
             bank_name=profile.bank_name,
             bank_account_number=profile.bank_account_number,
             bank_account_holder=profile.bank_account_holder,
             wallet_balance=float(profile.wallet_balance),
             created_at=profile.created_at,
+        )
+
+    async def get_schedule_config(self, user_id: uuid.UUID) -> ScheduleConfigResponse:
+        """Retrieve weekly day-by-day practice hours and break periods."""
+        query = select(PsychologistProfile).where(PsychologistProfile.user_id == user_id)
+        res = await self.db.execute(query)
+        profile = res.scalar_one_or_none()
+        if not profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Profil psikolog tidak ditemukan.",
+            )
+
+        default_config = {
+            "monday": {"is_active": True, "operating_hours": {"start": "08:00", "end": "17:00"}, "breaks": [{"start": "12:00", "end": "13:00", "label": "Istirahat Siang"}]},
+            "tuesday": {"is_active": True, "operating_hours": {"start": "08:00", "end": "17:00"}, "breaks": [{"start": "12:00", "end": "13:00", "label": "Istirahat Siang"}]},
+            "wednesday": {"is_active": True, "operating_hours": {"start": "08:00", "end": "17:00"}, "breaks": [{"start": "12:00", "end": "13:00", "label": "Istirahat Siang"}]},
+            "thursday": {"is_active": True, "operating_hours": {"start": "08:00", "end": "17:00"}, "breaks": [{"start": "12:00", "end": "13:00", "label": "Istirahat Siang"}]},
+            "friday": {"is_active": True, "operating_hours": {"start": "08:00", "end": "17:00"}, "breaks": [{"start": "11:30", "end": "13:00", "label": "Shalat Jumat & Istirahat"}, {"start": "15:30", "end": "16:00", "label": "Istirahat Sore"}]},
+            "saturday": {"is_active": False, "operating_hours": {"start": "08:00", "end": "17:00"}, "breaks": []},
+            "sunday": {"is_active": False, "operating_hours": {"start": "08:00", "end": "17:00"}, "breaks": []},
+        }
+        cfg = profile.schedule_config if (profile.schedule_config and len(profile.schedule_config) > 0) else default_config
+
+        return ScheduleConfigResponse(
+            counselor_id=str(profile.id),
+            buffer_time_minutes=profile.buffer_time_minutes,
+            schedule_config=cfg,
+        )
+
+    async def update_schedule_config(
+        self, user_id: uuid.UUID, payload: UpdateScheduleConfigRequest
+    ) -> ScheduleConfigResponse:
+        """Save day-by-day practice hours and multiple break periods."""
+        query = select(PsychologistProfile).where(PsychologistProfile.user_id == user_id)
+        res = await self.db.execute(query)
+        profile = res.scalar_one_or_none()
+        if not profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Profil psikolog tidak ditemukan.",
+            )
+
+        serialized_config = {
+            day: item.model_dump() for day, item in payload.schedule_config.items()
+        }
+        profile.schedule_config = serialized_config
+        if payload.buffer_time_minutes is not None:
+            profile.buffer_time_minutes = payload.buffer_time_minutes
+
+        await self.db.commit()
+        await self.db.refresh(profile)
+
+        return ScheduleConfigResponse(
+            counselor_id=str(profile.id),
+            buffer_time_minutes=profile.buffer_time_minutes,
+            schedule_config=profile.schedule_config,
         )

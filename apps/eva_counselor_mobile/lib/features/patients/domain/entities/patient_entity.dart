@@ -13,6 +13,8 @@ class PatientEntity {
   final String? consentRequestedAt;
   final List<DassAssessmentRecord>? dassHistory;
   final List<String>? sharedDiarySummaries;
+  final List<Map<String, dynamic>>? triggers;
+  final List<String>? clinicalPoints;
   final PatientScheduleInfo? upcomingSchedule;
 
   const PatientEntity({
@@ -30,6 +32,8 @@ class PatientEntity {
     this.consentRequestedAt,
     this.dassHistory,
     this.sharedDiarySummaries,
+    this.triggers,
+    this.clinicalPoints,
     this.upcomingSchedule,
   });
 }

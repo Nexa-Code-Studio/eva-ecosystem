@@ -8,6 +8,8 @@ class ClinicalNoteEntity {
   final String assessment; // Analisis klinis
   final String plan; // Terapi lanjutan & PR
   final List<String> recommendedTasks;
+  final List<String> points;
+  final String narrative;
 
   const ClinicalNoteEntity({
     required this.id,
@@ -19,5 +21,7 @@ class ClinicalNoteEntity {
     required this.assessment,
     required this.plan,
     required this.recommendedTasks,
+    this.points = const [],
+    this.narrative = '',
   });
 }

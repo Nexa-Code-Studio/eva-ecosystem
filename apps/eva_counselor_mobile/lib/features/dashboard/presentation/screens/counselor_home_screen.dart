@@ -149,8 +149,15 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(patientsListProvider);
+            ref.invalidate(financialSummaryProvider);
+            await ref.read(patientsListProvider.future);
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1437,8 +1444,9 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildDailyTimelineProgressBar(PsychologistUserEntity? user) {
     final breakStart = user?.breakStartTime ?? '12:00';

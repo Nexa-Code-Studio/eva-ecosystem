@@ -14,6 +14,8 @@ abstract class IPatientRepository {
     required String assessment,
     required String plan,
     required List<String> recommendedTasks,
+    List<String> points = const [],
+    String narrative = '',
   });
   Future<Map<String, String>> synthesizeSoapNote({
     required String transcript,

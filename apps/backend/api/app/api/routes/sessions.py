@@ -53,6 +53,17 @@ async def save_session_soap_notes(
     return await service.save_soap_notes(session_id, user.id, payload)
 
 
+@router.put("/{session_id}/clinical-notes", response_model=ConsultationSessionResponse)
+async def save_session_clinical_notes(
+    session_id: uuid.UUID,
+    payload: UpdateSoapNotesRequest,
+    user: User = Depends(get_current_user),
+    service: SchedulingService = Depends(get_scheduling_service),
+) -> ConsultationSessionResponse:
+    """Save verified observational clinical notes for a completed teleconsultation session."""
+    return await service.save_soap_notes(session_id, user.id, payload)
+
+
 @router.post("/soap-synthesis", response_model=SoapSynthesisResponse)
 async def synthesize_soap_notes(
     payload: SynthesizeSoapRequest,

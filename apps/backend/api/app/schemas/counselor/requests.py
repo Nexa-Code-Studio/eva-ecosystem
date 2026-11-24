@@ -72,3 +72,25 @@ class UpdateCounselorStatusRequest(BaseModel):
 
 class ToggleAvailabilityRequest(BaseModel):
     is_online: bool
+
+
+class DayBreakItem(BaseModel):
+    start: str = Field(..., pattern=r"^\d{2}:\d{2}$", description="HH:MM format")
+    end: str = Field(..., pattern=r"^\d{2}:\d{2}$", description="HH:MM format")
+    label: str = Field(default="Istirahat", max_length=100)
+
+
+class DayScheduleConfig(BaseModel):
+    is_active: bool = True
+    operating_hours: dict[str, str] = Field(
+        default_factory=lambda: {"start": "08:00", "end": "17:00"}
+    )
+    breaks: list[DayBreakItem] = Field(default_factory=list)
+
+
+class UpdateScheduleConfigRequest(BaseModel):
+    schedule_config: dict[str, DayScheduleConfig] = Field(
+        ...,
+        description="Day-by-day practice schedule config keyed by lowercase day name (monday..sunday)",
+    )
+    buffer_time_minutes: int | None = Field(default=None, ge=0, le=60)
