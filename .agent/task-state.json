@@ -167,5 +167,13 @@
     "state": "In Progress",
     "updated_at": 1795536901,
     "evidence_summary": "Evidence accepted: active task branch verified."
+  },
+  "125": {
+    "issue": 125,
+    "branch": "feat/125-counselor-certificates-integration",
+    "state": "In Review",
+    "updated_at": 1795554674,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/129"
   }
 }

@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/config/app_config.dart';
+import '../../../../core/network/api_endpoints.dart';
+import '../../../../core/storage/token_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/top_toast.dart';
 import '../../../auth/domain/entities/psychologist_user_entity.dart';
 import '../../domain/entities/eva_certificate_entity.dart';
+import '../providers/counselor_certificate_provider.dart';
 
 class CounselorCertificatesModal {
   static List<EvaCertificateEntity> getCertificatesForUser(PsychologistUserEntity? user) {
@@ -28,6 +34,7 @@ class CounselorCertificatesModal {
           description:
               'Diberikan atas dedikasi dan kompetensi klinis prima dalam menyelenggarakan telekonsultasi kesehatan mental dengan standar etika tertinggi.',
           badgeColor: const Color(0xFF2563EB),
+          status: 'active',
         ),
       );
     }
@@ -46,6 +53,7 @@ class CounselorCertificatesModal {
           description:
               'Diberikan atas komitmen integritas dokumentasi SOAP klinis (Subjective, Objective, Assessment, Plan) yang terenkripsi aman demi keselamatan pasien.',
           badgeColor: const Color(0xFFD97706),
+          status: 'active',
         ),
       );
     }
@@ -64,6 +72,7 @@ class CounselorCertificatesModal {
           description:
               'Penghargaan tertinggi platform Eva atas loyalitas pelayanan intervensi krisis, kepuasan pasien bintang lima, dan kontribusi nyata pada kesehatan jiwa bangsa.',
           badgeColor: const Color(0xFF7E22CE),
+          status: 'active',
         ),
       );
     }
@@ -71,9 +80,11 @@ class CounselorCertificatesModal {
     return earned;
   }
 
-  static void showGallery(BuildContext context, PsychologistUserEntity? user) {
-    final certs = getCertificatesForUser(user);
-
+  static void showGallery(
+    BuildContext context,
+    PsychologistUserEntity? user, {
+    WidgetRef? ref,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -81,212 +92,328 @@ class CounselorCertificatesModal {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 14,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE2E8F0),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFEF3C7),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFD97706), size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Sertifikat & Pencapaian',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          '${certs.length} Sertifikat resmi diraih berdasarkan milestone',
-                          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 22, color: AppColors.textSecondary),
-                    splashRadius: 22,
-                    onPressed: () => Navigator.of(ctx).pop(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              if (certs.isEmpty) ...[
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFEF3C7).withValues(alpha: 0.5),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.workspace_premium_outlined, size: 40, color: Color(0xFFD97706)),
-                        ),
-                        const SizedBox(height: 14),
-                        const Text('Belum Ada Sertifikat Penghargaan',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary)),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'Sertifikat pencapaian klinis Eva akan diterbitkan otomatis setelah Anda menyelesaikan milestone praktik telekonseling.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
-                        ),
-                      ],
+      builder: (ctx) {
+        if (ref != null) {
+          return Consumer(
+            builder: (consumerCtx, consumerRef, _) {
+              final certsAsync = consumerRef.watch(counselorCertificatesProvider);
+              return certsAsync.when(
+                loading: () => _buildModalContainer(
+                  ctx: ctx,
+                  title: 'Sertifikat & Pencapaian',
+                  subtitle: 'Memuat data sertifikat resmi...',
+                  body: const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 48),
+                      child: CircularProgressIndicator(),
                     ),
                   ),
                 ),
-              ] else ...[
-                ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(ctx).size.height * 0.65,
-                  ),
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: certs.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 12),
-                    itemBuilder: (modalCtx, idx) {
-                      final c = certs[idx];
-                      return Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: const Color(0xFFECEFF8)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: c.badgeColor.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Icon(Icons.military_tech_rounded, color: c.badgeColor, size: 20),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      c.title,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.textPrimary),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      c.milestoneCriteria,
-                                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  c.issueDate,
-                                  style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            c.description,
-                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const Divider(height: 20, color: Color(0xFFF1F5F9)),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'No: ${c.certificateNumber}',
-                                style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
-                              ),
-                              ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
-                                  foregroundColor: Colors.white,
-                                  elevation: 0,
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                ),
-                                icon: const Icon(Icons.remove_red_eye_outlined, size: 14),
-                                label: const Text('Buka & Unduh', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                onPressed: () {
-                                  Navigator.of(modalCtx).pop();
-                                  showOfficialCertificate(context, c);
-                                },
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                error: (error, _) {
+                  final fallbackCerts = getCertificatesForUser(user);
+                  if (fallbackCerts.isNotEmpty) {
+                    return _buildModalContainer(
+                      ctx: ctx,
+                      title: 'Sertifikat & Pencapaian',
+                      subtitle: '${fallbackCerts.length} Sertifikat resmi (Lokal)',
+                      body: _buildCertificatesList(context, ctx, fallbackCerts, consumerRef),
                     );
-                  },
+                  }
+                  return _buildModalContainer(
+                    ctx: ctx,
+                    title: 'Sertifikat & Pencapaian',
+                    subtitle: 'Gagal memuat sertifikat dari server',
+                    body: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline_rounded, size: 40, color: Color(0xFFEF4444)),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Gagal Memuat Sertifikat',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              error.toString(),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              icon: const Icon(Icons.refresh_rounded, size: 16),
+                              label: const Text('Coba Lagi'),
+                              onPressed: () => consumerRef.invalidate(counselorCertificatesProvider),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                data: (certs) {
+                  final activeCerts = certs.where((c) => c.isActive).toList();
+                  return _buildModalContainer(
+                    ctx: ctx,
+                    title: 'Sertifikat & Pencapaian',
+                    subtitle: '${activeCerts.length} Sertifikat resmi diraih berdasarkan milestone',
+                    body: activeCerts.isEmpty
+                        ? _buildEmptyState()
+                        : _buildCertificatesList(context, ctx, activeCerts, consumerRef),
+                  );
+                },
+              );
+            },
+          );
+        }
+
+        final certs = getCertificatesForUser(user);
+        return _buildModalContainer(
+          ctx: ctx,
+          title: 'Sertifikat & Pencapaian',
+          subtitle: '${certs.length} Sertifikat resmi diraih berdasarkan milestone',
+          body: certs.isEmpty ? _buildEmptyState() : _buildCertificatesList(context, ctx, certs, null),
+        );
+      },
+    );
+  }
+
+  static Widget _buildModalContainer({
+    required BuildContext ctx,
+    required String title,
+    required String subtitle,
+    required Widget body,
+  }) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 14,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE2E8F0),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            ],
-            ],
-          ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFD97706), size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 22, color: AppColors.textSecondary),
+                  splashRadius: 22,
+                  onPressed: () => Navigator.of(ctx).pop(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            body,
+          ],
         ),
       ),
     );
   }
 
-  static void showOfficialCertificate(BuildContext context, EvaCertificateEntity cert) {
+  static Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7).withValues(alpha: 0.5),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.workspace_premium_outlined, size: 40, color: Color(0xFFD97706)),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Belum Ada Sertifikat Penghargaan',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Sertifikat pencapaian klinis Eva akan diterbitkan otomatis setelah Anda menyelesaikan milestone praktik telekonseling.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static Widget _buildCertificatesList(
+    BuildContext parentContext,
+    BuildContext modalCtx,
+    List<EvaCertificateEntity> certs,
+    WidgetRef? ref,
+  ) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(modalCtx).size.height * 0.65,
+      ),
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: const BouncingScrollPhysics(),
+        itemCount: certs.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 12),
+        itemBuilder: (context, idx) {
+          final c = certs[idx];
+          return Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFECEFF8)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: c.badgeColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.military_tech_rounded, color: c.badgeColor, size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            c.title,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.textPrimary),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            c.milestoneCriteria,
+                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        c.issueDate,
+                        style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  c.description,
+                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const Divider(height: 20, color: Color(0xFFF1F5F9)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'No: ${c.certificateNumber}',
+                      style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
+                    ),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: const Icon(Icons.remove_red_eye_outlined, size: 14),
+                      label: const Text('Buka & Unduh', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      onPressed: () {
+                        Navigator.of(modalCtx).pop();
+                        showOfficialCertificate(parentContext, c, ref: ref);
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  static void showOfficialCertificate(
+    BuildContext context,
+    EvaCertificateEntity cert, {
+    WidgetRef? ref,
+  }) {
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -578,14 +705,9 @@ class CounselorCertificatesModal {
                         ),
                         icon: const Icon(Icons.download_rounded, size: 18),
                         label: const Text('Unduh Sertifikat (PDF)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                        onPressed: () {
+                        onPressed: () async {
                           Navigator.of(ctx).pop();
-                          TopToast.show(
-                            context,
-                            title: 'Sertifikat Berhasil Diunduh! 📄',
-                            message: 'Tersimpan di unduhan: ${cert.certificateNumber.replaceAll("/", "_")}.pdf',
-                            type: ToastType.success,
-                          );
+                          await _handleDownload(context, cert, ref);
                         },
                       ),
                     ),
@@ -597,5 +719,48 @@ class CounselorCertificatesModal {
         ),
       ),
     );
+  }
+
+  static Future<void> _handleDownload(
+    BuildContext context,
+    EvaCertificateEntity cert,
+    WidgetRef? ref,
+  ) async {
+    try {
+      String downloadUrl;
+      if (ref != null) {
+        downloadUrl = await ref
+            .read(certificateDownloadProvider.notifier)
+            .getDownloadUrl(cert.id);
+      } else {
+        final token = await TokenStorage.getToken() ?? '';
+        final base = AppConfig.apiBaseUrl;
+        final path = ApiEndpoints.downloadCertificatePdf(cert.id);
+        downloadUrl = token.isNotEmpty ? '$base$path?token=$token' : '$base$path';
+      }
+
+      final uri = Uri.parse(downloadUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+
+      if (context.mounted) {
+        TopToast.show(
+          context,
+          title: 'Sertifikat Berhasil Diunduh! 📄',
+          message: 'Nomor: ${cert.certificateNumber.replaceAll("/", "_")}.pdf',
+          type: ToastType.success,
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        TopToast.show(
+          context,
+          title: 'Gagal Mengunduh Sertifikat',
+          message: e.toString(),
+          type: ToastType.error,
+        );
+      }
+    }
   }
 }
