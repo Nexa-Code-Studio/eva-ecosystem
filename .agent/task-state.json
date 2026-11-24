@@ -144,5 +144,12 @@
     "state": "In Progress",
     "updated_at": 1795533931,
     "evidence_summary": "Evidence accepted: active task branch verified."
+  },
+  "34": {
+    "issue": 34,
+    "branch": "feat/34-users-coins-uiux-improvement",
+    "state": "In Progress",
+    "updated_at": 1795536901,
+    "evidence_summary": "Evidence accepted: active task branch verified."
   }
 }
