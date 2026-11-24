@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/image_helper.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../auth/domain/entities/psychologist_user_entity.dart';
+import '../providers/counselor_level_metrics_provider.dart';
 import 'counselor_edit_profile_modal.dart';
+import 'counselor_level_progress_modal.dart';
 import 'counselor_reviews_modal.dart';
 
-class CounselorProfileHeaderCard extends StatelessWidget {
+class CounselorProfileHeaderCard extends ConsumerWidget {
   final PsychologistUserEntity? user;
   final VoidCallback? onEditProfile;
 
@@ -19,26 +22,81 @@ class CounselorProfileHeaderCard extends StatelessWidget {
   Widget _statItem(String val, String label) {
     return Column(
       children: [
-        Text(val,
-            style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 14,
-                color: AppColors.textPrimary)),
+        Text(
+          val,
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 14,
+            color: AppColors.textPrimary,
+          ),
+        ),
         const SizedBox(height: 2),
-        Text(label,
-            style:
-                const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            color: AppColors.textSecondary,
+          ),
+        ),
       ],
     );
   }
 
+  Widget _buildLevelBadge(BuildContext context, int levelTier, String levelName) {
+    return InkWell(
+      onTap: () => CounselorLevelProgressModal.show(context),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEFF6FF),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFBFDBFE)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.stars_rounded,
+              color: Color(0xFF2563EB),
+              size: 13,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'Lvl $levelTier • $levelName',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1D4ED8),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final coinBalance = user?.coinBalance ?? 0;
     final displayName = (user?.fullName != null && user!.fullName.isNotEmpty)
         ? user!.displayName
         : 'Psikolog Mandiri';
     final email = user?.email ?? '';
+
+    final metricsAsync = ref.watch(counselorLevelMetricsProvider);
+    final metrics = metricsAsync.valueOrNull;
+
+    final ratingVal = (metrics != null && metrics.ratingCount > 0)
+        ? '${metrics.averageRating.toStringAsFixed(1)} ⭐'
+        : 'Baru ⭐';
+    final reviewVal = (metrics != null && metrics.ratingCount > 0)
+        ? '${metrics.ratingCount} Ulasan >'
+        : '0 Ulasan >';
+    final sessionVal = metrics != null ? '${metrics.totalCompletedSessions} Sesi' : '0 Sesi';
+    final hoursVal = metrics != null
+        ? '${metrics.totalConsultationHours.toStringAsFixed(1)} Jam'
+        : '0.0 Jam';
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -68,11 +126,13 @@ class CounselorProfileHeaderCard extends StatelessWidget {
                     CircleAvatar(
                       radius: 34,
                       backgroundColor: AppColors.primaryContainer,
-                      backgroundImage: getProfileImageProvider(user?.profilePhotoUrl),
-                      child: getProfileImageProvider(user?.profilePhotoUrl) == null
-                          ? const Icon(Icons.person,
-                              size: 34, color: AppColors.primary)
-                          : null,
+                      backgroundImage:
+                          getProfileImageProvider(user?.profilePhotoUrl),
+                      child:
+                          getProfileImageProvider(user?.profilePhotoUrl) == null
+                              ? const Icon(Icons.person,
+                                  size: 34, color: AppColors.primary)
+                              : null,
                     ),
                     Positioned(
                       bottom: -2,
@@ -120,7 +180,11 @@ class CounselorProfileHeaderCard extends StatelessWidget {
                       runSpacing: 4,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        StatusBadge.proIndependent('Psikolog Mandiri'),
+                        if (metrics != null)
+                          _buildLevelBadge(
+                              context, metrics.levelTier, metrics.levelName)
+                        else
+                          StatusBadge.proIndependent('Psikolog Mandiri'),
                         StatusBadge.coins(coinBalance),
                       ],
                     ),
@@ -154,19 +218,21 @@ class CounselorProfileHeaderCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 InkWell(
-                  onTap: () =>
-                      CounselorReviewsModal.show(context, totalSessions: 0),
+                  onTap: () => CounselorReviewsModal.show(
+                    context,
+                    totalSessions: metrics?.totalCompletedSessions ?? 0,
+                  ),
                   borderRadius: BorderRadius.circular(8),
                   child: Padding(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    child: _statItem('Baru ⭐', '0 Ulasan >'),
+                    child: _statItem(ratingVal, reviewVal),
                   ),
                 ),
                 Container(width: 1, height: 28, color: const Color(0xFFE2E5F0)),
-                _statItem('0 Sesi', 'Bulan Ini'),
+                _statItem(sessionVal, 'Selesai'),
                 Container(width: 1, height: 28, color: const Color(0xFFE2E5F0)),
-                _statItem('100%', 'Respon Booking'),
+                _statItem(hoursVal, 'Jam Terbang'),
               ],
             ),
           ),

@@ -87,3 +87,9 @@ tests/samples_pitch/
 
 # User reference screenshots
 immg/
+
+# Scratch & market analysis documents
+/*.pdf
+/generate_tam_sam_som_pdf.py
+/reference.csv
+/tam_sam_som_venn_diagram.png

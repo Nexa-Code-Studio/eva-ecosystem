@@ -9,6 +9,43 @@ import 'package:eva_counselor_mobile/features/profile/presentation/screens/couns
 import 'package:eva_counselor_mobile/features/profile/presentation/widgets/counselor_profile_schedule_card.dart';
 import 'package:eva_counselor_mobile/core/config/app_config.dart';
 import 'package:eva_counselor_mobile/features/profile/presentation/widgets/counselor_external_api_key_modal.dart';
+import 'package:eva_counselor_mobile/features/profile/data/datasources/counselor_profile_remote_data_source.dart';
+import 'package:eva_counselor_mobile/features/profile/domain/entities/counselor_level_metrics_entity.dart';
+import 'package:eva_counselor_mobile/features/profile/domain/entities/counselor_review_entity.dart';
+import 'package:eva_counselor_mobile/features/profile/presentation/providers/counselor_level_metrics_provider.dart';
+
+class _MockCounselorProfileDataSource implements ICounselorProfileDataSource {
+  @override
+  Future<CounselorLevelMetricsEntity> fetchLevelMetrics() async =>
+      const CounselorLevelMetricsEntity(
+        counselorId: 'test-counselor',
+        levelTier: 1,
+        levelName: 'Junior Practitioner',
+        badgeIcon: 'seedling',
+        totalCompletedSessions: 0,
+        totalConsultationHours: 0.0,
+        averageRating: 0.0,
+        ratingCount: 0,
+        activeSessionPrice: 50000.0,
+        platformFeePercentage: 20.0,
+        allowCustomPrice: false,
+        nextLevel: null,
+      );
+
+  @override
+  Future<CounselorReviewsListEntity> fetchReviews({String? counselorId}) async =>
+      const CounselorReviewsListEntity(
+        counselorId: 'test-counselor',
+        items: [],
+        total: 0,
+        averageRating: 0.0,
+      );
+
+  @override
+  Future<CounselorLevelMetricsEntity> updateCustomPrice(
+          double customPrice) async =>
+      fetchLevelMetrics();
+}
 
 void main() {
   setUp(() {
@@ -303,13 +340,12 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Jadwal Praktik Telekonseling'), findsOneWidget);
-      expect(find.text('Layanan 100% Telekonseling Online'), findsOneWidget);
-      expect(find.text('Hari & Jam Praktik Online'), findsOneWidget);
-      expect(find.text('Hari Praktik Daring Aktif:'), findsOneWidget);
+      expect(find.text('Jadwal & Multi Jam Istirahat'), findsOneWidget);
+      expect(find.text('Layanan 100% Telekonseling Daring'), findsOneWidget);
+      expect(find.text('Pilih Hari Praktik'), findsOneWidget);
       // Day chips do not use checkmark icons in online schedule
       expect(find.byIcon(Icons.check_rounded), findsNothing);
-      expect(find.text('Simpan Perubahan Jadwal'), findsOneWidget);
+      expect(find.text('Simpan Jadwal Praktik', skipOffstage: false), findsOneWidget);
     });
 
     testWidgets('CounselorProfileScreen renders clean menu card with calendar icon and no inner arrow in badge', (tester) async {
@@ -333,6 +369,7 @@ void main() {
         ProviderScope(
           overrides: [
             authStateProvider.overrideWith((ref) => _MockAuthStateNotifier(user)),
+            counselorProfileDataSourceProvider.overrideWithValue(_MockCounselorProfileDataSource()),
           ],
           child: const MaterialApp(
             home: CounselorProfileScreen(),
