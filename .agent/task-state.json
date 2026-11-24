@@ -149,8 +149,9 @@
   "121": {
     "issue": 121,
     "branch": "feat/121-counselor-leveling-and-reviews",
-    "state": "In Progress",
-    "updated_at": 1795531473,
-    "evidence_summary": "Evidence accepted: active task branch verified."
+    "state": "In Review",
+    "updated_at": 1795533180,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/123"
   }
 }
