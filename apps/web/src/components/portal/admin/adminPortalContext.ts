@@ -17,6 +17,7 @@ export interface AdminSummaryCounts {
   activeQuestsCount: number
   totalWaitlistCount: number
   hotlineNumber: string
+  activeCertificatesCount: number
 }
 
 export interface AdminOutletContext {
@@ -29,6 +30,7 @@ export interface AdminOutletContext {
 
 export function getActiveAdminModule(pathname: string): AdminModule {
   if (pathname.includes('/admin/psychologists')) return 'psychologists'
+  if (pathname.includes('/admin/certificates')) return 'certificates'
   if (pathname.includes('/admin/monitoring') || pathname.includes('/admin/referrals')) {
     return 'monitoring'
   }

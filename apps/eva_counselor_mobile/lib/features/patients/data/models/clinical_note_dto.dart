@@ -8,6 +8,8 @@ class CreateClinicalNoteRequestDto {
   final String assessment;
   final String plan;
   final List<String> recommendedTasks;
+  final List<String> points;
+  final String narrative;
 
   const CreateClinicalNoteRequestDto({
     required this.patientId,
@@ -17,6 +19,8 @@ class CreateClinicalNoteRequestDto {
     required this.assessment,
     required this.plan,
     required this.recommendedTasks,
+    this.points = const [],
+    this.narrative = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -27,6 +31,8 @@ class CreateClinicalNoteRequestDto {
         'assessment': assessment,
         'plan': plan,
         'recommended_tasks': recommendedTasks,
+        'points': points,
+        'narrative': narrative,
       };
 }
 
@@ -40,6 +46,8 @@ class ClinicalNoteResponseDto {
   final String assessment;
   final String plan;
   final List<String> recommendedTasks;
+  final List<String> points;
+  final String narrative;
 
   const ClinicalNoteResponseDto({
     required this.id,
@@ -51,10 +59,16 @@ class ClinicalNoteResponseDto {
     required this.assessment,
     required this.plan,
     required this.recommendedTasks,
+    this.points = const [],
+    this.narrative = '',
   });
 
   factory ClinicalNoteResponseDto.fromJson(Map<String, dynamic> json) {
     final soap = json['soap_notes'] as Map<String, dynamic>?;
+    final rawPoints = json['points'] as List<dynamic>? ?? soap?['points'] as List<dynamic>?;
+    final points = rawPoints?.map((e) => e.toString()).toList() ?? <String>[];
+    final narrative = json['narrative']?.toString() ?? soap?['narrative']?.toString() ?? '';
+
     return ClinicalNoteResponseDto(
       id: json['id']?.toString() ?? json['session_id']?.toString() ?? '',
       patientId: json['patient_id']?.toString() ?? '',
@@ -73,6 +87,8 @@ class ClinicalNoteResponseDto {
               ?.map((e) => e.toString())
               .toList() ??
           [],
+      points: points,
+      narrative: narrative,
     );
   }
 
@@ -87,6 +103,8 @@ class ClinicalNoteResponseDto {
       assessment: assessment,
       plan: plan,
       recommendedTasks: recommendedTasks,
+      points: points,
+      narrative: narrative,
     );
   }
 }

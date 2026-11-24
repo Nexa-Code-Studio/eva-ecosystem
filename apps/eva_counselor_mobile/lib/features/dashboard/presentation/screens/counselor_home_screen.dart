@@ -89,10 +89,14 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
     for (final p in patients) {
       if (p.upcomingSchedule != null) {
         realTodaySessions.add({
-          'time': p.upcomingSchedule!.timeRange,
+          'time': p.upcomingSchedule!.timeRange.isNotEmpty
+              ? p.upcomingSchedule!.timeRange
+              : (p.upcomingSchedule!.formattedTime.isNotEmpty
+                  ? p.upcomingSchedule!.formattedTime
+                  : 'Terjadwal Hari Ini'),
           'patientName': '${p.name} (${p.age} Thn)',
           'chiefComplaint': p.chiefComplaint,
-          'status': 'Siap Dimulai (Live)',
+          'status': '', // Hapus text 'siap dimulai live' agar rapi dan tidak penuh
           'isLive': true,
           'patientId': p.id,
           'sessionId': p.upcomingSchedule!.sessionId,
@@ -145,8 +149,15 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(patientsListProvider);
+            ref.invalidate(financialSummaryProvider);
+            await ref.read(patientsListProvider.future);
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -549,7 +560,8 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                               ),
                               onPressed: () async {
-                                final sessionId = upcomingPatient.upcomingSchedule?.sessionId ?? 'session-live-001';
+                                final sessionId = upcomingPatient.upcomingSchedule?.sessionId;
+                                if (sessionId == null || sessionId.isEmpty) return;
                                 final finished = await Navigator.of(context).pushNamed(
                                   '/counselor-video-call',
                                   arguments: sessionId,
@@ -994,17 +1006,17 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                                       session['time'] as String,
                                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppColors.textPrimary),
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      session['status'] as String,
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w600,
-                                        color: isLive
-                                            ? AppColors.primary
-                                            : (isRisk ? AppColors.highRiskRed : AppColors.textSecondary),
+                                    if ((session['status'] as String? ?? '').isNotEmpty && !isLive) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        session['status'] as String,
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: isRisk ? AppColors.highRiskRed : AppColors.textSecondary,
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ],
                                 ),
                                 const SizedBox(width: 12),
@@ -1040,10 +1052,13 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                     ),
                                     onPressed: () {
-                                      Navigator.of(context).pushNamed(
-                                        '/counselor-video-call',
-                                        arguments: 'session-live-001',
-                                      );
+                                      final sessId = session['sessionId'] as String?;
+                                      if (sessId != null && sessId.isNotEmpty) {
+                                        Navigator.of(context).pushNamed(
+                                          '/counselor-video-call',
+                                          arguments: sessId,
+                                        );
+                                      }
                                     },
                                     child: const Text('Buka VC', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                                   )
@@ -1369,7 +1384,37 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            p.name,
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (p.upcomingSchedule != null) ...[
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primaryContainer,
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              p.upcomingSchedule!.timeRange.isNotEmpty
+                                                  ? p.upcomingSchedule!.timeRange
+                                                  : 'Terjadwal',
+                                              style: const TextStyle(
+                                                fontSize: 9.5,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppColors.primary,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
                                     const SizedBox(height: 2),
                                     Text(
                                       p.chiefComplaint,
@@ -1399,8 +1444,9 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildDailyTimelineProgressBar(PsychologistUserEntity? user) {
     final breakStart = user?.breakStartTime ?? '12:00';

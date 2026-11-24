@@ -19,6 +19,8 @@ class ExtendSessionRequest(BaseModel):
 
 
 class UpdateSoapNotesRequest(BaseModel):
+    points: list[str] = Field(default_factory=list, description="Poin-poin observasi klinis psikologis")
+    narrative: str = Field(default="", max_length=10000, description="Narasi catatan observasi psikolog")
     subjective: str = Field(default="", max_length=5000)
     objective: str = Field(default="", max_length=5000)
     assessment: str = Field(default="", max_length=5000)
@@ -42,6 +44,8 @@ class UpdateConsentStatusRequest(BaseModel):
 class CreateClinicalNoteRequest(BaseModel):
     patient_id: str
     session_id: str | None = None
+    points: list[str] = Field(default_factory=list, description="Poin-poin observasi klinis psikologis")
+    narrative: str = Field(default="", max_length=10000, description="Narasi catatan observasi psikolog")
     subjective: str = Field(default="", max_length=5000)
     objective: str = Field(default="", max_length=5000)
     assessment: str = Field(default="", max_length=5000)

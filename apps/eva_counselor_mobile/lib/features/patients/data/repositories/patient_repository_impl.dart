@@ -42,6 +42,8 @@ class PatientRepositoryImpl implements IPatientRepository {
     required String assessment,
     required String plan,
     required List<String> recommendedTasks,
+    List<String> points = const [],
+    String narrative = '',
   }) async {
     final request = CreateClinicalNoteRequestDto(
       patientId: patientId,
@@ -51,6 +53,8 @@ class PatientRepositoryImpl implements IPatientRepository {
       assessment: assessment,
       plan: plan,
       recommendedTasks: recommendedTasks,
+      points: points,
+      narrative: narrative,
     );
     final dto = await _dataSource.createClinicalNote(request);
     return dto.toEntity();

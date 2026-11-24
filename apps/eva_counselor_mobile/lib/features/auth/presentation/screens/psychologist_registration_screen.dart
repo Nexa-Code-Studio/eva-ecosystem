@@ -34,7 +34,7 @@ class _PsychologistRegistrationScreenState
   final _customSipInstitutionCtrl = TextEditingController();
   final _customAssociationCtrl = TextEditingController();
   final _strExpiryCtrl = TextEditingController(text: 'Seumur Hidup (UU Kesehatan No. 17/2023)');
-  final _sipExpiryCtrl = TextEditingController(text: '${DateTime.now().year + 5}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}');
+  final _sipExpiryCtrl = TextEditingController();
 
   // Dokumen Legalitas: 'both', 'str', 'sip'
   String _documentType = 'both';
@@ -866,8 +866,8 @@ class _PsychologistRegistrationScreenState
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                     ),
-                    icon: Image.network(
-                      'https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png',
+                    icon: Image.asset(
+                      'assets/images/google_logo.png',
                       width: 18,
                       height: 18,
                       errorBuilder: (context, error, stackTrace) => const Icon(

@@ -1,6 +1,7 @@
 export type AdminModuleId =
   | 'dashboard'
   | 'psychologists'
+  | 'certificates'
   | 'monitoring'
   | 'settings'
   | 'users_coins'

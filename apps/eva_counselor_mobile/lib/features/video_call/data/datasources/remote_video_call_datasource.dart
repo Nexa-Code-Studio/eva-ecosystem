@@ -11,8 +11,32 @@ class RemoteVideoCallDataSource implements VideoCallDataSource {
   RemoteVideoCallDataSource({ApiClient? client})
       : _client = client ?? ApiClient();
 
+  static final RegExp _uuidRegex = RegExp(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+  );
+
+  bool _isValidUuid(String str) => _uuidRegex.hasMatch(str);
+
   @override
   Future<VideoSessionResponseDto> fetchSessionDetails(String sessionId) async {
+    if (!_isValidUuid(sessionId)) {
+      return VideoSessionResponseDto(
+        sessionId: sessionId,
+        patientId: 'patient-001',
+        patientName: 'Pasien Konseling',
+        scheduledTime: DateTime.now().toIso8601String(),
+        status: 'ready',
+        signalingToken: 'simulated-token-$sessionId',
+        channelName: 'counseling-room-$sessionId',
+        wsUrl: '',
+        iceServerConfigs: const [
+          IceServerDto(
+            urls: ['stun:stun.l.google.com:19302'],
+          ),
+        ],
+      );
+    }
+
     try {
       final tokenResponse =
           await _client.post(ApiEndpoints.videoToken(sessionId));
@@ -33,6 +57,7 @@ class RemoteVideoCallDataSource implements VideoCallDataSource {
 
   @override
   Future<bool> initiateCall(String sessionId) async {
+    if (!_isValidUuid(sessionId)) return true;
     try {
       await _client.post(
         ApiEndpoints.updateCallStatus(sessionId),
@@ -55,6 +80,7 @@ class RemoteVideoCallDataSource implements VideoCallDataSource {
   @override
   Future<bool> terminateCall(
       String sessionId, int durationSeconds, List<String> notes) async {
+    if (!_isValidUuid(sessionId)) return true;
     try {
       await _client.post(
         ApiEndpoints.updateCallStatus(sessionId),

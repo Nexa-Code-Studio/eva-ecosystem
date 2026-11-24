@@ -62,6 +62,11 @@ class _VideoConsultationScreenState
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _quickNoteCtrl.dispose();
+    // Matikan kamera, mikrofon, dan koneksi media seketika saat konselor keluar dari ruang VC
+    final session = ref.read(videoCallControllerProvider(widget.sessionId));
+    if (session.status != VideoCallStatus.ended) {
+      ref.read(videoCallControllerProvider(widget.sessionId).notifier).endCall();
+    }
     super.dispose();
   }
 
@@ -263,7 +268,23 @@ class _VideoConsultationScreenState
     final isNearEnd = isPatientConnected && remainingSeconds <= 300 && remainingSeconds > 0;
     final isUrgentEnd = isPatientConnected && remainingSeconds <= 120 && remainingSeconds > 0;
 
-    return Scaffold(
+    return PopScope(
+      canPop: !isPatientConnected,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (isPatientConnected) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Sesi konsultasi sedang berlangsung. Silakan gunakan tombol "Akhiri Sesi" untuk menyelesaikan.',
+              ),
+              backgroundColor: AppColors.highRiskRed,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      },
+      child: Scaffold(
       backgroundColor: const Color(0xFF101318),
       body: SafeArea(
         child: Stack(
@@ -372,7 +393,21 @@ class _VideoConsultationScreenState
                             minimumSize: const Size(48, 48),
                           ),
                           icon: const Icon(Icons.arrow_back, size: 20),
-                          onPressed: () => Navigator.of(context).pop(),
+                          onPressed: () {
+                            if (isPatientConnected) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Sesi konsultasi sedang berlangsung. Silakan gunakan tombol "Akhiri Sesi" untuk menyelesaikan.',
+                                  ),
+                                  backgroundColor: AppColors.highRiskRed,
+                                  duration: Duration(seconds: 3),
+                                ),
+                              );
+                            } else {
+                              Navigator.of(context).pop();
+                            }
+                          },
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -945,7 +980,7 @@ class _VideoConsultationScreenState
                             const SizedBox(height: 2),
                             Text(
                               isUrgentEnd
-                                  ? 'Sesi segera berakhir. Mohon bersiap menyelesaikan konsultasi & mengisi SOAP.'
+                                  ? 'Sesi segera berakhir. Mohon bersiap menyelesaikan konsultasi & melengkapi catatan klinis.'
                                   : 'Mulai rangkum evaluasi sesi bersama pasien sebelum sesi berakhir.',
                               style: const TextStyle(color: Colors.white70, fontSize: 10),
                             ),
@@ -959,8 +994,9 @@ class _VideoConsultationScreenState
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   // WAITING ROOM STATE WIDGET
   Widget _buildWaitingPatientView(VideoCallSessionEntity session) {

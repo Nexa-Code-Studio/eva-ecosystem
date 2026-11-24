@@ -244,8 +244,8 @@ class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScree
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        icon: Image.network(
-                          'https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png',
+                        icon: Image.asset(
+                          'assets/images/google_logo.png',
                           width: 20,
                           height: 20,
                           errorBuilder: (context, error, stackTrace) =>

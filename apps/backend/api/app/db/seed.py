@@ -8,6 +8,7 @@ from app.db.session import AsyncSessionLocal, engine
 from app.core.security import hash_password
 from app.core.tz import get_wib_today
 from app.models.base import BaseModel
+from app.models.certificate import CertificateTemplate, PsychologistCertificate
 from app.models.coin import CoinEconomyConfig, CoinPackage
 from app.models.content import CrisisConfig, FaqEntry
 from app.models.counselor import (
@@ -17,6 +18,7 @@ from app.models.counselor import (
     PlatformPricingConfig,
     PsychologistProfile,
 )
+from app.models.certificate import CertificateTemplate, PsychologistCertificate
 from app.models.conversation import Conversation, Message
 from app.models.diary import DiaryEntry
 from app.models.coping_activity import CopingActivity, UserActivityCompletion
@@ -936,6 +938,102 @@ async def seed_counselor_master_data(session: AsyncSessionLocal, patient_user: U
             )
             session.add(tx1)
             await session.commit()
+
+    # 7. Seed Default Certificate Templates & Initial Issued Certificate (only if empty)
+    if seeded_profiles:
+        primary_counselor = seeded_profiles[0]
+        tpl_count = await session.scalar(select(func.count(CertificateTemplate.id)))
+        if (tpl_count or 0) == 0:
+            t1 = CertificateTemplate(
+                code="CERT-PRO-01",
+                title="SERTIFIKAT PRAKTIK TELEKONSELING KLINIS",
+                subtitle="Clinical Tele-Psychology Excellence & Competence",
+                category_code="PRO",
+                category_label="Psikolog Mandiri",
+                milestone_criteria="Penyelesaian 25 Sesi Klinis Terverifikasi",
+                description=(
+                    "Diberikan kepada {psychologist_name} (STR: {str_number}) atas dedikasi dan kompetensi "
+                    "klinis prima dalam menyelenggarakan telekonsultasi kesehatan mental dengan standar etika tertinggi. "
+                    "Nomor Registrasi Sertifikat: {certificate_number} (Diterbitkan {issue_date})."
+                ),
+                badge_color="#2563EB",
+                trigger_type="sessions_milestone",
+                min_completed_sessions=25,
+                min_average_rating=None,
+                auto_issue_enabled=True,
+                is_active=True,
+            )
+            t2 = CertificateTemplate(
+                code="CERT-PRO-02",
+                title="SERTIFIKAT KEPATUHAN REKAM MEDIS SOAP",
+                subtitle="Certified Clinical Medical Record Standard",
+                category_code="SOAP",
+                category_label="Psikolog Mandiri",
+                milestone_criteria="Kepatuhan Rekam SOAP 100% pada 50 Sesi",
+                description=(
+                    "Diberikan kepada {psychologist_name} (STR: {str_number}) atas komitmen integritas dokumentasi "
+                    "SOAP klinis terenkripsi aman demi keselamatan pasien. Nomor: {certificate_number}."
+                ),
+                badge_color="#D97706",
+                trigger_type="sessions_milestone",
+                min_completed_sessions=50,
+                min_average_rating=None,
+                auto_issue_enabled=True,
+                is_active=True,
+            )
+            t3 = CertificateTemplate(
+                code="CERT-PRO-03",
+                title="SERTIFIKAT KONSELOR TELADAN EVA",
+                subtitle="Distinguished Clinical Practitioner",
+                category_code="TOP",
+                category_label="Psikolog Mandiri",
+                milestone_criteria="100+ Sesi Terlaksana dengan Rating Kepuasan >= 4.8",
+                description=(
+                    "Penghargaan tertinggi platform EVA kepada {psychologist_name} (STR: {str_number}) atas loyalitas "
+                    "pelayanan intervensi krisis dan kepuasan pasien prima. Nomor: {certificate_number}."
+                ),
+                badge_color="#7E22CE",
+                trigger_type="rating_milestone",
+                min_completed_sessions=100,
+                min_average_rating=Decimal("4.80"),
+                auto_issue_enabled=True,
+                is_active=True,
+            )
+            session.add_all([t1, t2, t3])
+            await session.commit()
+            await session.refresh(t1)
+            logger.info("Seeded 3 default CertificateTemplate milestones.")
+
+            cert_count = await session.scalar(select(func.count(PsychologistCertificate.id)))
+            if (cert_count or 0) == 0:
+                now_cert = datetime.now(UTC)
+                cert_num = f"EVA/CERT/{now_cert.year}/PRO/00001"
+                session.add(
+                    PsychologistCertificate(
+                        certificate_number=cert_num,
+                        sequence_number=1,
+                        issue_year=now_cert.year,
+                        category_code="PRO",
+                        counselor_id=primary_counselor.id,
+                        template_id=t1.id,
+                        title=t1.title,
+                        subtitle=t1.subtitle,
+                        recipient_name=primary_counselor.full_name,
+                        str_number=primary_counselor.str_number,
+                        milestone_criteria=t1.milestone_criteria,
+                        category_label=t1.category_label,
+                        description=(
+                            f"Diberikan kepada {primary_counselor.full_name} (STR: {primary_counselor.str_number}) atas dedikasi "
+                            f"telekonseling klinis resmi EVA. Nomor: {cert_num}."
+                        ),
+                        badge_color=t1.badge_color,
+                        trigger_source="manual",
+                        status="active",
+                        issued_at=now_cert,
+                    )
+                )
+                await session.commit()
+                logger.info(f"Seeded initial official certificate {cert_num} for {primary_counselor.full_name}.")
 
     return seeded_profiles
 

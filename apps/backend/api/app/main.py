@@ -13,6 +13,10 @@ from app.api.routes.analytics import router as analytics_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.call import router as call_router
 from app.api.routes.care import community_router, router as care_router
+from app.api.routes.certificates import (
+    admin_router as certificates_admin_router,
+    counselor_router as certificates_counselor_router,
+)
 from app.api.routes.coins import router as coins_router
 from app.api.routes.content import (
     admin_router as content_admin_router,
@@ -86,6 +90,8 @@ app.include_router(admin_sessions_router, prefix="/api/v1")
 app.include_router(content_public_router, prefix="/api/v1")
 app.include_router(content_admin_router, prefix="/api/v1")
 app.include_router(community_router, prefix="/api/v1")
+app.include_router(certificates_counselor_router, prefix="/api/v1")
+app.include_router(certificates_admin_router, prefix="/api/v1")
 
 
 @app.get("/")
