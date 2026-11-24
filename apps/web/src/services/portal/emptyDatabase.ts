@@ -51,4 +51,5 @@ export const EMPTY_PORTAL_DATABASE: PortalDatabase = {
   certificateTemplates: [],
   issuedCertificates: [],
   eligibleCounselorSummaries: [],
+  psychologistLevels: [],
 }

@@ -14,7 +14,9 @@ import {
   mapBackendCrisisConfigToDomain,
   mapBackendEvaluationSummaryToDomain,
   mapBackendFaqToDomain,
+  mapBackendLevelEvaluationToDomain,
   mapBackendPricingToDomain,
+  mapBackendPsychologistLevelToDomain,
   mapBackendPsychologistToDomain,
   normalizeVerificationStatus,
 } from '@/services/contracts/portalMappers'
@@ -34,8 +36,10 @@ import type {
   BackendCounselorCertificateEligibilityDto,
   BackendCrisisConfigDto,
   BackendFaqEntryDto,
+  BackendLevelEvaluationBatchDto,
   BackendPricingConfigResponseDto,
   BackendPsychologistCertificateDto,
+  BackendPsychologistLevelDto,
   BackendPsychologistProfileResponseDto,
   CreateFaqRequestDto,
   IssueCertificateRequestDto,
@@ -47,6 +51,7 @@ import type {
   UpsertCertificateTemplateRequestDto,
   UpsertCoinPackageRequestDto,
   UpsertPlatformPricingRequestDto,
+  UpsertPsychologistLevelRequestDto,
   VerifyPsychologistRequestDto,
 } from '@/types/api/contracts'
 import type {
@@ -61,10 +66,12 @@ import type {
   FaqEntry,
   GeneralAppUser,
   IssuedPsychologistCertificate,
+  LevelEvaluationBatchSummary,
   PlatformPricingConfig,
   PortalDatabase,
   PortalSession,
   Psychologist,
+  PsychologistLevelConfig,
 } from '@/types/domain/portal'
 
 const PROD_STORAGE_KEY = 'eva_portal_db_prod_v2'
@@ -167,6 +174,8 @@ export class RemotePortalDataSource implements IPortalDataSource {
           parsed.issuedCertificates ?? EMPTY_PORTAL_DATABASE.issuedCertificates,
         eligibleCounselorSummaries:
           parsed.eligibleCounselorSummaries ?? EMPTY_PORTAL_DATABASE.eligibleCounselorSummaries,
+        psychologistLevels:
+          parsed.psychologistLevels ?? EMPTY_PORTAL_DATABASE.psychologistLevels,
       }
     } catch {
       return EMPTY_PORTAL_DATABASE
@@ -933,5 +942,106 @@ export class RemotePortalDataSource implements IPortalDataSource {
       `/admin/certificates/${encodeURIComponent(certificateId)}/download`,
       `sertifikat-${certificateId}.pdf`,
     )
+  }
+
+  async fetchPsychologistLevels(): Promise<PsychologistLevelConfig[]> {
+    const list = await this.requestJson<BackendPsychologistLevelDto[]>('/admin/psychologist-levels')
+    const mapped = list
+      .map(mapBackendPsychologistLevelToDomain)
+      .sort((a, b) => a.levelTier - b.levelTier)
+    this.updateSnapshot((db) => {
+      db.psychologistLevels = mapped
+    })
+    return mapped
+  }
+
+  async createPsychologistLevel(
+    input: UpsertPsychologistLevelRequestDto,
+  ): Promise<PsychologistLevelConfig> {
+    const dto = await this.requestJson<BackendPsychologistLevelDto>('/admin/psychologist-levels', {
+      method: 'POST',
+      body: JSON.stringify({
+        level_tier: input.levelTier,
+        name: input.name.trim(),
+        badge_icon: input.badgeIcon.trim() || 'award',
+        min_completed_sessions: input.minCompletedSessions,
+        min_average_rating: input.minAverageRating,
+        min_consultation_hours: input.minConsultationHours,
+        min_review_count: input.minReviewCount,
+        default_session_price: input.defaultSessionPrice,
+        platform_fee_percentage: input.platformFeePercentage,
+        allow_custom_price: input.allowCustomPrice,
+        min_custom_price: input.allowCustomPrice ? (input.minCustomPrice ?? null) : null,
+        max_custom_price: input.allowCustomPrice ? (input.maxCustomPrice ?? null) : null,
+        is_active: input.isActive,
+      }),
+    })
+    const mapped = mapBackendPsychologistLevelToDomain(dto)
+    this.updateSnapshot((db) => {
+      this.upsertItem(db.psychologistLevels, mapped, 'end')
+      db.psychologistLevels.sort((a, b) => a.levelTier - b.levelTier)
+    })
+    return mapped
+  }
+
+  async updatePsychologistLevel(
+    levelId: string,
+    input: UpsertPsychologistLevelRequestDto,
+  ): Promise<PsychologistLevelConfig> {
+    const dto = await this.requestJson<BackendPsychologistLevelDto>(
+      `/admin/psychologist-levels/${encodeURIComponent(levelId)}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          level_tier: input.levelTier,
+          name: input.name.trim(),
+          badge_icon: input.badgeIcon.trim() || 'award',
+          min_completed_sessions: input.minCompletedSessions,
+          min_average_rating: input.minAverageRating,
+          min_consultation_hours: input.minConsultationHours,
+          min_review_count: input.minReviewCount,
+          default_session_price: input.defaultSessionPrice,
+          platform_fee_percentage: input.platformFeePercentage,
+          allow_custom_price: input.allowCustomPrice,
+          min_custom_price: input.allowCustomPrice ? (input.minCustomPrice ?? null) : null,
+          max_custom_price: input.allowCustomPrice ? (input.maxCustomPrice ?? null) : null,
+          is_active: input.isActive,
+        }),
+      },
+    )
+    const mapped = mapBackendPsychologistLevelToDomain(dto)
+    this.updateSnapshot((db) => {
+      this.upsertItem(db.psychologistLevels, mapped, 'end')
+      db.psychologistLevels.sort((a, b) => a.levelTier - b.levelTier)
+    })
+    return mapped
+  }
+
+  async togglePsychologistLevelActive(levelId: string): Promise<PsychologistLevelConfig> {
+    const dto = await this.requestJson<BackendPsychologistLevelDto>(
+      `/admin/psychologist-levels/${encodeURIComponent(levelId)}/toggle`,
+      { method: 'PATCH' },
+    )
+    const mapped = mapBackendPsychologistLevelToDomain(dto)
+    this.updateSnapshot((db) => {
+      this.upsertItem(db.psychologistLevels, mapped, 'end')
+      db.psychologistLevels.sort((a, b) => a.levelTier - b.levelTier)
+    })
+    return mapped
+  }
+
+  async deletePsychologistLevel(levelId: string): Promise<void> {
+    await this.requestJson(`/admin/psychologist-levels/${encodeURIComponent(levelId)}`, {
+      method: 'DELETE',
+    })
+    await this.fetchPsychologistLevels().catch(() => undefined)
+  }
+
+  async evaluateAllPsychologistLevels(): Promise<LevelEvaluationBatchSummary> {
+    const dto = await this.requestJson<BackendLevelEvaluationBatchDto>(
+      '/admin/psychologist-levels/evaluate-all',
+      { method: 'POST' },
+    )
+    return mapBackendLevelEvaluationToDomain(dto)
   }
 }

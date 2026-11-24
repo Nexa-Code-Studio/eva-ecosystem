@@ -38,6 +38,18 @@ class PsychologistProfileResponse(BaseModel):
     bank_account_number: str | None = None
     bank_account_holder: str | None = None
     wallet_balance: float
+    current_level_id: str | None = None
+    level_tier: int | None = None
+    level_name: str | None = None
+    level_badge_icon: str | None = None
+    effective_session_price: float = 150.0
+    platform_fee_percentage: float = 20.0
+    allow_custom_price: bool = False
+    custom_price_per_session: float | None = None
+    total_completed_sessions: int = 0
+    total_consultation_hours: float = 0.0
+    average_rating: float = 0.0
+    rating_count: int = 0
     created_at: datetime
 
 
@@ -54,6 +66,15 @@ class PsychologistPublicResponse(BaseModel):
     profile_photo_url: str | None = None
     is_online: bool
     buffer_time_minutes: int
+    level_tier: int | None = None
+    level_name: str | None = None
+    level_badge_icon: str | None = None
+    effective_session_price: float = 150.0
+    platform_fee_percentage: float = 20.0
+    total_completed_sessions: int = 0
+    total_consultation_hours: float = 0.0
+    average_rating: float = 0.0
+    rating_count: int = 0
 
 
 class PsychologistVerificationResponse(BaseModel):

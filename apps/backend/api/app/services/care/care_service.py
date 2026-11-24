@@ -149,6 +149,16 @@ class CareService:
         await self.db.commit()
         await self.db.refresh(session)
 
+        if target_status in ("completed", "ended"):
+            try:
+                from app.services.certificate import CertificateService
+                from app.services.level import LevelService
+
+                await LevelService(self.db).recalculate_and_evaluate(counselor_id=session.counselor_id)
+                await CertificateService(self.db).evaluate_auto_issuance(counselor_id=session.counselor_id)
+            except Exception:
+                pass
+
         return CallStatusResponse(
             success=True,
             session_id=str(session.id),

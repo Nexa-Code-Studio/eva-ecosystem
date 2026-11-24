@@ -9,9 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.security import hash_password
-from app.models.counselor import PsychologistProfile
-from app.models.enums import PsychologistVerificationStatus
+from app.models.counselor import PlatformPricingConfig, PsychologistProfile
+from app.models.enums import PricingConfigStatus, PsychologistVerificationStatus
 from app.models.user import User
+from app.services.level import LevelService
 from app.schemas.counselor import (
     PsychologistProfileResponse,
     PsychologistPublicResponse,
@@ -126,7 +127,11 @@ class CounselorService:
 
     async def get_profile_by_user_id(self, user_id: uuid.UUID) -> PsychologistProfileResponse:
         """Fetch psychologist profile by linked user ID."""
-        query = select(PsychologistProfile).where(PsychologistProfile.user_id == user_id)
+        query = (
+            select(PsychologistProfile)
+            .options(selectinload(PsychologistProfile.current_level))
+            .where(PsychologistProfile.user_id == user_id)
+        )
         res = await self.db.execute(query)
         profile = res.scalar_one_or_none()
         if not profile:
@@ -138,7 +143,11 @@ class CounselorService:
 
     async def get_profile_by_id(self, profile_id: uuid.UUID) -> PsychologistProfileResponse:
         """Fetch psychologist profile by primary key UUID."""
-        query = select(PsychologistProfile).where(PsychologistProfile.id == profile_id)
+        query = (
+            select(PsychologistProfile)
+            .options(selectinload(PsychologistProfile.current_level))
+            .where(PsychologistProfile.id == profile_id)
+        )
         res = await self.db.execute(query)
         profile = res.scalar_one_or_none()
         if not profile:
@@ -283,8 +292,19 @@ class CounselorService:
         offset: int = 0,
     ) -> list[PsychologistPublicResponse]:
         """List active and verified psychologists available for teleconsultation booking."""
+        fallback_res = await self.db.execute(
+            select(PlatformPricingConfig)
+            .where(PlatformPricingConfig.status == PricingConfigStatus.ACTIVE.value)
+            .order_by(PlatformPricingConfig.effective_from.desc())
+            .limit(1)
+        )
+        fallback = fallback_res.scalar_one_or_none()
+        fallback_price = fallback.price_per_session if fallback else Decimal("150.00")
+        fallback_fee = float(fallback.platform_fee_percentage) if fallback else 20.0
+
         query = (
             select(PsychologistProfile)
+            .options(selectinload(PsychologistProfile.current_level))
             .where(
                 PsychologistProfile.verification_status == PsychologistVerificationStatus.VERIFIED.value,
                 PsychologistProfile.is_online.is_(True),
@@ -296,21 +316,37 @@ class CounselorService:
         res = await self.db.execute(query)
         profiles = res.scalars().all()
 
-        return [
-            PsychologistPublicResponse(
-                id=str(p.id),
-                full_name=p.full_name,
-                title_degree=p.title_degree,
-                association=p.association,
-                specializations=p.specializations or [],
-                years_of_experience=p.years_of_experience,
-                bio=p.bio,
-                profile_photo_url=p.profile_photo_url,
-                is_online=p.is_online,
-                buffer_time_minutes=p.buffer_time_minutes,
+        items: list[PsychologistPublicResponse] = []
+        for p in profiles:
+            lvl = p.current_level if (p.current_level and p.current_level.is_active) else None
+            effective_price = float(
+                LevelService.compute_effective_price(p, lvl, fallback_price=fallback_price)
             )
-            for p in profiles
-        ]
+            fee_pct = float(lvl.platform_fee_percentage) if lvl else fallback_fee
+            items.append(
+                PsychologistPublicResponse(
+                    id=str(p.id),
+                    full_name=p.full_name,
+                    title_degree=p.title_degree,
+                    association=p.association,
+                    specializations=p.specializations or [],
+                    years_of_experience=p.years_of_experience,
+                    bio=p.bio,
+                    profile_photo_url=p.profile_photo_url,
+                    is_online=p.is_online,
+                    buffer_time_minutes=p.buffer_time_minutes,
+                    level_tier=lvl.level_tier if lvl else None,
+                    level_name=lvl.name if lvl else None,
+                    level_badge_icon=lvl.badge_icon if lvl else None,
+                    effective_session_price=effective_price,
+                    platform_fee_percentage=fee_pct,
+                    total_completed_sessions=p.total_completed_sessions,
+                    total_consultation_hours=float(p.total_consultation_hours),
+                    average_rating=float(p.average_rating),
+                    rating_count=p.rating_count,
+                )
+            )
+        return items
 
     async def list_all_counselors_for_admin(
         self,
@@ -320,7 +356,10 @@ class CounselorService:
         """List all psychologist profiles across every verification status for Admin review."""
         query = (
             select(PsychologistProfile)
-            .options(selectinload(PsychologistProfile.user))
+            .options(
+                selectinload(PsychologistProfile.user),
+                selectinload(PsychologistProfile.current_level),
+            )
             .join(User, PsychologistProfile.user_id == User.id)
         )
 
@@ -495,6 +534,16 @@ class CounselorService:
         if resolved_email is None and "user" in profile.__dict__ and profile.user is not None:
             resolved_email = profile.user.email
 
+        lvl = (
+            profile.current_level
+            if "current_level" in profile.__dict__
+            and profile.current_level is not None
+            and profile.current_level.is_active
+            else None
+        )
+        effective_price = float(LevelService.compute_effective_price(profile, lvl))
+        fee_pct = float(lvl.platform_fee_percentage) if lvl else 20.0
+
         return PsychologistProfileResponse(
             id=str(profile.id),
             user_id=str(profile.user_id),
@@ -528,6 +577,22 @@ class CounselorService:
             bank_account_number=profile.bank_account_number,
             bank_account_holder=profile.bank_account_holder,
             wallet_balance=float(profile.wallet_balance),
+            current_level_id=str(lvl.id) if lvl else None,
+            level_tier=lvl.level_tier if lvl else None,
+            level_name=lvl.name if lvl else None,
+            level_badge_icon=lvl.badge_icon if lvl else None,
+            effective_session_price=effective_price,
+            platform_fee_percentage=fee_pct,
+            allow_custom_price=bool(lvl.allow_custom_price) if lvl else False,
+            custom_price_per_session=(
+                float(profile.custom_price_per_session)
+                if profile.custom_price_per_session is not None
+                else None
+            ),
+            total_completed_sessions=profile.total_completed_sessions or 0,
+            total_consultation_hours=float(profile.total_consultation_hours or 0),
+            average_rating=float(profile.average_rating or 0),
+            rating_count=profile.rating_count or 0,
             created_at=profile.created_at,
         )
 

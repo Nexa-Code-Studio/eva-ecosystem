@@ -39,6 +39,10 @@ class PsychologistProfile(BaseModel):
         kwargs.setdefault("buffer_time_minutes", 10)
         kwargs.setdefault("schedule_config", {})
         kwargs.setdefault("wallet_balance", Decimal("0.00"))
+        kwargs.setdefault("total_completed_sessions", 0)
+        kwargs.setdefault("total_consultation_hours", Decimal("0.00"))
+        kwargs.setdefault("average_rating", Decimal("0.00"))
+        kwargs.setdefault("rating_count", 0)
         super().__init__(**kwargs)
 
     user_id: Mapped[uuid.UUID] = mapped_column(
@@ -125,9 +129,51 @@ class PsychologistProfile(BaseModel):
         server_default="0.00",
     )
 
+    # Career Level & Quantitative Metrics
+    current_level_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("psychologist_levels.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    custom_price_per_session: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    total_completed_sessions: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+    total_consultation_hours: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2),
+        nullable=False,
+        default=Decimal("0.00"),
+        server_default="0.00",
+    )
+    average_rating: Mapped[Decimal] = mapped_column(
+        Numeric(3, 2),
+        nullable=False,
+        default=Decimal("0.00"),
+        server_default="0.00",
+    )
+    rating_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+
     # Relationships
     user: Mapped["User"] = orm_relationship("User", foreign_keys=[user_id])
     verified_by: Mapped["User | None"] = orm_relationship("User", foreign_keys=[verified_by_user_id])
+    current_level: Mapped["PsychologistLevel | None"] = orm_relationship(
+        "PsychologistLevel",
+        back_populates="counselors",
+    )
+    reviews: Mapped[list["CounselorReview"]] = orm_relationship(
+        "CounselorReview",
+        back_populates="counselor",
+        cascade="all, delete-orphan",
+    )
     sessions: Mapped[list["ConsultationSession"]] = orm_relationship(
         "ConsultationSession",
         back_populates="counselor",

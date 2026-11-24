@@ -30,6 +30,7 @@ from app.models.enums import (
     TransactionStatus,
     TransactionType,
 )
+from app.models.level import CounselorReview, PsychologistLevel
 from app.models.recommendation import RecommendationItem
 from app.models.user import EmergencyContact, User
 
@@ -965,6 +966,107 @@ async def seed_counselor_master_data(session: AsyncSessionLocal, patient_user: U
             )
             await session.commit()
             logger.info(f"Seeded initial official certificate {cert_num} for {profile.full_name}.")
+
+    # 8. Seed Dynamic Master Psychologist Levels & Sample Per-Session Reviews
+    level_count = await session.scalar(select(func.count(PsychologistLevel.id)))
+    if (level_count or 0) == 0:
+        lvl1 = PsychologistLevel(
+            level_tier=1,
+            name="Junior Practitioner",
+            badge_icon="award",
+            min_completed_sessions=0,
+            min_average_rating=Decimal("0.00"),
+            min_consultation_hours=Decimal("0.00"),
+            min_review_count=0,
+            default_session_price=Decimal("120.00"),
+            platform_fee_percentage=Decimal("25.00"),
+            allow_custom_price=False,
+            min_custom_price=None,
+            max_custom_price=None,
+            is_active=True,
+        )
+        lvl2 = PsychologistLevel(
+            level_tier=2,
+            name="Registered Counselor",
+            badge_icon="shield-check",
+            min_completed_sessions=2,
+            min_average_rating=Decimal("4.20"),
+            min_consultation_hours=Decimal("1.00"),
+            min_review_count=1,
+            default_session_price=Decimal("150.00"),
+            platform_fee_percentage=Decimal("20.00"),
+            allow_custom_price=False,
+            min_custom_price=None,
+            max_custom_price=None,
+            is_active=True,
+        )
+        lvl3 = PsychologistLevel(
+            level_tier=3,
+            name="Senior Specialist",
+            badge_icon="star",
+            min_completed_sessions=15,
+            min_average_rating=Decimal("4.60"),
+            min_consultation_hours=Decimal("7.50"),
+            min_review_count=8,
+            default_session_price=Decimal("200.00"),
+            platform_fee_percentage=Decimal("15.00"),
+            allow_custom_price=True,
+            min_custom_price=Decimal("160.00"),
+            max_custom_price=Decimal("260.00"),
+            is_active=True,
+        )
+        lvl4 = PsychologistLevel(
+            level_tier=4,
+            name="Master Expert",
+            badge_icon="crown",
+            min_completed_sessions=40,
+            min_average_rating=Decimal("4.80"),
+            min_consultation_hours=Decimal("20.00"),
+            min_review_count=20,
+            default_session_price=Decimal("260.00"),
+            platform_fee_percentage=Decimal("12.00"),
+            allow_custom_price=True,
+            min_custom_price=Decimal("200.00"),
+            max_custom_price=Decimal("400.00"),
+            is_active=True,
+        )
+        session.add_all([lvl1, lvl2, lvl3, lvl4])
+        await session.commit()
+        logger.info("Seeded 4 default dynamic PsychologistLevel career tiers.")
+
+    review_count = await session.scalar(select(func.count(CounselorReview.id)))
+    if (review_count or 0) == 0:
+        completed_res = await session.execute(
+            select(ConsultationSession).where(
+                ConsultationSession.status == ConsultationSessionStatus.COMPLETED.value
+            )
+        )
+        completed_list = list(completed_res.scalars().all())
+        for idx, cs in enumerate(completed_list):
+            existing_rev = await session.scalar(
+                select(CounselorReview).where(CounselorReview.session_id == cs.id)
+            )
+            if not existing_rev:
+                session.add(
+                    CounselorReview(
+                        session_id=cs.id,
+                        counselor_id=cs.counselor_id,
+                        patient_id=cs.patient_id,
+                        rating=cs.patient_rating or Decimal("4.95"),
+                        highlight_label="Sangat Sabar & Empati" if idx % 2 == 0 else "Solusi Praktis & Terarah",
+                        review_text=(
+                            "Konseling berjalan hangat dan terstruktur, membantu memahami pemicu stres dengan jelas."
+                            if idx % 2 == 0
+                            else "Penjelasan mudah dipahami dan teknik regulasi emosi langsung bisa dipraktikkan."
+                        ),
+                        is_anonymous=(idx % 2 == 1),
+                    )
+                )
+        await session.commit()
+
+    from app.services.level import LevelService
+
+    await LevelService(session).evaluate_all_counselors()
 
     return profile
 

@@ -137,5 +137,12 @@
     "updated_at": 1795432369,
     "evidence_summary": "Evidence accepted: PR and test verification documented.",
     "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/109"
+  },
+  "120": {
+    "issue": 120,
+    "branch": "feat/120-psychologist-levels-pricing",
+    "state": "In Progress",
+    "updated_at": 1795533931,
+    "evidence_summary": "Evidence accepted: active task branch verified."
   }
 }
