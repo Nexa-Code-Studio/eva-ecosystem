@@ -510,6 +510,13 @@ class SchedulingService:
         await self.db.commit()
         await self.db.refresh(session)
 
+        try:
+            from app.services.certificate import CertificateService
+
+            await CertificateService(self.db).evaluate_auto_issuance(counselor_id=counselor.id)
+        except Exception:
+            pass
+
         return self._to_session_response(session)
 
     async def get_patient_clinical_notes(

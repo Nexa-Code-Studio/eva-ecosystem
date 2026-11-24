@@ -48,4 +48,7 @@ export const EMPTY_PORTAL_DATABASE: PortalDatabase = {
   coinEconomyConfig: DEFAULT_COIN_ECONOMY_CONFIG,
   coinPackages: [],
   coinTransactions: [],
+  certificateTemplates: [],
+  issuedCertificates: [],
+  eligibleCounselorSummaries: [],
 }

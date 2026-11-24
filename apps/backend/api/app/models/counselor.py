@@ -233,6 +233,7 @@ class ConsultationSession(BaseModel):
     # Session Artifacts
     video_room_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     soap_notes: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    patient_rating: Mapped[Decimal | None] = mapped_column(Numeric(3, 2), nullable=True)
     cancellation_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Relationships

@@ -3,6 +3,7 @@ import { Outlet, useNavigate } from 'react-router'
 import { ShieldCheck } from 'lucide-react'
 import { ResetPortalDataAction } from '@/components/devtools/PortalDevTools'
 import { AdminContentConfigModule } from '@/components/portal/admin/AdminContentConfigModule'
+import { AdminCertificatesModule } from '@/components/portal/admin/certificates/AdminCertificatesModule'
 import { AdminDashboardOverview } from '@/components/portal/admin/AdminDashboardOverview'
 import { AdminPlatformSettingsModule } from '@/components/portal/admin/AdminPlatformSettingsModule'
 import { AdminPsychologistsModule } from '@/components/portal/admin/AdminPsychologistsModule'
@@ -25,6 +26,7 @@ import {
   fetchAdminPsychologists,
   fetchConsultationSessions,
   fetchCrisisConfig,
+  fetchIssuedCertificates,
   resetPortalDbToDefault,
   setPortalSession,
   usePortalDb,
@@ -53,6 +55,7 @@ export function AdminDashboardPage() {
     void fetchAdminPsychologists()
     void fetchConsultationSessions()
     void fetchCrisisConfig()
+    void fetchIssuedCertificates()
   }, [navigate, sessionRole, sessionToken])
 
   const counts = useMemo<AdminSummaryCounts>(() => {
@@ -86,6 +89,7 @@ export function AdminDashboardPage() {
       activeQuestsCount: db.copingQuests.filter((q) => q.isActive).length,
       totalWaitlistCount: db.waitlistEntries.length,
       hotlineNumber: db.crisisConfig.hotlineNumber,
+      activeCertificatesCount: db.issuedCertificates.filter((c) => c.status === 'active').length,
     }
   }, [db])
 
@@ -109,6 +113,7 @@ export function AdminDashboardPage() {
     const pathMap: Record<AdminModule, string> = {
       dashboard: '/admin/dashboard',
       psychologists: '/admin/psychologists',
+      certificates: '/admin/certificates',
       monitoring: '/admin/monitoring',
       settings: '/admin/settings',
       users_coins: '/admin/users-coins',
@@ -169,6 +174,11 @@ export function AdminDashboardRoute() {
 export function AdminPsychologistsRoute() {
   const { db, onFeedback } = useAdminOutletContext()
   return <AdminPsychologistsModule psychologists={db.psychologists} onFeedback={onFeedback} />
+}
+
+export function AdminCertificatesRoute() {
+  const { db, onFeedback } = useAdminOutletContext()
+  return <AdminCertificatesModule db={db} onFeedback={onFeedback} />
 }
 
 export function AdminMonitoringRoute() {

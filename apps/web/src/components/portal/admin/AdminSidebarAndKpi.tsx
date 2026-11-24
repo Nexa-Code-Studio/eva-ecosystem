@@ -1,4 +1,5 @@
 import {
+  Award,
   ChevronDown,
   ClipboardList,
   Globe,
@@ -50,6 +51,14 @@ export function AdminSidebar({
       icon: Stethoscope,
       badge: psyBadge,
       badgeColor: 'bg-[#FEF3C7] text-[#92400E]',
+    },
+    {
+      id: 'certificates' as const,
+      path: '/admin/certificates',
+      label: 'Sertifikat Psikolog',
+      icon: Award,
+      badge: counts.activeCertificatesCount,
+      badgeColor: 'bg-[#EEF0FF] text-primary',
     },
     {
       id: 'monitoring' as const,
