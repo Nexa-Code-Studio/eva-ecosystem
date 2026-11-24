@@ -7,6 +7,8 @@ class UserAuthResponse(BaseModel):
     id: str
     name: str
     email: str
+    is_admin: bool = False
+    coin_balance: int = 10
 
 
 class TokenResponse(BaseModel):

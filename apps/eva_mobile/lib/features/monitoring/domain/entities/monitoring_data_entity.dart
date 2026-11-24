@@ -38,6 +38,7 @@ class MonitoringDataEntity {
   final List<RiskIndicatorEntity> risks;
   final List<String> xLabels;
   final List<List<double>> chartData;
+  final bool isEmpty;
 
   const MonitoringDataEntity({
     required this.periodKey,
@@ -47,5 +48,6 @@ class MonitoringDataEntity {
     required this.risks,
     required this.xLabels,
     required this.chartData,
+    this.isEmpty = false,
   });
 }

@@ -5,10 +5,19 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from shared.config import settings
 
+from app.api.dependencies import shutdown_webrtc_signaling_manager
+from app.api.routes.admin_coins import router as admin_coins_router
+from app.api.routes.admin_counselors import router as admin_counselors_router
+from app.api.routes.admin_sessions import router as admin_sessions_router
 from app.api.routes.analytics import router as analytics_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.call import router as call_router
-from app.api.routes.care import router as care_router
+from app.api.routes.care import community_router, router as care_router
+from app.api.routes.coins import router as coins_router
+from app.api.routes.content import (
+    admin_router as content_admin_router,
+    public_router as content_public_router,
+)
 from app.api.routes.conversations import router as conversations_router
 from app.api.routes.counselor import router as counselor_router
 from app.api.routes.dass import router as dass_router
@@ -35,7 +44,10 @@ async def lifespan(app: FastAPI):
             await seed_master_data()
         except Exception as e:
             logger.warning(f"Auto-seed during development startup skipped: {e}")
-    yield
+    try:
+        yield
+    finally:
+        await shutdown_webrtc_signaling_manager()
 
 
 app = FastAPI(
@@ -67,6 +79,13 @@ app.include_router(sessions_router, prefix="/api/v1")
 app.include_router(patients_router, prefix="/api/v1")
 app.include_router(finances_router, prefix="/api/v1")
 app.include_router(care_router, prefix="/api/v1")
+app.include_router(admin_coins_router, prefix="/api/v1")
+app.include_router(coins_router, prefix="/api/v1")
+app.include_router(admin_counselors_router, prefix="/api/v1")
+app.include_router(admin_sessions_router, prefix="/api/v1")
+app.include_router(content_public_router, prefix="/api/v1")
+app.include_router(content_admin_router, prefix="/api/v1")
+app.include_router(community_router, prefix="/api/v1")
 
 
 @app.get("/")

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'database_key_service.dart';
@@ -43,36 +44,73 @@ class EncryptedLocalDatabase {
       dbPath = p.join(databasesDir, dbName);
     }
 
-    if (_databaseFactory != null) {
-      _db = await _databaseFactory.openDatabase(
-        dbPath,
-        options: OpenDatabaseOptions(
+    Future<Database> doOpen() async {
+      if (_databaseFactory != null) {
+        return _databaseFactory.openDatabase(
+          dbPath,
+          options: OpenDatabaseOptions(
+            version: LocalDatabaseMigrations.currentVersion,
+            onCreate: LocalDatabaseMigrations.onCreate,
+            onUpgrade: LocalDatabaseMigrations.onUpgrade,
+            onConfigure: (db) async {
+              try {
+                await db.rawQuery("PRAGMA key = '$key';");
+                await db.rawQuery('PRAGMA foreign_keys = ON;');
+                await db.rawQuery('PRAGMA secure_delete = ON;');
+              } catch (_) {}
+            },
+          ),
+        );
+      } else {
+        return openDatabase(
+          dbPath,
           version: LocalDatabaseMigrations.currentVersion,
+          password: key,
           onCreate: LocalDatabaseMigrations.onCreate,
           onUpgrade: LocalDatabaseMigrations.onUpgrade,
           onConfigure: (db) async {
             try {
-              await db.rawQuery("PRAGMA key = '$key';");
+              await db.rawQuery('PRAGMA foreign_keys = ON;');
+              await db.rawQuery('PRAGMA secure_delete = ON;');
             } catch (_) {}
           },
-          onOpen: (db) async {
-            await db.execute('PRAGMA secure_delete = ON;');
-            await db.execute('PRAGMA foreign_keys = ON;');
-          },
-        ),
-      );
-    } else {
-      _db = await openDatabase(
-        dbPath,
-        version: LocalDatabaseMigrations.currentVersion,
-        password: key,
-        onCreate: LocalDatabaseMigrations.onCreate,
-        onUpgrade: LocalDatabaseMigrations.onUpgrade,
-        onOpen: (db) async {
-          await db.execute('PRAGMA secure_delete = ON;');
-          await db.execute('PRAGMA foreign_keys = ON;');
-        },
-      );
+        );
+      }
+    }
+
+    try {
+      _db = await doOpen();
+    } catch (e) {
+      // Auto-recovery: If local database file has key mismatch (e.g. app reinstalled/keystore reset)
+      // or corrupted header (SQLCipher code 26 / SQLiteNotADatabaseException / open_failed),
+      // wipe the unreadable file and recreate clean database with the active key.
+      final err = e.toString().toLowerCase();
+      if (err.contains('file is not a database') ||
+          err.contains('code 26') ||
+          err.contains('sqlitenotadatabaseexception') ||
+          err.contains('open_failed') ||
+          err.contains('malformed')) {
+        try {
+          final file = File(dbPath);
+          if (await file.exists()) {
+            await file.delete();
+          }
+          for (final ext in ['-wal', '-shm', '-journal']) {
+            final aux = File('$dbPath$ext');
+            if (await aux.exists()) {
+              await aux.delete();
+            }
+          }
+          if (_databaseFactory != null) {
+            await _databaseFactory.deleteDatabase(dbPath);
+          } else {
+            await deleteDatabase(dbPath);
+          }
+        } catch (_) {}
+        _db = await doOpen();
+      } else {
+        rethrow;
+      }
     }
 
     _activeAccountKey = localAccountKey;

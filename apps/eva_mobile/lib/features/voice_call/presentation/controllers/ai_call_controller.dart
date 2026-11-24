@@ -7,32 +7,43 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/call_config.dart';
 import '../../data/datasources/voice_call_ws_client.dart';
 import '../../data/services/ai_audio_playback_service.dart';
+import '../../data/services/single_audio_capture_service.dart';
 import '../../data/services/speech_recognition_service.dart';
+import '../../data/services/stateless_synthesis_service.dart';
 import '../../domain/entities/call_state.dart';
 import '../../../memory/domain/repositories/memory_repository.dart';
 import '../../../diary/data/datasources/local_diary_datasource.dart';
 import 'ai_call_state.dart';
 
 class AiCallController extends StateNotifier<AiCallViewState> {
-  final SpeechRecognitionService _speechService;
+  final SingleAudioCaptureService _singleAudioService;
   final AiAudioPlaybackService _audioPlaybackService;
   final VoiceCallWsClient _wsClient;
   final MemoryRepository? _memoryRepository;
   final LocalDiaryDataSource? _diaryDataSource;
+  final StatelessSynthesisService? _synthesisService;
+  final VoidCallback? _onArtifactsCommitted;
 
   AiCallController({
     required SpeechRecognitionService speechService,
     required AiAudioPlaybackService audioPlaybackService,
     required VoiceCallWsClient wsClient,
+    SingleAudioCaptureService? singleAudioService,
     MemoryRepository? memoryRepository,
     LocalDiaryDataSource? diaryDataSource,
-  })  : _speechService = speechService,
+    StatelessSynthesisService? synthesisService,
+    VoidCallback? onArtifactsCommitted,
+  })  : _singleAudioService = singleAudioService ??
+            SingleAudioCaptureService(fallbackSpeechService: speechService),
         _audioPlaybackService = audioPlaybackService,
         _wsClient = wsClient,
         _memoryRepository = memoryRepository,
         _diaryDataSource = diaryDataSource,
+        _synthesisService = synthesisService,
+        _onArtifactsCommitted = onArtifactsCommitted,
         super(const AiCallViewState());
 
+  StreamSubscription? _audioChunkSubscription;
   StreamSubscription? _partialSubscription;
   StreamSubscription? _finalSegmentSubscription;
   StreamSubscription? _statusSubscription;
@@ -45,6 +56,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
   Timer? _durationTimer;
   Timer? _restartTimer;
   Timer? _thinkingWatchdogTimer;
+  Timer? _finalizeWatchdogTimer;
   bool _isDisposed = false;
   int _restartAttempts = 0;
 
@@ -77,8 +89,10 @@ class AiCallController extends StateNotifier<AiCallViewState> {
 
     _initSubscriptions();
 
-    // 1. Initialize Speech Recognizer
-    await _speechService.initialize();
+    _finalizeWatchdogTimer?.cancel();
+
+    // 1. Initialize Single Audio Capture & Speech Recognizer
+    await _singleAudioService.initialize();
 
     // 2. Connect WebSocket
     await _wsClient.connect(callId);
@@ -99,8 +113,15 @@ class AiCallController extends StateNotifier<AiCallViewState> {
   void _initSubscriptions() {
     _cancelSubscriptions();
 
+    // 0. Binary PCM Audio Stream -> VPS WebSocket
+    _audioChunkSubscription = _singleAudioService.audioStream.listen((chunk) {
+      if (state.callState == CallState.listening && !state.isMuted) {
+        _wsClient.sendAudioChunk(chunk);
+      }
+    });
+
     // STT Partial transcript
-    _partialSubscription = _speechService.partialStream.listen((partial) {
+    _partialSubscription = _singleAudioService.partialStream.listen((partial) {
       if (state.callState != CallState.listening) return;
       if (partial.sttSessionId != state.activeSttSessionId) return;
 
@@ -119,7 +140,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     });
 
     // STT Final Segment
-    _finalSegmentSubscription = _speechService.finalSegmentStream.listen((seg) {
+    _finalSegmentSubscription = _singleAudioService.finalSegmentStream.listen((seg) {
       if (state.callState != CallState.listening) return;
       if (seg.sttSessionId != state.activeSttSessionId) return;
 
@@ -139,7 +160,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     });
 
     // STT Status
-    _statusSubscription = _speechService.statusStream.listen((statusEvent) {
+    _statusSubscription = _singleAudioService.statusStream.listen((statusEvent) {
       if (statusEvent.sttSessionId != state.activeSttSessionId) return;
 
       _wsClient.sendStatus(
@@ -151,14 +172,14 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     });
 
     // Sound Level
-    _soundLevelSubscription = _speechService.soundLevelStream.listen((level) {
-      if (!_isDisposed) {
+    _soundLevelSubscription = _singleAudioService.soundLevelStream.listen((level) {
+      if (!_isDisposed && mounted) {
         state = state.copyWith(soundLevel: level);
       }
     });
 
     // Error stream
-    _errorSubscription = _speechService.errorStream.listen((err) {
+    _errorSubscription = _singleAudioService.errorStream.listen((err) {
       debugPrint('⚠️ [STT SERVICE ERROR]: $err');
       // If listening unexpectedly stopped and recoverable, notify status
       if (state.callState == CallState.listening) {
@@ -178,7 +199,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
 
     // AI Audio Playback Sound Level (real-time envelope intonation)
     _aiAudioSoundSubscription = _audioPlaybackService.soundLevelStream.listen((level) {
-      if (state.callState == CallState.aiSpeaking) {
+      if (!_isDisposed && mounted && state.callState == CallState.aiSpeaking) {
         state = state.copyWith(soundLevel: level);
       }
     });
@@ -214,6 +235,18 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       }
     } else if (type == 'context_ack_v1') {
       debugPrint('📥 [LTM CONTEXT ACK] Accepted: ${event['accepted_count']}, Rejected: ${event['rejected_count']}');
+    } else if (type == 'emotion_result') {
+      final primaryEmotion = event['primary_emotion'] as String? ?? 'neutral';
+      final confidence = (event['confidence'] as num?)?.toDouble() ?? 0.5;
+      final breakdown = (event['emotions_breakdown'] as List<dynamic>?)
+          ?.map((e) => Map<String, dynamic>.from(e as Map))
+          .toList() ?? [];
+      debugPrint('🎙️ [EMOTION RESULT WS] Primary: $primaryEmotion ($confidence)');
+      state = state.copyWith(
+        detectedEmotion: primaryEmotion,
+        detectedEmotionConfidence: confidence,
+        activeEmotionsBreakdown: breakdown,
+      );
     } else if (type == 'session_artifacts_v1') {
       final requestId = event['request_id'] as String? ?? 'fin_${DateTime.now().millisecondsSinceEpoch}';
       final sessionSummary = event['session_summary'] as String? ?? '';
@@ -221,14 +254,17 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       final candidates = (event['memory_candidates'] as List<dynamic>?)
           ?.map((e) => Map<String, dynamic>.from(e as Map))
           .toList() ?? [];
+      final dassAssessment = event['dass_assessment'] as Map<String, dynamic>?;
 
       _handleSessionArtifactsReceived(
         requestId: requestId,
         sessionSummary: sessionSummary,
         journalDelta: journalDelta,
         candidates: candidates,
+        dassAssessment: dassAssessment,
       );
     } else if (type == 'session_finalized_v1') {
+      _finalizeWatchdogTimer?.cancel();
       state = state.copyWith(isFinalizing: false, callState: CallState.ended);
       _wsClient.disconnect();
     } else if (type == 'call_started') {
@@ -247,11 +283,21 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       }
     } else if (type == 'turn.committed') {
       final finalTranscript = event['final_transcript'] as String? ?? '';
-      final updatedAcc = '${state.accumulatedTranscript} $finalTranscript'.trim();
+      final updatedAcc = state.accumulatedTranscript.isEmpty
+          ? 'User: $finalTranscript'
+          : '${state.accumulatedTranscript}\nUser: $finalTranscript';
       state = state.copyWith(
         currentTranscript: finalTranscript,
         accumulatedTranscript: updatedAcc,
       );
+      if (finalTranscript.isNotEmpty) {
+        _synthesisService?.recordTurn(
+          sessionId: state.callId,
+          turnId: state.userTurnId,
+          role: 'user',
+          transcript: finalTranscript,
+        );
+      }
       enterThinking();
     } else if (type == 'ai.thinking' || type == 'ai_thinking') {
       final turnId = (event['assistant_turn_id'] as num?)?.toInt();
@@ -291,11 +337,19 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       }
     } else if (type == 'ai.speech_finished' || type == 'ai_speech_finished') {
       final turnId = (event['assistant_turn_id'] as num?)?.toInt() ?? state.assistantTurnId;
+      if (state.aiTranscript.isNotEmpty) {
+        _synthesisService?.recordTurn(
+          sessionId: state.callId,
+          turnId: turnId,
+          role: 'assistant',
+          transcript: state.aiTranscript,
+        );
+      }
       if (state.callState == CallState.thinking) {
         // Backend finished generation but no audio was enqueued/played (TTS fallback/text-only)
         _thinkingWatchdogTimer?.cancel();
         Future.delayed(const Duration(milliseconds: 1500), () async {
-          if (state.callState == CallState.thinking && !_isDisposed) {
+          if (!_isDisposed && state.callState == CallState.thinking) {
             state = state.copyWith(userTurnId: state.userTurnId + 1);
             await enterListening();
           }
@@ -333,13 +387,14 @@ class AiCallController extends StateNotifier<AiCallViewState> {
         final buffer = StringBuffer();
         for (final item in transcriptList) {
           if (item is Map && item['content'] != null) {
-            buffer.write(' ${item['content']}');
+            final role = (item['role'] == 'user') ? 'User' : 'EVA';
+            buffer.writeln('$role: ${item['content']}');
           }
         }
         final summaryText = buffer.toString().trim();
         if (summaryText.isNotEmpty) {
           state = state.copyWith(
-            accumulatedTranscript: '${state.accumulatedTranscript} $summaryText'.trim(),
+            accumulatedTranscript: summaryText,
           );
         }
       }
@@ -363,7 +418,9 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     _restartAttempts = 0;
 
     final updatedAcc = state.aiTranscript.isNotEmpty
-        ? '${state.accumulatedTranscript} ${state.aiTranscript}'.trim()
+        ? (state.accumulatedTranscript.isEmpty
+            ? 'EVA: ${state.aiTranscript}'
+            : '${state.accumulatedTranscript}\nEVA: ${state.aiTranscript}')
         : state.accumulatedTranscript;
 
     state = state.copyWith(
@@ -377,7 +434,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     );
 
     if (state.conversationMode == ConversationMode.hybridAuto && !state.isMuted) {
-      await _speechService.startListening(sttSessionId: nextSessionId);
+      await _singleAudioService.startListening(sttSessionId: nextSessionId);
     }
   }
 
@@ -390,11 +447,11 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       isUserSpeaking: false,
       soundLevel: 0.05,
     );
-    await _speechService.stopListening();
+    await _singleAudioService.stopListening();
 
     // Watchdog Timer: Guard against stuck thinking if backend stalls or drops connection
     _thinkingWatchdogTimer = Timer(const Duration(seconds: 15), () async {
-      if (state.callState == CallState.thinking && !_isDisposed) {
+      if (!_isDisposed && state.callState == CallState.thinking) {
         debugPrint('⚠️ [THINKING WATCHDOG TIMEOUT]: No AI response within 15s. Recovering to listening.');
         state = state.copyWith(
           errorMessage: 'Respons Eva membutuhkan waktu lebih lama. Silakan coba bicara lagi.',
@@ -415,7 +472,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       soundLevel: 0.05,
     );
     _audioPlaybackService.prepareNewAssistantTurn(assistantTurnId);
-    await _speechService.stopListening();
+    await _singleAudioService.stopListening();
   }
 
   /// Normal Automatic Flow: AI playback finished -> guard delay -> auto LISTENING
@@ -431,7 +488,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     // Guard delay between AI speaker end and mic start
     await Future.delayed(const Duration(milliseconds: CallConfig.playbackToListeningGuardMs));
 
-    if (state.callState == CallState.aiSpeaking && !_isDisposed) {
+    if (!_isDisposed && state.callState == CallState.aiSpeaking) {
       // Ensure userTurnId advances to at least finishedTurnId + 1 without duplicate double increment
       if (state.userTurnId <= finishedTurnId) {
         state = state.copyWith(userTurnId: finishedTurnId + 1);
@@ -453,11 +510,11 @@ class AiCallController extends StateNotifier<AiCallViewState> {
 
     _restartTimer?.cancel();
     _restartTimer = Timer(const Duration(milliseconds: CallConfig.sttRestartDelayMs), () async {
-      if (state.callState == CallState.listening && !_isDisposed && !state.isMuted) {
+      if (!_isDisposed && state.callState == CallState.listening && !state.isMuted) {
         final nextSessionId = state.activeSttSessionId + 1;
         debugPrint('🔄 [AUTO RESTART STT]: Session $nextSessionId in user_turn ${state.userTurnId}');
         state = state.copyWith(activeSttSessionId: nextSessionId);
-        await _speechService.startListening(sttSessionId: nextSessionId);
+        await _singleAudioService.startListening(sttSessionId: nextSessionId);
       }
     });
   }
@@ -510,13 +567,13 @@ class AiCallController extends StateNotifier<AiCallViewState> {
   /// Toggle microphone mute
   void toggleMute() {
     final newMute = !state.isMuted;
-    _speechService.setMuted(newMute);
+    _singleAudioService.setMuted(newMute);
     state = state.copyWith(isMuted: newMute);
 
     if (newMute) {
-      _speechService.stopListening();
+      _singleAudioService.stopListening();
     } else if (state.callState == CallState.listening) {
-      _speechService.startListening(sttSessionId: state.activeSttSessionId);
+      _singleAudioService.startListening(sttSessionId: state.activeSttSessionId);
     }
   }
 
@@ -531,9 +588,9 @@ class AiCallController extends StateNotifier<AiCallViewState> {
   void setConversationMode(ConversationMode mode) {
     state = state.copyWith(conversationMode: mode);
     if (mode == ConversationMode.pushToTalk && state.callState == CallState.listening) {
-      _speechService.stopListening();
+      _singleAudioService.stopListening();
     } else if (mode == ConversationMode.hybridAuto && state.callState == CallState.listening) {
-      _speechService.startListening(sttSessionId: state.activeSttSessionId);
+      _singleAudioService.startListening(sttSessionId: state.activeSttSessionId);
     }
   }
 
@@ -543,7 +600,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     if (state.callState == CallState.aiSpeaking || state.callState == CallState.thinking) {
       await bargeIn();
     } else if (state.callState == CallState.listening) {
-      await _speechService.startListening(sttSessionId: state.activeSttSessionId);
+      await _singleAudioService.startListening(sttSessionId: state.activeSttSessionId);
     }
   }
 
@@ -580,21 +637,103 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     }
   }
 
+  Future<void> _commitLocalFallbackArtifacts() async {
+    try {
+      final diarySource = _diaryDataSource;
+      if (diarySource == null) return;
+
+      final parts = <String>[];
+      if (state.accumulatedTranscript.isNotEmpty) {
+        parts.add(state.accumulatedTranscript);
+      }
+      if (state.currentTranscript.isNotEmpty && !state.accumulatedTranscript.contains(state.currentTranscript)) {
+        parts.add(state.currentTranscript);
+      }
+      if (state.aiTranscript.isNotEmpty && !state.accumulatedTranscript.contains(state.aiTranscript)) {
+        parts.add(state.aiTranscript);
+      }
+      final fullTranscript = parts.join('\n').trim();
+
+      // Only save if call has actual dialogue
+      if (fullTranscript.isEmpty) {
+        debugPrint('ℹ️ [LOCAL FALLBACK COMMIT SKIPPED] No dialogue turns recorded in session.');
+        return;
+      }
+
+      final summary = fullTranscript.length > 250
+          ? '${fullTranscript.substring(0, 250)}...'
+          : fullTranscript;
+
+      final events = <String>[];
+      final userLines = fullTranscript
+          .split('\n')
+          .where((l) => l.trim().toLowerCase().startsWith('user:'))
+          .map((l) => l.trim().substring(5).trim())
+          .where((t) => t.isNotEmpty)
+          .toList();
+
+      if (userLines.isNotEmpty) {
+        final topic = userLines.first.length > 50 ? '${userLines.first.substring(0, 50)}...' : userLines.first;
+        events.add('Diskusi: "$topic"');
+      } else if (state.currentTranscript.isNotEmpty) {
+        events.add('Topik: "${state.currentTranscript}"');
+      }
+      events.add('Sesi Konseling AI Suara');
+
+      final title = userLines.isNotEmpty
+          ? 'Refleksi: ${userLines.first.length > 30 ? "${userLines.first.substring(0, 30)}..." : userLines.first}'
+          : 'Refleksi Sesi Panggilan Suara';
+
+      final journalDelta = {
+        'title': title,
+        'summary': summary,
+        'content': fullTranscript.isNotEmpty ? fullTranscript : summary,
+        'mood_tag': 'Netral & Tenang 😌',
+        'mood_emoji': '😌',
+        'emotional_level': 3,
+        'ai_insight': 'Sesi percakapan tersimpan secara aman di perangkat lokal Anda.',
+        'emotional_reflection': 'Meluangkan waktu untuk mengekspresikan diri adalah langkah awal yang baik.',
+        'important_events': events,
+      };
+
+      await diarySource.saveSessionArtifacts(
+        sessionId: state.callId,
+        sessionSummary: summary,
+        journalDelta: journalDelta,
+      );
+      _onArtifactsCommitted?.call();
+    } catch (e) {
+      debugPrint('⚠️ [LOCAL FALLBACK COMMIT ERROR]: $e');
+    }
+  }
+
   Future<void> _handleSessionArtifactsReceived({
     required String requestId,
     required String sessionSummary,
     required Map<String, dynamic> journalDelta,
     required List<Map<String, dynamic>> candidates,
+    Map<String, dynamic>? dassAssessment,
   }) async {
+    _finalizeWatchdogTimer?.cancel();
     try {
-      final diarySource = _diaryDataSource;
-      if (diarySource != null && (sessionSummary.isNotEmpty || journalDelta.isNotEmpty)) {
-        await diarySource.saveSessionArtifacts(
+      if (_synthesisService != null) {
+        await _synthesisService.commitArtifactsLocally(
           sessionId: state.callId,
           sessionSummary: sessionSummary,
           journalDelta: journalDelta,
+          dassAssessment: dassAssessment,
         );
+      } else {
+        final diarySource = _diaryDataSource;
+        if (diarySource != null && (sessionSummary.isNotEmpty || journalDelta.isNotEmpty)) {
+          await diarySource.saveSessionArtifacts(
+            sessionId: state.callId,
+            sessionSummary: sessionSummary,
+            journalDelta: journalDelta,
+          );
+        }
       }
+      _onArtifactsCommitted?.call();
       _wsClient.sendSessionArtifactsAck(requestId: requestId, status: 'committed_locally');
     } catch (e) {
       debugPrint('⚠️ [SESSION ARTIFACTS COMMIT ERROR]: $e');
@@ -612,14 +751,35 @@ class AiCallController extends StateNotifier<AiCallViewState> {
   Future<void> endCall() async {
     if (state.isFinalizing || state.callState == CallState.ended) return;
 
+    // 0. Cancel mic audio chunk sender immediately to stop streaming to VPS
+    _audioChunkSubscription?.cancel();
+    _audioChunkSubscription = null;
+
     _durationTimer?.cancel();
     _restartTimer?.cancel();
     _thinkingWatchdogTimer?.cancel();
+    _finalizeWatchdogTimer?.cancel();
 
-    await _speechService.stopListening();
+    // 1. Immediately transition to ended state
+    state = state.copyWith(
+      callState: CallState.ended,
+      isFinalizing: true,
+      soundLevel: 0.05,
+      isUserSpeaking: false,
+    );
+
+    await _singleAudioService.stopListening();
     await _audioPlaybackService.stop();
 
-    state = state.copyWith(isFinalizing: true);
+    // 2. Immediately commit local fallback artifacts to ensure 0% data loss
+    await _commitLocalFallbackArtifacts();
+
+    if (_synthesisService != null && state.accumulatedTranscript.trim().isNotEmpty) {
+      await _synthesisService.markSessionPending(
+        sessionId: state.callId,
+        initialSummary: state.accumulatedTranscript,
+      );
+    }
 
     if (_wsClient.isConnected) {
       _wsClient.sendSessionFinalize(
@@ -629,21 +789,29 @@ class AiCallController extends StateNotifier<AiCallViewState> {
         requestMemoryCandidates: true,
       );
 
-      // Fail-safe timeout in case server doesn't respond with session_artifacts_v1
-      Future.delayed(const Duration(seconds: 4), () {
-        if (state.isFinalizing && !_isDisposed) {
-          debugPrint('⏱️ [FINALIZE TIMEOUT] Closing session after timeout');
+      // 2. Allow up to 15 seconds for DeepSeek LLM artifact generation
+      _finalizeWatchdogTimer = Timer(const Duration(seconds: 15), () async {
+        if (!_isDisposed && state.isFinalizing) {
+          debugPrint('⏱️ [FINALIZE TIMEOUT] Triggering background stateless synthesis fallback...');
           _wsClient.sendEndCall(state.callDurationSeconds);
           _wsClient.disconnect();
           state = state.copyWith(isFinalizing: false, callState: CallState.ended);
+          final ok = await _synthesisService?.synthesizeSessionOnDemand(sessionId: state.callId) ?? false;
+          if (ok) {
+            _onArtifactsCommitted?.call();
+          }
         }
       });
     } else {
       state = state.copyWith(isFinalizing: false, callState: CallState.ended);
+      _synthesisService?.synthesizeSessionOnDemand(sessionId: state.callId).then((ok) {
+        if (ok) _onArtifactsCommitted?.call();
+      });
     }
   }
 
   void _cancelSubscriptions() {
+    _audioChunkSubscription?.cancel();
     _partialSubscription?.cancel();
     _finalSegmentSubscription?.cancel();
     _statusSubscription?.cancel();
@@ -662,7 +830,11 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     _durationTimer?.cancel();
     _restartTimer?.cancel();
     _thinkingWatchdogTimer?.cancel();
-    _speechService.stopListening();
+    _finalizeWatchdogTimer?.cancel();
+    if (state.isFinalizing) {
+      _commitLocalFallbackArtifacts();
+    }
+    _singleAudioService.dispose();
     _audioPlaybackService.stop();
     _wsClient.disconnect();
     super.dispose();

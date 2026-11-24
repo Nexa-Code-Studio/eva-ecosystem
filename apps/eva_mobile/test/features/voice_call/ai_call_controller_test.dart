@@ -248,6 +248,34 @@ class FakeVoiceCallWsClient extends Fake implements VoiceCallWsClient {
   }
 
   @override
+  void sendSessionFinalize({
+    required String clientSessionId,
+    required String requestId,
+    required int durationSeconds,
+    bool requestMemoryCandidates = true,
+  }) {
+    sentEvents.add({
+      'type': 'session_finalize_v1',
+      'client_session_id': clientSessionId,
+      'request_id': requestId,
+      'duration_seconds': durationSeconds,
+      'request_memory_candidates': requestMemoryCandidates,
+    });
+  }
+
+  @override
+  void sendSessionArtifactsAck({
+    required String requestId,
+    String status = 'committed_locally',
+  }) {
+    sentEvents.add({
+      'type': 'session_artifacts_ack_v1',
+      'request_id': requestId,
+      'status': status,
+    });
+  }
+
+  @override
   void disconnect() {
     isConnected = false;
   }
@@ -350,6 +378,28 @@ void main() {
     expect(controller.state.callState, CallState.thinking);
     expect(controller.state.currentTranscript, 'halo eva apa kabar');
     expect(fakeSpeech.isListening, isFalse);
+  });
+
+  test('emotion_result WebSocket event updates state.detectedEmotion and activeEmotionsBreakdown', () async {
+    await controller.startCall();
+
+    controller.handleSocketEvent({
+      'type': 'emotion_result',
+      'call_id': 'test_call_101',
+      'user_turn_id': 1,
+      'primary_emotion': 'happy',
+      'confidence': 0.88,
+      'intensity': 0.79,
+      'emotions_breakdown': [
+        {'name': 'happy', 'percent': 0.88, 'label': 'Bahagia & Senang', 'emoji': '😃'},
+        {'name': 'neutral', 'percent': 0.12, 'label': 'Netral & Tenang', 'emoji': '😌'},
+      ],
+    });
+
+    expect(controller.state.detectedEmotion, 'happy');
+    expect(controller.state.detectedEmotionConfidence, 0.88);
+    expect(controller.state.activeEmotionsBreakdown.length, 2);
+    expect(controller.state.activeEmotionsBreakdown[0]['name'], 'happy');
   });
 
   test('AI speaking state stops STT and plays audio', () async {
@@ -575,5 +625,31 @@ void main() {
 
     expect(controller.state.callState, CallState.listening);
     expect(controller.state.userTurnId, 2);
+  });
+
+  test('endCall sends session_finalize_v1 and enters finalizing state', () async {
+    await controller.startCall();
+    expect(fakeWs.isConnected, true);
+
+    await controller.endCall();
+    expect(controller.state.isFinalizing, true);
+
+    final finalizeEvent = fakeWs.sentEvents.firstWhere(
+      (e) => e['type'] == 'session_finalize_v1',
+      orElse: () => {},
+    );
+    expect(finalizeEvent.isNotEmpty, true);
+    expect(finalizeEvent['client_session_id'], controller.state.callId);
+
+    // Simulate server acknowledging with session_finalized_v1
+    fakeWs.eventController.add({
+      'type': 'session_finalized_v1',
+      'request_id': finalizeEvent['request_id'],
+      'status': 'closed',
+    });
+    await pumpEventQueue();
+
+    expect(controller.state.isFinalizing, false);
+    expect(controller.state.callState, CallState.ended);
   });
 }

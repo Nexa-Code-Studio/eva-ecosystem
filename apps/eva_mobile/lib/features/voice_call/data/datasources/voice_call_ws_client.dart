@@ -98,6 +98,16 @@ class VoiceCallWsClient {
     }
   }
 
+  void sendAudioChunk(Uint8List audioBytes) {
+    if (_channel != null && _isConnected) {
+      try {
+        _channel!.sink.add(audioBytes);
+      } catch (e) {
+        debugPrint('⚠️ [WS CLIENT AUDIO SEND ERROR]: $e');
+      }
+    }
+  }
+
   void sendStartCall({String? voiceMode}) {
     final payload = <String, dynamic>{'type': 'start_call'};
     if (voiceMode != null && voiceMode.isNotEmpty) {

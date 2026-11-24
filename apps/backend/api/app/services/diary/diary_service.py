@@ -313,7 +313,10 @@ class DiaryService:
         """Force manual generation or re-synthesis of today's diary."""
         entry = await DiaryGeneratorService.generate_today_diary(user_id, self.db)
         if not entry:
-            return await self.get_today_diary(user_id)
+            today = get_wib_today()
+            query = select(DiaryEntry).where(DiaryEntry.user_id == user_id, DiaryEntry.entry_date == today)
+            res = await self.db.execute(query)
+            entry = res.scalar_one_or_none()
         return self.format_diary_entry(entry)
 
     async def create_diary(self, user_id: uuid.UUID, payload: CreateDiaryRequest) -> DiaryEntryResponse:

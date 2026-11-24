@@ -7,10 +7,20 @@ class PsychologistProfileResponse(BaseModel):
 
     id: str
     user_id: str
+    email: str | None = None
     full_name: str
     title_degree: str
+    education: str | None = None
     str_number: str
+    str_doc_url: str | None = None
+    str_issuing_institution: str | None = None
+    str_expiry_date: str | None = None
+    str_verified: bool = False
     sip_number: str | None = None
+    sip_doc_url: str | None = None
+    sip_issuing_institution: str | None = None
+    sip_expiry_date: str | None = None
+    sip_verified: bool = False
     association: str
     specializations: list[str] = []
     years_of_experience: int

@@ -244,7 +244,55 @@ class MonitoringScreenState extends ConsumerState<MonitoringScreen>
     );
   }
 
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 48.0, horizontal: 16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.primaryContainer.withValues(alpha: 0.5),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.insights_rounded,
+                size: 42,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Belum Ada Catatan Emosi',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Ceritakan harimu atau lakukan panggilan suara dengan EVA. Setelah sesi selesai, grafik dinamika 7 emosi dan tingkat risiko kesehatan mentalmu akan otomatis dihitung dan ditampilkan di sini.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: AppColors.textLight,
+                height: 1.45,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildMonitoringContent(BuildContext context, MonitoringDataEntity data) {
+    if (data.isEmpty) {
+      return _buildEmptyState(context);
+    }
+
     final emotionalCenter = data.emotionalCenter;
     final int level = emotionalCenter.level;
     final Color textColor = _parseHex(emotionalCenter.textColorHex, const Color(0xFF2E7D32));
@@ -1665,10 +1713,10 @@ class MonitoringScreenState extends ConsumerState<MonitoringScreen>
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          const Icon(Icons.cloud_off_rounded, size: 48, color: AppColors.textLight),
+          const Icon(Icons.insights_rounded, size: 48, color: AppColors.textLight),
           const SizedBox(height: 12),
           Text(
-            'Gagal Memuat Data Tren',
+            'Belum Ada Data Tren Emosional',
             style: GoogleFonts.inter(
               fontSize: 15,
               fontWeight: FontWeight.w700,
@@ -1677,7 +1725,7 @@ class MonitoringScreenState extends ConsumerState<MonitoringScreen>
           ),
           const SizedBox(height: 6),
           Text(
-            'Pastikan koneksi internet atau server backend aktif.',
+            'Mulai sesi percakapan suara atau catat jurnal harian untuk membentuk grafik tren emosional di perangkatmu.',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 12,

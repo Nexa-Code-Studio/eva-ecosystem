@@ -27,13 +27,13 @@ TARGET_SAMPLE_RATE = 16000
 
 class EmotionService:
     """
-    Service Layer for Speech Emotion Recognition using `iic/emotion2vec_plus_large`.
+    Service Layer for Speech Emotion Recognition using `iic/emotion2vec_plus_base`.
 
     Note: Emotion detection results represent voice-level signals/context only
     and do NOT constitute clinical mental health diagnoses.
     """
 
-    def __init__(self, model_name: str = "iic/emotion2vec_plus_large", hub: str = "ms"):
+    def __init__(self, model_name: str = "iic/emotion2vec_plus_base", hub: str = "ms"):
         self.model_name = model_name
         self.hub = hub
         self._model = None

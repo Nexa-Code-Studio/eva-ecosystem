@@ -93,5 +93,31 @@ void main() {
       list = await diaryDataSource.getDiaryEntries();
       expect(list, isEmpty);
     });
+
+    test('Parses transcripts from content and populates session transcripts', () async {
+      final testDbPath = '${tempDir.path}/diary_transcripts.db';
+      await localDb.open(localAccountKey: 'test_user', customPath: testDbPath);
+
+      await diaryDataSource.saveSessionArtifacts(
+        sessionId: 'call_trans_101',
+        sessionSummary: 'Percakapan tentang bangun pagi',
+        journalDelta: {
+          'title': 'Sesi Suara',
+          'content': 'User: harus bangun pagi\nEVA: Bangun pagi memang berat ya.',
+          'mood_tag': 'Netral & Tenang 😌',
+        },
+      );
+
+      final entries = await diaryDataSource.getDiaryEntries();
+      expect(entries.length, 1);
+      expect(entries.first.sessions.length, 1);
+      final transcripts = entries.first.sessions.first.transcripts;
+      expect(transcripts.length, 2);
+      expect(transcripts[0]['isUser'], true);
+      expect(transcripts[0]['text'], 'harus bangun pagi');
+      expect(transcripts[1]['isUser'], false);
+      expect(transcripts[1]['text'], 'Bangun pagi memang berat ya.');
+      expect(entries.first.importantEvents.isNotEmpty, true);
+    });
   });
 }

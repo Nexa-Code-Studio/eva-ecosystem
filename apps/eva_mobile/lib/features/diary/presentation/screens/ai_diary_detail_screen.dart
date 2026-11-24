@@ -6,6 +6,8 @@ import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_back_button.dart';
 import '../../../../widgets/staggered_entrance.dart';
 import '../../../chat/presentation/providers/chat_provider.dart';
+import '../../../monitoring/presentation/providers/monitoring_provider.dart';
+import '../../../voice_call/presentation/providers/ai_call_provider.dart';
 import '../../data/models/diary_entry_model.dart';
 import '../../data/datasources/diary_fallback_fixture.dart';
 import '../providers/diary_provider.dart';
@@ -145,10 +147,37 @@ class _AiDiaryDetailScreenState extends ConsumerState<AiDiaryDetailScreen> {
             };
           }
         });
+        _attemptLazyOnDemandSynthesis(entry);
       }
     } catch (_) {
       // Graceful fallback to existing passed state or default fixture
     }
+  }
+
+  Future<void> _attemptLazyOnDemandSynthesis(dynamic entry) async {
+    try {
+      final synthesisService = ref.read(statelessSynthesisServiceProvider);
+      for (final s in entry.sessions) {
+        final sId = s.id?.toString();
+        if (sId != null && sId.isNotEmpty) {
+          final isDone = await synthesisService.isSessionSynthesized(sId);
+          if (!isDone) {
+            final ok = await synthesisService.synthesizeSessionOnDemand(sessionId: sId);
+            if (ok && mounted) {
+              final repo = ref.read(diaryRepositoryProvider);
+              final refreshed = await repo.getDiaryEntryById(entry.id.toString());
+              if (refreshed != null && mounted) {
+                setState(() {
+                  _diaryData = (refreshed is DiaryEntryModel) ? refreshed.toJson() : _diaryData;
+                });
+                ref.invalidate(diaryEntriesProvider);
+                ref.invalidate(monitoringDataProvider);
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   @override
@@ -186,15 +215,43 @@ class _AiDiaryDetailScreenState extends ConsumerState<AiDiaryDetailScreen> {
             .map((e) => Map<String, dynamic>.from(e as Map))
             .toList();
       } else {
-        activeEmotions = [
-          {'name': 'fear', 'label': 'Takut / Gelisah', 'emoji': '😨', 'percent': 0.45, 'color': const Color(0xFF6C63FF)},
-          {'name': 'sadness', 'label': 'Sedih / Haru', 'emoji': '😔', 'percent': 0.25, 'color': const Color(0xFF8B93FF)},
-          {'name': 'netral', 'label': 'Netral', 'emoji': '😐', 'percent': 0.15, 'color': const Color(0xFFA7E6FF)},
-          {'name': 'happy', 'label': 'Bahagia', 'emoji': '😃', 'percent': 0.10, 'color': const Color(0xFFFFE6A7)},
-          {'name': 'surprise', 'label': 'Terkejut', 'emoji': '😲', 'percent': 0.03, 'color': const Color(0xFFC3B8FF)},
-          {'name': 'anger', 'label': 'Marah', 'emoji': '😡', 'percent': 0.01, 'color': const Color(0xFFFFB6C1)},
-          {'name': 'disgusted', 'label': 'Jijik / Muak', 'emoji': '🤢', 'percent': 0.01, 'color': const Color(0xFFB8C2FC)},
-        ];
+        // Collect and aggregate real emotion distributions from all sessions
+        final Map<String, double> aggregatedScores = {};
+        final Map<String, Map<String, dynamic>> metaMap = {};
+
+        for (var s in sessions) {
+          final sBreakdown = s['emotionsBreakdown'];
+          if (sBreakdown is List && sBreakdown.isNotEmpty) {
+            for (var item in sBreakdown) {
+              if (item is Map) {
+                final name = item['name']?.toString() ?? 'netral';
+                final pct = (item['percent'] as num?)?.toDouble() ?? 0.0;
+                aggregatedScores[name] = (aggregatedScores[name] ?? 0.0) + pct;
+                metaMap[name] = Map<String, dynamic>.from(item);
+              }
+            }
+          }
+        }
+
+        if (aggregatedScores.isNotEmpty) {
+          final total = aggregatedScores.values.fold(0.0, (a, b) => a + b);
+          activeEmotions = aggregatedScores.entries.map((entry) {
+            final meta = metaMap[entry.key] ?? {};
+            return {
+              'name': entry.key,
+              'label': meta['label'] ?? entry.key,
+              'emoji': meta['emoji'] ?? '✨',
+              'percent': total > 0 ? (entry.value / total) : 0.0,
+              'color': meta['color'] ?? const Color(0xFFA7E6FF),
+            };
+          }).toList();
+          activeEmotions.sort((a, b) => ((b['percent'] as num?) ?? 0.0).compareTo((a['percent'] as num?) ?? 0.0));
+        } else {
+          // If no acoustic emotion data was captured yet, display default calm/neutral baseline
+          activeEmotions = [
+            {'name': 'netral', 'label': 'Netral & Tenang', 'emoji': '😌', 'percent': 1.00, 'color': const Color(0xFFA7E6FF)},
+          ];
+        }
       }
     } else {
       Map<String, dynamic>? selectedSessData;
@@ -216,8 +273,7 @@ class _AiDiaryDetailScreenState extends ConsumerState<AiDiaryDetailScreen> {
             .toList();
       } else {
         activeEmotions = [
-          {'name': 'netral', 'label': 'Ketenangan & Refleksi', 'emoji': '😌', 'percent': 0.60, 'color': const Color(0xFFA7E6FF)},
-          {'name': 'happy', 'label': 'Lega & Nyaman', 'emoji': '😃', 'percent': 0.40, 'color': const Color(0xFFFFE6A7)},
+          {'name': 'netral', 'label': 'Ketenangan & Refleksi', 'emoji': '😌', 'percent': 1.00, 'color': const Color(0xFFA7E6FF)},
         ];
       }
     }
@@ -225,12 +281,22 @@ class _AiDiaryDetailScreenState extends ConsumerState<AiDiaryDetailScreen> {
     // Compute active transcripts list based on selected session
     List<Map<String, dynamic>> activeTranscripts = [];
     if (_selectedSessionId == 'all') {
+      final seenTransKeys = <String>{};
       for (var s in sessions) {
         final rawTrans = s['transcripts'];
         if (rawTrans is List) {
-          activeTranscripts.addAll(
-            rawTrans.map((t) => Map<String, dynamic>.from(t as Map)),
-          );
+          for (var t in rawTrans) {
+            if (t is Map) {
+              final map = Map<String, dynamic>.from(t);
+              final text = map['text']?.toString().trim() ?? '';
+              final role = map['role']?.toString() ?? (map['isUser'] == true ? 'user' : 'assistant');
+              final key = '$role:$text';
+              if (text.isNotEmpty && !seenTransKeys.contains(key)) {
+                seenTransKeys.add(key);
+                activeTranscripts.add(map);
+              }
+            }
+          }
         }
       }
     } else {

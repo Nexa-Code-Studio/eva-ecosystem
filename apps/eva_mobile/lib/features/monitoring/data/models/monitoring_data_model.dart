@@ -69,7 +69,31 @@ class MonitoringDataModel extends MonitoringDataEntity {
     required super.risks,
     required super.xLabels,
     required super.chartData,
+    super.isEmpty = false,
   });
+
+  factory MonitoringDataModel.empty(String periodKey) {
+    final periodLabel = switch (periodKey) {
+      'week' => 'Minggu Ini',
+      'month' => 'Bulan Ini',
+      _ => 'Hari Ini',
+    };
+    return MonitoringDataModel(
+      periodKey: periodKey,
+      periodLabel: periodLabel,
+      summary: '',
+      emotionalCenter: const EmotionalCenterModel(
+        status: '',
+        level: 0,
+        description: '',
+        textColorHex: '#9E9E9E',
+      ),
+      risks: const [],
+      xLabels: const [],
+      chartData: const [],
+      isEmpty: true,
+    );
+  }
 
   factory MonitoringDataModel.fromJson(Map<dynamic, dynamic> json) {
     final rawRisks = json['risks'] as List? ?? [];

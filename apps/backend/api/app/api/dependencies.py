@@ -55,6 +55,18 @@ async def get_current_user(
     return await service.get_user_from_token(token)
 
 
+async def get_current_admin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """Ensure the authenticated user has administrator privileges."""
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Akses ditolak: hanya Administrator EVA yang dapat mengakses fitur ini.",
+        )
+    return current_user
+
+
 
 async def get_user_service(db: AsyncSession = Depends(get_db_session)):
     """Dependency factory for UserService."""
@@ -126,11 +138,40 @@ async def get_scheduling_service(db: AsyncSession = Depends(get_db_session)):
     return SchedulingService(db)
 
 
+_webrtc_signaling_manager = None
+
+
+def get_ice_provider():
+    """Dependency factory for IceServerProvider."""
+    from app.services.care import IceServerProvider
+
+    return IceServerProvider()
+
+
+def get_webrtc_signaling_manager():
+    """Worker-scoped dependency factory for WebRtcSignalingManager."""
+    global _webrtc_signaling_manager
+    from app.services.care import WebRtcSignalingManager
+
+    if _webrtc_signaling_manager is None:
+        redis_client: Redis = from_url(settings.REDIS_URL, decode_responses=True)
+        _webrtc_signaling_manager = WebRtcSignalingManager(redis_client)
+    return _webrtc_signaling_manager
+
+
+async def shutdown_webrtc_signaling_manager() -> None:
+    """Cleanly close worker-scoped WebRtcSignalingManager resources."""
+    global _webrtc_signaling_manager
+    if _webrtc_signaling_manager is not None:
+        await _webrtc_signaling_manager.close()
+        _webrtc_signaling_manager = None
+
+
 async def get_care_service(db: AsyncSession = Depends(get_db_session)):
     """Dependency factory for CareService."""
-    from app.services.care import CareService
+    from app.services.care import CareService, IceServerProvider
 
-    return CareService(db)
+    return CareService(db, ice_provider=IceServerProvider())
 
 
 async def get_finance_service(db: AsyncSession = Depends(get_db_session)):
@@ -138,6 +179,20 @@ async def get_finance_service(db: AsyncSession = Depends(get_db_session)):
     from app.services.finances import FinanceService
 
     return FinanceService(db)
+
+
+async def get_coin_service(db: AsyncSession = Depends(get_db_session)):
+    """Dependency factory for CoinService."""
+    from app.services.coin import CoinService
+
+    return CoinService(db)
+
+
+async def get_content_service(db: AsyncSession = Depends(get_db_session)):
+    """Dependency factory for ContentService."""
+    from app.services.content import ContentService
+
+    return ContentService(db)
 
 
 

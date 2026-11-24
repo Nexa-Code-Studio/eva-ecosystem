@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:eva_mobile/features/chat/data/datasources/mock_chat_datasource.dart';
+import 'package:eva_mobile/features/chat/data/repositories/chat_repository_impl.dart';
 import 'package:eva_mobile/features/chat/domain/entities/conversation_entity.dart';
 import 'package:eva_mobile/features/chat/domain/repositories/chat_repository.dart';
 import 'package:eva_mobile/features/chat/presentation/providers/chat_provider.dart';
@@ -27,6 +30,8 @@ class _PendingChatRepository implements ChatRepository {
 
 void main() {
   setUp(() {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
     SharedPreferences.setMockInitialValues({});
   });
 
@@ -141,7 +146,13 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final container = ProviderContainer();
+    final container = ProviderContainer(
+      overrides: [
+        chatRepositoryProvider.overrideWithValue(
+          ChatRepositoryImpl(MockChatDataSource()),
+        ),
+      ],
+    );
     addTearDown(container.dispose);
 
     // Set tutorial to voiceCoins step
@@ -167,6 +178,7 @@ void main() {
     // Advance to next step (Mulai Sesi Suara)
     await tester.tap(find.text('Lanjut'));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
     await tester.pump(const Duration(milliseconds: 300));
 
     // Verify spotlight overlay advanced to Mulai Sesi Suara

@@ -164,5 +164,40 @@ void main() {
       expect(capturedRef.read(selectedPeriodProvider), 'week');
       expect(find.text('Summary for week'), findsOneWidget);
     });
+
+    testWidgets('Renders empty state when data.isEmpty is true', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            monitoringDataProvider.overrideWith((ref) async {
+              return const MonitoringDataEntity(
+                periodKey: 'today',
+                periodLabel: 'Hari Ini',
+                summary: '',
+                emotionalCenter: EmotionalCenterEntity(
+                  status: '',
+                  level: 0,
+                  description: '',
+                  textColorHex: '#9E9E9E',
+                ),
+                risks: [],
+                xLabels: [],
+                chartData: [],
+                isEmpty: true,
+              );
+            }),
+          ],
+          child: const MaterialApp(
+            home: MonitoringScreen(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Belum Ada Catatan Emosi'), findsOneWidget);
+      expect(find.text('RINGKASAN AI'), findsNothing);
+      expect(find.text('PUSAT EMOSIONAL'), findsNothing);
+    });
   });
 }

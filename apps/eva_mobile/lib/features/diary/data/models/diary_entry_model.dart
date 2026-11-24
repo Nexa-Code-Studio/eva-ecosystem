@@ -55,12 +55,14 @@ class DiaryEntryModel extends DiaryEntryEntity {
     required super.importantEvents,
     required super.emotionalReflection,
     required super.sessions,
+    super.emotionsBreakdown = const [],
   });
 
   factory DiaryEntryModel.fromJson(Map<String, dynamic> json) {
     final rawRisk = json['riskWarning'] ?? json['risk_warning'];
     final List rawEvents = (json['importantEvents'] as List?) ?? (json['important_events'] as List?) ?? [];
     final List rawSessions = (json['sessions'] as List?) ?? [];
+    final rawBreakdown = (json['emotionsBreakdown'] ?? json['emotions_breakdown'] as List?) ?? [];
 
     return DiaryEntryModel(
       id: json['id']?.toString() ?? '',
@@ -76,6 +78,7 @@ class DiaryEntryModel extends DiaryEntryEntity {
       importantEvents: rawEvents.map((e) => e.toString()).toList(),
       emotionalReflection: json['emotionalReflection']?.toString() ?? json['emotional_reflection']?.toString() ?? '',
       sessions: rawSessions.map((s) => DiarySessionSummaryModel.fromJson(Map<String, dynamic>.from(s as Map))).toList(),
+      emotionsBreakdown: rawBreakdown.map((b) => Map<String, dynamic>.from(b as Map)).toList(),
     );
   }
 
@@ -94,6 +97,7 @@ class DiaryEntryModel extends DiaryEntryEntity {
       'importantEvents': importantEvents,
       'emotionalReflection': emotionalReflection,
       'sessions': sessions.map((s) => (s as DiarySessionSummaryModel).toJson()).toList(),
+      'emotionsBreakdown': emotionsBreakdown,
     };
   }
 }

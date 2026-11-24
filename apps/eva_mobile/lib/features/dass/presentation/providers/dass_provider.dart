@@ -1,23 +1,27 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:eva_mobile/config/app_config.dart';
 import '../../data/datasources/dass_datasource.dart';
+import '../../data/datasources/local_dass_datasource.dart';
 import '../../data/repositories/dass_repository_impl.dart';
-import '../../data/repositories/fallback_dass_repository.dart';
 import '../../domain/entities/dass_assessment_entity.dart';
 import '../../domain/repositories/dass_repository.dart';
+import '../../../memory/presentation/providers/memory_provider.dart';
 import '../../../monitoring/presentation/providers/monitoring_provider.dart';
 
+final localDassDataSourceProvider = Provider<LocalDASSDataSource>((ref) {
+  final localDb = ref.watch(encryptedLocalDatabaseProvider);
+  return LocalDASSDataSource(localDb);
+});
+
 final dassRepositoryProvider = Provider<DASSRepository>((ref) {
+  final localSource = ref.watch(localDassDataSourceProvider);
+  final localRepo = DASSRepositoryImpl(localSource);
   final mockRepo = DASSRepositoryImpl(MockDASSDataSource());
-  final remoteRepo = DASSRepositoryImpl(RemoteDASSDataSource());
 
   if (AppConfig.useMockData) {
     return mockRepo;
-  } else if (AppConfig.useHybridFallback) {
-    return FallbackDASSRepository(remote: remoteRepo, mock: mockRepo);
-  } else {
-    return remoteRepo;
   }
+  return localRepo;
 });
 
 class DASSAssessmentState {
@@ -71,9 +75,28 @@ class DASSAssessmentNotifier extends StateNotifier<DASSAssessmentState> {
         assessment: AsyncValue.data(result),
         stagedScores: initialStaged,
       );
+
+      // Lazy On-Demand Recovery: If today's assessment is empty, attempt auto-extraction from local conversation turns
+      if (result.status == 'empty') {
+        _attemptAutoExtraction();
+      }
     } catch (e, st) {
       state = state.copyWith(assessment: AsyncValue.error(e, st));
     }
+  }
+
+  Future<void> _attemptAutoExtraction() async {
+    try {
+      final extracted = await _repository.extractTodayAssessment();
+      if (extracted.status != 'empty' && mounted) {
+        final newStaged = {for (var it in extracted.items) it.itemId: it.score};
+        state = state.copyWith(
+          assessment: AsyncValue.data(extracted),
+          stagedScores: newStaged,
+        );
+        _ref.invalidate(monitoringDataProvider);
+      }
+    } catch (_) {}
   }
 
   void updateScore(int itemId, int newScore) {

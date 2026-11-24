@@ -206,7 +206,7 @@ class SpeechRecognitionService {
           partialResults: true,
           cancelOnError: false,
           listenFor: const Duration(seconds: 60),
-          pauseFor: const Duration(milliseconds: 2500),
+          pauseFor: const Duration(seconds: 5),
         ),
       );
       debugPrint('🎙️ [STT STARTED]: Session $sttSessionId (Locale: $_resolvedLocaleId)');

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:eva_mobile/features/diary/data/models/diary_entry_model.dart';
+import 'package:eva_mobile/features/diary/domain/entities/diary_entry_entity.dart';
 import 'package:eva_mobile/features/diary/presentation/providers/diary_provider.dart';
 import 'package:eva_mobile/services/daily_progress_local_service.dart';
 import 'package:eva_mobile/theme/app_colors.dart';
@@ -81,6 +82,7 @@ class AiDiaryScreenState extends ConsumerState<AiDiaryScreen> {
               'aiInsight': e.aiInsight,
               'importantEvents': e.importantEvents,
               'emotionalReflection': e.emotionalReflection,
+              'emotionsBreakdown': e.emotionsBreakdown,
               'sessions': e.sessions.map((s) => {
                 'id': s.id,
                 'title': s.title,
@@ -117,6 +119,41 @@ class AiDiaryScreenState extends ConsumerState<AiDiaryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<List<DiaryEntryEntity>>>(diaryEntriesProvider, (prev, next) {
+      next.whenData((entries) {
+        if (mounted) {
+          setState(() {
+            _entries = entries.map((e) {
+              if (e is DiaryEntryModel) return e.toJson();
+              return {
+                'id': e.id,
+                'title': e.title,
+                'date': e.date,
+                'sessionCount': e.sessionCount,
+                'lastSessionTime': e.lastSessionTime,
+                'moodTag': e.moodTag,
+                'moodEmoji': e.moodEmoji,
+                'summary': e.summary,
+                'aiInsight': e.aiInsight,
+                'importantEvents': e.importantEvents,
+                'emotionalReflection': e.emotionalReflection,
+                'emotionsBreakdown': e.emotionsBreakdown,
+                'sessions': e.sessions.map((s) => {
+                  'id': s.id,
+                  'title': s.title,
+                  'time': s.time,
+                  'moodTag': s.moodTag,
+                  'moodEmoji': s.moodEmoji,
+                  'transcripts': s.transcripts,
+                  'emotionsBreakdown': s.emotionsBreakdown,
+                }).toList(),
+              };
+            }).toList();
+          });
+        }
+      });
+    });
+
     final query = _searchController.text.toLowerCase();
     final filteredList = _entries.where((item) {
       final matchesQuery = query.isEmpty ||

@@ -6,8 +6,19 @@ class RegisterPsychologistRequest(BaseModel):
     title_degree: str = Field(default="M.Psi., Psikolog", max_length=100)
     email: EmailStr
     password: str = Field(..., min_length=8)
-    str_number: str = Field(..., min_length=3, max_length=100)
+    str_number: str | None = Field(default=None, max_length=100)
+    str_issuing_institution: str | None = Field(default=None, max_length=150)
+    str_expiry_date: str | None = Field(default=None, max_length=50)
+    str_doc_url: str | None = None
     sip_number: str | None = Field(default=None, max_length=100)
+    sip_issuing_institution: str | None = Field(default=None, max_length=150)
+    sip_expiry_date: str | None = Field(default=None, max_length=50)
+    sip_doc_url: str | None = None
+    document_type: str = Field(default="str", max_length=20)
+    issuing_institution: str | None = Field(default="Kemenkes RI", max_length=150)
+    document_expiry_date: str | None = Field(default="Seumur Hidup", max_length=50)
+    education: str | None = Field(default=None, max_length=200)
+    last_education: str | None = Field(default="S2 Magister Psikologi Profesi", max_length=150)
     association: str = Field(default="Himpunan Psikologi Indonesia (HIMPSI)", max_length=150)
     specializations: list[str] = Field(default_factory=list)
     years_of_experience: int = Field(default=1, ge=0)
@@ -27,9 +38,16 @@ class UpdatePsychologistProfileRequest(BaseModel):
 
 
 class ResubmitVerificationRequest(BaseModel):
-    certificate_doc_url: str = Field(..., min_length=5)
+    certificate_doc_url: str | None = Field(default=None, min_length=5)
     str_number: str | None = None
+    str_issuing_institution: str | None = Field(default=None, max_length=150)
+    str_expiry_date: str | None = Field(default=None, max_length=50)
+    str_doc_url: str | None = None
     sip_number: str | None = None
+    sip_issuing_institution: str | None = Field(default=None, max_length=150)
+    sip_expiry_date: str | None = Field(default=None, max_length=50)
+    sip_doc_url: str | None = None
+    education: str | None = Field(default=None, max_length=200)
 
 
 class UpdateBankDetailsRequest(BaseModel):
@@ -39,7 +57,16 @@ class UpdateBankDetailsRequest(BaseModel):
 
 
 class VerifyPsychologistRequest(BaseModel):
-    status: str = Field(..., pattern="^(verified|rejected|need_revision)$")
+    status: str = Field(..., pattern="^(verified|rejected)$")
+    notes: str | None = None
+
+
+class ToggleDocumentVerificationRequest(BaseModel):
+    verified: bool | None = None
+
+
+class UpdateCounselorStatusRequest(BaseModel):
+    status: str = Field(..., pattern="^(verified|suspended)$")
     notes: str | None = None
 
 

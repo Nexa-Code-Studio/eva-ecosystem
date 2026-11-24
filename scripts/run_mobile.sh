@@ -138,6 +138,17 @@ if [ ! -d "${APP_DIR}" ]; then
     exit 1
 fi
 
+# Ensure compatible JDK (JDK 17) for Android Gradle Plugin
+if [ -z "${JAVA_HOME:-}" ] || [[ "${JAVA_HOME:-}" == *"java-25"* ]]; then
+    if [ -d "/usr/lib/jvm/java-17-temurin-jdk" ]; then
+        export JAVA_HOME="/usr/lib/jvm/java-17-temurin-jdk"
+        export PATH="${JAVA_HOME}/bin:${PATH}"
+    elif [ -d "/usr/lib/jvm/java-21-openjdk" ]; then
+        export JAVA_HOME="/usr/lib/jvm/java-21-openjdk"
+        export PATH="${JAVA_HOME}/bin:${PATH}"
+    fi
+fi
+
 # Shift mode argument so remaining args can be passed directly to flutter run
 shift 1 || true
 

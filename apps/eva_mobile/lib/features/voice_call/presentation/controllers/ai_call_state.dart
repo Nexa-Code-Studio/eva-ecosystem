@@ -23,6 +23,9 @@ class AiCallViewState {
   final String voiceMode;
   final List<Map<String, dynamic>> pendingMemoryCandidates;
   final bool isFinalizing;
+  final String? detectedEmotion;
+  final double? detectedEmotionConfidence;
+  final List<Map<String, dynamic>> activeEmotionsBreakdown;
 
   const AiCallViewState({
     this.callState = CallState.idle,
@@ -47,6 +50,9 @@ class AiCallViewState {
     this.voiceMode = 'mode_2',
     this.pendingMemoryCandidates = const [],
     this.isFinalizing = false,
+    this.detectedEmotion,
+    this.detectedEmotionConfidence,
+    this.activeEmotionsBreakdown = const [],
   });
 
   AiCallViewState copyWith({
@@ -72,6 +78,9 @@ class AiCallViewState {
     String? voiceMode,
     List<Map<String, dynamic>>? pendingMemoryCandidates,
     bool? isFinalizing,
+    String? detectedEmotion,
+    double? detectedEmotionConfidence,
+    List<Map<String, dynamic>>? activeEmotionsBreakdown,
     bool clearCrisis = false,
     bool clearError = false,
   }) {
@@ -98,6 +107,9 @@ class AiCallViewState {
       voiceMode: voiceMode ?? this.voiceMode,
       pendingMemoryCandidates: pendingMemoryCandidates ?? this.pendingMemoryCandidates,
       isFinalizing: isFinalizing ?? this.isFinalizing,
+      detectedEmotion: detectedEmotion ?? this.detectedEmotion,
+      detectedEmotionConfidence: detectedEmotionConfidence ?? this.detectedEmotionConfidence,
+      activeEmotionsBreakdown: activeEmotionsBreakdown ?? this.activeEmotionsBreakdown,
     );
   }
 }

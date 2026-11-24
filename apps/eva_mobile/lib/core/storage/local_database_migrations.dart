@@ -2,7 +2,7 @@ import 'package:sqflite_sqlcipher/sqflite.dart';
 
 /// Database schema migrations for encrypted SQLite (SQLCipher).
 class LocalDatabaseMigrations {
-  static const int currentVersion = 1;
+  static const int currentVersion = 3;
 
   static Future<void> onCreate(Database db, int version) async {
     await db.execute('''
@@ -50,6 +50,7 @@ class LocalDatabaseMigrations {
         ai_insight TEXT,
         emotional_reflection TEXT,
         important_events_json TEXT,
+        emotions_breakdown_json TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         UNIQUE(local_account_key, entry_date_local)
@@ -63,9 +64,54 @@ class LocalDatabaseMigrations {
         client_session_id TEXT NOT NULL,
         summary TEXT NOT NULL,
         journal_id TEXT,
+        emotions_breakdown_json TEXT,
+        synthesis_status TEXT NOT NULL DEFAULT 'completed',
         created_at TEXT NOT NULL,
         UNIQUE(local_account_key, client_session_id)
       );
+    ''');
+
+    await db.execute('''
+      CREATE TABLE conversation_turns (
+        id TEXT PRIMARY KEY,
+        local_account_key TEXT NOT NULL,
+        session_id TEXT NOT NULL,
+        turn_id INTEGER NOT NULL,
+        role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+        transcript TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(local_account_key, session_id, turn_id, role)
+      );
+    ''');
+
+    await db.execute('''
+      CREATE INDEX idx_conversation_turns_session 
+      ON conversation_turns(local_account_key, session_id, turn_id);
+    ''');
+
+    await db.execute('''
+      CREATE TABLE local_dass_assessments (
+        id TEXT PRIMARY KEY,
+        local_account_key TEXT NOT NULL,
+        assessment_date TEXT NOT NULL,
+        stress_score INTEGER NOT NULL DEFAULT 0,
+        anxiety_score INTEGER NOT NULL DEFAULT 0,
+        depression_score INTEGER NOT NULL DEFAULT 0,
+        stress_category TEXT NOT NULL DEFAULT 'Normal',
+        anxiety_category TEXT NOT NULL DEFAULT 'Normal',
+        depression_category TEXT NOT NULL DEFAULT 'Normal',
+        items_json TEXT NOT NULL,
+        source_session_id TEXT,
+        is_user_verified INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        UNIQUE(local_account_key, assessment_date)
+      );
+    ''');
+
+    await db.execute('''
+      CREATE INDEX idx_dass_date 
+      ON local_dass_assessments(local_account_key, assessment_date);
     ''');
 
     await db.execute('''
@@ -99,6 +145,57 @@ class LocalDatabaseMigrations {
   }
 
   static Future<void> onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Migration paths for future versions
+    if (oldVersion < 2) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS conversation_turns (
+          id TEXT PRIMARY KEY,
+          local_account_key TEXT NOT NULL,
+          session_id TEXT NOT NULL,
+          turn_id INTEGER NOT NULL,
+          role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+          transcript TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          UNIQUE(local_account_key, session_id, turn_id, role)
+        );
+      ''');
+      await db.execute('''
+        CREATE INDEX IF NOT EXISTS idx_conversation_turns_session 
+        ON conversation_turns(local_account_key, session_id, turn_id);
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS local_dass_assessments (
+          id TEXT PRIMARY KEY,
+          local_account_key TEXT NOT NULL,
+          assessment_date TEXT NOT NULL,
+          stress_score INTEGER NOT NULL DEFAULT 0,
+          anxiety_score INTEGER NOT NULL DEFAULT 0,
+          depression_score INTEGER NOT NULL DEFAULT 0,
+          stress_category TEXT NOT NULL DEFAULT 'Normal',
+          anxiety_category TEXT NOT NULL DEFAULT 'Normal',
+          depression_category TEXT NOT NULL DEFAULT 'Normal',
+          items_json TEXT NOT NULL,
+          source_session_id TEXT,
+          is_user_verified INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          UNIQUE(local_account_key, assessment_date)
+        );
+      ''');
+      await db.execute('''
+        CREATE INDEX IF NOT EXISTS idx_dass_date 
+        ON local_dass_assessments(local_account_key, assessment_date);
+      ''');
+      try {
+        await db.execute("ALTER TABLE session_summaries ADD COLUMN synthesis_status TEXT NOT NULL DEFAULT 'completed';");
+      } catch (_) {}
+    }
+    if (oldVersion < 3) {
+      try {
+        await db.execute("ALTER TABLE journal_entries ADD COLUMN emotions_breakdown_json TEXT;");
+      } catch (_) {}
+      try {
+        await db.execute("ALTER TABLE session_summaries ADD COLUMN emotions_breakdown_json TEXT;");
+      } catch (_) {}
+    }
   }
 }

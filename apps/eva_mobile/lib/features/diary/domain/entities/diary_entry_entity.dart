@@ -34,6 +34,7 @@ class DiaryEntryEntity {
   final List<String> importantEvents;
   final String emotionalReflection;
   final List<DiarySessionSummaryEntity> sessions;
+  final List<Map<String, dynamic>> emotionsBreakdown;
 
   const DiaryEntryEntity({
     required this.id,
@@ -49,5 +50,6 @@ class DiaryEntryEntity {
     required this.importantEvents,
     required this.emotionalReflection,
     required this.sessions,
+    this.emotionsBreakdown = const [],
   });
 }

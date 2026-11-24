@@ -44,6 +44,11 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
   @override
   void dispose() {
     _aiRippleController.dispose();
+    // Guarantee that if user exited screen, call session and mic audio are stopped
+    final state = ref.read(aiCallControllerProvider);
+    if (state.callState != CallState.ended) {
+      ref.read(aiCallControllerProvider.notifier).endCall();
+    }
     super.dispose();
   }
 

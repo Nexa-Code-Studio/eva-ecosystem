@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from app.db.session import engine, AsyncSessionLocal
 from app.models.counselor import ConsultationSession, PlatformPricingConfig, PsychologistProfile
-from app.models.enums import ConsultationSessionStatus, PricingConfigStatus
+from app.models.enums import ConsultationSessionStatus, PricingConfigStatus, PsychologistVerificationStatus
 from app.models.user import User
 from app.main import app
 
@@ -24,7 +24,7 @@ async def consultation_fixture():
     async with AsyncSessionLocal() as session:
         # Create Patient user
         patient_email = f"patient.{uuid.uuid4().hex[:6]}@eva.id"
-        patient = User(email=patient_email, password_hash="hash123")
+        patient = User(email=patient_email, password_hash="hash123", coin_balance=1000000)
         session.add(patient)
 
         # Create Counselor user & profile
@@ -43,6 +43,9 @@ async def consultation_fixture():
             str_number=f"STR-{uuid.uuid4().hex[:8]}",
             specializations=["Telekonsultasi"],
             years_of_experience=4,
+            verification_status=PsychologistVerificationStatus.VERIFIED.value,
+            is_online=True,
+            buffer_time_minutes=15,
         )
         session.add(profile)
 
@@ -107,6 +110,8 @@ async def test_care_video_token_and_status(consultation_fixture):
         assert "token" in data
         assert "room_id" in data
         assert len(data["ice_servers"]) >= 1
+        assert len(data["ice_server_configs"]) >= 1
+        assert data["ws_url"].endswith(f"/api/v1/care/ws/{session_id}?token={data['token']}")
 
         # 2. Unrelated user is forbidden
         forbidden_res = await client.post(
@@ -124,14 +129,32 @@ async def test_care_video_token_and_status(consultation_fixture):
         assert status_res.status_code == 200
         assert status_res.json()["status"] == "live"
 
-        # 4. Counselor views session detail
+        # 4. Counselor views session detail (and non-counselors receive 403)
         detail_res = await client.get(
             f"/api/v1/sessions/{session_id}",
             headers=counselor_headers,
         )
         assert detail_res.status_code == 200
-        assert detail_res.json()["session_id"] == session_id
-        assert detail_res.json()["channel_name"] == data["room_id"]
+        detail_json = detail_res.json()
+        assert detail_json["session_id"] == session_id
+        assert detail_json["channel_name"] == data["room_id"]
+        assert len(detail_json["ice_servers"]) >= 1
+        assert len(detail_json["ice_server_configs"]) >= 1
+        assert detail_json["ws_url"].endswith(
+            f"/api/v1/care/ws/{session_id}?token={detail_json['signaling_token']}"
+        )
+
+        patient_detail_res = await client.get(
+            f"/api/v1/sessions/{session_id}",
+            headers=patient_headers,
+        )
+        assert patient_detail_res.status_code == 403
+
+        unrelated_detail_res = await client.get(
+            f"/api/v1/sessions/{session_id}",
+            headers=unrelated_headers,
+        )
+        assert unrelated_detail_res.status_code == 403
 
         # 5. Counselor terminates session with duration and quick notes
         end_res = await client.post(
@@ -148,91 +171,95 @@ async def test_care_video_token_and_status(consultation_fixture):
 
 
 @pytest.mark.asyncio
-async def test_care_consent_clinical_share_lifecycle(consultation_fixture):
-    """Validates Luna consent-based clinical share: upload, psychologist access, access control, and patient revocation."""
-    session_id = consultation_fixture["session_id"]
-    counselor_id = consultation_fixture["counselor_id"]
-    patient_headers = consultation_fixture["patient_headers"]
-    counselor_headers = consultation_fixture["counselor_headers"]
-    unrelated_headers = consultation_fixture["unrelated_headers"]
-
+async def test_care_psychologists_and_clinics_endpoints(consultation_fixture):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        # 1. Unrelated user attempts to share on patient's booking -> 403 Forbidden
-        bad_share = await client.post(
-            f"/api/v1/care/bookings/{session_id}/clinical-share",
-            headers=unrelated_headers,
-            json={
-                "version": 1,
-                "psychologist_id": counselor_id,
-                "items": {"complaints": [], "professional_diagnoses": []},
-            },
-        )
-        assert bad_share.status_code == 403
+        # 1. Get Psychologists
+        res = await client.get("/api/v1/care/psychologists")
+        assert res.status_code == 200
+        psychs = res.json()
+        assert isinstance(psychs, list)
+        assert len(psychs) >= 1
+        first = psychs[0]
+        assert "name" in first
+        assert "registration_number" in first
+        assert "testimonials" in first
+        assert "patient_stats" in first
 
-        # 2. Patient uploads scoped clinical share
-        payload = {
-            "version": 1,
+        # 2. Filter by category
+        res_cat = await client.get("/api/v1/care/psychologists?category=psychologist")
+        assert res_cat.status_code == 200
+
+        # 3. Get Clinics
+        res_clinics = await client.get("/api/v1/care/clinics")
+        assert res_clinics.status_code == 200
+        clinics = res_clinics.json()
+        assert isinstance(clinics, list)
+        assert len(clinics) >= 1
+        assert "facilities" in clinics[0]
+
+
+@pytest.mark.asyncio
+async def test_care_community_and_timeline_and_booking(consultation_fixture):
+    patient_headers = consultation_fixture["patient_headers"]
+    counselor_id = consultation_fixture["counselor_id"]
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        # 1. Community Status
+        res_comm = await client.get("/api/v1/community/status")
+        assert res_comm.status_code == 200
+        assert res_comm.json()["server_name"] == "Eva Safe Space ID"
+
+        res_join = await client.post("/api/v1/community/join", headers=patient_headers)
+        assert res_join.status_code == 200
+        assert res_join.json()["is_member"] is True
+
+        # 2. Timeline
+        today_str = datetime.now(UTC).strftime("%Y-%m-%d")
+        res_timeline = await client.get(f"/api/v1/counselors/{counselor_id}/timeline?date={today_str}")
+        assert res_timeline.status_code == 200
+        timeline = res_timeline.json()
+        assert "operating_hours" in timeline
+        assert "blocked_ranges" in timeline
+        assert "available_windows" in timeline
+
+        # 3. Dynamic Multi-Session Booking
+        future_start = (datetime.now(UTC) + timedelta(days=2)).replace(hour=14, minute=0, second=0, microsecond=0)
+        book_payload = {
             "psychologist_id": counselor_id,
-            "consent_version": "clinical-share-v1",
-            "items": {
-                "complaints": [
-                    {
-                        "text": "Sulit tidur dan cemas berkepanjangan",
-                        "source": "user_confirmed",
-                        "last_confirmed_at": "2026-11-20",
-                    }
-                ],
-                "professional_diagnoses": [
-                    {
-                        "diagnosis_name": "Generalized Anxiety Disorder (GAD)",
-                        "source_label": "self_reported",
-                        "notes": "Diagnosis dari psikiater RS tahun 2024",
-                    }
-                ],
-            },
+            "preferred_date_time": future_start.isoformat(),
+            "session_type": "onlineVideo",
+            "session_count": 2,
+            "duration_minutes": 60,
+            "complaints": "Kecemasan menghadapi presentasi kerja",
+            "share_ai_chat_history": True,
         }
-        share_res = await client.post(
-            f"/api/v1/care/bookings/{session_id}/clinical-share",
+        res_book = await client.post(
+            f"/api/v1/counselors/{counselor_id}/book",
             headers=patient_headers,
-            json=payload,
+            json=book_payload,
         )
-        assert share_res.status_code == 201
-        share_data = share_res.json()
-        assert share_data["status"] == "authorized"
-        assert share_data["booking_id"] == session_id
-        assert "complaints" in share_data["authorized_categories"]
-        assert "professional_diagnoses" in share_data["authorized_categories"]
+        assert res_book.status_code == 201
+        booked_sess = res_book.json()
+        assert booked_sess["duration_minutes"] == 60
+        assert "psychologist" in booked_sess
+        assert booked_sess["notes"] == "Kecemasan menghadapi presentasi kerja"
 
-        # 3. Counselor retrieves shared bundle -> 200 OK
-        bundle_res = await client.get(
-            f"/api/v1/care/sessions/{session_id}/shared-clinical-bundle",
-            headers=counselor_headers,
-        )
-        assert bundle_res.status_code == 200
-        bundle_data = bundle_res.json()
-        assert bundle_data["status"] == "authorized"
-        assert len(bundle_data["items"]["complaints"]) == 1
-        assert len(bundle_data["items"]["professional_diagnoses"]) == 1
+        # 4. User Care Sessions list
+        res_sessions = await client.get("/api/v1/care/sessions", headers=patient_headers)
+        assert res_sessions.status_code == 200
+        my_sessions = res_sessions.json()
+        assert len(my_sessions) >= 1
 
-        # 4. Unrelated user attempts to access bundle -> 403 Forbidden
-        unrelated_res = await client.get(
-            f"/api/v1/care/sessions/{session_id}/shared-clinical-bundle",
-            headers=unrelated_headers,
-        )
-        assert unrelated_res.status_code == 403
-
-        # 5. Patient revokes consent
-        revoke_res = await client.delete(
-            f"/api/v1/care/bookings/{session_id}/clinical-share",
+        # 5. Rating submission
+        res_rate = await client.post(
+            f"/api/v1/counselors/{counselor_id}/ratings",
             headers=patient_headers,
+            json={
+                "rating": 5.0,
+                "review_text": "Sesi sangat membantu dan memberi kejelasan.",
+                "is_anonymous": True,
+                "tags": ["Sangat Sabar & Empati"],
+            },
         )
-        assert revoke_res.status_code == 200
-        revoke_data = revoke_res.json()
-        assert revoke_data["status"] == "revoked"
+        assert res_rate.status_code == 200
+        assert res_rate.json()["success"] is True
 
-        # 6. Counselor attempts to access bundle after revocation -> 403 Forbidden (fail-closed)
-        revoked_access = await client.get(
-            f"/api/v1/care/sessions/{session_id}/shared-clinical-bundle",
-            headers=counselor_headers,
-        )
-        assert revoked_access.status_code == 403

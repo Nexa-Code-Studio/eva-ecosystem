@@ -1,10 +1,13 @@
 from app.models.ai import AIRun, AIWorkerRun
 from app.models.base import BaseModel
+from app.models.coin import CoinEconomyConfig, CoinPackage, CoinTransaction
+from app.models.content import CrisisConfig, FaqEntry
 from app.models.conversation import Conversation, ConversationSummary, Message
 from app.models.enums import (
     AIRunStatus,
     AIRunType,
     AIWorkerType,
+    CoinTransactionType,
     ConditionStatus,
     ConditionSymptomRelationship,
     ConversationStatus,
@@ -66,6 +69,10 @@ __all__ = [
     "AIWorkerRun",
     "AIWorkerType",
     "BaseModel",
+    "CoinEconomyConfig",
+    "CoinPackage",
+    "CoinTransaction",
+    "CoinTransactionType",
     "CopingActivity",
     "UserActivityCompletion",
     "Condition",
@@ -73,6 +80,7 @@ __all__ = [
     "ConsultationSession",
     "ConsultationSessionStatus",
     "CounselorTransaction",
+    "CrisisConfig",
     "DASSAssessment",
     "ConditionSymptom",
     "ConditionSymptomRelationship",
@@ -83,6 +91,7 @@ __all__ = [
     "DiaryEntry",
     "EmotionAnalysis",
     "EvidenceLevel",
+    "FaqEntry",
     "Knowledge",
     "KnowledgeChunk",
     "KnowledgeStatus",

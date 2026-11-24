@@ -58,13 +58,11 @@ class CallSession:
         websocket: WebSocket,
         auth_token: str | None = None,
         voice_mode: str | None = None,
-        privacy_mode: str = "local_private",
     ) -> None:
         self.session_id = session_id
         self.websocket = websocket
         self.auth_token = auth_token
         self.voice_mode: str = voice_mode or DEFAULT_VOICE_MODE
-        self.privacy_mode: str = privacy_mode
         self.state: str = "idle"  # idle | listening | user_speaking | ai_thinking | ai_speaking | interrupted
         self.db_conversation_id: Any | None = None
         self.user_id: Any | None = None
@@ -83,8 +81,6 @@ class CallSession:
         self.thesis_metrics_log: list[dict[str, Any]] = []
         self.latest_orchestration_turn: OrchestratedTurnResult | None = None
         self.dass_scores: dict[str, int] | None = None
-        self.structured_persisted_context: list[dict[str, Any]] = []
-        self.context_acknowledged: bool = False
 
     def cancel_active_ai_task(self) -> None:
         if self._current_ai_task and not self._current_ai_task.done():
@@ -121,17 +117,15 @@ class CallSessionManager:
         websocket: WebSocket,
         auth_token: str | None = None,
         voice_mode: str | None = None,
-        privacy_mode: str = "local_private",
     ) -> CallSession:
         session = CallSession(
             session_id=session_id,
             websocket=websocket,
             auth_token=auth_token,
             voice_mode=voice_mode,
-            privacy_mode=privacy_mode or "local_private",
         )
         self._active_sessions[session_id] = session
-        logger.info(f"Registered call session {session_id} (Voice Mode: {session.voice_mode}, Privacy Mode: {session.privacy_mode})")
+        logger.info(f"Registered call session {session_id} (Voice Mode: {session.voice_mode})")
         return session
 
     def unregister_session(self, session_id: str) -> None:
@@ -140,13 +134,12 @@ class CallSessionManager:
             session.cancel_active_ai_task()
             session.cancel_endpoint_timer()
 
-            # Launch background sync for Today's Diary & DASS-21 ONCE upon session disconnect ONLY for standard mode
-            if getattr(session, "privacy_mode", "standard") == "standard":
-                if session.conversation_history and len(session.conversation_history) > 1:
-                    logger.info(f"🔌 [DISCONNECT DIARY SYNC START] Session {session_id}: Generating today's diary entry via DeepSeek LLM...")
-                    asyncio.create_task(self._sync_today_diary(session))
-                    logger.info(f"📊 [DISCONNECT DASS SYNC START] Session {session_id}: Extracting today's DASS-21 assessment...")
-                    asyncio.create_task(self._sync_today_dass(session))
+            # Launch background sync for Today's Diary & DASS-21 ONCE upon session disconnect
+            if session.conversation_history and len(session.conversation_history) > 1:
+                logger.info(f"🔌 [DISCONNECT DIARY SYNC START] Session {session_id}: Generating today's diary entry via DeepSeek LLM...")
+                asyncio.create_task(self._sync_today_diary(session))
+                logger.info(f"📊 [DISCONNECT DASS SYNC START] Session {session_id}: Extracting today's DASS-21 assessment...")
+                asyncio.create_task(self._sync_today_dass(session))
 
             del self._active_sessions[session_id]
             logger.info(f"Unregistered call session {session_id}")
@@ -160,31 +153,21 @@ class CallSessionManager:
         session_id: str,
         token: str | None = None,
         voice_mode: str | None = None,
-        privacy_mode: str = "local_private",
     ) -> None:
         """Handle entire bi-directional WebSocket connection lifecycle for AI Phone Call sessions."""
         await websocket.accept()
-        session = self.register_session(
-            session_id,
-            websocket,
-            auth_token=token,
-            voice_mode=voice_mode,
-            privacy_mode=privacy_mode,
-        )
-        logger.info(f"🔌 [WEBSOCKET CONNECTED] Session: {session_id} (Voice Mode: {session.voice_mode}, Privacy Mode: {session.privacy_mode})")
+        session = self.register_session(session_id, websocket, auth_token=token, voice_mode=voice_mode)
+        logger.info(f"🔌 [WEBSOCKET CONNECTED] Session: {session_id} (Voice Mode: {session.voice_mode})")
 
         try:
-            # Pre-load previous conversation history from DB so DeepSeek LLM remembers past context (standard mode only)
+            # Pre-load previous conversation history from DB so DeepSeek LLM remembers past context
             await self.load_conversation_history(session)
 
             # Notify client connection accepted
             await websocket.send_json({
                 "type": "call_connected",
                 "session_id": session_id,
-                "protocol_version": 1,
-                "privacy_mode_active": session.privacy_mode,
-                "context_supported": True,
-                "message": "Connected to Eva AI Phone Service (Local-Memory Protocol v1)",
+                "message": "Connected to Eva AI Phone Service",
             })
 
             while True:
@@ -228,8 +211,6 @@ class CallSessionManager:
         content: str,
         analysis_result: dict[str, Any] | None = None,
     ) -> None:
-        if getattr(session, "privacy_mode", "standard") != "standard":
-            return
         await CallPersistenceService.save_message(session, role, content, analysis_result=analysis_result)
 
     async def update_session_end(self, session_id: str, duration_seconds: int | None = None) -> None:
@@ -283,113 +264,8 @@ class CallSessionManager:
         elif event_type == "user_interrupted":
             logger.info(f"⚡ [LEGACY USER INTERRUPTED] Session {session.session_id}")
             await self._handle_assistant_interrupt(session, {"assistant_turn_id": session.assistant_turn_id})
-        elif event_type == "client_context_v1":
-            await self._handle_client_context(session, payload)
-        elif event_type == "session_finalize_v1":
-            await self._handle_session_finalize(session, payload)
-        elif event_type == "session_artifacts_ack_v1":
-            await self._handle_session_artifacts_ack(session, payload)
         elif event_type == "ping":
             await session.websocket.send_json({"type": "pong"})
-
-    async def _handle_client_context(self, session: CallSession, payload: dict[str, Any]) -> None:
-        """Handle incoming bounded selective long-term memory context from mobile client."""
-        request_id = payload.get("context_request_id") or str(uuid.uuid4())
-        items = payload.get("items", [])
-
-        if session.privacy_mode == "incognito":
-            logger.info(f"🕶️ [CONTEXT REJECTED] Session {session.session_id}: Incognito mode active. Rejecting all client context.")
-            await session.websocket.send_json({
-                "type": "context_ack_v1",
-                "context_request_id": request_id,
-                "accepted_count": 0,
-                "rejected_count": len(items),
-                "rejection_reasons": ["incognito_mode_active"] if items else [],
-            })
-            return
-
-        allowed_categories = {
-            "psychological_complaint",
-            "emotional_trigger",
-            "coping_strategy",
-            "professional_diagnosis",
-            "social_support",
-            "interaction_preference",
-        }
-
-        valid_items: list[dict[str, Any]] = []
-        rejection_reasons: list[str] = []
-
-        for idx, item in enumerate(items):
-            if idx >= 5:
-                rejection_reasons.append(f"item_{idx}_dropped_max_limit_exceeded")
-                continue
-
-            category = item.get("category")
-            text = str(item.get("text", "")).strip()
-
-            if category not in allowed_categories:
-                rejection_reasons.append(f"item_{idx}_invalid_category_{category}")
-                continue
-
-            if not text:
-                rejection_reasons.append(f"item_{idx}_empty_text")
-                continue
-
-            if len(text) > 500:
-                rejection_reasons.append(f"item_{idx}_text_too_long")
-                continue
-
-            valid_items.append({
-                "id": str(item.get("id", f"mem_{idx}")),
-                "category": category,
-                "text": text,
-                "status": str(item.get("status", "active")),
-            })
-
-        session.structured_persisted_context = valid_items
-        session.context_acknowledged = True
-
-        logger.info(
-            f"📥 [CONTEXT ACKNOWLEDGED] Session {session.session_id}: Accepted {len(valid_items)} items, "
-            f"Rejected {len(items) - len(valid_items)} items."
-        )
-
-        await session.websocket.send_json({
-            "type": "context_ack_v1",
-            "context_request_id": request_id,
-            "accepted_count": len(valid_items),
-            "rejected_count": len(items) - len(valid_items),
-            "rejection_reasons": rejection_reasons,
-        })
-
-    async def _handle_session_finalize(self, session: CallSession, payload: dict[str, Any]) -> None:
-        """Handle session finalization request, generate artifacts in-memory, and send back to client."""
-        request_id = payload.get("request_id") or str(uuid.uuid4())
-        duration_sec = payload.get("duration_seconds")
-        logger.info(f"🏁 [SESSION FINALIZE REQUEST] Session {session.session_id}: Request ID {request_id}, Duration: {duration_sec}s")
-
-        artifacts = await DiaryGeneratorService.synthesize_session_artifacts(session.conversation_history)
-
-        await session.websocket.send_json({
-            "type": "session_artifacts_v1",
-            "request_id": request_id,
-            "session_summary": artifacts.get("session_summary", "Ringkasan sesi panggilan suara."),
-            "journal_delta": artifacts.get("journal_delta", {}),
-            "memory_candidates": artifacts.get("memory_candidates", []),
-        })
-
-    async def _handle_session_artifacts_ack(self, session: CallSession, payload: dict[str, Any]) -> None:
-        """Handle client acknowledgement of local encrypted database commit."""
-        request_id = payload.get("request_id") or str(uuid.uuid4())
-        status = payload.get("status", "committed_locally")
-        logger.info(f"✅ [SESSION ARTIFACTS ACK] Session {session.session_id}: Request ID {request_id}, Status: {status}")
-
-        await session.websocket.send_json({
-            "type": "session_finalized_v1",
-            "request_id": request_id,
-            "status": "closed",
-        })
 
     async def _handle_stt_partial(self, session: CallSession, payload: dict[str, Any]) -> None:
         text = payload.get("text", "").strip()
@@ -772,7 +648,6 @@ class CallSessionManager:
                 dass_scores=session.dass_scores,
                 user_name=session.user_name,
                 precomputed_emotion=precomputed_emotion,
-                structured_persisted_context=session.structured_persisted_context if session.privacy_mode != "incognito" else None,
             )
             session.latest_orchestration_turn = turn
 

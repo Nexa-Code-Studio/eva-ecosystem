@@ -6,7 +6,6 @@ import '../../domain/entities/diary_entry_entity.dart';
 import '../../data/datasources/mock_diary_datasource.dart';
 import '../../data/datasources/local_diary_datasource.dart';
 import '../../data/repositories/diary_repository_impl.dart';
-import '../../data/repositories/fallback_diary_repository.dart';
 
 final localDiaryDataSourceProvider = Provider<LocalDiaryDataSource>((ref) {
   final localDb = ref.watch(encryptedLocalDatabaseProvider);
@@ -20,10 +19,8 @@ final diaryRepositoryProvider = Provider<DiaryRepository>((ref) {
 
   if (AppConfig.useMockData) {
     return mockRepo;
-  } else if (AppConfig.useHybridFallback) {
-    return FallbackDiaryRepository(remote: localRepo, mock: mockRepo);
   } else {
-    // Local encrypted database is the new source of truth for private journal data
+    // Local encrypted database (SQLCipher) is the single source of truth for private journal data
     return localRepo;
   }
 });
