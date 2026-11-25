@@ -76,6 +76,11 @@ export {
   upsertCertificateTemplate,
 } from '@/services/portal/certificateService'
 export {
+  fetchAdminFinanceSummary,
+  fetchAdminFinanceTransactionDetail,
+  fetchAdminFinanceTransactions,
+} from '@/services/portal/financeService'
+export {
   createPsychologistLevel,
   deletePsychologistLevel,
   evaluateAllPsychologistLevels,
