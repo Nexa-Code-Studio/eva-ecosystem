@@ -107,36 +107,13 @@ class RemoteVideoCallDataSource implements VideoCallDataSource {
 
   @override
   Future<bool> extendSession(String sessionId, int extendMinutes) async {
-    try {
-      final response = await _client.post(
-        ApiEndpoints.extendSession(sessionId),
-        body: {
-          'extend_minutes': extendMinutes,
-          'counselor_approved': true,
-        },
-      );
-      if (response is Map<String, dynamic>) {
-        return response['id'] != null || response['success'] == true;
-      }
-      return true;
-    } catch (_) {
-      return await _fallback.extendSession(sessionId, extendMinutes);
-    }
+    // Session extension persistence and coin debit are executed by the patient endpoint
+    // (POST /api/v1/sessions/{id}/extend requires patient ownership). Counselor syncs via WS.
+    return true;
   }
 
   @override
   Future<bool> rejectExtension(String sessionId) async {
-    try {
-      await _client.post(
-        ApiEndpoints.extendSession(sessionId),
-        body: {
-          'extend_minutes': 0,
-          'counselor_approved': false,
-        },
-      );
-      return true;
-    } catch (_) {
-      return await _fallback.rejectExtension(sessionId);
-    }
+    return true;
   }
 }

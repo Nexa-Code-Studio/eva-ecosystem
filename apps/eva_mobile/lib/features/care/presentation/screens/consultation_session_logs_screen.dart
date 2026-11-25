@@ -763,16 +763,14 @@ class _ConsultationSessionLogsScreenState
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          session.isOnlineVideo
-                              ? Icons.videocam_rounded
-                              : Icons.place_rounded,
+                        const Icon(
+                          Icons.videocam_rounded,
                           size: 13,
                           color: AppColors.textSecondary,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          session.isOnlineVideo ? 'Video Call' : 'Tatap Muka',
+                          'Video Call',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 10.5,
                             fontWeight: FontWeight.w600,

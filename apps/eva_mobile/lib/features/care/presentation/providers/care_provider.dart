@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../config/app_config.dart';
 import '../../domain/entities/psychologist_entity.dart';
-import '../../domain/entities/clinic_entity.dart';
 import '../../domain/entities/community_status_entity.dart';
 import '../../domain/entities/consultation_session_entity.dart';
 import '../../domain/entities/counselor_timeline_entity.dart';
@@ -28,32 +27,22 @@ final careRepositoryProvider = Provider<CareRepository>((ref) {
   }
 });
 
-// Category Filter: 'all', 'psychologist', 'psychiatrist', 'clinic'
+// Category Filter: 'all', 'psychologist', 'volunteer'
 final careCategoryFilterProvider = StateProvider<String>((ref) => 'all');
 
 // Search Query Filter
 final careSearchQueryProvider = StateProvider<String>((ref) => '');
 
-// Psychologists & Psychiatrists Provider
+// Psychologists & Volunteers Provider
 final psychologistsListProvider = FutureProvider<List<PsychologistEntity>>((ref) async {
   final repo = ref.watch(careRepositoryProvider);
   final category = ref.watch(careCategoryFilterProvider);
   final query = ref.watch(careSearchQueryProvider);
 
-  // If the filter is explicitly 'clinic', psychologists list can be empty or unchanged
-  if (category == 'clinic') return [];
-
   return repo.getPsychologists(
     category: category == 'all' ? null : category,
     query: query,
   );
-});
-
-// Clinics Provider
-final clinicsListProvider = FutureProvider<List<ClinicEntity>>((ref) async {
-  final repo = ref.watch(careRepositoryProvider);
-  final query = ref.watch(careSearchQueryProvider);
-  return repo.getClinics(query: query);
 });
 
 // Counselor Daily Availability Timeline Provider
@@ -153,9 +142,16 @@ class ConsultationSessionsNotifier
     String? sessionSummary,
     String? moodAfter,
   }) async {
-    final current = state.value ?? [];
+    List<ConsultationSessionEntity> baseList = state.value ?? [];
+    try {
+      final serverSessions = await _repo.getConsultationSessions();
+      if (serverSessions.isNotEmpty) {
+        baseList = serverSessions;
+      }
+    } catch (_) {}
+
     state = AsyncValue.data(
-      current.map((s) {
+      baseList.map((s) {
         if (s.id == sessionId) {
           return s.copyWith(
             status: ConsultationStatus.completed,
@@ -175,12 +171,26 @@ class ConsultationSessionsNotifier
                       ]),
             sessionSummary: sessionSummary ??
                 s.sessionSummary ??
-                'Sesi konsultasi tatap muka online selesai dilaksanakan dengan hasil positif.',
+                'Sesi konsultasi telekonseling online selesai dilaksanakan dengan hasil positif.',
             moodAfter: moodAfter ?? 'Tenang & Lebih Lega (Skala 4/10)',
           );
         }
         return s;
       }).toList(),
+    );
+  }
+
+  void markSessionExtended(String sessionId, {int newDurationMinutes = 60}) {
+    final current = state.value ?? [];
+    state = AsyncValue.data(
+      current
+          .map((s) => s.id == sessionId
+              ? s.copyWith(
+                  durationMinutes: newDurationMinutes,
+                  isExtended: true,
+                )
+              : s)
+          .toList(),
     );
   }
 }

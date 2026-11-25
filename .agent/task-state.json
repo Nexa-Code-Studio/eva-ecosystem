@@ -204,5 +204,13 @@
     "state": "In Progress",
     "updated_at": 1795577764,
     "evidence_summary": "Evidence accepted: active task branch verified."
+  },
+  "59": {
+    "issue": 59,
+    "branch": "feat/59-patient-dynamic-booking-extension",
+    "state": "In Review",
+    "updated_at": 1795618603,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/146"
   }
 }

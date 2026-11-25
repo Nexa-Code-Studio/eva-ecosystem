@@ -101,5 +101,25 @@ void main() {
       expect(collision.hasClash, isFalse);
       expect(collision.reason, isNull);
     });
+
+    test('Dynamic arbitrary minute start time (08:37 - 09:07) and pre-session buffer check work accurately', () {
+      final bufferedTimeline = CounselorTimelineEntity(
+        counselorId: 'psy_test_1',
+        date: DateTime(2026, 11, 24),
+        operatingHours: opHours,
+        blockedRanges: blockedRanges,
+        bufferTimeMinutes: 10,
+      );
+
+      // 08:37 - 09:07 is completely free and > 10m before 10:00 booked session
+      final ok = bufferedTimeline.evaluateSelection(const TimeOfDay(hour: 8, minute: 37), 30);
+      expect(ok.hasClash, isFalse);
+
+      // 09:25 - 09:55 leaves only 5m buffer before 10:00 -> caught by buffer guard
+      final preBufferClash =
+          bufferedTimeline.evaluateSelection(const TimeOfDay(hour: 9, minute: 25), 30);
+      expect(preBufferClash.hasClash, isTrue);
+      expect(preBufferClash.clashType, BlockedRangeType.buffer);
+    });
   });
 }

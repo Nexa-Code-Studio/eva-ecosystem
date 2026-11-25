@@ -67,47 +67,43 @@ void main() {
     await tester.pump(const Duration(milliseconds: 350));
     await tester.pumpAndSettle();
 
-    // Verify Psychologist details and new sections
+    // Verify Psychologist details and online-only teleconsultation sections
     expect(find.text('Amanda Zahra, M.Psi.'), findsOneWidget);
-    expect(find.text('Pilih Moda Konsultasi'), findsOneWidget);
+    expect(find.text('Telekonsultasi Video Call Online • Durasi 30 Menit / Sesi'), findsOneWidget);
+    expect(find.text('Tatap Muka'), findsNothing);
     expect(find.text('Pilih Hari'), findsOneWidget);
     expect(find.text('Durasi Pemesanan Sesi'), findsOneWidget);
     expect(find.text('Ketersediaan & Jam Mulai'), findsOneWidget);
 
-    // Verify Consent Checkbox and text exist
+    // Verify Consent Checkbox and text exist (default off per #96)
     final consentCheckboxFinder = find.byKey(const Key('consent_share_chat_history_checkbox'));
     expect(consentCheckboxFinder, findsOneWidget);
-    expect(find.text('Bagikan Riwayat Chat AI ke Psikolog'), findsOneWidget);
-    expect(
-      find.text('Saya bersedia mengirimkan riwayat percakapan dengan AI sebagai bahan analisis untuk psikolog.'),
-      findsOneWidget,
-    );
+    expect(find.text('Bagikan Ringkasan Klinis Terpilih ke Psikolog'), findsOneWidget);
 
-    // Initial state: checked by default
+    // Initial state: unchecked by default
     Checkbox checkbox = tester.widget<Checkbox>(consentCheckboxFinder);
-    expect(checkbox.value, isTrue);
-
-    // Tap the checkbox to uncheck it
-    await tester.tap(consentCheckboxFinder);
-    await tester.pumpAndSettle();
-
-    // Verify state updated to unchecked
-    checkbox = tester.widget<Checkbox>(consentCheckboxFinder);
     expect(checkbox.value, isFalse);
 
-    // Tap again to check
+    // Tap the checkbox to check it
     await tester.tap(consentCheckboxFinder);
     await tester.pumpAndSettle();
 
     checkbox = tester.widget<Checkbox>(consentCheckboxFinder);
     expect(checkbox.value, isTrue);
 
-    // Tap anywhere on the consent tile (by clicking the title text) to toggle to unchecked
-    await tester.tap(find.text('Bagikan Riwayat Chat AI ke Psikolog'));
+    // Tap again to uncheck
+    await tester.tap(consentCheckboxFinder);
     await tester.pumpAndSettle();
 
     checkbox = tester.widget<Checkbox>(consentCheckboxFinder);
     expect(checkbox.value, isFalse);
+
+    // Tap anywhere on the consent tile to toggle to checked
+    await tester.tap(find.text('Bagikan Ringkasan Klinis Terpilih ke Psikolog'));
+    await tester.pumpAndSettle();
+
+    checkbox = tester.widget<Checkbox>(consentCheckboxFinder);
+    expect(checkbox.value, isTrue);
   });
 
   testWidgets('Booking with consent checked displays confirmation badge in success dialog', (tester) async {
@@ -127,8 +123,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 350));
     await tester.pumpAndSettle();
 
-    // Consent checkbox is checked by default
+    // Check consent checkbox
     final consentCheckboxFinder = find.byKey(const Key('consent_share_chat_history_checkbox'));
+    expect(tester.widget<Checkbox>(consentCheckboxFinder).value, isFalse);
+    await tester.tap(consentCheckboxFinder);
+    await tester.pumpAndSettle();
     expect(tester.widget<Checkbox>(consentCheckboxFinder).value, isTrue);
 
     // Confirm booking

@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../config/app_config.dart';
+import '../../../../core/network/api_client.dart';
 import '../../domain/entities/coin_package_entity.dart';
 
 /// Predefined coin packages available for purchase in Eva Mobile.
@@ -51,11 +53,27 @@ const int kDefaultCoinBalance = 120;
 
 /// StateNotifier that manages user's reactive coin balance.
 class CoinBalanceNotifier extends StateNotifier<int> {
-  CoinBalanceNotifier() : super(kDefaultCoinBalance) {
+  final Future<int> Function()? _fetchServerBalance;
+  final bool? _isMockModeOverride;
+
+  CoinBalanceNotifier({
+    Future<int> Function()? fetchServerBalance,
+    bool? isMockMode,
+  })  : _fetchServerBalance = fetchServerBalance,
+        _isMockModeOverride = isMockMode,
+        super(kDefaultCoinBalance) {
     _loadInitialBalance();
   }
 
+  bool get _isMockMode => _isMockModeOverride ?? AppConfig.useMockData;
+  bool get _hasRemoteSession =>
+      !_isMockMode && (_fetchServerBalance != null || AppConfig.authToken != null);
+
   Future<void> _loadInitialBalance() async {
+    if (_hasRemoteSession) {
+      await syncFromServer();
+      return;
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       final savedBalance = prefs.getInt(_kUserCoinBalanceKey);
@@ -69,9 +87,36 @@ class CoinBalanceNotifier extends StateNotifier<int> {
     }
   }
 
+  /// Fetch authoritative coin balance from PostgreSQL via GET /api/v1/users/coins.
+  Future<void> syncFromServer() async {
+    if (_isMockMode) return;
+    try {
+      final int balance;
+      if (_fetchServerBalance != null) {
+        balance = await _fetchServerBalance();
+      } else {
+        final res = await ApiClient().get('/users/coins');
+        if (res is Map<String, dynamic> && res['coin_balance'] != null) {
+          balance = (res['coin_balance'] as num).toInt();
+        } else {
+          return;
+        }
+      }
+      state = balance;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt(_kUserCoinBalanceKey, balance);
+      } catch (_) {}
+    } catch (_) {}
+  }
+
   /// Add purchased or reward coins
   Future<void> addCoins(int amount) async {
     if (amount <= 0) return;
+    if (_hasRemoteSession) {
+      await syncFromServer();
+      return;
+    }
     final newBalance = state + amount;
     state = newBalance;
     try {
@@ -80,9 +125,15 @@ class CoinBalanceNotifier extends StateNotifier<int> {
     } catch (_) {}
   }
 
-  /// Spend coins for voice sessions or premium features
+  /// Spend coins (mock/local updates prefs; authenticated live mode syncs authoritative PostgreSQL balance).
   Future<bool> spendCoins(int amount) async {
-    if (amount <= 0 || state < amount) return false;
+    if (amount <= 0) return false;
+    if (_hasRemoteSession) {
+      if (state < amount) return false;
+      await syncFromServer();
+      return true;
+    }
+    if (state < amount) return false;
     final newBalance = state - amount;
     state = newBalance;
     try {
@@ -90,6 +141,17 @@ class CoinBalanceNotifier extends StateNotifier<int> {
       await prefs.setInt(_kUserCoinBalanceKey, newBalance);
     } catch (_) {}
     return true;
+  }
+
+  /// Sync balance after server-side debit (booking / extension) or deduct locally in mock mode.
+  Future<void> syncAfterServerDebit(int amount) async {
+    if (!_isMockMode) {
+      await syncFromServer();
+      return;
+    }
+    if (amount > 0) {
+      await spendCoins(amount);
+    }
   }
 
   /// Set balance directly (e.g., from server sync)
@@ -101,7 +163,7 @@ class CoinBalanceNotifier extends StateNotifier<int> {
     } catch (_) {}
   }
 
-  /// Refresh from storage
+  /// Refresh from backend (live) or local storage (mock)
   Future<void> refresh() async {
     await _loadInitialBalance();
   }

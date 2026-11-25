@@ -99,7 +99,7 @@ void main() {
     expect(find.byIcon(Icons.close_rounded), findsOneWidget);
   });
 
-  testWidgets('Tap on timeline triggers onTimeSelected with snapped 15-minute time', (tester) async {
+  testWidgets('Tap on timeline triggers dynamic minute-level onTimeSelected within operating hours', (tester) async {
     tester.view.physicalSize = const Size(800, 1600);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -112,15 +112,34 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    // Tap on the progress bar GestureDetector
+    // Tap on the progress bar GestureDetector slightly off-center to verify free minute precision
     final barFinder = find.byType(GestureDetector);
     expect(barFinder, findsOneWidget);
 
-    await tester.tap(barFinder);
+    final topLeft = tester.getTopLeft(barFinder);
+    final size = tester.getSize(barFinder);
+    await tester.tapAt(Offset(topLeft.dx + size.width * 0.137, topLeft.dy + size.height / 2));
     await tester.pumpAndSettle();
 
     expect(tappedTime, isNotNull);
-    // Verified that tappedTime minutes is a multiple of 15
-    expect(tappedTime!.minute % 15, equals(0));
+    final totalMin = tappedTime!.hour * 60 + tappedTime!.minute;
+    expect(totalMin, greaterThanOrEqualTo(opHours.startMinutes));
+    expect(totalMin, lessThanOrEqualTo(opHours.endMinutes - 30));
+    expect(tappedTime!.minute % 15, isNot(equals(0)));
+  });
+
+  testWidgets('Displays arbitrary dynamic minute range (e.g. 08:37 - 09:07)', (tester) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(createWidget(
+      selectedStartTime: const TimeOfDay(hour: 8, minute: 37),
+      durationMinutes: 30,
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pilihan: 08:37 - 09:07 (30 Menit)'), findsOneWidget);
   });
 }

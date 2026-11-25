@@ -27,15 +27,17 @@ class PsychologistAvailabilityTimelineBar extends StatelessWidget {
     final fraction = (localX / totalWidth).clamp(0.0, 1.0);
     final rawMinutes = timeline.operatingHours.startMinutes + (fraction * totalSpan).round();
 
-    // Snap ke interval 15 menit
-    final snappedMinutes = ((rawMinutes / 15).round() * 15).clamp(
+    final maxStartMinutes =
+        (timeline.operatingHours.endMinutes - durationMinutes)
+            .clamp(timeline.operatingHours.startMinutes, timeline.operatingHours.endMinutes);
+    final selectedMinutes = rawMinutes.clamp(
       timeline.operatingHours.startMinutes,
-      timeline.operatingHours.endMinutes - 30,
+      maxStartMinutes,
     );
 
     final selected = TimeOfDay(
-      hour: snappedMinutes ~/ 60,
-      minute: snappedMinutes % 60,
+      hour: selectedMinutes ~/ 60,
+      minute: selectedMinutes % 60,
     );
 
     onTimeSelected(selected);

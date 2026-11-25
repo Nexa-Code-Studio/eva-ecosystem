@@ -6,8 +6,10 @@ import 'package:webrtc_client/webrtc_client.dart';
 
 import 'package:eva_mobile/config/app_config.dart';
 import 'package:eva_mobile/features/care/domain/entities/consultation_session_entity.dart';
+import 'package:eva_mobile/features/care/domain/entities/extension_availability_entity.dart';
 import 'package:eva_mobile/features/care/domain/entities/psychologist_entity.dart';
 import 'package:eva_mobile/features/care/domain/entities/video_call_state_entity.dart';
+import 'package:eva_mobile/features/care/domain/repositories/video_call_repository.dart';
 import 'package:eva_mobile/features/care/data/datasources/mock_video_call_datasource.dart';
 import 'package:eva_mobile/features/care/data/repositories/video_call_repository_impl.dart';
 import 'package:eva_mobile/features/care/presentation/controllers/video_call_controller.dart';
@@ -190,6 +192,76 @@ void main() {
 
       await controller.endCall();
     });
+
+    test('In-Call Extension: checkExtensionAvailability, direct extend to 60m, WS broadcast & idempotency',
+        () async {
+      final spyRepo = _SpyVideoCallRepository(canExtend: true, extensionPrice: 75);
+      final mockPeer = MockWebRtcPeerManager();
+      final spySignaling = _SpySignalingService();
+
+      final controller = VideoCallController(
+        repository: spyRepo,
+        initialSession: dummySession,
+        peerManager: mockPeer,
+        signalingService: spySignaling,
+      );
+
+      await Future.delayed(const Duration(milliseconds: 350));
+      expect(controller.state.maxDurationSeconds, 1800);
+      expect(controller.state.canShowExtensionBanner, isFalse);
+
+      // Simulate reaching minute 25 (<= 5 min remaining)
+      controller.state = controller.state.copyWith(callDurationSeconds: 1500);
+      expect(controller.state.canShowExtensionBanner, isTrue);
+
+      final availability = await controller.checkExtensionAvailability();
+      expect(availability.canExtend, isTrue);
+      expect(availability.extensionCoins, 75);
+
+      final extendedOk = await controller.confirmAndExtendSession();
+      expect(extendedOk, isTrue);
+      expect(spyRepo.extendCallCount, 1);
+      expect(controller.state.isExtended, isTrue);
+      expect(controller.state.maxDurationSeconds, 3600);
+      expect(controller.state.canShowExtensionBanner, isFalse);
+      expect(
+        spySignaling.sentMessages.any(
+          (m) => m.type == 'extension_updated' && m.payload['is_approved'] == true,
+        ),
+        isTrue,
+      );
+
+      // Idempotency guard: second extend call is rejected
+      final secondOk = await controller.confirmAndExtendSession();
+      expect(secondOk, isFalse);
+      expect(spyRepo.extendCallCount, 1);
+
+      await controller.endCall();
+    });
+
+    test('In-Call Extension: returns unavailable when counselor schedule is busy',
+        () async {
+      final spyRepo = _SpyVideoCallRepository(
+        canExtend: false,
+        reason: 'Psikolog memiliki jadwal istirahat.',
+      );
+      final controller = VideoCallController(
+        repository: spyRepo,
+        initialSession: dummySession,
+        peerManager: MockWebRtcPeerManager(),
+        signalingService: MockSignalingService(),
+      );
+
+      await Future.delayed(const Duration(milliseconds: 50));
+      final availability = await controller.checkExtensionAvailability();
+
+      expect(availability.canExtend, isFalse);
+      expect(availability.reason, contains('istirahat'));
+      expect(controller.state.isExtended, isFalse);
+      expect(controller.state.maxDurationSeconds, 1800);
+
+      await controller.endCall();
+    });
   });
 
   group('PsychologistVideoCallScreen Widget Tests', () {
@@ -281,4 +353,75 @@ void main() {
       });
     });
   });
+}
+
+class _SpySignalingService extends MockSignalingService {
+  final List<SignalingMessage> sentMessages = [];
+
+  @override
+  void sendMessage(SignalingMessage message) {
+    sentMessages.add(message);
+  }
+}
+
+class _SpyVideoCallRepository implements VideoCallRepository {
+  final bool canExtend;
+  final double extensionPrice;
+  final String? reason;
+  int extendCallCount = 0;
+
+  _SpyVideoCallRepository({
+    required this.canExtend,
+    this.extensionPrice = 50,
+    this.reason,
+  });
+
+  @override
+  Future<VideoCallStateEntity> joinCall(ConsultationSessionEntity session) async {
+    return VideoCallStateEntity(
+      session: session,
+      connectionState: VideoCallConnectionState.connected,
+      roomId: 'room-${session.id}',
+      maxDurationSeconds: session.durationMinutes * 60,
+      isWaitingForCounselor: false,
+    );
+  }
+
+  @override
+  Future<void> endCall(String sessionId) async {}
+
+  @override
+  Future<ExtensionAvailabilityEntity> checkExtensionAvailability(
+      String sessionId) async {
+    return ExtensionAvailabilityEntity(
+      sessionId: sessionId,
+      canExtend: canExtend,
+      extensionPrice: extensionPrice,
+      reason: reason,
+    );
+  }
+
+  @override
+  Future<ConsultationSessionEntity> extendSession(String sessionId) async {
+    extendCallCount++;
+    return ConsultationSessionEntity(
+      id: sessionId,
+      psychologist: const PsychologistEntity(
+        id: 'psy-001',
+        name: 'Dr. Sarah Wilson, M.Psi',
+        title: 'Psikolog Klinis',
+        registrationNumber: 'STR-1',
+        avatarUrl: '',
+        rating: 4.9,
+        reviewCount: 10,
+        experienceYears: 5,
+        specialties: ['CBT'],
+        bio: 'Bio',
+      ),
+      sessionDateTime: DateTime.now(),
+      status: ConsultationStatus.upcoming,
+      durationMinutes: 60,
+      isExtended: true,
+    );
+  }
 }

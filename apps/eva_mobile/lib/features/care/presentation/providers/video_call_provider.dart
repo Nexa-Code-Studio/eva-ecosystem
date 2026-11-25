@@ -3,22 +3,23 @@ import '../../../../config/app_config.dart';
 import '../../domain/entities/consultation_session_entity.dart';
 import '../../domain/entities/video_call_state_entity.dart';
 import '../../domain/repositories/video_call_repository.dart';
-import '../../data/datasources/video_call_datasource.dart';
 import '../../data/datasources/mock_video_call_datasource.dart';
 import '../../data/datasources/remote_video_call_datasource.dart';
+import '../../data/repositories/fallback_video_call_repository.dart';
 import '../../data/repositories/video_call_repository_impl.dart';
 import '../controllers/video_call_controller.dart';
 
-final videoCallDataSourceProvider = Provider<VideoCallDataSource>((ref) {
-  if (AppConfig.useMockData) {
-    return MockVideoCallDataSource();
-  }
-  return RemoteVideoCallDataSource();
-});
-
 final videoCallRepositoryProvider = Provider<VideoCallRepository>((ref) {
-  final dataSource = ref.watch(videoCallDataSourceProvider);
-  return VideoCallRepositoryImpl(dataSource: dataSource);
+  final mockRepo = VideoCallRepositoryImpl(dataSource: MockVideoCallDataSource());
+  final remoteRepo =
+      VideoCallRepositoryImpl(dataSource: RemoteVideoCallDataSource());
+
+  if (AppConfig.useMockData) {
+    return mockRepo;
+  } else if (AppConfig.useHybridFallback) {
+    return FallbackVideoCallRepository(remote: remoteRepo, mock: mockRepo);
+  }
+  return remoteRepo;
 });
 
 final videoCallControllerProvider = StateNotifierProvider.autoDispose
