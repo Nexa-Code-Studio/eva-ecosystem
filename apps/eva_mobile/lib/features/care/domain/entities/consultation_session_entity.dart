@@ -9,7 +9,6 @@ enum ConsultationStatus {
 
 enum ConsultationType {
   onlineVideo,
-  offlineClinic,
 }
 
 @immutable
@@ -20,7 +19,6 @@ class ConsultationSessionEntity {
   final ConsultationStatus status;
   final ConsultationType type;
   final String? meetingUrl;
-  final String? locationName;
   final String? notes;
   final String? diagnosisSummary;
   final int sessionNumber;
@@ -31,6 +29,7 @@ class ConsultationSessionEntity {
   final int durationMinutes;
   final String? sessionSummary;
   final bool shareAiChatHistory;
+  final bool isExtended;
 
   const ConsultationSessionEntity({
     required this.id,
@@ -39,7 +38,6 @@ class ConsultationSessionEntity {
     required this.status,
     this.type = ConsultationType.onlineVideo,
     this.meetingUrl,
-    this.locationName,
     this.notes,
     this.diagnosisSummary,
     this.sessionNumber = 1,
@@ -47,16 +45,16 @@ class ConsultationSessionEntity {
     this.actionItems = const [],
     this.moodBefore,
     this.moodAfter,
-    this.durationMinutes = 50,
+    this.durationMinutes = 30,
     this.sessionSummary,
     this.shareAiChatHistory = false,
+    this.isExtended = false,
   });
 
   bool get isUpcoming => status == ConsultationStatus.upcoming;
   bool get isCompleted => status == ConsultationStatus.completed;
   bool get isCancelled => status == ConsultationStatus.cancelled;
   bool get isOnlineVideo => type == ConsultationType.onlineVideo;
-  bool get isOfflineClinic => type == ConsultationType.offlineClinic;
 
   ConsultationSessionEntity copyWith({
     String? id,
@@ -65,7 +63,6 @@ class ConsultationSessionEntity {
     ConsultationStatus? status,
     ConsultationType? type,
     String? meetingUrl,
-    String? locationName,
     String? notes,
     String? diagnosisSummary,
     int? sessionNumber,
@@ -76,6 +73,7 @@ class ConsultationSessionEntity {
     int? durationMinutes,
     String? sessionSummary,
     bool? shareAiChatHistory,
+    bool? isExtended,
   }) {
     return ConsultationSessionEntity(
       id: id ?? this.id,
@@ -84,7 +82,6 @@ class ConsultationSessionEntity {
       status: status ?? this.status,
       type: type ?? this.type,
       meetingUrl: meetingUrl ?? this.meetingUrl,
-      locationName: locationName ?? this.locationName,
       notes: notes ?? this.notes,
       diagnosisSummary: diagnosisSummary ?? this.diagnosisSummary,
       sessionNumber: sessionNumber ?? this.sessionNumber,
@@ -95,6 +92,7 @@ class ConsultationSessionEntity {
       durationMinutes: durationMinutes ?? this.durationMinutes,
       sessionSummary: sessionSummary ?? this.sessionSummary,
       shareAiChatHistory: shareAiChatHistory ?? this.shareAiChatHistory,
+      isExtended: isExtended ?? this.isExtended,
     );
   }
 }

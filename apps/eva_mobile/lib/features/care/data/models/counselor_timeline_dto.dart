@@ -122,6 +122,7 @@ class CounselorTimelineDto {
   final OperatingHoursDto operatingHours;
   final List<BlockedRangeDto> blockedRanges;
   final List<TimeRangeDto> availableWindows;
+  final int bufferTimeMinutes;
 
   const CounselorTimelineDto({
     required this.counselorId,
@@ -129,6 +130,7 @@ class CounselorTimelineDto {
     required this.operatingHours,
     this.blockedRanges = const [],
     this.availableWindows = const [],
+    this.bufferTimeMinutes = 0,
   });
 
   factory CounselorTimelineDto.fromJson(Map<String, dynamic> json) {
@@ -151,6 +153,7 @@ class CounselorTimelineDto {
       operatingHours: operatingHours,
       blockedRanges: blockedList,
       availableWindows: availableList,
+      bufferTimeMinutes: (json['buffer_time_minutes'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -160,6 +163,7 @@ class CounselorTimelineDto {
         'operating_hours': operatingHours.toJson(),
         'blocked_ranges': blockedRanges.map((e) => e.toJson()).toList(),
         'available_windows': availableWindows.map((e) => e.toJson()).toList(),
+        'buffer_time_minutes': bufferTimeMinutes,
       };
 
   CounselorTimelineEntity toEntity() {
@@ -176,6 +180,7 @@ class CounselorTimelineDto {
       operatingHours: operatingHours.toEntity(),
       blockedRanges: blockedRanges.map((e) => e.toEntity()).toList(),
       availableWindows: availableWindows.map((e) => e.toEntity()).toList(),
+      bufferTimeMinutes: bufferTimeMinutes,
     );
   }
 }

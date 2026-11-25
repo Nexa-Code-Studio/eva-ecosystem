@@ -1,87 +1,50 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../../../../config/app_config.dart';
+import '../../../../core/network/api_client.dart';
+import '../models/consultation_session_model.dart';
+import '../models/extension_availability_dto.dart';
 import '../models/video_call_session_dto.dart';
 import 'video_call_datasource.dart';
-import 'mock_video_call_datasource.dart';
 
 class RemoteVideoCallDataSource implements VideoCallDataSource {
-  final http.Client client;
-  final MockVideoCallDataSource _fallback = MockVideoCallDataSource();
+  final ApiClient _apiClient;
 
-  RemoteVideoCallDataSource({http.Client? client})
-      : client = client ?? http.Client();
+  RemoteVideoCallDataSource({ApiClient? apiClient})
+      : _apiClient = apiClient ?? ApiClient();
 
   @override
   Future<VideoCallSessionDto> joinRoom(String sessionId) async {
-    try {
-      final uri = Uri.parse(
-          '${AppConfig.baseUrl}/care/sessions/$sessionId/video-token');
-      final response = await client.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          if (AppConfig.authToken != null)
-            'Authorization': 'Bearer ${AppConfig.authToken}',
-        },
-      ).timeout(AppConfig.hybridTimeout);
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        return VideoCallSessionDto.fromJson(data);
-      }
-      return await _fallback.joinRoom(sessionId);
-    } catch (_) {
-      return await _fallback.joinRoom(sessionId);
+    final response =
+        await _apiClient.post('/care/sessions/$sessionId/video-token');
+    if (response is Map<String, dynamic>) {
+      return VideoCallSessionDto.fromJson(response);
     }
+    throw ApiException('Invalid video token response format');
   }
 
   @override
   Future<void> leaveRoom(String sessionId) async {
-    try {
-      final uri = Uri.parse(
-          '${AppConfig.baseUrl}/care/sessions/$sessionId/status');
-      await client.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          if (AppConfig.authToken != null)
-            'Authorization': 'Bearer ${AppConfig.authToken}',
-        },
-        body: jsonEncode({'status': 'completed'}),
-      ).timeout(AppConfig.hybridTimeout);
-    } catch (_) {
-      await _fallback.leaveRoom(sessionId);
-    }
+    await _apiClient.post(
+      '/care/sessions/$sessionId/status',
+      body: {'status': 'completed'},
+    );
   }
 
   @override
-  Future<void> updateMediaState({
-    required String sessionId,
-    required bool isMicMuted,
-    required bool isCameraOff,
-  }) async {
-    try {
-      final uri = Uri.parse(
-          '${AppConfig.baseUrl}/care/sessions/$sessionId/media-state');
-      await client.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          if (AppConfig.authToken != null)
-            'Authorization': 'Bearer ${AppConfig.authToken}',
-        },
-        body: jsonEncode({
-          'is_mic_muted': isMicMuted,
-          'is_camera_off': isCameraOff,
-        }),
-      ).timeout(AppConfig.hybridTimeout);
-    } catch (_) {
-      await _fallback.updateMediaState(
-        sessionId: sessionId,
-        isMicMuted: isMicMuted,
-        isCameraOff: isCameraOff,
-      );
+  Future<ExtensionAvailabilityDto> checkExtensionAvailability(
+      String sessionId) async {
+    final response = await _apiClient
+        .get('/sessions/$sessionId/extension-availability');
+    if (response is Map<String, dynamic>) {
+      return ExtensionAvailabilityDto.fromJson(response);
     }
+    throw ApiException('Invalid extension availability response format');
+  }
+
+  @override
+  Future<ConsultationSessionModel> extendSession(String sessionId) async {
+    final response = await _apiClient.post('/sessions/$sessionId/extend');
+    if (response is Map<String, dynamic>) {
+      return ConsultationSessionModel.fromJson(response);
+    }
+    throw ApiException('Invalid session extension response format');
   }
 }

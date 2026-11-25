@@ -8,6 +8,7 @@ import 'package:webrtc_client/webrtc_client.dart';
 
 import '../../../../config/app_config.dart';
 import '../../domain/entities/consultation_session_entity.dart';
+import '../../domain/entities/extension_availability_entity.dart';
 import '../../domain/entities/video_call_state_entity.dart';
 import '../../domain/repositories/video_call_repository.dart';
 
@@ -42,6 +43,8 @@ class VideoCallController extends StateNotifier<VideoCallStateEntity>
           session: initialSession,
           connectionState: VideoCallConnectionState.connecting,
           roomId: 'room-${initialSession.id}',
+          maxDurationSeconds: initialSession.durationMinutes * 60,
+          isExtended: initialSession.isExtended,
         )) {
     WidgetsBinding.instance.addObserver(this);
     _initializeCall(initialSession);
@@ -251,6 +254,28 @@ class VideoCallController extends StateNotifier<VideoCallStateEntity>
         }
         break;
 
+      case 'extension_updated':
+        final isApproved = message.payload['is_approved'] as bool? ?? false;
+        final maxMins =
+            (message.payload['max_duration_minutes'] as num?)?.toInt() ??
+                (isApproved ? 60 : 30);
+        if (isApproved) {
+          state = state.copyWith(
+            isExtended: true,
+            isExtensionApproved: true,
+            maxDurationSeconds: maxMins * 60,
+            session: state.session.copyWith(
+              durationMinutes: maxMins,
+              isExtended: true,
+            ),
+          );
+        } else {
+          state = state.copyWith(
+            isExtensionApproved: false,
+          );
+        }
+        break;
+
       case 'session_ended':
         state = state.copyWith(
           connectionState: VideoCallConnectionState.ended,
@@ -276,11 +301,6 @@ class VideoCallController extends StateNotifier<VideoCallStateEntity>
     final newMicState = !state.isMicMuted;
     state = state.copyWith(isMicMuted: newMicState);
     _peerManager.toggleAudio(!newMicState);
-    repository.syncMediaState(
-      sessionId: state.session.id,
-      isMicMuted: newMicState,
-      isCameraOff: state.isCameraOff,
-    );
     _signalingService.sendMessage(SignalingMessage.create(
       type: 'media_state',
       senderRole: 'patient',
@@ -295,11 +315,6 @@ class VideoCallController extends StateNotifier<VideoCallStateEntity>
     final newCameraState = !state.isCameraOff;
     state = state.copyWith(isCameraOff: newCameraState);
     _peerManager.toggleVideo(!newCameraState);
-    repository.syncMediaState(
-      sessionId: state.session.id,
-      isMicMuted: state.isMicMuted,
-      isCameraOff: newCameraState,
-    );
     _signalingService.sendMessage(SignalingMessage.create(
       type: 'media_state',
       senderRole: 'patient',
@@ -308,6 +323,61 @@ class VideoCallController extends StateNotifier<VideoCallStateEntity>
         'is_camera_off': newCameraState,
       },
     ));
+  }
+
+  Future<ExtensionAvailabilityEntity> checkExtensionAvailability() async {
+    state = state.copyWith(isCheckingExtension: true);
+    try {
+      final availability =
+          await repository.checkExtensionAvailability(state.session.id);
+      state = state.copyWith(
+        isCheckingExtension: false,
+        extensionAvailability: availability,
+      );
+      return availability;
+    } catch (e) {
+      state = state.copyWith(isCheckingExtension: false);
+      rethrow;
+    }
+  }
+
+  Future<bool> confirmAndExtendSession() async {
+    if (state.isExtended || state.session.isExtended || state.isExtending) {
+      return false;
+    }
+    state = state.copyWith(isExtending: true);
+    try {
+      final updated = await repository.extendSession(state.session.id);
+      final newDurationMinutes =
+          updated.durationMinutes >= 60 ? updated.durationMinutes : 60;
+      state = state.copyWith(
+        isExtending: false,
+        isExtended: true,
+        isExtensionApproved: true,
+        isExtensionPromptDismissed: false,
+        maxDurationSeconds: newDurationMinutes * 60,
+        session: state.session.copyWith(
+          durationMinutes: newDurationMinutes,
+          isExtended: true,
+        ),
+      );
+      _signalingService.sendMessage(SignalingMessage.create(
+        type: 'extension_updated',
+        senderRole: 'patient',
+        payload: {
+          'is_approved': true,
+          'max_duration_minutes': newDurationMinutes,
+        },
+      ));
+      return true;
+    } catch (_) {
+      state = state.copyWith(isExtending: false);
+      return false;
+    }
+  }
+
+  void dismissExtensionPrompt() {
+    state = state.copyWith(isExtensionPromptDismissed: true);
   }
 
   Future<void> switchCamera() async {

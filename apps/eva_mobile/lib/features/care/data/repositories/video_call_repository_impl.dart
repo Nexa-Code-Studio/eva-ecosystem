@@ -1,4 +1,5 @@
 import '../../domain/entities/consultation_session_entity.dart';
+import '../../domain/entities/extension_availability_entity.dart';
 import '../../domain/entities/video_call_state_entity.dart';
 import '../../domain/repositories/video_call_repository.dart';
 import '../datasources/video_call_datasource.dart';
@@ -20,6 +21,8 @@ class VideoCallRepositoryImpl implements VideoCallRepository {
       isSpeakerOn: true,
       isRemoteSpeaking: false,
       callDurationSeconds: 0,
+      maxDurationSeconds: session.durationMinutes * 60,
+      isExtended: session.isExtended,
       roomId: dto.roomId,
       token: dto.token,
       iceServers: dto.iceServerConfigs,
@@ -34,15 +37,14 @@ class VideoCallRepositoryImpl implements VideoCallRepository {
   }
 
   @override
-  Future<void> syncMediaState({
-    required String sessionId,
-    required bool isMicMuted,
-    required bool isCameraOff,
-  }) async {
-    await dataSource.updateMediaState(
-      sessionId: sessionId,
-      isMicMuted: isMicMuted,
-      isCameraOff: isCameraOff,
-    );
+  Future<ExtensionAvailabilityEntity> checkExtensionAvailability(
+      String sessionId) async {
+    final dto = await dataSource.checkExtensionAvailability(sessionId);
+    return dto.toEntity();
+  }
+
+  @override
+  Future<ConsultationSessionEntity> extendSession(String sessionId) {
+    return dataSource.extendSession(sessionId);
   }
 }

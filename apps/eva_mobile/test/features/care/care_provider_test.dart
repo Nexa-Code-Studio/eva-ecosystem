@@ -5,19 +5,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:eva_mobile/config/app_config.dart';
 import 'package:eva_mobile/core/network/api_client.dart';
 import 'package:eva_mobile/features/care/data/models/psychologist_model.dart';
-import 'package:eva_mobile/features/care/data/models/clinic_model.dart';
 import 'package:eva_mobile/features/care/data/models/community_status_model.dart';
 import 'package:eva_mobile/features/care/data/models/consultation_session_model.dart';
 import 'package:eva_mobile/features/care/data/datasources/mock_care_datasource.dart';
 import 'package:eva_mobile/features/care/data/repositories/care_repository_impl.dart';
 import 'package:eva_mobile/features/care/data/repositories/fallback_care_repository.dart';
-import 'package:eva_mobile/features/care/domain/entities/clinic_entity.dart';
 import 'package:eva_mobile/features/care/domain/entities/community_status_entity.dart';
 import 'package:eva_mobile/features/care/domain/entities/consultation_session_entity.dart';
 import 'package:eva_mobile/features/care/domain/entities/counselor_timeline_entity.dart';
 import 'package:eva_mobile/features/care/domain/entities/psychologist_entity.dart';
 import 'package:eva_mobile/features/care/domain/repositories/care_repository.dart';
 import 'package:eva_mobile/features/care/presentation/providers/care_provider.dart';
+import 'package:eva_mobile/features/coin/presentation/providers/coin_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group('Care Domain & Model Unit Tests', () {
@@ -103,25 +103,6 @@ void main() {
 
       expect(psikiater.isPsychiatrist, isTrue);
       expect(psikiater.coinsPerSession, 60);
-    });
-
-    test('ClinicModel correctly deserializes from JSON', () {
-      final json = {
-        'id': 'clinic_test',
-        'name': 'Klinik Mitra Sehat',
-        'address': 'Jl. Sudirman No. 1',
-        'city': 'Jakarta Selatan',
-        'distance_km': 1.8,
-        'photo_url': 'https://example.com/clinic.png',
-        'phone': '021-123456',
-        'facilities': ['Ruang Konseling', 'Apotek'],
-        'rating': 4.85,
-      };
-
-      final clinic = ClinicModel.fromJson(json);
-      expect(clinic.name, 'Klinik Mitra Sehat');
-      expect(clinic.distanceKm, 1.8);
-      expect(clinic.facilities.contains('Apotek'), isTrue);
     });
 
     test('CommunityStatusModel correctly handles state mutations', () {
@@ -244,15 +225,6 @@ void main() {
       expect(results.first.name, contains('Amanda'));
     });
 
-    test('Fetches clinics and filters by query', () async {
-      final clinics = await dataSource.getClinics();
-      expect(clinics.isNotEmpty, isTrue);
-
-      final bandungClinics = await dataSource.getClinics(query: 'Bandung');
-      expect(bandungClinics.length, 1);
-      expect(bandungClinics.first.city, 'Bandung');
-    });
-
     test('Simulates joining Discord community with 1-month VIP trial', () async {
       final initial = await dataSource.getCommunityStatus();
       expect(initial.isMember, isFalse);
@@ -367,16 +339,59 @@ void main() {
       );
     });
 
-    test('Fallback Dummy: Falls back to mock data for clinics on 404', () async {
-      fakeRemote.shouldThrow404 = true;
-      final clinics = await fallbackRepo.getClinics();
-      expect(clinics.isNotEmpty, isTrue);
-    });
-
     test('Fallback Dummy: Falls back to mock data for community status on 404', () async {
       fakeRemote.shouldThrow404 = true;
       final status = await fallbackRepo.getCommunityStatus();
       expect(status.isMember, isFalse);
+    });
+  });
+
+  group('PostgreSQL Coin Sync & Session Completion Tests', () {
+    test('CoinBalanceNotifier live mode fetches authoritative balance without local double deduction',
+        () async {
+      SharedPreferences.setMockInitialValues({'user_coin_balance': 200});
+      var fetchCalls = 0;
+      var serverBalance = 200;
+
+      final notifier = CoinBalanceNotifier(
+        isMockMode: false,
+        fetchServerBalance: () async {
+          fetchCalls++;
+          return serverBalance;
+        },
+      );
+
+      await Future.delayed(const Duration(milliseconds: 20));
+      expect(notifier.state, 200);
+      expect(fetchCalls, 1);
+
+      // Server already debited 50 coins during POST /counselors/{id}/book
+      serverBalance = 150;
+      await notifier.syncAfterServerDebit(50);
+
+      expect(fetchCalls, 2);
+      expect(notifier.state, 150);
+    });
+
+    test('CoinBalanceNotifier mock mode deducts balance locally', () async {
+      SharedPreferences.setMockInitialValues({'user_coin_balance': 200});
+      final notifier = CoinBalanceNotifier(isMockMode: true);
+      await Future.delayed(const Duration(milliseconds: 20));
+      expect(notifier.state, 200);
+
+      await notifier.syncAfterServerDebit(50);
+      expect(notifier.state, 150);
+    });
+
+    test('ConsultationSessionsNotifier.completeSession refreshes sessions from repository',
+        () async {
+      final fakeRepo = FakeRemoteCareRepository();
+      final notifier = ConsultationSessionsNotifier(fakeRepo);
+      await Future.delayed(const Duration(milliseconds: 20));
+
+      await notifier.completeSession('sess_remote_1');
+      expect(fakeRepo.getSessionsCallCount, greaterThanOrEqualTo(2));
+      expect(notifier.state.value?.first.status, ConsultationStatus.completed);
     });
   });
 
@@ -396,6 +411,7 @@ class FakeRemoteCareRepository implements CareRepository {
   bool shouldThrow404 = false;
   bool shouldThrow500 = false;
   bool shouldThrowSocket = false;
+  int getSessionsCallCount = 0;
 
   final List<PsychologistEntity> remotePsychologists = [
     const PsychologistModel(
@@ -422,12 +438,6 @@ class FakeRemoteCareRepository implements CareRepository {
   }
 
   @override
-  Future<List<ClinicEntity>> getClinics({String? query}) async {
-    if (shouldThrow404) throw ApiException('Not Found', statusCode: 404);
-    return [];
-  }
-
-  @override
   Future<CommunityStatusEntity> getCommunityStatus() async {
     if (shouldThrow404) throw ApiException('Not Found', statusCode: 404);
     return const CommunityStatusModel(isMember: true, isVipActive: false);
@@ -441,8 +451,18 @@ class FakeRemoteCareRepository implements CareRepository {
 
   @override
   Future<List<ConsultationSessionEntity>> getConsultationSessions() async {
+    getSessionsCallCount++;
     if (shouldThrow404) throw ApiException('Not Found', statusCode: 404);
-    return [];
+    return [
+      ConsultationSessionModel(
+        id: 'sess_remote_1',
+        psychologist: remotePsychologists.first as PsychologistModel,
+        sessionDateTime: DateTime.now(),
+        status: getSessionsCallCount > 1
+            ? ConsultationStatus.completed
+            : ConsultationStatus.upcoming,
+      ),
+    ];
   }
 
   @override

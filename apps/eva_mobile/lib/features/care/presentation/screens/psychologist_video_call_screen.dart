@@ -6,11 +6,17 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:webrtc_client/webrtc_client.dart';
 
 import '../../../../theme/app_colors.dart';
+import '../../../../widgets/app_snack_bar.dart';
+import '../../../coin/presentation/providers/coin_provider.dart';
 import '../../domain/entities/consultation_session_entity.dart';
+import '../../domain/entities/extension_availability_entity.dart';
 import '../../domain/entities/video_call_state_entity.dart';
+import '../controllers/video_call_controller.dart';
 import '../providers/care_provider.dart';
 import '../providers/video_call_provider.dart';
+import '../widgets/booking_consultation_sheet.dart';
 import '../widgets/consultation_result_bottom_sheet.dart';
+import '../widgets/in_call_extension_sheet.dart';
 
 /// Real-Time WebRTC Video Call Screen for psychological teleconsultation (Answerer).
 class PsychologistVideoCallScreen extends ConsumerStatefulWidget {
@@ -153,6 +159,84 @@ class _PsychologistVideoCallScreenState
           ],
         );
       },
+    );
+  }
+
+  Future<void> _handleExtendTap(VideoCallController controller) async {
+    try {
+      final availability = await controller.checkExtensionAvailability();
+      if (!mounted) return;
+
+      if (availability.canExtend) {
+        final currentBalance = ref.read(coinBalanceProvider);
+        final requiredCoins = availability.extensionCoins > 0
+            ? availability.extensionCoins
+            : widget.session.psychologist.coinsPerSession;
+
+        await showDialog<void>(
+          context: context,
+          builder: (_) => InCallExtensionConfirmDialog(
+            requiredCoins: requiredCoins,
+            currentBalance: currentBalance,
+            onTopUp: () => Navigator.pushNamed(context, '/coin_purchase'),
+            onConfirm: () => _executeDirectExtension(controller, requiredCoins),
+          ),
+        );
+      } else {
+        await _showBusyExtensionSheet(availability);
+      }
+    } catch (_) {
+      if (mounted) {
+        AppSnackBar.showError(
+          context,
+          'Gagal memeriksa ketersediaan perpanjangan sesi.',
+        );
+      }
+    }
+  }
+
+  Future<void> _executeDirectExtension(
+    VideoCallController controller,
+    int requiredCoins,
+  ) async {
+    final success = await controller.confirmAndExtendSession();
+    if (!mounted) return;
+
+    if (success) {
+      ref
+          .read(consultationSessionsProvider.notifier)
+          .markSessionExtended(widget.session.id, newDurationMinutes: 60);
+      if (requiredCoins > 0) {
+        await ref
+            .read(coinBalanceProvider.notifier)
+            .syncAfterServerDebit(requiredCoins);
+      }
+      if (!mounted) return;
+      AppSnackBar.showSuccess(
+        context,
+        'Sesi diperpanjang +30 menit (total 60 menit).',
+      );
+    } else {
+      AppSnackBar.showError(
+        context,
+        'Gagal memperpanjang sesi. Silakan periksa jadwal atau saldo koin.',
+      );
+    }
+  }
+
+  Future<void> _showBusyExtensionSheet(
+    ExtensionAvailabilityEntity availability,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => InCallExtensionBusySheet(
+        availability: availability,
+        onScheduleNext: () {
+          BookingConsultationSheet.show(context, widget.session.psychologist);
+        },
+      ),
     );
   }
 
@@ -1020,6 +1104,28 @@ class _PsychologistVideoCallScreenState
                             letterSpacing: 0.5,
                           ),
                         ),
+                        if (callState.isExtended) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            key: const Key('extended_duration_badge'),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.success.withValues(alpha: 0.85),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '${callState.maxDurationSeconds ~/ 60}m',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -1127,6 +1233,20 @@ class _PsychologistVideoCallScreenState
                       ],
                     ),
                   ),
+                ),
+              ),
+
+            // 5.5 In-Call Extension Banner (+30 Menit when <= 5 min remaining)
+            if (callState.canShowExtensionBanner)
+              Positioned(
+                bottom: 108,
+                left: 16,
+                right: 16,
+                child: InCallExtensionBanner(
+                  remainingSeconds: callState.remainingSeconds,
+                  isChecking: callState.isCheckingExtension,
+                  onExtendTap: () => _handleExtendTap(controller),
+                  onDismiss: controller.dismissExtensionPrompt,
                 ),
               ),
 

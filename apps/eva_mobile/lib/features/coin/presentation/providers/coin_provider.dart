@@ -56,31 +56,48 @@ final topupHistoryProvider = FutureProvider<List<CoinTopupOrderEntity>>((ref) as
 
 /// StateNotifier managing authoritative EVA Coin balance (server-synced in live mode).
 class CoinBalanceNotifier extends StateNotifier<int> {
-  final ICoinRepository _repository;
-  final bool _isMockMode;
+  final ICoinRepository? _repository;
+  final Future<int> Function()? _fetchServerBalance;
+  final bool? _isMockModeOverride;
 
   CoinBalanceNotifier({
-    required ICoinRepository repository,
-    required bool isMockMode,
+    ICoinRepository? repository,
+    Future<int> Function()? fetchServerBalance,
+    bool? isMockMode,
   })  : _repository = repository,
-        _isMockMode = isMockMode,
-        super(isMockMode ? kMockDefaultCoinBalance : 0) {
+        _fetchServerBalance = fetchServerBalance,
+        _isMockModeOverride = isMockMode,
+        super((isMockMode ?? AppConfig.useMockData) ? kMockDefaultCoinBalance : 0) {
     unawaited(syncFromServer());
   }
 
+  bool get _isMockMode => _isMockModeOverride ?? AppConfig.useMockData;
+
   /// Fetch authoritative balance from backend (or mock storage in mock mode).
   Future<void> syncFromServer() async {
-    try {
-      final serverBalance = await _repository.getMyCoinBalance();
-      state = serverBalance;
-    } catch (_) {
-      if (_isMockMode) {
-        try {
-          final prefs = await SharedPreferences.getInstance();
-          state = prefs.getInt(_kMockCoinBalanceKey) ?? kMockDefaultCoinBalance;
-        } catch (_) {}
-      }
+    if (_isMockMode) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        state = prefs.getInt(_kMockCoinBalanceKey) ?? kMockDefaultCoinBalance;
+      } catch (_) {}
+      return;
     }
+    try {
+      final int serverBalance;
+      if (_fetchServerBalance != null) {
+        serverBalance = await _fetchServerBalance();
+      } else if (_repository != null) {
+        serverBalance = await _repository.getMyCoinBalance();
+      } else {
+        final res = await ApiClient().get('/users/coins');
+        if (res is Map<String, dynamic> && res['coin_balance'] != null) {
+          serverBalance = (res['coin_balance'] as num).toInt();
+        } else {
+          return;
+        }
+      }
+      state = serverBalance;
+    } catch (_) {}
   }
 
   /// Mock-only balance credit helper; live mode always syncs from server after payment.
@@ -103,7 +120,6 @@ class CoinBalanceNotifier extends StateNotifier<int> {
     if (amount <= 0) return false;
     if (!_isMockMode) {
       if (state < amount) return false;
-      state = state - amount;
       await syncFromServer();
       return true;
     }
@@ -115,6 +131,17 @@ class CoinBalanceNotifier extends StateNotifier<int> {
       await prefs.setInt(_kMockCoinBalanceKey, newBalance);
     } catch (_) {}
     return true;
+  }
+
+  /// Sync balance after server-side debit (booking / extension) or deduct locally in mock mode.
+  Future<void> syncAfterServerDebit(int amount) async {
+    if (!_isMockMode) {
+      await syncFromServer();
+      return;
+    }
+    if (amount > 0) {
+      await spendCoins(amount);
+    }
   }
 
   Future<void> setBalance(int balance) async {
