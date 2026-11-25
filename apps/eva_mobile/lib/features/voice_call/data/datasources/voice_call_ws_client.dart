@@ -108,6 +108,18 @@ class VoiceCallWsClient {
     }
   }
 
+  /// Optional additive hint notifying backend segmenter of capture/mute boundaries.
+  void sendAudioBoundary({
+    required String callId,
+    required String reason,
+  }) {
+    _sendJson({
+      'type': 'audio.boundary',
+      'call_id': callId,
+      'reason': reason,
+    });
+  }
+
   void sendStartCall({String? voiceMode}) {
     final payload = <String, dynamic>{'type': 'start_call'};
     if (voiceMode != null && voiceMode.isNotEmpty) {

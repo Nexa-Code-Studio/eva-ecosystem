@@ -1,9 +1,98 @@
 from enum import StrEnum
+import math
 from typing import Generic, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 T = TypeVar("T")
+
+EMOTION2VEC_CANONICAL_CLASSES: tuple[str, ...] = (
+    "angry",
+    "disgusted",
+    "fearful",
+    "happy",
+    "neutral",
+    "other",
+    "sad",
+    "surprised",
+    "unknown",
+)
+
+
+class EmotionSource(StrEnum):
+    AUDIO_TEMPORAL = "audio_temporal"
+    AUDIO_SINGLE = "audio_single"
+    TEXT_HEURISTIC = "text_heuristic"
+    UNAVAILABLE = "unavailable"
+
+
+class EmotionWindowStatus(StrEnum):
+    UNAVAILABLE = "unavailable"
+    PARTIAL = "partial"
+    READY = "ready"
+    STALE = "stale"
+
+
+class EmotionSegmentPrediction(BaseModel):
+    """Versioned prediction payload for a single 3-second (or tail) audio segment."""
+
+    schema_version: int = 1
+    segment_id: str
+    status: str = "ok"
+    model: str = "emotion2vec_plus_base"
+    model_revision: str = "unpinned-dev"
+    runtime: str = "onnxruntime"
+    precision: str = "int8"
+    scores: dict[str, float]
+    primary_emotion: str = "unknown"
+    secondary_emotion: str | None = None
+    confidence: float = 0.0
+    inference_ms: float = 0.0
+    valid_speech_ms: int = 0
+    duration_ms: int = 0
+    sequence: int = 0
+    user_turn_id: int = 0
+    capture_epoch: int = 0
+    start_offset_ms: int = 0
+    end_offset_ms: int = 0
+
+    @field_validator("scores")
+    @classmethod
+    def _validate_scores(cls, value: dict[str, float]) -> dict[str, float]:
+        for label, score in value.items():
+            if not isinstance(score, int | float) or not math.isfinite(score):
+                raise ValueError(f"Non-finite emotion score for '{label}': {score}")
+            if score < 0.0 or score > 1.0:
+                raise ValueError(f"Emotion score out of [0, 1] range for '{label}': {score}")
+        return {k: float(v) for k, v in value.items()}
+
+
+class TemporalEmotionSnapshot(BaseModel):
+    """Rolling 30-60s temporal aggregation snapshot for voice call emotion context.
+
+    Represents tentative acoustic observations only, never a clinical diagnosis.
+    """
+
+    source: EmotionSource = EmotionSource.UNAVAILABLE
+    status: EmotionWindowStatus = EmotionWindowStatus.UNAVAILABLE
+    window_target_ms: int = 30000
+    wall_span_ms: int = 0
+    speech_analyzed_ms: int = 0
+    speech_received_ms: int = 0
+    coverage: float = 0.0
+    segment_count: int = 0
+    pending_count: int = 0
+    failed_count: int = 0
+    excluded_count: int = 0
+    scores: dict[str, float] | None = None
+    turn_scores: dict[str, float] | None = None
+    primary_emotion: str | None = None
+    secondary_emotion: str | None = None
+    confidence: float | None = None
+    model_version: str | None = None
+    updated_at_ms: int | None = None
+    age_ms: int | None = None
+    degradation_reasons: list[str] = Field(default_factory=list)
 
 
 class CallStatus(StrEnum):
@@ -39,8 +128,11 @@ class EmotionDetectionResult(BaseModel):
     intensity: float = 0.5
     secondary_emotion: str | None = None
     scores: dict[str, float]
-    model_used: str = "iic/emotion2vec_plus_large"
+    model_used: str = "iic/emotion2vec_plus_base"
     latency_ms: float
+    source: EmotionSource = EmotionSource.AUDIO_SINGLE
+    status: EmotionWindowStatus = EmotionWindowStatus.READY
+    temporal_snapshot: TemporalEmotionSnapshot | None = None
 
 
 class MentalHealthKnowledgeItem(BaseModel):
