@@ -1,4 +1,4 @@
-import { Download, ShieldCheck, Stethoscope, X } from 'lucide-react'
+import { ShieldCheck, Stethoscope, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { CounselorScreen } from '@/components/mockups/CounselorScreens'
 import { PhoneFrame } from '@/components/mockups/PhoneFrame'
@@ -11,13 +11,11 @@ import {
   counselorSection,
   type CounselorFeatureId,
 } from '@/content/landing'
-import { useAppRelease } from '@/hooks/useLatestRelease'
 import { cn } from '@/lib/cn'
 
 export function PsychologistShowcase() {
   const [activeId, setActiveId] = useState<CounselorFeatureId>('schedule')
   const [evaluationOpen, setEvaluationOpen] = useState(false)
-  const counselorRelease = useAppRelease('counselor')
   const active = counselorFeatures.find((f) => f.id === activeId) ?? counselorFeatures[0]
 
   useEffect(() => {
@@ -98,20 +96,9 @@ export function PsychologistShowcase() {
               })}
             </div>
 
-            {/* App download & clinical evaluation action bar */}
+            {/* Verification & clinical standard summary bar */}
             <div className="reveal rounded-card border border-border-subtle/80 bg-canvas p-6 shadow-subtle sm:p-7">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-overline text-primary uppercase">Unduh Aplikasi Khusus Psikolog</p>
-                <div className="flex flex-wrap items-center gap-1.5 text-caption font-semibold text-ink-soft">
-                  <span className="rounded-pill border border-border-subtle bg-white px-2.5 py-0.5 text-[11px] font-bold text-primary">
-                    Rilis {counselorRelease.version}
-                  </span>
-                  <span aria-hidden className="text-ink-muted">·</span>
-                  <span>Android 8.0+</span>
-                  <span aria-hidden className="text-ink-muted">·</span>
-                  <span>{counselorRelease.sizeFormatted}</span>
-                </div>
-              </div>
+              <p className="text-overline text-primary uppercase">{counselorSection.verifyHeading}</p>
 
               <p className="mt-2 text-body-md text-ink-soft leading-relaxed">
                 {counselorSection.verifyNote}
@@ -132,19 +119,7 @@ export function PsychologistShowcase() {
                 })}
               </ul>
 
-              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <Button
-                  id="psikolog-download-apk"
-                  href={counselorRelease.downloadUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-cursor="UNDUH"
-                  variant="primary"
-                  size="md"
-                  leftIcon={<Download />}
-                >
-                  {counselorSection.primaryCta}
-                </Button>
+              <div className="mt-5">
                 <Button
                   id="psikolog-open-evaluation"
                   type="button"

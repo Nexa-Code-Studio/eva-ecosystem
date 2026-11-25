@@ -327,8 +327,8 @@ export const counselorSection = {
   titleAccent: 'Eva Counselor.',
   subtitle:
     'Kelola jadwal telekonsultasi, tinjau ringkasan skrining DASS-21 dengan persetujuan pasien, dan terima honorarium transparan langsung dari ponsel Android.',
+  verifyHeading: 'Verifikasi & Standar Praktik',
   verifyNote: 'Pendaftaran mandiri dilakukan di aplikasi dengan unggah dokumen STR dan SIP untuk verifikasi admin.',
-  primaryCta: 'Unduh Eva Counselor (APK)',
   secondaryCta: 'Baca Evaluasi Klinis',
 }
 
