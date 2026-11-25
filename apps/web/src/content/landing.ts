@@ -1,6 +1,9 @@
 import {
+  BadgeCheck,
   BookOpen,
   Brain,
+  CalendarClock,
+  FileCheck2,
   Flame,
   Gauge,
   HeartHandshake,
@@ -9,6 +12,8 @@ import {
   ShieldCheck,
   Smile,
   Stethoscope,
+  Video,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react'
 import apkMetadata from '@/config/apkMetadata.json'
@@ -21,6 +26,7 @@ export const navLinks = [
   { id: 'fitur', label: 'Fitur' },
   { id: 'cara-kerja', label: 'Cara Kerja' },
   { id: 'keunggulan', label: 'Keunggulan' },
+  { id: 'psikolog', label: 'Psikolog' },
   { id: 'faq', label: 'FAQ' },
 ] as const
 
@@ -28,6 +34,9 @@ export type NavId = (typeof navLinks)[number]['id']
 
 export const DOWNLOAD_APK_URL =
   'https://github.com/Nexa-Code-Studio/eva-ecosystem/releases/latest/download/eva-mobile-release.apk'
+
+export const DOWNLOAD_COUNSELOR_APK_URL =
+  'https://github.com/Nexa-Code-Studio/eva-ecosystem/releases/download/prototype/eva-counselor-mobile-release.apk'
 
 /* ------------------------------------------------------------------ */
 /* ------------------------------------------------------------------ */
@@ -291,16 +300,106 @@ export const clinicalEvaluationData: ClinicalEvaluationItem[] = [
 ]
 
 /* ------------------------------------------------------------------ */
+/* Eva Counselor (Psikolog Klinis)                                     */
+/* ------------------------------------------------------------------ */
+export type CounselorFeatureId = 'schedule' | 'consent' | 'teleconsult' | 'finance'
+
+export const COUNSELOR_SCREENSHOTS: Record<CounselorFeatureId, string> = {
+  schedule: '/images/mockups/counselor/schedule.webp',
+  consent: '/images/mockups/counselor/consent.webp',
+  teleconsult: '/images/mockups/counselor/teleconsult.webp',
+  finance: '/images/mockups/counselor/finance.webp',
+}
+
+export interface CounselorFeature {
+  id: CounselorFeatureId
+  icon: LucideIcon
+  tone: IconTileTone
+  tag: string
+  title: string
+  body: string
+  workflow: string
+}
+
+export const counselorSection = {
+  kicker: 'Untuk Psikolog Klinis (HIMPSI)',
+  titleLead: 'Aplikasi Pendamping Praktik',
+  titleAccent: 'Eva Counselor.',
+  subtitle:
+    'Kelola jadwal telekonsultasi, tinjau ringkasan skrining DASS-21 dengan persetujuan pasien, dan terima honorarium transparan langsung dari ponsel Android.',
+  verifyNote: 'Pendaftaran mandiri dilakukan di aplikasi dengan unggah dokumen STR dan SIP untuk verifikasi admin.',
+  primaryCta: 'Unduh Eva Counselor (APK)',
+  secondaryCta: 'Baca Evaluasi Klinis',
+}
+
+export const counselorFeatures: CounselorFeature[] = [
+  {
+    id: 'schedule',
+    icon: CalendarClock,
+    tone: 'primary',
+    tag: 'Verifikasi STR/SIP & Jadwal',
+    title: 'Daftar Mandiri & Atur Slot Praktik',
+    body: 'Unggah berkas STR dan SIP langsung dari aplikasi, pantau status verifikasi, lalu buka slot jam praktik mingguan sesuai ketersediaanmu.',
+    workflow: 'Psikolog memegang penuh pengaturan hari aktif, jam praktik, dan status menerima pasien baru.',
+  },
+  {
+    id: 'consent',
+    icon: FileCheck2,
+    tone: 'success',
+    tag: 'Privasi Berbasis Consent',
+    title: 'Ringkasan Klinis DASS-21 Terstruktur',
+    body: 'Sebelum sesi dimulai, baca skor skrining DASS-21 dan ringkasan awal yang dibagikan atas izin pasien. Isi percakapan curhat pribadi tetap tersimpan aman di perangkat pasien.',
+    workflow: 'Mempercepat anamnesis awal tanpa melanggar kedaulatan data pribadi pengguna.',
+  },
+  {
+    id: 'teleconsult',
+    icon: Video,
+    tone: 'tertiary',
+    tag: 'Telekonsultasi Video 30 Menit',
+    title: 'Sesi Video Langsung di Aplikasi',
+    body: 'Masuk ke ruang panggilan video WebRTC untuk sesi 30 menit terjadwal, lengkap dengan konfirmasi pengakhiran sesi dua arah bila konsultasi selesai lebih awal.',
+    workflow: 'Tidak perlu berpindah ke tautan rapat pihak ketiga yang terpisah dari catatan sesi.',
+  },
+  {
+    id: 'finance',
+    icon: Wallet,
+    tone: 'secondary',
+    tag: 'Honorarium EVA Coin',
+    title: 'Riwayat Sesi & Pencairan Jelas',
+    body: 'Lihat rincian honorarium EVA Coin dari setiap sesi konsultasi selesai dan ajukan pencairan ke rekening bank yang telah terverifikasi.',
+    workflow: 'Rincian bagi hasil dan status penarikan dana tercatat per transaksi secara terbuka.',
+  },
+]
+
+export const counselorOnboardingHighlights = [
+  { icon: BadgeCheck, label: 'Registrasi mandiri + verifikasi STR & SIP' },
+  { icon: ShieldCheck, label: 'Akses ringkasan DASS-21 hanya atas izin pasien' },
+  { icon: Stethoscope, label: 'Terintegrasi dengan batas praktik non-diagnostik EVA' },
+]
+
+/* ------------------------------------------------------------------ */
 /* CTA                                                                 */
 /* ------------------------------------------------------------------ */
 export const waitlist = {
+  badge: 'Untuk Pengguna',
+  appName: 'Eva Mobile',
   kicker: 'Akses Awal Langsung',
   title: 'Mulai Perjalanan Tenangmu Bersama EVA.',
+  subtitle: 'Curhat suara 24/7, misi koping 3 menit, dan skrining DASS-21 terenkripsi di ponselmu.',
   description:
     'Unduh versi beta sekarang untuk mencoba fitur curhat suara dan latihan koping terpandu langsung di ponsel Android kamu.',
-  button: 'Unduh Versi Beta (APK)',
-  specs: ['Android 8.0+', `Rilis ${apkMetadata.version}`, apkMetadata.sizeFormatted, 'Bebas Biaya Langganan'],
-  note: '100% Aman • Privasi tersimpan di ponsel • Bebas biaya',
+  button: 'Unduh Eva Mobile (APK)',
+  specs: ['Android 8.0+', `Rilis ${apkMetadata.mobile.version}`, apkMetadata.mobile.sizeFormatted, 'Bebas Biaya Langganan'],
+  note: '100% Aman • Privasi tersimpan di ponsel • Bebas biaya langganan',
+}
+
+export const counselorCta = {
+  badge: 'Untuk Psikolog',
+  appName: 'Eva Counselor',
+  subtitle: 'Verifikasi STR/SIP, kelola jadwal sesi video 30 menit, baca ringkasan consent pasien, dan cairkan honorarium.',
+  button: 'Unduh Eva Counselor (APK)',
+  specs: ['Android 8.0+', `Rilis ${apkMetadata.counselor.version}`, apkMetadata.counselor.sizeFormatted, 'Verifikasi STR & SIP'],
+  note: 'Akses klinis berbasis izin pasien • Rekening pencairan terverifikasi',
 }
 
 export const psychologistCtas = ['Daftar Psikolog Mandiri', 'Baca Evaluasi Klinis Psikolog']

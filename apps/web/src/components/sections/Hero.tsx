@@ -5,6 +5,7 @@ import {
   Lock,
   Pause,
   ShieldCheck,
+  Stethoscope,
   Volume2,
   X,
 } from 'lucide-react'
@@ -132,6 +133,18 @@ export function Hero() {
                   </li>
                 ))}
               </ul>
+
+              <a
+                id="hero-counselor-link"
+                href="#psikolog"
+                data-cursor="PSIKOLOG"
+                className="mt-3.5 inline-flex animate-enter items-center gap-2 rounded-pill border border-border-subtle/80 bg-white/90 px-3.5 py-1.5 text-caption font-semibold text-ink-soft shadow-subtle transition-colors hover:border-primary/35 hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
+                style={stagger(4)}
+              >
+                <Stethoscope className="size-3.5 text-primary" aria-hidden />
+                <span>Psikolog klinis? Lihat aplikasi Eva Counselor</span>
+                <ArrowRight className="size-3.5 text-primary" aria-hidden />
+              </a>
 
               {splashPhase === 'hidden' &&
                 !audioDeclined &&
