@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from shared.config import settings
 
 from app.api.dependencies import shutdown_webrtc_signaling_manager
+from app.services.call import shutdown_emotion_coordinator
 from app.api.routes.admin_coins import router as admin_coins_router
 from app.api.routes.admin_counselors import router as admin_counselors_router
 from app.api.routes.admin_sessions import router as admin_sessions_router
@@ -59,6 +60,7 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        await shutdown_emotion_coordinator()
         await shutdown_webrtc_signaling_manager()
 
 

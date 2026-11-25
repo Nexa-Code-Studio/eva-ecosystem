@@ -1,5 +1,7 @@
+import io
 import logging
 import uuid
+import wave
 from decimal import Decimal
 from typing import Any, Optional
 
@@ -8,6 +10,27 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.safety import EmotionAnalysis
 
 logger = logging.getLogger(__name__)
+
+
+def ensure_wav_bytes(
+    audio_bytes: bytes,
+    *,
+    sample_rate: int = 16000,
+    channels: int = 1,
+    sample_width: int = 2,
+) -> bytes:
+    """Wrap raw PCM16 LE bytes in a valid RIFF/WAVE header if not already a WAV container."""
+    if len(audio_bytes) >= 12 and audio_bytes[:4] == b"RIFF" and audio_bytes[8:12] == b"WAVE":
+        return audio_bytes
+
+    aligned_len = len(audio_bytes) - (len(audio_bytes) % sample_width)
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as wf:
+        wf.setnchannels(channels)
+        wf.setsampwidth(sample_width)
+        wf.setframerate(sample_rate)
+        wf.writeframes(audio_bytes[:aligned_len])
+    return buf.getvalue()
 
 
 class MLEmotionDetectorService:
@@ -120,7 +143,8 @@ class MLEmotionDetectorService:
 
         confidence = round(primary_conf, 2)
         return {
-            "model_name": "emotion2vec_plus_large (dynamic-text)",
+            "model_name": "text-lexicon-heuristic",
+            "source": "text_heuristic",
             "primary_emotion": primary_name,
             "secondary_emotion": secondary_name,
             "confidence": confidence,
@@ -133,21 +157,23 @@ class MLEmotionDetectorService:
         text: str,
         audio_bytes: Optional[bytes] = None,
     ) -> dict[str, Any]:
-        """Menerima data audio raw bytes dan/atau teks ucapan pengguna,
-        lalu mengembalikan hasil klasifikasi 9 kelas emosi `emotion2vec_plus_large`
-        berformat Dictionary/JSON yang akan disimpan ke kolom `emotions` (JSONB) di PostgreSQL.
+        """Legacy/text-chat emotion detection helper with honest provenance and WAV header validation.
+
+        Note: Live voice calls with EMOTION_STREAMING_ENABLED=true use the non-blocking
+        CallEmotionCoordinator + isolated ONNX INT8 microservice instead of this method.
         """
         logger.info(f"🧠 [EMOTION INFERENCE]: Processing input text len={len(text) if text else 0}, audio_bytes={len(audio_bytes) if audio_bytes else 0}")
 
-        # 1. Jika data audio bytes tersedia, gunakan model audio emotion2vec_plus_large
+        # 1. Jika data audio bytes tersedia, bungkus PCM dengan WAV header valid sebelum memanggil EmotionService
         if audio_bytes and len(audio_bytes) > 0:
             import os
             import tempfile
 
+            wav_payload = ensure_wav_bytes(audio_bytes)
             tmp_fd, tmp_path = tempfile.mkstemp(suffix=".wav")
             try:
                 with os.fdopen(tmp_fd, "wb") as f:
-                    f.write(audio_bytes)
+                    f.write(wav_payload)
 
                 service = MLEmotionDetectorService.get_emotion_service()
                 pred = service.predict(tmp_path)
@@ -167,13 +193,15 @@ class MLEmotionDetectorService:
 
                 breakdown.sort(key=lambda x: x["percent"], reverse=True)
                 secondary_emotion = breakdown[1]["name"] if len(breakdown) > 1 else "neutral"
+                actual_model = getattr(pred, "model_used", None) or getattr(service, "model_name", "iic/emotion2vec_plus_base")
 
                 logger.info(
-                    f"🎙️ [EMOTION2VEC SUCCESS]: Audio prediction -> '{pred.primary_emotion}' "
+                    f"🎙️ [EMOTION2VEC SUCCESS]: Audio prediction ({actual_model}) -> '{pred.primary_emotion}' "
                     f"(confidence: {pred.confidence}, latency: {pred.latency_ms}ms)"
                 )
                 return {
-                    "model_name": "emotion2vec_plus_large",
+                    "model_name": actual_model,
+                    "source": "audio_single",
                     "primary_emotion": pred.primary_emotion,
                     "secondary_emotion": secondary_emotion,
                     "confidence": pred.confidence,
@@ -182,7 +210,7 @@ class MLEmotionDetectorService:
                     "latency_ms": pred.latency_ms,
                 }
             except Exception as e:
-                logger.error(f"⚠️ [EMOTION2VEC AUDIO ERROR]: {e}. Falling back to dynamic text classifier.")
+                logger.error(f"⚠️ [EMOTION2VEC AUDIO ERROR]: {e}. Falling back to explicit text heuristic.")
             finally:
                 if os.path.exists(tmp_path):
                     try:
@@ -190,7 +218,7 @@ class MLEmotionDetectorService:
                     except Exception as clean_err:
                         logger.warning(f"Failed to remove temp audio file {tmp_path}: {clean_err}")
 
-        # 2. Fallback klasifikasi teks dinamis jika audio tidak tersedia / gagal
+        # 2. Fallback klasifikasi teks eksplisit jika audio tidak tersedia / gagal
         return MLEmotionDetectorService._predict_from_text(text)
 
     @staticmethod
@@ -235,10 +263,7 @@ class MLEmotionDetectorService:
             list[dict[str, Any]]: Persentase rata-rata 9 emosi yang sudah diurutkan dari persentase tertinggi.
         """
         if not messages_emotions:
-            return [
-                {"class_id": 4, "name": "neutral", "label": "Netral & Tenang", "emoji": "😌", "percent": 0.85, "color": "#4ECDC4"},
-                {"class_id": 3, "name": "happy", "label": "Bahagia & Senang", "emoji": "😃", "percent": 0.15, "color": "#FFE6A7"},
-            ]
+            return []
 
         totals: dict[int, float] = {cid: 0.0 for cid in MLEmotionDetectorService.EMOTION_2VEC_CLASSES}
         count = len(messages_emotions)

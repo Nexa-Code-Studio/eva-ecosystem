@@ -27,19 +27,21 @@ async def detect_voice_emotion_task(
     audio_path: str,
     conversation_id: str | None = None,
     message_id: str | None = None,
+    privacy_mode: str | None = None,
 ) -> dict[str, Any]:
     """
-    ARQ Background Task adapter for voice emotion recognition using EmotionService.
+    Legacy offline ARQ Background Task adapter for voice emotion recognition.
 
-    Args:
-        ctx: ARQ context dictionary.
-        audio_path: Path to input audio file.
-        conversation_id: Optional UUID/ID of current conversation.
-        message_id: Optional UUID/ID of source message.
-
-    Returns:
-        JSON-serializable dictionary containing emotion detection result.
+    IMPORTANT (Issue #143 & #96):
+    - Live voice calls MUST NOT enqueue private audio to durable Redis/ARQ queues;
+      they use the in-memory CallEmotionCoordinator + isolated ONNX HTTP microservice.
+    - Private modes (`local_private`, `incognito`) are rejected fail-closed.
     """
+    if (privacy_mode or "").strip().lower() in ("local_private", "incognito"):
+        raise PermissionError(
+            "Private session audio must not be processed via durable Redis/ARQ background tasks."
+        )
+
     logger.info(f"Executing detect_voice_emotion_task for audio: '{audio_path}'")
 
     if not os.path.exists(audio_path):

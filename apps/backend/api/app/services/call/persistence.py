@@ -25,9 +25,22 @@ class CallPersistenceService:
     """Handles all database persistence and history synchronization for voice call sessions."""
 
     @staticmethod
+    def is_private_session(session: Any) -> bool:
+        """Return True when session operates in local_private or incognito mode (zero server DB writes)."""
+        mode = (getattr(session, "privacy_mode", None) or "").strip().lower()
+        return mode in ("local_private", "incognito")
+
+    @staticmethod
     async def load_conversation_history(session: Any) -> None:
         """Load past conversation and DASS context into session history and create new DB conversation."""
         if session.is_history_loaded:
+            return
+        if CallPersistenceService.is_private_session(session):
+            logger.info(
+                f"🔒 [PRIVATE SESSION NO-DB-LOAD] Session {session.session_id}: "
+                f"privacy_mode={session.privacy_mode}; skipping server history recall & DB Conversation creation."
+            )
+            session.is_history_loaded = True
             return
 
         try:
@@ -132,7 +145,9 @@ class CallPersistenceService:
         content: str,
         analysis_result: dict[str, Any] | None = None,
     ) -> None:
-        """Persist a single voice turn message and trigger ML emotion detection."""
+        """Persist a single voice turn message and trigger ML emotion detection (no-op in private modes)."""
+        if CallPersistenceService.is_private_session(session):
+            return
         if not session.db_conversation_id or not content.strip():
             return
         try:
@@ -204,7 +219,7 @@ class CallPersistenceService:
     @staticmethod
     async def sync_today_diary(session: Any) -> None:
         """Create or Update today's single DiaryEntry ONCE upon disconnecting a voice call session."""
-        if not session.user_id:
+        if CallPersistenceService.is_private_session(session) or not session.user_id:
             return
 
         try:
@@ -294,7 +309,7 @@ class CallPersistenceService:
     @staticmethod
     async def sync_today_dass(session: Any) -> None:
         """Extract and update today's DASS-21 assessment upon disconnecting a voice call session."""
-        if not session.user_id:
+        if CallPersistenceService.is_private_session(session) or not session.user_id:
             return
 
         try:
