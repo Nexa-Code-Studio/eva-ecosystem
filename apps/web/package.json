@@ -12,6 +12,7 @@
     "demo:record:fast": "node scripts/demo/run-eva-demo.mjs --fast",
     "demo:slice": "node scripts/demo/slice-recordings.mjs",
     "update:mockups": "node scripts/mockups/capture-mobile-mockups.mjs",
+    "update:mockups:counselor": "node scripts/mockups/capture-counselor-mockups.mjs",
     "audio:welcome": "node scripts/audio/generate-welcome-audio.mjs"
   },
   "dependencies": {
