@@ -10,6 +10,8 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8888 --workers 2
     ports:
       - "127.0.0.1:8888:8888"
+    volumes:
+      - eva_uploads:/app/uploads
     env_file:
       - .env
     environment:
@@ -135,3 +137,4 @@ volumes:
   postgres_data:
   redis_data:
   qdrant_data:
+  eva_uploads:

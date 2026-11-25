@@ -434,4 +434,45 @@ export interface BackendLevelEvaluationBatchDto {
   message: string
 }
 
+export interface BackendBoothFeedbackPhotoDto {
+  id: string
+  mime_type: string
+  file_size_bytes: number
+  sort_order: number
+  created_at: string
+}
+
+export interface BackendBoothFeedbackItemDto {
+  id: string
+  rating: number
+  message: string
+  visitor_name?: string | null
+  visitor_contact?: string | null
+  event_label: string
+  photos: BackendBoothFeedbackPhotoDto[]
+  created_at: string
+}
+
+export interface BackendBoothFeedbackSummaryDto {
+  total_count: number
+  average_rating: number
+  rating_counts: Record<string, number>
+}
+
+export interface BackendAdminBoothFeedbackListDto {
+  summary: BackendBoothFeedbackSummaryDto
+  items: BackendBoothFeedbackItemDto[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface BackendPublicBoothFeedbackCreateDto {
+  id: string
+  rating: number
+  photo_count: number
+  created_at: string
+  message: string
+}
+
 export type PortalDatabaseSnapshot = PortalDatabase

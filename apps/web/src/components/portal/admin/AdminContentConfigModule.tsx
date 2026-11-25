@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Loader2, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
 import { TablePagination } from '@/components/portal/TablePagination'
+import { BoothFeedbackAdminTab } from '@/components/portal/admin/BoothFeedbackAdminTab'
 import { useUrlPagination } from '@/hooks/useUrlPagination'
 import { cn } from '@/lib/cn'
 import {
@@ -30,6 +31,8 @@ type CrisisDraft = {
 }
 
 export function AdminContentConfigModule({ db, onFeedback }: AdminContentConfigModuleProps) {
+  const [activeSubTab, setActiveSubTab] = useState<'faq-crisis' | 'booth-feedback'>('faq-crisis')
+
   // Crisis SafetyNet Protocol draft overrides (falls back cleanly to live db.crisisConfig)
   const [crisisDraft, setCrisisDraft] = useState<CrisisDraft | null>(null)
   const [savingCrisis, setSavingCrisis] = useState(false)
@@ -255,20 +258,62 @@ export function AdminContentConfigModule({ db, onFeedback }: AdminContentConfigM
             Kelola parameter protokol darurat krisis SafetyNet dan publikasi FAQ halaman utama.
           </p>
         </div>
-        {loadingData && (
+        {loadingData && activeSubTab === 'faq-crisis' && (
           <span className="inline-flex items-center gap-1.5 rounded-[8px] border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-medium text-ink-muted">
             <Loader2 className="size-3.5 animate-spin text-primary" /> Memuat sinkronisasi server...
           </span>
         )}
       </div>
 
-      {errorMessage && (
-        <div className="mt-4 rounded-[10px] border border-[#FECACA] bg-[#FEF2F2] px-4 py-2.5 text-xs font-medium text-[#991B1B]">
-          {errorMessage}
-        </div>
-      )}
+      {/* Sub-navigation Tabs */}
+      <div
+        role="tablist"
+        aria-label="Submenu Konfigurasi Konten"
+        className="mt-4 inline-flex w-full flex-wrap gap-2 rounded-[12px] border border-[#E2E8F0] bg-white p-1.5 sm:w-auto"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeSubTab === 'faq-crisis'}
+          onClick={() => setActiveSubTab('faq-crisis')}
+          className={cn(
+            'min-h-10 cursor-pointer rounded-[8px] px-4 text-xs font-semibold',
+            activeSubTab === 'faq-crisis'
+              ? 'bg-primary text-white'
+              : 'bg-white text-ink-soft hover:bg-[#F8FAFC] hover:text-ink',
+          )}
+        >
+          Protokol Darurat &amp; FAQ Website
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeSubTab === 'booth-feedback'}
+          onClick={() => setActiveSubTab('booth-feedback')}
+          className={cn(
+            'min-h-10 cursor-pointer rounded-[8px] px-4 text-xs font-semibold',
+            activeSubTab === 'booth-feedback'
+              ? 'bg-primary text-white'
+              : 'bg-white text-ink-soft hover:bg-[#F8FAFC] hover:text-ink',
+          )}
+        >
+          Feedback &amp; Selfie Booth Event
+        </button>
+      </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-12">
+      {activeSubTab === 'booth-feedback' ? (
+        <div className="mt-5">
+          <BoothFeedbackAdminTab onFeedback={onFeedback} />
+        </div>
+      ) : (
+        <>
+          {errorMessage && (
+            <div className="mt-4 rounded-[10px] border border-[#FECACA] bg-[#FEF2F2] px-4 py-2.5 text-xs font-medium text-[#991B1B]">
+              {errorMessage}
+            </div>
+          )}
+
+          <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Left: Crisis SafetyNet Protocol Configuration */}
         <div className="lg:col-span-5">
           <div className="rounded-[12px] border border-[#E2E8F0] bg-white p-5">
@@ -577,6 +622,8 @@ export function AdminContentConfigModule({ db, onFeedback }: AdminContentConfigM
           />
         </div>
       </div>
+        </>
+      )}
     </div>
   )
 }

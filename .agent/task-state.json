@@ -197,5 +197,12 @@
     "state": "In Progress",
     "updated_at": 1795584842,
     "evidence_summary": "Evidence accepted: active task branch verified."
+  },
+  "134": {
+    "issue": 134,
+    "branch": "feat/134-event-booth-feedback",
+    "state": "In Progress",
+    "updated_at": 1795577764,
+    "evidence_summary": "Evidence accepted: active task branch verified."
   }
 }

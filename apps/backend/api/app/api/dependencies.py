@@ -209,6 +209,13 @@ async def get_level_service(db: AsyncSession = Depends(get_db_session)):
     return LevelService(db)
 
 
+async def get_booth_feedback_service(db: AsyncSession = Depends(get_db_session)):
+    """Dependency factory for BoothFeedbackService."""
+    from app.services.booth_feedback import BoothFeedbackService
+
+    return BoothFeedbackService(db)
+
+
 
 
 

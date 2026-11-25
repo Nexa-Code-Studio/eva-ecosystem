@@ -3,6 +3,7 @@ import { getEmptyDashboardAnalyticsBaseline } from '@/data/mock/dashboardMetrics
 import type { IPortalDataSource } from '@/services/contracts/portalDataSource'
 import {
   buildDomainPsychologistFromRegister,
+  mapBackendAdminBoothFeedbackListToDomain,
   mapBackendAdminSessionToDomain,
   mapBackendAdminUserToDomain,
   mapBackendCertificateTemplateToDomain,
@@ -25,6 +26,7 @@ import { EMPTY_PORTAL_DATABASE } from '@/services/portal/emptyDatabase'
 import type {
   AdminCoinTopupRequestDto,
   AdminCoinTopupResultDto,
+  BackendAdminBoothFeedbackListDto,
   BackendAdminCoinTopupResponseDto,
   BackendAdminSessionDto,
   BackendAdminUserDto,
@@ -41,6 +43,7 @@ import type {
   BackendPsychologistCertificateDto,
   BackendPsychologistLevelDto,
   BackendPsychologistProfileResponseDto,
+  BackendPublicBoothFeedbackCreateDto,
   CreateFaqRequestDto,
   IssueCertificateRequestDto,
   PublicFaqsResultDto,
@@ -55,6 +58,7 @@ import type {
   VerifyPsychologistRequestDto,
 } from '@/types/api/contracts'
 import type {
+  BoothFeedbackListResult,
   CertificateEvaluationSummary,
   CertificateTemplate,
   CoinEconomyConfig,
@@ -72,6 +76,8 @@ import type {
   PortalSession,
   Psychologist,
   PsychologistLevelConfig,
+  SubmitBoothFeedbackPayload,
+  SubmitBoothFeedbackResult,
 } from '@/types/domain/portal'
 
 const PROD_STORAGE_KEY = 'eva_portal_db_prod_v2'
@@ -1043,5 +1049,92 @@ export class RemotePortalDataSource implements IPortalDataSource {
       { method: 'POST' },
     )
     return mapBackendLevelEvaluationToDomain(dto)
+  }
+
+  async submitBoothFeedback(payload: SubmitBoothFeedbackPayload): Promise<SubmitBoothFeedbackResult> {
+    const form = new FormData()
+    form.append('rating', String(payload.rating))
+    form.append('message', payload.message.trim())
+    if (payload.visitorName?.trim()) {
+      form.append('visitor_name', payload.visitorName.trim())
+    }
+    if (payload.visitorContact?.trim()) {
+      form.append('visitor_contact', payload.visitorContact.trim())
+    }
+    if (payload.eventLabel?.trim()) {
+      form.append('event_label', payload.eventLabel.trim())
+    }
+    for (const file of payload.photos) {
+      form.append('photos', file)
+    }
+
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 30000)
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/content/booth-feedbacks`, {
+        method: 'POST',
+        body: form,
+        signal: controller.signal,
+      })
+      if (!response.ok) {
+        let detail = `Gagal mengirim feedback (${response.status})`
+        try {
+          const errBody = (await response.json()) as { detail?: string }
+          if (errBody?.detail) detail = errBody.detail
+        } catch {
+          // Ignore non-JSON body
+        }
+        throw new Error(detail)
+      }
+      const dto = (await response.json()) as BackendPublicBoothFeedbackCreateDto
+      return {
+        id: dto.id,
+        rating: dto.rating,
+        photoCount: dto.photo_count,
+        createdAt: dto.created_at,
+        message: dto.message,
+      }
+    } finally {
+      window.clearTimeout(timeout)
+    }
+  }
+
+  async fetchAdminBoothFeedbacks(params?: {
+    rating?: number
+    search?: string
+    page?: number
+    pageSize?: number
+  }): Promise<BoothFeedbackListResult> {
+    const searchParams = new URLSearchParams()
+    if (params?.rating) {
+      searchParams.set('rating', String(params.rating))
+    }
+    if (params?.search?.trim()) {
+      searchParams.set('search', params.search.trim())
+    }
+    if (params?.page) {
+      searchParams.set('page', String(params.page))
+    }
+    if (params?.pageSize) {
+      searchParams.set('page_size', String(params.pageSize))
+    }
+    const qs = searchParams.toString()
+    const path = qs ? `/admin/content/booth-feedbacks?${qs}` : '/admin/content/booth-feedbacks'
+    const dto = await this.requestJson<BackendAdminBoothFeedbackListDto>(path)
+    return mapBackendAdminBoothFeedbackListToDomain(dto)
+  }
+
+  async fetchAdminBoothFeedbackPhotoUrl(feedbackId: string, photoId: string): Promise<string> {
+    const { blob } = await this.requestBlob(
+      `/admin/content/booth-feedbacks/${encodeURIComponent(feedbackId)}/photos/${encodeURIComponent(photoId)}`,
+      `booth-${photoId}.jpg`,
+    )
+    return URL.createObjectURL(blob)
+  }
+
+  async deleteAdminBoothFeedback(feedbackId: string): Promise<void> {
+    await this.requestJson(`/admin/content/booth-feedbacks/${encodeURIComponent(feedbackId)}`, {
+      method: 'DELETE',
+    })
   }
 }

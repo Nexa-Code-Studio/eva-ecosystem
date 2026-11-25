@@ -1,5 +1,6 @@
-import { ArrowRight, Menu, X } from 'lucide-react'
+import { ArrowRight, Camera, Menu, X } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Link } from 'react-router'
 import { Button, Container, Logo } from '@/components/ui'
 import { navLinks } from '@/content/landing'
 import { scrollToCenteredSection, useActiveSection, useScrolled } from '@/hooks/useScroll'
@@ -96,6 +97,15 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Link
+              id="nav-feedback"
+              to="/feedback"
+              data-cursor="BOOTH"
+              className="hidden sm:inline-flex h-10 items-center gap-1.5 rounded-pill border border-primary/25 bg-primary-container px-3.5 text-xs font-semibold text-primary-deep transition-colors hover:bg-primary hover:text-white focus-visible:outline-2 focus-visible:outline-primary"
+            >
+              <Camera className="size-3.5 shrink-0" aria-hidden="true" />
+              <span>Feedback Booth</span>
+            </Link>
             <Button
               id="nav-cta"
               href="#early-access"
@@ -145,6 +155,18 @@ export function Navbar() {
               </li>
             ))}
           </ul>
+          <Link
+            id="mobile-nav-feedback"
+            to="/feedback"
+            onClick={() => setOpen(false)}
+            className="mt-2 flex min-h-11 items-center justify-between rounded-[16px] border border-primary/25 bg-primary-container px-4 py-3 text-body-md font-semibold text-primary-deep transition-colors hover:bg-primary hover:text-white focus-visible:outline-2 focus-visible:outline-primary"
+          >
+            <span className="inline-flex items-center gap-2">
+              <Camera className="size-4 shrink-0" aria-hidden="true" />
+              Feedback &amp; Selfie Booth
+            </span>
+            <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
+          </Link>
           <Button
             href="#early-access"
             onClick={(e) => handleNavClick(e, 'early-access')}

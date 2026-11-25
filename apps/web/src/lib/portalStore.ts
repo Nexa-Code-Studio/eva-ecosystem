@@ -83,4 +83,10 @@ export {
   togglePsychologistLevelActive,
   updatePsychologistLevel,
 } from '@/services/portal/levelService'
+export {
+  deleteAdminBoothFeedback,
+  fetchAdminBoothFeedbackPhotoUrl,
+  fetchAdminBoothFeedbacks,
+  submitBoothFeedback,
+} from '@/services/portal/boothFeedbackService'
 export { usePortalDb } from '@/hooks/usePortalDb'

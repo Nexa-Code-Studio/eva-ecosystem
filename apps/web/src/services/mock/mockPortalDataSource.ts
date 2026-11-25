@@ -25,6 +25,8 @@ import type {
   VerifyPsychologistRequestDto,
 } from '@/types/api/contracts'
 import type {
+  BoothFeedbackEntry,
+  BoothFeedbackListResult,
   CertificateEvaluationSummary,
   CertificateTemplate,
   CoinEconomyConfig,
@@ -42,6 +44,8 @@ import type {
   PortalSession,
   Psychologist,
   PsychologistLevelConfig,
+  SubmitBoothFeedbackPayload,
+  SubmitBoothFeedbackResult,
 } from '@/types/domain/portal'
 
 export const PORTAL_DB_CHANGE_EVENT = 'eva:portal-db-updated'
@@ -950,5 +954,130 @@ export class MockPortalDataSource implements IPortalDataSource {
       upgradedCount: verifiedCount > 0 ? 1 : 0,
       message: `Evaluasi selesai untuk ${verifiedCount} psikolog terverifikasi sesuai konfigurasi tier aktif.`,
     }
+  }
+
+  private readMockBoothFeedbacks(): BoothFeedbackEntry[] {
+    if (typeof window === 'undefined') return []
+    try {
+      const raw = window.localStorage.getItem('eva_mock_booth_feedbacks_v1')
+      if (!raw) return []
+      return JSON.parse(raw) as BoothFeedbackEntry[]
+    } catch {
+      return []
+    }
+  }
+
+  private writeMockBoothFeedbacks(entries: BoothFeedbackEntry[]): void {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem('eva_mock_booth_feedbacks_v1', JSON.stringify(entries))
+  }
+
+  async submitBoothFeedback(payload: SubmitBoothFeedbackPayload): Promise<SubmitBoothFeedbackResult> {
+    if (payload.photos.length === 0) {
+      throw new Error('Lampirkan minimal 1 foto selfie atau momen di booth.')
+    }
+    const readAsDataUrl = (file: File) =>
+      new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(String(reader.result || ''))
+        reader.onerror = () => reject(new Error('Gagal membaca foto.'))
+        reader.readAsDataURL(file)
+      })
+
+    const nowIso = new Date().toISOString()
+    const id = `bf-${Date.now()}`
+    const photos = await Promise.all(
+      payload.photos.slice(0, 5).map(async (file, index) => ({
+        id: `${id}-p-${index + 1}`,
+        mimeType: file.type || 'image/jpeg',
+        fileSizeBytes: file.size,
+        sortOrder: index,
+        createdAt: nowIso,
+        mockDataUrl: await readAsDataUrl(file),
+      })),
+    )
+
+    const entry: BoothFeedbackEntry = {
+      id,
+      rating: payload.rating,
+      message: payload.message.trim(),
+      visitorName: payload.visitorName?.trim() || null,
+      visitorContact: payload.visitorContact?.trim() || null,
+      eventLabel: payload.eventLabel?.trim() || 'Event Booth EVA',
+      photos,
+      createdAt: nowIso,
+    }
+    const existing = this.readMockBoothFeedbacks()
+    existing.unshift(entry)
+    this.writeMockBoothFeedbacks(existing)
+
+    return {
+      id,
+      rating: entry.rating,
+      photoCount: photos.length,
+      createdAt: nowIso,
+      message: 'Terima kasih! Feedback dan foto booth Anda telah tersimpan (Mode Mock).',
+    }
+  }
+
+  async fetchAdminBoothFeedbacks(params?: {
+    rating?: number
+    search?: string
+    page?: number
+    pageSize?: number
+  }): Promise<BoothFeedbackListResult> {
+    const all = this.readMockBoothFeedbacks()
+    const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+    let sum = 0
+    for (const item of all) {
+      if (item.rating >= 1 && item.rating <= 5) {
+        counts[item.rating] = (counts[item.rating] ?? 0) + 1
+        sum += item.rating
+      }
+    }
+
+    const q = params?.search?.trim().toLowerCase() || ''
+    const filtered = all.filter((item) => {
+      if (params?.rating && item.rating !== params.rating) return false
+      if (
+        q &&
+        !item.message.toLowerCase().includes(q) &&
+        !(item.visitorName || '').toLowerCase().includes(q) &&
+        !(item.visitorContact || '').toLowerCase().includes(q)
+      ) {
+        return false
+      }
+      return true
+    })
+
+    const pageSize = Math.max(1, params?.pageSize ?? 10)
+    const page = Math.max(1, params?.page ?? 1)
+    const start = (page - 1) * pageSize
+    return {
+      summary: {
+        totalCount: all.length,
+        averageRating: all.length > 0 ? Math.round((sum / all.length) * 100) / 100 : 0,
+        ratingCounts: counts,
+      },
+      items: filtered.slice(start, start + pageSize),
+      total: filtered.length,
+      page,
+      pageSize,
+    }
+  }
+
+  async fetchAdminBoothFeedbackPhotoUrl(feedbackId: string, photoId: string): Promise<string> {
+    const all = this.readMockBoothFeedbacks()
+    const found = all.find((item) => item.id === feedbackId)
+    const photo = found?.photos.find((p) => p.id === photoId)
+    if (!photo?.mockDataUrl) {
+      throw new Error('Foto booth tidak ditemukan di mode mock.')
+    }
+    return photo.mockDataUrl
+  }
+
+  async deleteAdminBoothFeedback(feedbackId: string): Promise<void> {
+    const next = this.readMockBoothFeedbacks().filter((item) => item.id !== feedbackId)
+    this.writeMockBoothFeedbacks(next)
   }
 }

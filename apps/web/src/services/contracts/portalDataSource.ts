@@ -16,6 +16,8 @@ import type {
 } from '@/types/api/contracts'
 import type { DashboardAnalyticsBaseline } from '@/types/domain/dashboard'
 import type {
+  BoothFeedbackEntry,
+  BoothFeedbackListResult,
   CertificateEvaluationSummary,
   CertificateTemplate,
   CoinEconomyConfig,
@@ -33,6 +35,8 @@ import type {
   PortalSession,
   Psychologist,
   PsychologistLevelConfig,
+  SubmitBoothFeedbackPayload,
+  SubmitBoothFeedbackResult,
 } from '@/types/domain/portal'
 
 export interface AdminCredentialConfig {
@@ -118,4 +122,14 @@ export interface IPortalDataSource {
   togglePsychologistLevelActive(levelId: string): Promise<PsychologistLevelConfig>
   deletePsychologistLevel(levelId: string): Promise<void>
   evaluateAllPsychologistLevels(): Promise<LevelEvaluationBatchSummary>
+  submitBoothFeedback(payload: SubmitBoothFeedbackPayload): Promise<SubmitBoothFeedbackResult>
+  fetchAdminBoothFeedbacks(params?: {
+    rating?: number
+    search?: string
+    page?: number
+    pageSize?: number
+  }): Promise<BoothFeedbackListResult>
+  fetchAdminBoothFeedbackPhotoUrl(feedbackId: string, photoId: string): Promise<string>
+  deleteAdminBoothFeedback(feedbackId: string): Promise<void>
 }
+export type { BoothFeedbackEntry }
