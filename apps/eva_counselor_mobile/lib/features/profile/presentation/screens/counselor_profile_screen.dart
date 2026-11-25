@@ -6,6 +6,7 @@ import '../../../../core/widgets/top_toast.dart';
 import '../../../auth/domain/entities/psychologist_user_entity.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../dashboard/presentation/screens/counselor_main_shell_screen.dart';
+import '../../../finances/presentation/providers/finance_provider.dart';
 import '../providers/counselor_certificate_provider.dart';
 import '../providers/counselor_level_metrics_provider.dart';
 import '../widgets/counselor_bank_account_modal.dart';
@@ -122,7 +123,10 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
     final user = authState.value;
     final liveCertsAsync = ref.watch(counselorCertificatesProvider);
     final userCerts = liveCertsAsync.value ?? CounselorCertificatesModal.getCertificatesForUser(user);
-    final hasBank = (user?.bankName ?? '').isNotEmpty;
+    final bankAccountAsync = ref.watch(currentBankAccountProvider);
+    final bankAccount = bankAccountAsync.value;
+    final hasVerifiedBank = bankAccount != null && bankAccount.isVerified;
+    final hasLegacyBank = (user?.bankName ?? '').isNotEmpty;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
@@ -131,10 +135,12 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
           onRefresh: () async {
             ref.invalidate(counselorLevelMetricsProvider);
             ref.invalidate(counselorCertificatesProvider);
+            ref.invalidate(currentBankAccountProvider);
             ref.invalidate(authStateProvider);
             await Future.wait([
               ref.read(counselorLevelMetricsProvider.future),
               ref.read(counselorCertificatesProvider.future),
+              ref.read(currentBankAccountProvider.future),
             ]);
           },
           child: SingleChildScrollView(
@@ -187,9 +193,11 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                 iconColor: const Color(0xFF2563EB),
                 iconBg: const Color(0xFFEFF6FF),
                 title: 'Rekening Bank Pencairan Dana',
-                subtitle: hasBank
-                    ? '${user!.bankName} • ****${user.bankAccountNumber.length >= 4 ? user.bankAccountNumber.substring(user.bankAccountNumber.length - 4) : user.bankAccountNumber}'
-                    : 'Belum diatur • Ketuk untuk mendaftarkan rekening',
+                subtitle: hasVerifiedBank
+                    ? '${bankAccount.bankName} • ${bankAccount.accountNumberMasked} (TERVERIFIKASI ✅)'
+                    : (hasLegacyBank
+                        ? '${user!.bankName} • ****${user.bankAccountNumber.length >= 4 ? user.bankAccountNumber.substring(user.bankAccountNumber.length - 4) : user.bankAccountNumber} (Belum Diverifikasi ⚠️)'
+                        : 'Belum diatur • Ketuk untuk mendaftarkan rekening'),
                 onTap: () => CounselorBankAccountModal.show(context, ref: ref),
               ),
               const SizedBox(height: 16),

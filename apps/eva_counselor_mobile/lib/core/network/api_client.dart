@@ -6,16 +6,18 @@ import '../storage/token_storage.dart';
 class ApiException implements Exception {
   final int statusCode;
   final String message;
+  final String? errorCode;
   final dynamic details;
 
   ApiException({
     required this.statusCode,
     required this.message,
+    this.errorCode,
     this.details,
   });
 
   @override
-  String toString() => 'ApiException [$statusCode]: $message';
+  String toString() => 'ApiException [$statusCode${errorCode != null ? ' - $errorCode' : ''}]: $message';
 }
 
 /// Centralized HTTP client managing auth header injection and status validation.
@@ -49,18 +51,18 @@ class ApiClient {
     return _handleResponse(response);
   }
 
-  Future<dynamic> post(String path, {dynamic body}) async {
+  Future<dynamic> post(String path, {dynamic body, Map<String, String>? extraHeaders}) async {
     final uri = _buildUri(path);
-    final headers = await _buildHeaders();
+    final headers = await _buildHeaders(extra: extraHeaders);
     final response = await _client
         .post(uri, headers: headers, body: body != null ? jsonEncode(body) : null)
         .timeout(AppConfig.connectTimeout);
     return _handleResponse(response);
   }
 
-  Future<dynamic> put(String path, {dynamic body}) async {
+  Future<dynamic> put(String path, {dynamic body, Map<String, String>? extraHeaders}) async {
     final uri = _buildUri(path);
-    final headers = await _buildHeaders();
+    final headers = await _buildHeaders(extra: extraHeaders);
     final response = await _client
         .put(uri, headers: headers, body: body != null ? jsonEncode(body) : null)
         .timeout(AppConfig.connectTimeout);
@@ -110,15 +112,26 @@ class ApiClient {
     }
 
     String message = 'Terjadi kesalahan sistem (${res.statusCode})';
+    String? errorCode;
     if (decoded is Map<String, dynamic>) {
-      message = decoded['detail']?.toString() ??
-          decoded['message']?.toString() ??
-          message;
+      final detail = decoded['detail'];
+      if (detail is Map<String, dynamic>) {
+        errorCode = detail['code']?.toString();
+        message = detail['message']?.toString() ?? errorCode ?? message;
+      } else if (detail is String) {
+        message = detail;
+      } else if (decoded['message'] != null) {
+        message = decoded['message'].toString();
+      }
+      if (errorCode == null && decoded['code'] != null) {
+        errorCode = decoded['code']?.toString();
+      }
     }
 
     throw ApiException(
       statusCode: res.statusCode,
       message: message,
+      errorCode: errorCode,
       details: decoded,
     );
   }

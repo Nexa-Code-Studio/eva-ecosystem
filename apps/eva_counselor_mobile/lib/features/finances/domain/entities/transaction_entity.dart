@@ -3,14 +3,18 @@ enum TransactionStatus { completed, pending, payoutRequested, refunded }
 class FinancialSummaryEntity {
   final int availableBalance; // Rp saldo siap tarik
   final int pendingClearingBalance; // Rp menunggu kliring
+  final int lockedWithdrawalBalance; // Rp dalam proses pencairan
   final int totalEarningsThisMonth; // Rp total bulan ini
   final int totalWithdrawn; // Rp sudah ditarik
+  final String currency;
 
   const FinancialSummaryEntity({
     required this.availableBalance,
     required this.pendingClearingBalance,
+    this.lockedWithdrawalBalance = 0,
     required this.totalEarningsThisMonth,
     required this.totalWithdrawn,
+    this.currency = 'IDR',
   });
 }
 

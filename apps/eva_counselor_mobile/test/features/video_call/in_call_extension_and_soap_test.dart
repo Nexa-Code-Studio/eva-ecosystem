@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:eva_counselor_mobile/core/config/app_config.dart';
 import 'package:eva_counselor_mobile/features/auth/domain/entities/psychologist_user_entity.dart';
 import 'package:eva_counselor_mobile/features/auth/presentation/providers/auth_provider.dart';
+import 'package:eva_counselor_mobile/features/finances/domain/entities/bank_account_entity.dart';
+import 'package:eva_counselor_mobile/features/finances/presentation/providers/finance_provider.dart';
 import 'package:eva_counselor_mobile/features/profile/presentation/widgets/counselor_bank_account_modal.dart';
 import 'package:eva_counselor_mobile/features/video_call/data/datasources/mock_video_call_datasource.dart';
 import 'package:eva_counselor_mobile/features/video_call/data/repositories/video_call_repository_impl.dart';
@@ -146,6 +148,17 @@ void main() {
           overrides: [
             authStateProvider.overrideWith(
                 (ref) => _LocalTestAuthNotifier(mockUser)),
+            currentBankAccountProvider.overrideWith(
+              (ref) async => const BankAccountEntity(
+                id: 'bank-acc-bca',
+                bankCode: 'bca',
+                bankName: 'BCA (Bank Central Asia)',
+                accountNumberMasked: '****9182',
+                accountHolderName: 'dr. Sarah Jenkins, M.Psi',
+                verificationStatus: 'verified',
+                isActive: true,
+              ),
+            ),
           ],
           child: MaterialApp(
             home: Scaffold(
