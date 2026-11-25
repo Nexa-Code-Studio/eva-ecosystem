@@ -604,6 +604,33 @@ class CallSessionManager:
             )
             session.latest_emotion_snapshot = temporal_snapshot
             precomputed_emotion = self.emotion_coordinator.snapshot_to_detection_result(temporal_snapshot)
+
+            # Notify mobile client with truthful temporal emotion state (no fabricated scores)
+            await session.websocket.send_json({
+                "type": "emotion_result",
+                "status": temporal_snapshot.status.value,
+                "source": temporal_snapshot.source.value,
+                "coverage": temporal_snapshot.coverage,
+                "speech_analyzed_ms": temporal_snapshot.speech_analyzed_ms,
+                "segment_count": temporal_snapshot.segment_count,
+                "primary_emotion": temporal_snapshot.primary_emotion,
+                "secondary_emotion": temporal_snapshot.secondary_emotion,
+                "confidence": temporal_snapshot.confidence,
+                "scores": temporal_snapshot.scores,
+                "emotions_breakdown": [
+                    {
+                        "class_id": cid,
+                        "name": meta["name"],
+                        "label": meta["label"],
+                        "emoji": meta["emoji"],
+                        "percent": round(float((temporal_snapshot.scores or {}).get(meta["name"], 0.0)), 4),
+                        "color": meta["color"],
+                    }
+                    for cid, meta in MLEmotionDetectorService.EMOTION_2VEC_CLASSES.items()
+                ]
+                if temporal_snapshot.scores
+                else [],
+            })
         else:
             try:
                 buf = audio_buffer_service.get_or_create_buffer(session.session_id)
