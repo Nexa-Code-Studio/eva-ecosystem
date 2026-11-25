@@ -51,10 +51,17 @@ class ApiEndpoints {
   static const String counselorCertificates = '/counselor/certificates';
   static String downloadCertificatePdf(String id) => '/counselor/certificates/$id/download';
 
-  // Financials & Transactions
+  // Financials & Payouts (Issue #137)
   static const String financialSummary = '/finances/summary';
   static const String transactions = '/finances/transactions';
-  static const String requestPayout = '/finances/payout';
+  static const String supportedBanks = '/finances/banks';
+  static const String validateBankAccount = '/finances/bank-accounts/validate';
+  static const String currentBankAccount = '/finances/bank-accounts/current';
+  static const String payoutPolicy = '/finances/payout-policy';
+  static const String createPayoutQuote = '/finances/payouts/quote';
+  static const String requestPayout = '/finances/payouts';
+  static const String payoutsHistory = '/finances/payouts';
+  static String payoutDetail(String id) => '/finances/payouts/$id';
 
   // Availability / Schedule
   static const String appointments = '/schedule/appointments';

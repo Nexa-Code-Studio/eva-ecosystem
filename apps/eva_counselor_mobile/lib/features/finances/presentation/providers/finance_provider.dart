@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/config/app_config.dart';
+import '../../domain/entities/bank_account_entity.dart';
+import '../../domain/entities/payout_entity.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../../domain/repositories/finance_repository.dart';
 import '../../data/datasources/finance_datasource.dart';
@@ -27,4 +29,24 @@ final financialSummaryProvider = FutureProvider<FinancialSummaryEntity>((ref) as
 final transactionsListProvider = FutureProvider<List<TransactionEntity>>((ref) async {
   final repo = ref.watch(financeRepositoryProvider);
   return await repo.getTransactions();
+});
+
+final currentBankAccountProvider = FutureProvider<BankAccountEntity?>((ref) async {
+  final repo = ref.watch(financeRepositoryProvider);
+  return await repo.getCurrentBankAccount();
+});
+
+final supportedBanksProvider = FutureProvider<List<BankItemEntity>>((ref) async {
+  final repo = ref.watch(financeRepositoryProvider);
+  return await repo.getSupportedBanks();
+});
+
+final payoutPolicyProvider = FutureProvider<PayoutPolicyEntity>((ref) async {
+  final repo = ref.watch(financeRepositoryProvider);
+  return await repo.getPayoutPolicy();
+});
+
+final payoutsHistoryProvider = FutureProvider<List<PayoutRecordEntity>>((ref) async {
+  final repo = ref.watch(financeRepositoryProvider);
+  return await repo.getPayouts();
 });
