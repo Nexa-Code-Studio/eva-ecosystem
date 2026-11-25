@@ -9,7 +9,6 @@ class ConsultationSessionModel extends ConsultationSessionEntity {
     required super.status,
     super.type = ConsultationType.onlineVideo,
     super.meetingUrl,
-    super.locationName,
     super.notes,
     super.diagnosisSummary,
     super.sessionNumber = 1,
@@ -17,23 +16,39 @@ class ConsultationSessionModel extends ConsultationSessionEntity {
     super.actionItems = const [],
     super.moodBefore,
     super.moodAfter,
-    super.durationMinutes = 50,
+    super.durationMinutes = 30,
     super.sessionSummary,
     super.shareAiChatHistory = false,
+    super.isExtended = false,
   });
 
   factory ConsultationSessionModel.fromJson(Map<String, dynamic> json) {
+    final rawDateStr = json['session_datetime']?.toString() ??
+        json['scheduled_start_time']?.toString() ??
+        '';
+    final psyJson = json['psychologist'] as Map<String, dynamic>?;
+    final fallbackPsy = psyJson != null
+        ? PsychologistModel.fromJson(psyJson)
+        : PsychologistModel(
+            id: json['counselor_id']?.toString() ?? '',
+            name: json['counselor_name']?.toString() ?? 'Psikolog Eva',
+            title: 'Psikolog Klinis',
+            registrationNumber: '',
+            avatarUrl: '',
+            rating: 5.0,
+            reviewCount: 0,
+            experienceYears: 1,
+            specialties: const [],
+            bio: '',
+          );
+
     return ConsultationSessionModel(
-      id: json['id'] as String? ?? '',
-      psychologist: PsychologistModel.fromJson(
-        json['psychologist'] as Map<String, dynamic>? ?? {},
-      ),
-      sessionDateTime: DateTime.tryParse(json['session_datetime'] as String? ?? '') ??
-          DateTime.now(),
+      id: json['id']?.toString() ?? '',
+      psychologist: fallbackPsy,
+      sessionDateTime: DateTime.tryParse(rawDateStr)?.toLocal() ?? DateTime.now(),
       status: _parseStatus(json['status'] as String?),
-      type: _parseType(json['type'] as String?),
+      type: ConsultationType.onlineVideo,
       meetingUrl: json['meeting_url'] as String?,
-      locationName: json['location_name'] as String?,
       notes: json['notes'] as String?,
       diagnosisSummary: json['diagnosis_summary'] as String?,
       sessionNumber: (json['session_number'] as num?)?.toInt() ?? 1,
@@ -47,9 +62,11 @@ class ConsultationSessionModel extends ConsultationSessionEntity {
           const [],
       moodBefore: json['mood_before'] as String?,
       moodAfter: json['mood_after'] as String?,
-      durationMinutes: (json['duration_minutes'] as num?)?.toInt() ?? 50,
+      durationMinutes: (json['duration_minutes'] as num?)?.toInt() ?? 30,
       sessionSummary: json['session_summary'] as String?,
       shareAiChatHistory: json['share_ai_chat_history'] as bool? ?? false,
+      isExtended: json['is_extended'] as bool? ??
+          ((json['duration_minutes'] as num?)?.toInt() ?? 30) >= 60,
     );
   }
 
@@ -64,16 +81,6 @@ class ConsultationSessionModel extends ConsultationSessionEntity {
     }
   }
 
-  static ConsultationType _parseType(String? type) {
-    switch (type?.toLowerCase()) {
-      case 'offline_clinic':
-      case 'offline':
-        return ConsultationType.offlineClinic;
-      default:
-        return ConsultationType.onlineVideo;
-    }
-  }
-
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -82,7 +89,6 @@ class ConsultationSessionModel extends ConsultationSessionEntity {
       'status': status.name,
       'type': type.name,
       'meeting_url': meetingUrl,
-      'location_name': locationName,
       'notes': notes,
       'diagnosis_summary': diagnosisSummary,
       'session_number': sessionNumber,
@@ -93,6 +99,7 @@ class ConsultationSessionModel extends ConsultationSessionEntity {
       'duration_minutes': durationMinutes,
       'session_summary': sessionSummary,
       'share_ai_chat_history': shareAiChatHistory,
+      'is_extended': isExtended,
     };
   }
 }

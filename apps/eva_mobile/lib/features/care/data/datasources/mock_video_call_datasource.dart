@@ -1,5 +1,10 @@
 import 'dart:async';
 import 'package:webrtc_client/webrtc_client.dart';
+import '../../domain/entities/consultation_session_entity.dart';
+import '../../domain/entities/psychologist_entity.dart';
+import '../models/consultation_session_model.dart';
+import '../models/extension_availability_dto.dart';
+import '../models/psychologist_model.dart';
 import '../models/video_call_session_dto.dart';
 import 'video_call_datasource.dart';
 
@@ -9,7 +14,8 @@ class MockVideoCallDataSource implements VideoCallDataSource {
     return VideoCallSessionDto(
       sessionId: sessionId,
       roomId: 'eva-room-$sessionId',
-      token: 'mock-webrtc-token-$sessionId-${DateTime.now().millisecondsSinceEpoch}',
+      token:
+          'mock-webrtc-token-$sessionId-${DateTime.now().millisecondsSinceEpoch}',
       participantId: 'user-patient-eva',
       status: 'active',
       iceServers: const [
@@ -30,9 +36,39 @@ class MockVideoCallDataSource implements VideoCallDataSource {
   Future<void> leaveRoom(String sessionId) async {}
 
   @override
-  Future<void> updateMediaState({
-    required String sessionId,
-    required bool isMicMuted,
-    required bool isCameraOff,
-  }) async {}
+  Future<ExtensionAvailabilityDto> checkExtensionAvailability(
+      String sessionId) async {
+    return ExtensionAvailabilityDto(
+      sessionId: sessionId,
+      canExtend: true,
+      extensionDurationMinutes: 30,
+      extensionPrice: 50,
+      reason:
+          'Slot 30 menit berikutnya tersedia. Sesi dapat diperpanjang tanpa memutus panggilan.',
+    );
+  }
+
+  @override
+  Future<ConsultationSessionModel> extendSession(String sessionId) async {
+    return ConsultationSessionModel(
+      id: sessionId,
+      psychologist: const PsychologistModel(
+        id: 'psy_mock',
+        name: 'Psikolog Eva',
+        title: 'Psikolog Klinis',
+        registrationNumber: '',
+        avatarUrl: '',
+        rating: 5.0,
+        reviewCount: 0,
+        experienceYears: 1,
+        specialties: [],
+        bio: '',
+        practitionerType: PractitionerType.professional,
+      ),
+      sessionDateTime: DateTime.now(),
+      status: ConsultationStatus.upcoming,
+      durationMinutes: 60,
+      isExtended: true,
+    );
+  }
 }

@@ -8,7 +8,6 @@ import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_back_button.dart';
 import '../../domain/entities/consultation_session_entity.dart';
 import '../providers/care_provider.dart';
-import '../widgets/clinic_location_map_card.dart';
 import '../widgets/consultation_result_bottom_sheet.dart';
 import 'psychologist_detail_screen.dart';
 import 'psychologist_video_call_screen.dart';
@@ -308,10 +307,9 @@ class _ConsultationScheduleScreenState
     );
   }
 
-  /// Special Highlight Banner for Live / Imminent Video Call or Offline Session
+  /// Special Highlight Banner for Live / Imminent Video Call Session
   Widget _buildReadyVideoCallBanner(ConsultationSessionEntity session) {
-    final isOnline = session.type == ConsultationType.onlineVideo;
-    final isTimeNow = isOnline && _isSessionTimeNow(session);
+    final isTimeNow = _isSessionTimeNow(session);
 
     Color bgGradientStart;
     Color bgGradientEnd;
@@ -319,13 +317,7 @@ class _ConsultationScheduleScreenState
     String badgeText;
     IconData badgeIcon;
 
-    if (!isOnline) {
-      bgGradientStart = const Color(0xFF0F766E);
-      bgGradientEnd = const Color(0xFF14B8A6);
-      badgeColor = const Color(0xFF0D9488);
-      badgeText = 'Sesi Tatap Muka di Klinik (Offline)';
-      badgeIcon = Icons.storefront_rounded;
-    } else if (isTimeNow) {
+    if (isTimeNow) {
       bgGradientStart = AppColors.primary;
       bgGradientEnd = const Color(0xFF6B71E8);
       badgeColor = AppColors.success;
@@ -413,7 +405,7 @@ class _ConsultationScheduleScreenState
                       width: 12,
                       height: 12,
                       decoration: BoxDecoration(
-                        color: isTimeNow || !isOnline
+                        color: isTimeNow
                             ? AppColors.success
                             : const Color(0xFFF59E0B),
                         shape: BoxShape.circle,
@@ -478,11 +470,9 @@ class _ConsultationScheduleScreenState
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    !isOnline
-                        ? '${_formatDate(session.sessionDateTime)} • ${_formatTime(session.sessionDateTime)} WIB (${session.locationName ?? 'Klinik Mitra'})'
-                        : isTimeNow
-                            ? '${_formatDate(session.sessionDateTime)} • ${_formatTime(session.sessionDateTime)} WIB (Sedang Berlangsung)'
-                            : '${_formatDate(session.sessionDateTime)} • ${_formatTime(session.sessionDateTime)} WIB (Dibuka 10 mnt sebelum sesi)',
+                    isTimeNow
+                        ? '${_formatDate(session.sessionDateTime)} • ${_formatTime(session.sessionDateTime)} WIB (Sedang Berlangsung)'
+                        : '${_formatDate(session.sessionDateTime)} • ${_formatTime(session.sessionDateTime)} WIB (Dibuka 10 mnt sebelum sesi)',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -498,38 +488,8 @@ class _ConsultationScheduleScreenState
 
           const SizedBox(height: 16),
 
-          // Action Button based on Type and Time validity
-          if (!isOnline)
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF0F766E),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                onPressed: () {
-                  ClinicLocationMapCard.launchRandomGoogleMaps(
-                    context: context,
-                    query: session.locationName ??
-                        session.psychologist.clinicAffiliation,
-                  );
-                },
-                icon: const Icon(Icons.map_rounded, size: 18),
-                label: Text(
-                  'Buka di Google Maps',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            )
-          else if (isTimeNow)
+          // Action Button based on Time validity
+          if (isTimeNow)
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -714,9 +674,7 @@ class _ConsultationScheduleScreenState
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                 decoration: BoxDecoration(
                   color: isUpcoming
-                      ? (session.type == ConsultationType.offlineClinic
-                          ? const Color(0xFFCCFBF1)
-                          : AppColors.successContainer)
+                      ? AppColors.successContainer
                       : isCompleted
                           ? const Color(0xFFEEF2FF)
                           : const Color(0xFFF1F5F9),
@@ -724,9 +682,7 @@ class _ConsultationScheduleScreenState
                 ),
                 child: Text(
                   isUpcoming
-                      ? (session.type == ConsultationType.offlineClinic
-                          ? 'Tatap Muka'
-                          : 'Online Video')
+                      ? 'Online Video'
                       : isCompleted
                           ? 'Selesai'
                           : 'Dibatalkan',
@@ -734,9 +690,7 @@ class _ConsultationScheduleScreenState
                     fontSize: 10.5,
                     fontWeight: FontWeight.w700,
                     color: isUpcoming
-                        ? (session.type == ConsultationType.offlineClinic
-                            ? const Color(0xFF0F766E)
-                            : AppColors.successDark)
+                        ? AppColors.successDark
                         : isCompleted
                             ? AppColors.primary
                             : AppColors.textSecondary,
@@ -813,17 +767,6 @@ class _ConsultationScheduleScreenState
             ),
           ],
 
-          // Offline Clinic Map Preview Card
-          if (session.type == ConsultationType.offlineClinic) ...[
-            const SizedBox(height: 10),
-            ClinicLocationMapCard(
-              clinicName: session.locationName ??
-                  session.psychologist.clinicAffiliation ??
-                  'Klinik Psikologi Sahabat Jiwa',
-              address: 'Jl. Kemanggisan Raya No. 45, Palmerah, Jakarta Barat',
-            ),
-          ],
-
           const SizedBox(height: 12),
 
           // Actions Row
@@ -862,39 +805,9 @@ class _ConsultationScheduleScreenState
 
               const SizedBox(width: 8),
 
-              // Action Button based on Type, Time & Status
+              // Action Button based on Time & Status
               if (isUpcoming) ...[
-                if (session.type == ConsultationType.offlineClinic)
-                  Expanded(
-                    flex: 2,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0D9488),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: () {
-                        ClinicLocationMapCard.launchRandomGoogleMaps(
-                          context: context,
-                          query: session.locationName ??
-                              session.psychologist.clinicAffiliation,
-                        );
-                      },
-                      icon: const Icon(Icons.map_rounded, size: 16),
-                      label: Text(
-                        'Buka di Maps',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  )
-                else if (_isSessionTimeNow(session))
+                if (_isSessionTimeNow(session))
                   Expanded(
                     flex: 2,
                     child: ElevatedButton.icon(

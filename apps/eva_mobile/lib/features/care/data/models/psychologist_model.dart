@@ -85,19 +85,46 @@ class PsychologistModel extends PsychologistEntity {
       parsedStats = PatientStatsEntity.fromJson(json['patient_stats'] as Map<String, dynamic>);
     }
 
+    final parsedName =
+        (json['name'] as String?) ?? (json['full_name'] as String?) ?? '';
+    final parsedTitle =
+        (json['title'] as String?) ?? (json['title_degree'] as String?) ?? '';
+    final parsedAvatar = (json['avatar_url'] as String?) ??
+        (json['profile_photo_url'] as String?) ??
+        '';
+    final parsedRegNo = (json['registration_number'] as String?) ??
+        (json['sip_number'] as String?) ??
+        (json['str_number'] as String?) ??
+        (json['association'] as String?) ??
+        '';
+    final parsedRating = (json['rating'] as num?)?.toDouble() ??
+        (json['average_rating'] as num?)?.toDouble() ??
+        5.0;
+    final parsedReviewCount = (json['review_count'] as num?)?.toInt() ??
+        (json['rating_count'] as num?)?.toInt() ??
+        0;
+    final parsedSpecialties =
+        ((json['specialties'] ?? json['specializations']) as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            [];
+    final parsedCoins = (json['effective_session_price'] as num?)?.toInt() ??
+        (json['coins_per_session'] as num?)?.toInt() ??
+        (json['fee_per_session'] as num?)?.toInt() ??
+        50;
+
     return PsychologistModel(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      title: json['title'] as String? ?? '',
-      registrationNumber: json['registration_number'] as String? ?? '',
-      avatarUrl: json['avatar_url'] as String? ?? '',
-      rating: (json['rating'] as num?)?.toDouble() ?? 5.0,
-      reviewCount: (json['review_count'] as num?)?.toInt() ?? 0,
-      experienceYears: (json['experience_years'] as num?)?.toInt() ?? 1,
-      specialties: (json['specialties'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
+      id: json['id']?.toString() ?? '',
+      name: parsedName,
+      title: parsedTitle,
+      registrationNumber: parsedRegNo,
+      avatarUrl: parsedAvatar,
+      rating: parsedRating,
+      reviewCount: parsedReviewCount,
+      experienceYears: (json['experience_years'] as num?)?.toInt() ??
+          (json['years_of_experience'] as num?)?.toInt() ??
+          1,
+      specialties: parsedSpecialties,
       patientReviewTags: (json['patient_review_tags'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
@@ -117,12 +144,11 @@ class PsychologistModel extends PsychologistEntity {
               ?.map((e) => CertificateItem.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
-      coinsPerSession: (json['coins_per_session'] as num?)?.toInt() ??
-          (json['fee_per_session'] as num?)?.toInt() ??
-          50,
-      durationMinutes: (json['duration_minutes'] as num?)?.toInt() ?? 50,
-      availableOnline: json['available_online'] as bool? ?? true,
-      clinicAffiliation: json['clinic_affiliation'] as String?,
+      coinsPerSession: parsedCoins,
+      durationMinutes: (json['duration_minutes'] as num?)?.toInt() ?? 30,
+      availableOnline:
+          (json['available_online'] as bool?) ?? (json['is_online'] as bool?) ?? true,
+      clinicAffiliation: null,
       bio: json['bio'] as String? ?? '',
       practitionerType: parsedType,
       hasPsychologistCertificate: hasCert,

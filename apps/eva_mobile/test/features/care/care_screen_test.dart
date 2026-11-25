@@ -14,7 +14,6 @@ import 'package:eva_mobile/features/care/presentation/widgets/care_quick_actions
 import 'package:eva_mobile/features/care/presentation/widgets/community_banner_card.dart';
 import 'package:eva_mobile/features/care/presentation/widgets/psychologist_card.dart';
 import 'package:eva_mobile/features/care/presentation/widgets/psychologist_certificate_carousel.dart';
-import 'package:eva_mobile/features/care/presentation/widgets/clinic_location_map_card.dart';
 import 'package:eva_mobile/features/care/presentation/widgets/consultation_result_bottom_sheet.dart';
 import '../../test_helpers/mock_image_http.dart';
 
@@ -217,10 +216,9 @@ void main() {
     await tester.tap(find.text('Mengerti'));
     await tester.pumpAndSettle();
 
-    // 2. Verify offline clinic session shows Maps card & Buka di Maps button
-    expect(find.byType(ClinicLocationMapCard), findsWidgets);
-    expect(find.text('Lokasi Konsultasi'), findsWidgets);
-    expect(find.text('Buka di Maps'), findsOneWidget);
+    // 2. Verify no offline clinic cards or Tatap Muka buttons remain
+    expect(find.text('Tatap Muka'), findsNothing);
+    expect(find.text('Buka di Maps'), findsNothing);
 
     // 3. Verify Masuk Video Call button is present for active session and tap it
     final videoCallBtn = find.text('Masuk Video Call Sekarang');

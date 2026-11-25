@@ -2,7 +2,6 @@ import 'dart:async';
 import '../../domain/entities/consultation_session_entity.dart';
 import '../../domain/entities/psychologist_entity.dart';
 import '../models/psychologist_model.dart';
-import '../models/clinic_model.dart';
 import '../models/community_status_model.dart';
 import '../models/consultation_session_model.dart';
 import '../models/counselor_timeline_dto.dart';
@@ -606,42 +605,6 @@ class MockCareDataSource implements CareDataSource {
     ),
   ];
 
-  final List<ClinicModel> _clinics = [
-    const ClinicModel(
-      id: 'clinic_1',
-      name: 'Klinik Utama Sahabat Jiwa',
-      address: 'Jl. Tebet Barat Raya No. 42, Tebet, Jakarta Selatan',
-      city: 'Jakarta Selatan',
-      distanceKm: 2.3,
-      photoUrl: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400&auto=format&fit=crop&q=80',
-      phone: '021-83701234',
-      facilities: ['Ruang Konseling Privat', 'Farmasi Jiwa', 'Ruang Meditasi', 'Parkir Luas'],
-      rating: 4.9,
-    ),
-    const ClinicModel(
-      id: 'clinic_2',
-      name: 'RS Jiwa & Emosi Harmoni',
-      address: 'Jl. Dr. Saharjo No. 108, Setiabudi, Jakarta Selatan',
-      city: 'Jakarta Selatan',
-      distanceKm: 4.1,
-      photoUrl: 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=400&auto=format&fit=crop&q=80',
-      phone: '021-82909988',
-      facilities: ['UGD Psikiatri 24 Jam', 'Laboratorium Tes', 'Konseling Pasangan', 'Ambulans'],
-      rating: 4.8,
-    ),
-    const ClinicModel(
-      id: 'clinic_3',
-      name: 'Pusat Konseling Bina Jiwa Bandung',
-      address: 'Jl. Cihampelas No. 156, Coblong, Bandung',
-      city: 'Bandung',
-      distanceKm: 128.0,
-      photoUrl: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=400&auto=format&fit=crop&q=80',
-      phone: '022-2031122',
-      facilities: ['Konseling Komunitas', 'Workshop Art Therapy', 'Taman Terbuka'],
-      rating: 4.7,
-    ),
-  ];
-
   late final List<ConsultationSessionModel> _sessions = [
     ConsultationSessionModel(
       id: 'sess_1',
@@ -671,17 +634,6 @@ class MockCareDataSource implements CareDataSource {
       notes: 'Strategi mengatasi burnout kerja dan menetapkan batasan (boundary setting) dengan atasan.',
       sessionNumber: 1,
       moodBefore: 'Lelah Mental & Jenuh (Skala 7/10)',
-    ),
-    ConsultationSessionModel(
-      id: 'sess_offline_1',
-      psychologist: _psychologists[2], // Rian Pratama
-      sessionDateTime: DateTime.now().add(const Duration(days: 1, hours: 2)),
-      status: ConsultationStatus.upcoming,
-      type: ConsultationType.offlineClinic,
-      locationName: 'Klinik Psikologi Sahabat Jiwa Jakarta Barat',
-      notes: 'Konsultasi tatap muka langsung di klinik untuk pemulihan trauma masa lalu dan psikosomatis.',
-      sessionNumber: 1,
-      moodBefore: 'Overthinking & Kelelahan Emosional (Skala 7/10)',
     ),
     ConsultationSessionModel(
       id: 'sess_3',
@@ -783,24 +735,6 @@ class MockCareDataSource implements CareDataSource {
         final matchesBadge = p.badgeHeaderTitle.toLowerCase().contains(q);
         final matchesClinic = p.clinicAffiliation?.toLowerCase().contains(q) ?? false;
         return matchesName || matchesSpecialty || matchesReviewTag || matchesBadge || matchesClinic;
-      }).toList();
-    }
-
-    return result;
-  }
-
-  @override
-  Future<List<ClinicModel>> getClinics({String? query}) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    var result = List<ClinicModel>.from(_clinics);
-
-    if (query != null && query.trim().isNotEmpty) {
-      final q = query.toLowerCase().trim();
-      result = result.where((c) {
-        final matchesName = c.name.toLowerCase().contains(q);
-        final matchesCity = c.city.toLowerCase().contains(q);
-        final matchesFacility = c.facilities.any((f) => f.toLowerCase().contains(q));
-        return matchesName || matchesCity || matchesFacility;
       }).toList();
     }
 
@@ -922,14 +856,9 @@ class MockCareDataSource implements CareDataSource {
       psychologist: targetPsy,
       sessionDateTime: preferredDateTime,
       status: ConsultationStatus.upcoming,
-      type: sessionType,
+      type: ConsultationType.onlineVideo,
       durationMinutes: durationMinutes > 0 ? durationMinutes : sessionCount * 30,
-      meetingUrl: sessionType == ConsultationType.onlineVideo
-          ? 'https://meet.google.com/eva-consult-${DateTime.now().millisecondsSinceEpoch}'
-          : null,
-      locationName: sessionType == ConsultationType.offlineClinic
-          ? (targetPsy.clinicAffiliation ?? 'Klinik Mitra Eva')
-          : null,
+      meetingUrl: 'https://meet.google.com/eva-consult-${DateTime.now().millisecondsSinceEpoch}',
       notes: complaints,
       shareAiChatHistory: shareAiChatHistory,
     );

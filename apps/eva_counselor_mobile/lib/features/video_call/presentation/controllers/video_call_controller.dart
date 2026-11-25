@@ -233,6 +233,26 @@ class VideoCallController extends StateNotifier<VideoCallSessionEntity> {
         }
         break;
 
+      case 'extension_updated':
+        final isApproved = message.payload['is_approved'] as bool? ?? false;
+        final maxMins =
+            (message.payload['max_duration_minutes'] as num?)?.toInt() ??
+                (isApproved ? 60 : 30);
+        if (isApproved) {
+          state = state.copyWith(
+            isExtended: true,
+            isExtensionRequested: false,
+            isExtensionApproved: true,
+            maxDuration: Duration(minutes: maxMins),
+          );
+        } else {
+          state = state.copyWith(
+            isExtensionRequested: false,
+            isExtensionApproved: false,
+          );
+        }
+        break;
+
       case 'session_ended':
         endCall();
         break;
