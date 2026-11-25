@@ -41,18 +41,13 @@ class TestMobileBackendContractChecker(unittest.TestCase):
         self.assertGreater(summary["connected_endpoints_count"], 0)
         self.assertTrue(summary["websocket_connected"])
 
-        # Verify core endpoints are recognized as connected
-        connected_paths = [c["mobile_path"] for c in results["connected"]]
-        self.assertIn("/auth/login", connected_paths)
-        self.assertIn("/dass/today", connected_paths)
-        self.assertIn("/recommendations/today", connected_paths)
-
         # Verify core and care endpoints are recognized as connected
         connected_paths = [c["mobile_path"] for c in results["connected"]]
         self.assertIn("/auth/login", connected_paths)
         self.assertIn("/dass/today", connected_paths)
         self.assertIn("/recommendations/today", connected_paths)
-        self.assertIn("/care/psychologists", connected_paths)
+        self.assertIn("/counselors", connected_paths)
+        self.assertIn("/care/sessions", connected_paths)
 
         # Verify unlinked endpoints are recognized as missing in backend
         missing_paths = [m["mobile_path"] for m in results["missing_in_backend"]]
