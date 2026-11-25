@@ -1,5 +1,6 @@
 import { ShieldCheck, Stethoscope, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { CounselorScreen } from '@/components/mockups/CounselorScreens'
 import { PhoneFrame } from '@/components/mockups/PhoneFrame'
 import { Badge, Button, Container, IconTile, SectionHeading } from '@/components/ui'
@@ -100,7 +101,7 @@ export function PsychologistShowcase() {
             </div>
 
             {/* Verification & clinical standard summary bar */}
-            <div className="reveal rounded-card border border-border-subtle/80 bg-canvas p-6 shadow-subtle sm:p-7">
+            <div className="rounded-card border border-border-subtle/80 bg-canvas p-6 shadow-subtle sm:p-7">
               <p className="text-overline text-primary uppercase">{counselorSection.verifyHeading}</p>
 
               <p className="mt-2 text-body-md text-ink-soft leading-relaxed">
@@ -203,63 +204,66 @@ export function PsychologistShowcase() {
         </div>
       </Container>
 
-      {/* Clinical Evaluation Modal */}
-      {evaluationOpen && (
-        <div
-          data-lenis-prevent
-          className="fixed inset-0 z-50 flex items-center justify-center overscroll-contain bg-obsidian/55 p-4 backdrop-blur-xs"
-          onClick={() => setEvaluationOpen(false)}
-        >
+      {/* Clinical Evaluation Modal rendered in document.body to escape section stacking context */}
+      {evaluationOpen &&
+        typeof document !== 'undefined' &&
+        createPortal(
           <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="clinical-eval-modal-title"
             data-lenis-prevent
-            className="relative max-h-[88dvh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[28px] border border-border-subtle bg-white p-6 shadow-2xl sm:p-8"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[70] flex items-center justify-center overscroll-contain bg-obsidian/55 p-4 backdrop-blur-xs"
+            onClick={() => setEvaluationOpen(false)}
           >
-            <div className="flex items-start justify-between gap-4 border-b border-divider pb-4">
-              <div>
-                <span className="text-overline text-primary uppercase">Standar Layanan EVA</span>
-                <h3 id="clinical-eval-modal-title" className="mt-1 text-headline text-ink">
-                  Aturan Layanan &amp; Privasi Pasien
-                </h3>
-              </div>
-              <button
-                type="button"
-                aria-label="Tutup dialog evaluasi klinis"
-                onClick={() => setEvaluationOpen(false)}
-                className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border-subtle text-ink-soft transition-colors hover:bg-canvas hover:text-ink focus-visible:outline-2 focus-visible:outline-primary"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-
-            <div className="mt-5 space-y-4">
-              {clinicalEvaluationData.map((item) => (
-                <article
-                  key={item.id}
-                  className="rounded-card border border-border-subtle/80 bg-canvas p-5"
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="clinical-eval-modal-title"
+              data-lenis-prevent
+              className="relative max-h-[88dvh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[28px] border border-border-subtle bg-white p-6 shadow-2xl sm:p-8"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-4 border-b border-divider pb-4">
+                <div>
+                  <span className="text-overline text-primary uppercase">Standar Layanan EVA</span>
+                  <h3 id="clinical-eval-modal-title" className="mt-1 text-headline text-ink">
+                    Aturan Layanan &amp; Privasi Pasien
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Tutup dialog evaluasi klinis"
+                  onClick={() => setEvaluationOpen(false)}
+                  className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border-subtle text-ink-soft transition-colors hover:bg-canvas hover:text-ink focus-visible:outline-2 focus-visible:outline-primary"
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h4 className="text-title-md text-ink">{item.title}</h4>
-                    <Badge tone="primary">{item.badge}</Badge>
-                  </div>
-                  <p className="mt-2 text-body-md text-ink-soft leading-relaxed">{item.summary}</p>
-                  <ul className="mt-3 space-y-1.5 text-caption font-medium text-ink">
-                    {item.details.map((detail) => (
-                      <li key={detail} className="flex items-start gap-2">
-                        <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
-                        <span>{detail}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </article>
-              ))}
+                  <X className="size-4" />
+                </button>
+              </div>
+
+              <div className="mt-5 space-y-4">
+                {clinicalEvaluationData.map((item) => (
+                  <article
+                    key={item.id}
+                    className="rounded-card border border-border-subtle/80 bg-canvas p-5"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h4 className="text-title-md text-ink">{item.title}</h4>
+                      <Badge tone="primary">{item.badge}</Badge>
+                    </div>
+                    <p className="mt-2 text-body-md text-ink-soft leading-relaxed">{item.summary}</p>
+                    <ul className="mt-3 space-y-1.5 text-caption font-medium text-ink">
+                      {item.details.map((detail) => (
+                        <li key={detail} className="flex items-start gap-2">
+                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
+                          <span>{detail}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </article>
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </section>
   )
 }
