@@ -8,6 +8,7 @@ from shared.config import settings
 from app.api.dependencies import shutdown_webrtc_signaling_manager
 from app.api.routes.admin_coins import router as admin_coins_router
 from app.api.routes.admin_counselors import router as admin_counselors_router
+from app.api.routes.admin_finance import router as admin_finance_router
 from app.api.routes.admin_sessions import router as admin_sessions_router
 from app.api.routes.analytics import router as analytics_router
 from app.api.routes.auth import router as auth_router
@@ -41,6 +42,7 @@ from app.api.routes.pricing import router as pricing_router
 from app.api.routes.recommendations import router as recommendations_router
 from app.api.routes.sessions import router as sessions_router
 from app.api.routes.user import router as user_router
+from app.api.routes.webhooks import router as webhooks_router
 from app.core.logging import setup_logging
 
 logger = logging.getLogger(__name__)
@@ -92,6 +94,7 @@ app.include_router(patients_router, prefix="/api/v1")
 app.include_router(finances_router, prefix="/api/v1")
 app.include_router(care_router, prefix="/api/v1")
 app.include_router(admin_coins_router, prefix="/api/v1")
+app.include_router(admin_finance_router, prefix="/api/v1")
 app.include_router(coins_router, prefix="/api/v1")
 app.include_router(admin_counselors_router, prefix="/api/v1")
 app.include_router(admin_sessions_router, prefix="/api/v1")
@@ -104,6 +107,7 @@ app.include_router(certificates_counselor_router, prefix="/api/v1")
 app.include_router(certificates_admin_router, prefix="/api/v1")
 app.include_router(levels_counselor_router, prefix="/api/v1")
 app.include_router(levels_admin_router, prefix="/api/v1")
+app.include_router(webhooks_router, prefix="/api/v1")
 
 
 @app.get("/")

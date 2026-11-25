@@ -22,6 +22,7 @@ import 'package:eva_mobile/features/care/presentation/screens/consultation_sessi
 import 'package:eva_mobile/features/care/presentation/screens/consultation_rating_screen.dart';
 import 'package:eva_mobile/features/care/presentation/screens/psychologist_video_call_screen.dart';
 import 'package:eva_mobile/features/coin/presentation/screens/coin_purchase_screen.dart';
+import 'package:eva_mobile/features/coin/presentation/screens/coin_topup_history_screen.dart';
 import 'package:eva_mobile/features/home/presentation/screens/main_shell_screen.dart';
 import 'package:eva_mobile/features/monitoring/presentation/screens/monitoring_screen.dart';
 import 'package:eva_mobile/features/care/presentation/screens/care_screen.dart';
@@ -150,6 +151,11 @@ class AppRouter {
       case '/buy_coins':
         return AppRouteTransitions.horizontalDetailRoute(
           page: const CoinPurchaseScreen(),
+          settings: settings,
+        );
+      case '/coin_topup_history':
+        return AppRouteTransitions.horizontalDetailRoute(
+          page: const CoinTopupHistoryScreen(),
           settings: settings,
         );
       case '/psychologist_detail':

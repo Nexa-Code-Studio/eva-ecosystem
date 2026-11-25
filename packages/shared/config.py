@@ -79,6 +79,34 @@ class BaseConfig(BaseSettings):
     WEBRTC_RECONNECT_GRACE_SECONDS: int = 25
     QDRANT_URL: str = "http://localhost:6333"
 
+    # Midtrans Payment (Core API QRIS) & BI-SNAP Optional Settings
+    MIDTRANS_IS_PRODUCTION: bool = False
+    MIDTRANS_MERCHANT_ID: str = ""
+    MIDTRANS_SERVER_KEY: str = ""
+    MIDTRANS_SIGNATURE_SECRET_KEY: str = ""
+    MIDTRANS_CLIENT_KEY: str = ""
+    MIDTRANS_QRIS_ACQUIRER: str = "gopay"
+    MIDTRANS_PAYMENT_ENABLED: bool = False
+
+    # Midtrans BI-SNAP Optional Credentials
+    MIDTRANS_BISNAP_CLIENT_ID: str = ""
+    MIDTRANS_BISNAP_CLIENT_SECRET: str = ""
+    MIDTRANS_BISNAP_PRIVATE_KEY_PATH: str = ""
+    MIDTRANS_BISNAP_PARTNER_ID: str = ""
+    MIDTRANS_BISNAP_CHANNEL_ID: str = ""
+
+    # Midtrans Payout (Iris Primary Adapter)
+    MIDTRANS_PAYOUT_ENABLED: bool = False
+    MIDTRANS_PAYOUT_PROVIDER_MODE: str = "iris"  # iris | mock (isolated test only)
+    MIDTRANS_IRIS_BASE_URL: str = ""
+    MIDTRANS_IRIS_CREATOR_KEY: str = ""
+    MIDTRANS_IRIS_APPROVER_KEY: str = ""
+    MIDTRANS_IRIS_NOTIFICATION_SECRET: str = ""
+    MIDTRANS_PAYOUT_AUTO_APPROVE: bool = False
+
+    # At-Rest Bank Account Encryption
+    BANK_ACCOUNT_ENCRYPTION_KEY: str = ""
+
     @field_validator("WEBRTC_STUN_URLS", mode="before")
     @classmethod
     def _validate_webrtc_stun_urls(cls, value: Any) -> list[str]:
@@ -99,9 +127,35 @@ class BaseConfig(BaseSettings):
             "CLOUDFLARE_TURN_TOKEN_ID",
             "CLOUDFLARE_TURN_API_TOKEN",
             "UPLOAD_DIR",
+            "MIDTRANS_MERCHANT_ID",
+            "MIDTRANS_SERVER_KEY",
+            "MIDTRANS_SIGNATURE_SECRET_KEY",
+            "MIDTRANS_CLIENT_KEY",
+            "MIDTRANS_QRIS_ACQUIRER",
+            "MIDTRANS_BISNAP_CLIENT_ID",
+            "MIDTRANS_BISNAP_CLIENT_SECRET",
+            "MIDTRANS_BISNAP_PRIVATE_KEY_PATH",
+            "MIDTRANS_BISNAP_PARTNER_ID",
+            "MIDTRANS_BISNAP_CHANNEL_ID",
+            "MIDTRANS_PAYOUT_PROVIDER_MODE",
+            "MIDTRANS_IRIS_BASE_URL",
+            "MIDTRANS_IRIS_CREATOR_KEY",
+            "MIDTRANS_IRIS_APPROVER_KEY",
+            "MIDTRANS_IRIS_NOTIFICATION_SECRET",
+            "BANK_ACCOUNT_ENCRYPTION_KEY",
         ):
             if env_key in os.environ:
                 setattr(self, env_key, os.environ[env_key])
+
+        for bool_env_key in (
+            "MIDTRANS_IS_PRODUCTION",
+            "MIDTRANS_PAYMENT_ENABLED",
+            "MIDTRANS_PAYOUT_ENABLED",
+            "MIDTRANS_PAYOUT_AUTO_APPROVE",
+        ):
+            if bool_env_key in os.environ:
+                raw_val = os.environ[bool_env_key].strip().lower()
+                setattr(self, bool_env_key, raw_val in ("1", "true", "yes", "on"))
 
         if "WS_BASE_URL" in os.environ:
             self.WS_BASE_URL = normalize_ws_base_url(os.environ["WS_BASE_URL"])

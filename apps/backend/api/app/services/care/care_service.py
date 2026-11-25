@@ -152,6 +152,8 @@ class CareService:
             session.status = ConsultationSessionStatus.LIVE.value
             if not session.actual_start_time:
                 session.actual_start_time = now
+            await self.db.commit()
+            await self.db.refresh(session)
         elif target_status in ("completed", "ended"):
             session.status = ConsultationSessionStatus.COMPLETED.value
             if not session.actual_end_time:
@@ -162,11 +164,18 @@ class CareService:
                 notes_dict = session.soap_notes or {}
                 notes_dict["quick_notes"] = payload.notes
                 session.soap_notes = notes_dict
+            await self.db.commit()
+            await self.db.refresh(session)
+            await SchedulingService(self.db).release_pending_session_earnings(session.id)
         elif target_status in ("missed", "cancelled"):
-            session.status = ConsultationSessionStatus.CANCELLED.value
-
-        await self.db.commit()
-        await self.db.refresh(session)
+            await SchedulingService(self.db).cancel_session_and_refund(
+                session.id,
+                reason=f"Status call: {target_status}",
+            )
+            await self.db.refresh(session)
+        else:
+            await self.db.commit()
+            await self.db.refresh(session)
 
         if target_status in ("completed", "ended"):
             try:

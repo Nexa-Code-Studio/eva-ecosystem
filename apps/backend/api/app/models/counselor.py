@@ -39,6 +39,7 @@ class PsychologistProfile(BaseModel):
         kwargs.setdefault("buffer_time_minutes", 10)
         kwargs.setdefault("schedule_config", {})
         kwargs.setdefault("wallet_balance", Decimal("0.00"))
+        kwargs.setdefault("locked_withdrawal_balance", Decimal("0.00"))
         kwargs.setdefault("total_completed_sessions", 0)
         kwargs.setdefault("total_consultation_hours", Decimal("0.00"))
         kwargs.setdefault("average_rating", Decimal("0.00"))
@@ -123,6 +124,12 @@ class PsychologistProfile(BaseModel):
     bank_account_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
     bank_account_holder: Mapped[str | None] = mapped_column(String(200), nullable=True)
     wallet_balance: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2),
+        nullable=False,
+        default=Decimal("0.00"),
+        server_default="0.00",
+    )
+    locked_withdrawal_balance: Mapped[Decimal] = mapped_column(
         Numeric(14, 2),
         nullable=False,
         default=Decimal("0.00"),
