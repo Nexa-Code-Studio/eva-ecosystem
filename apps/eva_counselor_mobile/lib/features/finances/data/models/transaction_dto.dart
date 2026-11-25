@@ -3,38 +3,48 @@ import '../../domain/entities/transaction_entity.dart';
 class FinancialSummaryResponseDto {
   final int availableBalance;
   final int pendingClearingBalance;
+  final int lockedWithdrawalBalance;
   final int totalEarningsThisMonth;
   final int totalWithdrawn;
+  final String currency;
 
   const FinancialSummaryResponseDto({
     required this.availableBalance,
     required this.pendingClearingBalance,
+    this.lockedWithdrawalBalance = 0,
     required this.totalEarningsThisMonth,
     required this.totalWithdrawn,
+    this.currency = 'IDR',
   });
 
   factory FinancialSummaryResponseDto.fromJson(Map<String, dynamic> json) {
     return FinancialSummaryResponseDto(
-      availableBalance: json['available_balance'] as int? ?? 0,
-      pendingClearingBalance: json['pending_clearing_balance'] as int? ?? 0,
-      totalEarningsThisMonth: json['total_earnings_this_month'] as int? ?? 0,
-      totalWithdrawn: json['total_withdrawn'] as int? ?? 0,
+      availableBalance: (json['available_balance'] as num?)?.toInt() ?? 0,
+      pendingClearingBalance: (json['pending_clearing_balance'] as num?)?.toInt() ?? 0,
+      lockedWithdrawalBalance: (json['locked_withdrawal_balance'] as num?)?.toInt() ?? 0,
+      totalEarningsThisMonth: (json['total_earnings_this_month'] as num?)?.toInt() ?? 0,
+      totalWithdrawn: (json['total_withdrawn'] as num?)?.toInt() ?? 0,
+      currency: json['currency']?.toString() ?? 'IDR',
     );
   }
 
   Map<String, dynamic> toJson() => {
         'available_balance': availableBalance,
         'pending_clearing_balance': pendingClearingBalance,
+        'locked_withdrawal_balance': lockedWithdrawalBalance,
         'total_earnings_this_month': totalEarningsThisMonth,
         'total_withdrawn': totalWithdrawn,
+        'currency': currency,
       };
 
   FinancialSummaryEntity toEntity() {
     return FinancialSummaryEntity(
       availableBalance: availableBalance,
       pendingClearingBalance: pendingClearingBalance,
+      lockedWithdrawalBalance: lockedWithdrawalBalance,
       totalEarningsThisMonth: totalEarningsThisMonth,
       totalWithdrawn: totalWithdrawn,
+      currency: currency,
     );
   }
 }

@@ -190,5 +190,12 @@
     "updated_at": 1795555308,
     "evidence_summary": "Evidence accepted: PR and test verification documented.",
     "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/131"
+  },
+  "137": {
+    "issue": 137,
+    "branch": "feat/137-counselor-bank-account-payout",
+    "state": "In Progress",
+    "updated_at": 1795584842,
+    "evidence_summary": "Evidence accepted: active task branch verified."
   }
 }
