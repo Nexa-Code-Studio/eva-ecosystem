@@ -203,6 +203,7 @@ class TransactionStatus(StrEnum):
 
 class CoinTransactionType(StrEnum):
     TOPUP_ADMIN = "topup_admin"
+    TOPUP_QRIS = "topup_qris"
     GRANT_ADMIN = "grant_admin"
     BOOKING_DEBIT = "booking_debit"
     EXTENSION_DEBIT = "extension_debit"
@@ -213,3 +214,72 @@ class PricingConfigStatus(StrEnum):
     ACTIVE = "active"
     DRAFT = "draft"
     ARCHIVED = "archived"
+
+
+class TopupOrderStatus(StrEnum):
+    CREATING = "creating"
+    PENDING = "pending"
+    PAID = "paid"
+    EXPIRED = "expired"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    REFUND_PENDING = "refund_pending"
+    PARTIALLY_REFUNDED = "partially_refunded"
+    REFUNDED = "refunded"
+    REVIEW_REQUIRED = "review_required"
+
+
+class BankValidationStatus(StrEnum):
+    VERIFIED = "verified"
+    NOT_FOUND = "not_found"
+    REVIEW_REQUIRED = "review_required"
+    UNAVAILABLE = "unavailable"
+
+
+class BankNameMatchStatus(StrEnum):
+    MATCHED = "matched"
+    MISMATCH = "mismatch"
+    REVIEW_REQUIRED = "review_required"
+    UNKNOWN = "unknown"
+
+
+class BankVerificationStatus(StrEnum):
+    UNVERIFIED = "unverified"
+    VERIFIED = "verified"
+    REVIEW_REQUIRED = "review_required"
+    INACTIVE = "inactive"
+    REJECTED = "rejected"
+
+
+class PayoutStatus(StrEnum):
+    REQUESTED = "requested"
+    WAITING_APPROVAL = "waiting_approval"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+    REVERSED = "reversed"
+    REVIEW_REQUIRED = "review_required"
+
+
+class ReconciliationStatus(StrEnum):
+    PENDING = "pending"
+    MATCHED = "matched"
+    MISMATCH = "mismatch"
+    REVIEW_REQUIRED = "review_required"
+    UNKNOWN = "unknown"
+
+
+class WebhookProcessStatus(StrEnum):
+    PENDING = "pending"
+    PROCESSED = "processed"
+    IGNORED = "ignored"
+    FAILED = "failed"
+    QUARANTINED = "quarantined"
+
+
+class OutboxEventStatus(StrEnum):
+    PENDING = "pending"
+    PROCESSED = "processed"
+    FAILED = "failed"

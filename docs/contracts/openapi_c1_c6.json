@@ -1,0 +1,102 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "EVA Ecosystem Payment & Payout Contract (C1-C6)",
+    "version": "1.0.0",
+    "description": "Shared API contract v1 for EVA Mobile QRIS Top-up, Counselor Bank Verification & Payout, Admin Finance Monitoring, and Midtrans Webhooks."
+  },
+  "servers": [{ "url": "/api/v1" }],
+  "paths": {
+    "/coins/topups": {
+      "post": {
+        "summary": "Create QRIS coin top-up order",
+        "parameters": [
+          { "name": "Idempotency-Key", "in": "header", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "201": { "description": "Topup order created" },
+          "200": { "description": "Idempotent replay" },
+          "409": { "description": "IDEMPOTENCY_CONFLICT" },
+          "503": { "description": "PAYMENT_DISABLED or PROVIDER_UNAVAILABLE" }
+        }
+      },
+      "get": {
+        "summary": "List user top-up orders (paginated)",
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "page_size", "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } },
+          { "name": "status", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Paginated topup list" } }
+      }
+    },
+    "/coins/topups/{id}": {
+      "get": {
+        "summary": "Get top-up order detail (owner only)",
+        "responses": { "200": { "description": "Topup order" }, "404": { "description": "TOPUP_NOT_FOUND" } }
+      }
+    },
+    "/coins/topups/{id}/qr": {
+      "get": {
+        "summary": "Proxy QRIS PNG image (owner only, host allowlist, no-store)",
+        "responses": { "200": { "description": "PNG stream" } }
+      }
+    },
+    "/coins/topups/{id}/refresh": {
+      "post": {
+        "summary": "On-demand status sync with Midtrans Core API",
+        "responses": { "200": { "description": "Updated topup order" } }
+      }
+    },
+    "/finances/banks": {
+      "get": { "summary": "List supported payout banks", "responses": { "200": { "description": "Bank items" } } }
+    },
+    "/finances/bank-accounts/validate": {
+      "post": {
+        "summary": "Validate counselor bank account via provider",
+        "responses": { "200": { "description": "BankValidation" } }
+      }
+    },
+    "/finances/bank-accounts/current": {
+      "get": { "summary": "Get active counselor bank account", "responses": { "200": { "description": "BankAccount or null" } } },
+      "put": { "summary": "Activate validated bank account", "responses": { "200": { "description": "BankAccount" } } }
+    },
+    "/finances/summary": {
+      "get": { "summary": "Get counselor financial summary", "responses": { "200": { "description": "Summary with locked_withdrawal_balance" } } }
+    },
+    "/finances/payout-policy": {
+      "get": { "summary": "Get payout policy limits and fee", "responses": { "200": { "description": "PayoutPolicy" } } }
+    },
+    "/finances/payouts/quote": {
+      "post": { "summary": "Create payout fee and net quote", "responses": { "200": { "description": "PayoutQuote" } } }
+    },
+    "/finances/payouts": {
+      "post": {
+        "summary": "Submit idempotent payout from quote",
+        "parameters": [
+          { "name": "Idempotency-Key", "in": "header", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "201": { "description": "Payout created" }, "200": { "description": "Idempotent replay" } }
+      },
+      "get": { "summary": "List counselor payouts (paginated)", "responses": { "200": { "description": "Paginated payout list" } } }
+    },
+    "/finances/payouts/{id}": {
+      "get": { "summary": "Get payout detail", "responses": { "200": { "description": "Payout" } } }
+    },
+    "/admin/finance/summary": {
+      "get": { "summary": "Admin real-money summary KPI", "responses": { "200": { "description": "FinanceSummary" } } }
+    },
+    "/admin/finance/transactions": {
+      "get": { "summary": "Admin paginated money-in/out ledger", "responses": { "200": { "description": "Paginated FinanceTransaction list" } } }
+    },
+    "/admin/finance/transactions/{id}": {
+      "get": { "summary": "Admin finance transaction detail and timeline", "responses": { "200": { "description": "FinanceTransactionDetail" } } }
+    },
+    "/webhooks/midtrans/payment": {
+      "post": { "summary": "Midtrans Core API QRIS payment webhook", "responses": { "200": { "description": "Accepted" } } }
+    },
+    "/webhooks/midtrans/iris": {
+      "post": { "summary": "Midtrans Iris payout webhook", "responses": { "200": { "description": "Accepted" } } }
+    }
+  }
+}

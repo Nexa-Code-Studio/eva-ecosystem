@@ -8,6 +8,7 @@ from sqlalchemy import case, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.payment_errors import raise_contract_error
 from app.core.security import hash_password
 from app.models.counselor import PlatformPricingConfig, PsychologistProfile
 from app.models.enums import PricingConfigStatus, PsychologistVerificationStatus
@@ -268,23 +269,12 @@ class CounselorService:
         user_id: uuid.UUID,
         payload: UpdateBankDetailsRequest,
     ) -> PsychologistProfileResponse:
-        """Update payout bank account details for honorarium withdrawal."""
-        query = select(PsychologistProfile).where(PsychologistProfile.user_id == user_id)
-        res = await self.db.execute(query)
-        profile = res.scalar_one_or_none()
-        if not profile:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Profil psikolog tidak ditemukan.",
-            )
-
-        profile.bank_name = payload.bank_name.strip()
-        profile.bank_account_number = payload.bank_account_number.strip()
-        profile.bank_account_holder = payload.bank_account_holder.strip()
-
-        await self.db.commit()
-        await self.db.refresh(profile)
-        return self._to_profile_response(profile)
+        """Legacy unverified bank overwrite disabled; enforce /finances/bank-accounts verification."""
+        raise_contract_error(
+            status.HTTP_403_FORBIDDEN,
+            "BANK_VERIFICATION_REQUIRED",
+            "Perubahan rekening bank wajib melalui alur verifikasi (/api/v1/finances/bank-accounts/validate).",
+        )
 
     async def list_verified_counselors(
         self,

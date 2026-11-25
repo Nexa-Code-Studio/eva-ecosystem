@@ -9,6 +9,13 @@ class AppConfig {
     defaultValue: bool.fromEnvironment('MOCK', defaultValue: false),
   );
 
+  /// Compile-time QRIS top-up release gate: --dart-define=ENABLE_QRIS_TOPUP=true
+  /// Kept false by default on distributed builds until #135 policy sign-off.
+  static const bool enableQrisTopup = bool.fromEnvironment(
+    'ENABLE_QRIS_TOPUP',
+    defaultValue: false,
+  );
+
   /// Compile-time hybrid fallback flag: --dart-define=USE_HYBRID_FALLBACK=true or --dart-define=HYBRID=true
   static const bool useHybridFallback = bool.fromEnvironment(
     'USE_HYBRID_FALLBACK',
@@ -286,6 +293,8 @@ class AppConfig {
     await prefs.remove('refresh_token');
     await prefs.remove('user_name');
     await prefs.remove('user_email');
+    await prefs.remove('user_coin_balance');
+    await prefs.remove('pending_topup_order_id');
   }
 
   /// Get cached coin balance

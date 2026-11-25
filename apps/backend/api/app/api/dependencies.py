@@ -1,10 +1,12 @@
 from collections.abc import AsyncGenerator
 import logging
+from typing import Any
 
 from fastapi import Depends, Header, HTTPException, Query, status
 from redis.asyncio import Redis, from_url
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.security import decode_access_token
 from app.db.session import get_db_session
 from app.models.user import User
 from shared.config import settings
@@ -53,6 +55,13 @@ async def get_current_user(
 ) -> User:
     """Strictly authenticate current user from Bearer JWT access token or query parameter."""
     return await service.get_user_from_token(token)
+
+
+async def get_current_token_claims(
+    token: str = Depends(extract_auth_token),
+) -> dict[str, Any]:
+    """Decode validated JWT access token claims for step-up re-authentication checks."""
+    return decode_access_token(token) or {}
 
 
 async def get_current_admin(
@@ -188,6 +197,13 @@ async def get_coin_service(db: AsyncSession = Depends(get_db_session)):
     return CoinService(db)
 
 
+async def get_coin_topup_service(db: AsyncSession = Depends(get_db_session)):
+    """Dependency factory for CoinTopupService."""
+    from app.services.coin import CoinTopupService
+
+    return CoinTopupService(db)
+
+
 async def get_content_service(db: AsyncSession = Depends(get_db_session)):
     """Dependency factory for ContentService."""
     from app.services.content import ContentService
@@ -214,6 +230,45 @@ async def get_booth_feedback_service(db: AsyncSession = Depends(get_db_session))
     from app.services.booth_feedback import BoothFeedbackService
 
     return BoothFeedbackService(db)
+
+
+def get_payout_gateway():
+    """Factory selecting Midtrans Iris or isolated Mock payout gateway."""
+    from app.services.payout import IrisPayoutAdapter, MockPayoutGatewayAdapter
+
+    if settings.MIDTRANS_PAYOUT_PROVIDER_MODE.strip().lower() == "mock":
+        return MockPayoutGatewayAdapter()
+    return IrisPayoutAdapter()
+
+
+async def get_bank_account_service(
+    db: AsyncSession = Depends(get_db_session),
+    gateway=Depends(get_payout_gateway),
+):
+    """Dependency factory for BankAccountService."""
+    from app.services.finances import BankAccountService
+
+    return BankAccountService(db, gateway=gateway)
+
+
+async def get_payout_service(
+    db: AsyncSession = Depends(get_db_session),
+    gateway=Depends(get_payout_gateway),
+):
+    """Dependency factory for PayoutService."""
+    from app.services.finances import PayoutService
+
+    return PayoutService(db, gateway=gateway)
+
+
+async def get_admin_finance_service(
+    db: AsyncSession = Depends(get_db_session),
+    gateway=Depends(get_payout_gateway),
+):
+    """Dependency factory for AdminFinanceService."""
+    from app.services.admin_finance import AdminFinanceService
+
+    return AdminFinanceService(db, payout_gateway=gateway)
 
 
 

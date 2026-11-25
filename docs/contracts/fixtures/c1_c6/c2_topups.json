@@ -1,0 +1,75 @@
+{
+  "c1_error_envelope": {
+    "detail": {
+      "code": "IDEMPOTENCY_CONFLICT",
+      "message": "Idempotency-Key sudah digunakan untuk payload permintaan yang berbeda."
+    }
+  },
+  "c2_topup_pending": {
+    "id": "topup-uuid-001",
+    "order_id": "EVA-TOPUP-20261125-001",
+    "package": {
+      "id": "pkg-uuid-001",
+      "name": "Paket Favorit",
+      "coins": 150,
+      "bonus_coins": 20
+    },
+    "amount_idr": 45000,
+    "currency": "IDR",
+    "total_coins": 170,
+    "payment_method": "qris",
+    "status": "pending",
+    "qr_image_url": "https://api.sandbox.midtrans.com/v2/qris/example-tx-id/qr-code",
+    "expires_at": "2026-11-25T03:00:00Z",
+    "paid_at": null,
+    "created_at": "2026-11-25T02:00:00Z",
+    "updated_at": "2026-11-25T02:00:00Z"
+  },
+  "c2_topup_paid": {
+    "id": "topup-uuid-001",
+    "order_id": "EVA-TOPUP-20261125-001",
+    "package": {
+      "id": "pkg-uuid-001",
+      "name": "Paket Favorit",
+      "coins": 150,
+      "bonus_coins": 20
+    },
+    "amount_idr": 45000,
+    "currency": "IDR",
+    "total_coins": 170,
+    "payment_method": "qris",
+    "status": "paid",
+    "qr_image_url": "https://api.sandbox.midtrans.com/v2/qris/example-tx-id/qr-code",
+    "expires_at": "2026-11-25T03:00:00Z",
+    "paid_at": "2026-11-25T02:04:12Z",
+    "created_at": "2026-11-25T02:00:00Z",
+    "updated_at": "2026-11-25T02:04:12Z"
+  },
+  "c2_topup_list_paginated": {
+    "items": [
+      {
+        "id": "topup-uuid-001",
+        "order_id": "EVA-TOPUP-20261125-001",
+        "package": {
+          "id": "pkg-uuid-001",
+          "name": "Paket Favorit",
+          "coins": 150,
+          "bonus_coins": 20
+        },
+        "amount_idr": 45000,
+        "currency": "IDR",
+        "total_coins": 170,
+        "payment_method": "qris",
+        "status": "paid",
+        "qr_image_url": "https://api.sandbox.midtrans.com/v2/qris/example-tx-id/qr-code",
+        "expires_at": "2026-11-25T03:00:00Z",
+        "paid_at": "2026-11-25T02:04:12Z",
+        "created_at": "2026-11-25T02:00:00Z",
+        "updated_at": "2026-11-25T02:04:12Z"
+      }
+    ],
+    "page": 1,
+    "page_size": 20,
+    "total": 1
+  }
+}
