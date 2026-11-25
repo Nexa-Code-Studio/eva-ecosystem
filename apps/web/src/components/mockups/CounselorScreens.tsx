@@ -93,10 +93,10 @@ export function CounselorScheduleScreen() {
             <span className="rounded-pill bg-primary-container px-2 py-0.5 text-[9px] font-bold text-primary">
               14:00 - 14:30 WIB
             </span>
-            <span className="text-[9.5px] font-bold text-[#2E7D32]">Consent Aktif</span>
+            <span className="text-[9.5px] font-bold text-[#2E7D32]">Izin Aktif</span>
           </div>
-          <p className="mt-2 text-[12px] font-bold text-ink">Sesi Telekonsultasi (30 mnt)</p>
-          <p className="mt-0.5 text-[10px] text-ink-soft">Pasien #A-104 • Ringkasan DASS-21 siap ditinjau</p>
+          <p className="mt-2 text-[12px] font-bold text-ink">Sesi Video Konsultasi (30 mnt)</p>
+          <p className="mt-0.5 text-[10px] text-ink-soft">Pasien #A-104 • Ringkasan DASS-21 siap dibaca</p>
         </div>
 
         <div className={cn(glassMini, 'p-3')}>
@@ -125,12 +125,12 @@ export function CounselorConsentScreen() {
 
   return (
     <div className="h-full">
-      <ScreenHeader subtitle="Izin Pasien Aktif" title="Ringkasan Klinis Awal" />
+      <ScreenHeader subtitle="Atas Izin Pasien" title="Ringkasan Kondisi Awal" />
 
       <div className="mx-4 mt-3 flex items-center gap-2 rounded-[14px] border border-[#2E7D32]/20 bg-[#E8F5E9] px-3 py-2">
         <FileCheck2 className="size-4 shrink-0 text-[#2E7D32]" />
         <p className="text-[9.5px] font-semibold leading-tight text-[#1B5E20]">
-          Hanya skor DASS-21 dan ringkasan klinis terenkripsi. Log curhat pribadi tetap di perangkat pasien.
+          Hanya skor DASS-21 dan catatan awal yang dibagikan pasien. Obrolan pribadi tetap di ponselnya.
         </p>
       </div>
 
@@ -172,7 +172,7 @@ export function CounselorTeleconsultScreen() {
     <div className="relative flex h-full flex-col justify-between bg-obsidian px-4 pt-4 pb-5 text-white">
       <div className="flex items-center justify-between">
         <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2.5 py-1 text-[9.5px] font-bold text-white">
-          <span className="size-1.5 rounded-full bg-emerald-400" /> WebRTC Terenkripsi
+          <span className="size-1.5 rounded-full bg-emerald-400" /> Panggilan Aman
         </span>
         <span className="rounded-pill bg-primary/30 px-2.5 py-1 text-[10px] font-bold text-primary-light">
           18:24 tersisa
@@ -183,8 +183,8 @@ export function CounselorTeleconsultScreen() {
         <div className="flex size-16 items-center justify-center rounded-full bg-primary/25 text-primary-light ring-2 ring-primary-light/30">
           <Video className="size-7" />
         </div>
-        <p className="mt-3 text-[13px] font-bold text-white">Ruang Telekonsultasi 30 Menit</p>
-        <p className="mt-1 text-[10px] text-white/70">Pasien #A-104 • Consent DASS-21 Aktif</p>
+        <p className="mt-3 text-[13px] font-bold text-white">Sesi Konsultasi Video 30 Menit</p>
+        <p className="mt-1 text-[10px] text-white/70">Pasien #A-104 • Izin DASS-21 Aktif</p>
 
         <div className="absolute right-2.5 bottom-2.5 flex h-16 w-12 flex-col items-center justify-center rounded-[12px] border border-white/20 bg-white/10 backdrop-blur-sm">
           <User className="size-4 text-white/80" />

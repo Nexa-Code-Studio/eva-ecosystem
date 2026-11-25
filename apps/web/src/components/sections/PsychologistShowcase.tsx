@@ -191,7 +191,7 @@ export function PsychologistShowcase() {
                   <active.icon />
                 </IconTile>
                 <div>
-                  <p className="text-overline text-primary uppercase">Alur Kerja Klinis</p>
+                  <p className="text-overline text-primary uppercase">Di Praktik Sehari-hari</p>
                   <p className="mt-1 text-body-md text-ink">{active.workflow}</p>
                 </div>
               </div>
@@ -215,9 +215,9 @@ export function PsychologistShowcase() {
           >
             <div className="flex items-start justify-between gap-4 border-b border-divider pb-4">
               <div>
-                <span className="text-overline text-primary uppercase">Standar Praktik EVA</span>
+                <span className="text-overline text-primary uppercase">Standar Layanan EVA</span>
                 <h3 id="clinical-eval-modal-title" className="mt-1 text-headline text-ink">
-                  Evaluasi Klinis &amp; Etika Profesi
+                  Aturan Layanan &amp; Privasi Pasien
                 </h3>
               </div>
               <button
