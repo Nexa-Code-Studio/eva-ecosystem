@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowLeft, Camera, FolderOpen, RefreshCw, X } from 'lucide-react'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface DesktopPhotoSourceModalProps {
   open: boolean
@@ -20,6 +21,8 @@ export function DesktopPhotoSourceModal({
 }: DesktopPhotoSourceModalProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
+
+  useBodyScrollLock(open)
 
   const [step, setStep] = useState<'choose' | 'camera'>('choose')
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([])
