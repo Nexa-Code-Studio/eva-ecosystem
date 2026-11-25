@@ -1,5 +1,14 @@
 import { APP_CONFIG } from '@/config/appConfig'
 import { getEmptyDashboardAnalyticsBaseline } from '@/data/mock/dashboardMetrics.mock'
+import {
+  mapBackendFinanceSummaryToDomain,
+  mapBackendFinanceTransactionDetailToDomain,
+  mapBackendFinanceTransactionsPageToDomain,
+} from '@/services/contracts/financeMappers'
+import {
+  PortalApiError,
+  parseBackendErrorDetail,
+} from '@/services/contracts/financeUtils'
 import type { IPortalDataSource } from '@/services/contracts/portalDataSource'
 import {
   buildDomainPsychologistFromRegister,
@@ -38,6 +47,9 @@ import type {
   BackendCounselorCertificateEligibilityDto,
   BackendCrisisConfigDto,
   BackendFaqEntryDto,
+  BackendFinanceSummaryDto,
+  BackendFinanceTransactionDetailDto,
+  BackendFinanceTransactionsPageDto,
   BackendLevelEvaluationBatchDto,
   BackendPricingConfigResponseDto,
   BackendPsychologistCertificateDto,
@@ -57,6 +69,12 @@ import type {
   UpsertPsychologistLevelRequestDto,
   VerifyPsychologistRequestDto,
 } from '@/types/api/contracts'
+import type {
+  FinanceSummary,
+  FinanceTransactionDetail,
+  FinanceTransactionsQuery,
+  PaginatedFinanceTransactions,
+} from '@/types/domain/finance'
 import type {
   BoothFeedbackListResult,
   CertificateEvaluationSummary,
@@ -97,6 +115,17 @@ export class RemotePortalDataSource implements IPortalDataSource {
   ): Promise<Response> {
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+    const externalSignal = init?.signal
+    const handleExternalAbort = () => controller.abort(externalSignal?.reason)
+
+    if (externalSignal) {
+      if (externalSignal.aborted) {
+        controller.abort(externalSignal.reason)
+      } else {
+        externalSignal.addEventListener('abort', handleExternalAbort, { once: true })
+      }
+    }
+
     const session = this.getSession()
 
     try {
@@ -111,19 +140,20 @@ export class RemotePortalDataSource implements IPortalDataSource {
       })
 
       if (!response.ok) {
-        let detail = `Permintaan API gagal (${response.status})`
+        let parsedBody: unknown = null
         try {
-          const errBody = (await response.json()) as { detail?: string }
-          if (errBody?.detail) detail = errBody.detail
+          parsedBody = await response.json()
         } catch {
-          // Abaikan parse error body non-JSON
+          // Ignore non-JSON error body
         }
-        throw new Error(detail)
+        const { code, message } = parseBackendErrorDetail(response.status, parsedBody)
+        throw new PortalApiError(message, response.status, code)
       }
 
       return response
     } finally {
       window.clearTimeout(timeout)
+      externalSignal?.removeEventListener('abort', handleExternalAbort)
     }
   }
 
@@ -1136,5 +1166,60 @@ export class RemotePortalDataSource implements IPortalDataSource {
     await this.requestJson(`/admin/content/booth-feedbacks/${encodeURIComponent(feedbackId)}`, {
       method: 'DELETE',
     })
+  }
+
+  async fetchAdminFinanceSummary(
+    params: { from: string; to: string },
+    options?: { signal?: AbortSignal },
+  ): Promise<FinanceSummary> {
+    const searchParams = new URLSearchParams({
+      from: params.from,
+      to: params.to,
+    })
+    const dto = await this.requestJson<BackendFinanceSummaryDto>(
+      `/admin/finance/summary?${searchParams.toString()}`,
+      { signal: options?.signal },
+    )
+    return mapBackendFinanceSummaryToDomain(dto)
+  }
+
+  async fetchAdminFinanceTransactions(
+    query: FinanceTransactionsQuery,
+    options?: { signal?: AbortSignal },
+  ): Promise<PaginatedFinanceTransactions> {
+    const searchParams = new URLSearchParams({
+      from: query.from,
+      to: query.to,
+      page: String(Math.max(1, query.page)),
+      page_size: String(Math.min(100, Math.max(1, query.pageSize))),
+    })
+    if (query.direction) {
+      searchParams.set('direction', query.direction)
+    }
+    if (query.status?.trim()) {
+      searchParams.set('status', query.status.trim())
+    }
+    if (query.source) {
+      searchParams.set('source', query.source)
+    }
+    if (query.q?.trim()) {
+      searchParams.set('q', query.q.trim())
+    }
+    const dto = await this.requestJson<BackendFinanceTransactionsPageDto>(
+      `/admin/finance/transactions?${searchParams.toString()}`,
+      { signal: options?.signal },
+    )
+    return mapBackendFinanceTransactionsPageToDomain(dto)
+  }
+
+  async fetchAdminFinanceTransactionDetail(
+    transactionId: string,
+    options?: { signal?: AbortSignal },
+  ): Promise<FinanceTransactionDetail> {
+    const dto = await this.requestJson<BackendFinanceTransactionDetailDto>(
+      `/admin/finance/transactions/${encodeURIComponent(transactionId)}`,
+      { signal: options?.signal },
+    )
+    return mapBackendFinanceTransactionDetailToDomain(dto)
   }
 }

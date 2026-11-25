@@ -5,5 +5,6 @@ export { Footer } from './Footer'
 export { Hero } from './Hero'
 export { HowItWorks } from './HowItWorks'
 export { Navbar } from './Navbar'
+export { PsychologistShowcase } from './PsychologistShowcase'
 export { USP } from './USP'
 

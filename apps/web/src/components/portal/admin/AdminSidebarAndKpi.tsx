@@ -3,6 +3,7 @@ import {
   ChevronDown,
   ClipboardList,
   Globe,
+  Landmark,
   LayoutDashboard,
   Sliders,
   Smartphone,
@@ -83,6 +84,12 @@ export function AdminSidebar({
       icon: Smartphone,
       badge: counts.crisisUsers,
       badgeColor: 'bg-[#FEF3C7] text-[#92400E]',
+    },
+    {
+      id: 'finance' as const,
+      path: '/admin/finance',
+      label: 'Keuangan & Rekonsiliasi',
+      icon: Landmark,
     },
     {
       id: 'content_config' as const,

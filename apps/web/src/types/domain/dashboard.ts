@@ -5,6 +5,7 @@ export type AdminModuleId =
   | 'monitoring'
   | 'settings'
   | 'users_coins'
+  | 'finance'
   | 'content_config'
 
 export type DashboardRange = 7 | 30
