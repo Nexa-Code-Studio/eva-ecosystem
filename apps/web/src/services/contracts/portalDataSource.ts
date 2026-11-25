@@ -16,6 +16,12 @@ import type {
 } from '@/types/api/contracts'
 import type { DashboardAnalyticsBaseline } from '@/types/domain/dashboard'
 import type {
+  FinanceSummary,
+  FinanceTransactionDetail,
+  FinanceTransactionsQuery,
+  PaginatedFinanceTransactions,
+} from '@/types/domain/finance'
+import type {
   BoothFeedbackEntry,
   BoothFeedbackListResult,
   CertificateEvaluationSummary,
@@ -131,5 +137,17 @@ export interface IPortalDataSource {
   }): Promise<BoothFeedbackListResult>
   fetchAdminBoothFeedbackPhotoUrl(feedbackId: string, photoId: string): Promise<string>
   deleteAdminBoothFeedback(feedbackId: string): Promise<void>
+  fetchAdminFinanceSummary(
+    params: { from: string; to: string },
+    options?: { signal?: AbortSignal },
+  ): Promise<FinanceSummary>
+  fetchAdminFinanceTransactions(
+    query: FinanceTransactionsQuery,
+    options?: { signal?: AbortSignal },
+  ): Promise<PaginatedFinanceTransactions>
+  fetchAdminFinanceTransactionDetail(
+    transactionId: string,
+    options?: { signal?: AbortSignal },
+  ): Promise<FinanceTransactionDetail>
 }
 export type { BoothFeedbackEntry }

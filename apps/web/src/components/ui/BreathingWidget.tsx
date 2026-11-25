@@ -1,8 +1,9 @@
 import { Pause, Play, RotateCcw, Wind, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { LunaOrb } from './LunaOrb'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
-import { scrollToCenteredSection } from '@/hooks/useScroll'
+import { scrollToCenteredSection, useScrolled } from '@/hooks/useScroll'
 import { cn } from '@/lib/cn'
 
 type Phase = 'inhale' | 'hold' | 'exhale'
@@ -39,6 +40,7 @@ export function BreathingWidget() {
   const [phase, setPhase] = useState<Phase>('inhale')
   const [secondsLeft, setSecondsLeft] = useState(PHASE_DURATION)
   const [cycle, setCycle] = useState(1)
+  const scrolledPastHero = useScrolled(300)
 
   useBodyScrollLock(open)
 
@@ -110,13 +112,17 @@ export function BreathingWidget() {
 
   return (
     <>
-      {/* Floating trigger pill at bottom-left */}
+      {/* Floating trigger pill at bottom-left: appears smoothly after scrolling past Hero */}
       <button
         type="button"
         onClick={openModal}
         data-cursor="TENANG"
+        tabIndex={scrolledPastHero ? 0 : -1}
         aria-label="Buka latihan tarik napas 30 detik bersama EVA"
-        className="group fixed bottom-5 left-5 z-40 flex items-center gap-2.5 rounded-pill border border-primary/20 bg-white/95 py-2 pr-4 pl-2.5 text-left shadow-nav backdrop-blur-md transition-[transform,box-shadow,border-color] duration-300 ease-luna hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-fab"
+        className={cn(
+          'group fixed bottom-5 left-5 z-40 flex items-center gap-2.5 rounded-pill border border-primary/20 bg-white/95 py-2 pr-4 pl-2.5 text-left shadow-nav backdrop-blur-md transition-[opacity,transform,box-shadow,border-color] duration-300 ease-luna hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-fab',
+          !scrolledPastHero && 'pointer-events-none translate-y-4 opacity-0',
+        )}
       >
         <span className="relative flex size-8 items-center justify-center rounded-full bg-primary-container text-primary">
           <Wind className="size-4 transition-transform duration-300 group-hover:rotate-12" />
@@ -129,14 +135,17 @@ export function BreathingWidget() {
         </span>
       </button>
 
-      {/* Calming Breathing Modal */}
-      {open && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="breathing-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-        >
+      {/* Calming Breathing Modal rendered in document.body to stay above navbar & sections */}
+      {open &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="breathing-modal-title"
+            data-lenis-prevent
+            className="fixed inset-0 z-[70] flex items-center justify-center overscroll-contain p-4 sm:p-6"
+          >
           {/* Backdrop */}
           <div
             aria-hidden="true"
@@ -146,7 +155,10 @@ export function BreathingWidget() {
           />
 
           {/* Dialog Card - Clean Mindful Therapy Style */}
-          <div className="relative z-10 w-full max-w-md overflow-hidden rounded-[28px] border border-border-subtle/80 bg-white p-6 text-center text-ink shadow-2xl sm:p-8 animate-enter">
+          <div
+            data-lenis-prevent
+            className="relative z-10 max-h-[90dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-[28px] border border-border-subtle/80 bg-white p-6 text-center text-ink shadow-2xl sm:p-8 animate-enter"
+          >
             {/* Close Button */}
             <div className="flex justify-end">
               <button
@@ -269,8 +281,9 @@ export function BreathingWidget() {
               )}
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body,
+        )}
     </>
   )
 }

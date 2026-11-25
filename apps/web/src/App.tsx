@@ -30,6 +30,9 @@ const AdminSettingsRoute = lazy(() =>
 const AdminUsersCoinsRoute = lazy(() =>
   import('@/pages/AdminDashboardPage').then((m) => ({ default: m.AdminUsersCoinsRoute })),
 )
+const AdminFinanceRoute = lazy(() =>
+  import('@/pages/AdminDashboardPage').then((m) => ({ default: m.AdminFinanceRoute })),
+)
 const AdminContentConfigRoute = lazy(() =>
   import('@/pages/AdminDashboardPage').then((m) => ({
     default: m.AdminContentConfigRoute,
@@ -145,6 +148,14 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={<div className="min-h-[400px] animate-pulse rounded-xl bg-white/50" />}>
             <AdminUsersCoinsRoute />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'finance',
+        element: (
+          <Suspense fallback={<div className="min-h-[400px] animate-pulse rounded-xl bg-white/50" />}>
+            <AdminFinanceRoute />
           </Suspense>
         ),
       },

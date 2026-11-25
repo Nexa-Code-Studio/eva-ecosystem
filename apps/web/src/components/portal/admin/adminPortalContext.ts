@@ -36,6 +36,7 @@ export function getActiveAdminModule(pathname: string): AdminModule {
   }
   if (pathname.includes('/admin/settings')) return 'settings'
   if (pathname.includes('/admin/users-coins')) return 'users_coins'
+  if (pathname.includes('/admin/finance')) return 'finance'
   if (pathname.includes('/admin/content-config')) return 'content_config'
   return 'dashboard'
 }

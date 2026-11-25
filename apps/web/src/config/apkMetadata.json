@@ -1,5 +1,15 @@
 {
-  "version": "prototype",
-  "sizeBytes": 64164832,
-  "sizeFormatted": "~61 MB"
+  "version": "latest",
+  "sizeBytes": 115339517,
+  "sizeFormatted": "~110 MB",
+  "mobile": {
+    "version": "latest",
+    "sizeBytes": 115339517,
+    "sizeFormatted": "~110 MB"
+  },
+  "counselor": {
+    "version": "prototype",
+    "sizeBytes": 56818391,
+    "sizeFormatted": "~54 MB"
+  }
 }

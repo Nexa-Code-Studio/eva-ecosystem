@@ -81,7 +81,7 @@ jobs:
         run: flutter doctor -v
 
       - name: Build APK - Eva Counselor Mobile (Psikolog)
-        if: ${{ github.event.inputs.app == 'eva_counselor_mobile' || github.event.inputs.app == 'all' || (github.event.inputs.app == null && startsWith(github.ref, 'refs/tags/')) }}
+        if: ${{ github.event.inputs.app == 'eva_counselor_mobile' || github.event.inputs.app == 'all' || github.ref == 'refs/heads/main' || (github.event.inputs.app == null && startsWith(github.ref, 'refs/tags/')) }}
         run: |
           BUILD_TYPE="${{ github.event.inputs.build_type || 'release' }}"
           echo "Building Eva Counselor Mobile Android APK (${BUILD_TYPE})..."
@@ -302,8 +302,8 @@ jobs:
           {
             "embeds": [
               {
-                "title": "📦 Rilis Sukses: Eva Mobile Android APK",
-                "description": "Paket APK rilis produksi terbaru berhasil dikompilasi dan diterbitkan!\n\n📥 **Download APK**: [eva-mobile-release.apk](https://github.com/${{ github.repository }}/releases/latest/download/eva-mobile-release.apk)\n🏷️ **Release Tag**: [latest](${RELEASE_URL})",
+                "title": "📦 Rilis Sukses: Eva Mobile & Eva Counselor Android APK",
+                "description": "Paket APK rilis produksi terbaru berhasil dikompilasi dan diterbitkan!\n\n📥 **Eva Mobile (Pasien)**: [eva-mobile-release.apk](https://github.com/${{ github.repository }}/releases/latest/download/eva-mobile-release.apk)\n📥 **Eva Counselor (Psikolog)**: [eva-counselor-mobile-release.apk](https://github.com/${{ github.repository }}/releases/latest/download/eva-counselor-mobile-release.apk)\n🏷️ **Release Tag**: [latest](${RELEASE_URL})",
                 "url": "${RELEASE_URL}",
                 "color": 3066993,
                 "fields": [
