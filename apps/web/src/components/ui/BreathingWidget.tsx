@@ -135,7 +135,8 @@ export function BreathingWidget() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="breathing-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+          data-lenis-prevent
+          className="fixed inset-0 z-50 flex items-center justify-center overscroll-contain p-4 sm:p-6"
         >
           {/* Backdrop */}
           <div
@@ -146,7 +147,10 @@ export function BreathingWidget() {
           />
 
           {/* Dialog Card - Clean Mindful Therapy Style */}
-          <div className="relative z-10 w-full max-w-md overflow-hidden rounded-[28px] border border-border-subtle/80 bg-white p-6 text-center text-ink shadow-2xl sm:p-8 animate-enter">
+          <div
+            data-lenis-prevent
+            className="relative z-10 max-h-[90dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-[28px] border border-border-subtle/80 bg-white p-6 text-center text-ink shadow-2xl sm:p-8 animate-enter"
+          >
             {/* Close Button */}
             <div className="flex justify-end">
               <button

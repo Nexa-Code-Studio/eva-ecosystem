@@ -11,12 +11,15 @@ import {
   counselorSection,
   type CounselorFeatureId,
 } from '@/content/landing'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { cn } from '@/lib/cn'
 
 export function PsychologistShowcase() {
   const [activeId, setActiveId] = useState<CounselorFeatureId>('schedule')
   const [evaluationOpen, setEvaluationOpen] = useState(false)
   const active = counselorFeatures.find((f) => f.id === activeId) ?? counselorFeatures[0]
+
+  useBodyScrollLock(evaluationOpen)
 
   useEffect(() => {
     if (!evaluationOpen) return
@@ -203,14 +206,16 @@ export function PsychologistShowcase() {
       {/* Clinical Evaluation Modal */}
       {evaluationOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-obsidian/55 p-4 backdrop-blur-xs"
+          data-lenis-prevent
+          className="fixed inset-0 z-50 flex items-center justify-center overscroll-contain bg-obsidian/55 p-4 backdrop-blur-xs"
           onClick={() => setEvaluationOpen(false)}
         >
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="clinical-eval-modal-title"
-            className="relative max-h-[88dvh] w-full max-w-2xl overflow-y-auto rounded-[28px] border border-border-subtle bg-white p-6 shadow-2xl sm:p-8"
+            data-lenis-prevent
+            className="relative max-h-[88dvh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-[28px] border border-border-subtle bg-white p-6 shadow-2xl sm:p-8"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4 border-b border-divider pb-4">

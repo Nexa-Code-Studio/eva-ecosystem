@@ -35,15 +35,6 @@ export function WelcomeSplash() {
 
   useBodyScrollLock(isVisible)
 
-  // Pause Lenis smooth scrolling while the splash stage is active
-  useEffect(() => {
-    if (!isVisible) return undefined
-    window.__evaLenis?.stop()
-    return () => {
-      window.__evaLenis?.start()
-    }
-  }, [isVisible])
-
   useEffect(() => {
     return () => {
       if (holdTimerRef.current !== null) {
