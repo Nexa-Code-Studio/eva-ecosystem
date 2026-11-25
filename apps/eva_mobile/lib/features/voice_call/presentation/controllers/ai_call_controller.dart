@@ -10,6 +10,7 @@ import '../../data/services/ai_audio_playback_service.dart';
 import '../../data/services/single_audio_capture_service.dart';
 import '../../data/services/speech_recognition_service.dart';
 import '../../data/services/stateless_synthesis_service.dart';
+import '../../domain/entities/audio_pipeline_mode.dart';
 import '../../domain/entities/call_state.dart';
 import '../../../memory/domain/repositories/memory_repository.dart';
 import '../../../diary/data/datasources/local_diary_datasource.dart';
@@ -53,6 +54,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
   StreamSubscription? _wsEventSubscription;
   StreamSubscription? _wsAudioSubscription;
   StreamSubscription? _errorSubscription;
+  StreamSubscription? _diagnosticSubscription;
   Timer? _durationTimer;
   Timer? _restartTimer;
   Timer? _thinkingWatchdogTimer;
@@ -113,10 +115,23 @@ class AiCallController extends StateNotifier<AiCallViewState> {
   void _initSubscriptions() {
     _cancelSubscriptions();
 
-    // 0. Binary PCM Audio Stream -> VPS WebSocket
+    // 0. Binary PCM Audio Stream -> VPS WebSocket (strictly isolated from STT lifecycle)
     _audioChunkSubscription = _singleAudioService.audioStream.listen((chunk) {
-      if (state.callState == CallState.listening && !state.isMuted) {
-        _wsClient.sendAudioChunk(chunk);
+      if (state.callState == CallState.listening &&
+          !state.isMuted &&
+          _singleAudioService.effectiveMode == EffectiveAudioPipelineMode.nativeHybrid) {
+        try {
+          _wsClient.sendAudioChunk(chunk);
+        } catch (e) {
+          debugPrint('⚠️ [AI CALL CONTROLLER] Isolated audio send error: $e');
+        }
+      }
+    });
+
+    // Audio pipeline non-PII diagnostics
+    _diagnosticSubscription = _singleAudioService.diagnosticStream.listen((snap) {
+      if (!_isDisposed && mounted) {
+        state = state.copyWith(audioDiagnostics: snap);
       }
     });
 
@@ -421,6 +436,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
 
     // Guard: Audio must be completely stopped before mic opens
     await _audioPlaybackService.stop();
+    if (_isDisposed || !mounted) return;
 
     final nextSessionId = state.activeSttSessionId + 1;
     _restartAttempts = 0;
@@ -455,6 +471,12 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       isUserSpeaking: false,
       soundLevel: 0.05,
     );
+    if (state.callId.isNotEmpty) {
+      _wsClient.sendAudioBoundary(
+        callId: state.callId,
+        reason: 'turn_thinking',
+      );
+    }
     await _singleAudioService.stopListening();
 
     // Watchdog Timer: Guard against stuck thinking if backend stalls or drops connection
@@ -479,6 +501,12 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       isUserSpeaking: false,
       soundLevel: 0.05,
     );
+    if (state.callId.isNotEmpty) {
+      _wsClient.sendAudioBoundary(
+        callId: state.callId,
+        reason: 'ai_speaking',
+      );
+    }
     _audioPlaybackService.prepareNewAssistantTurn(assistantTurnId);
     await _singleAudioService.stopListening();
   }
@@ -522,7 +550,10 @@ class AiCallController extends StateNotifier<AiCallViewState> {
         final nextSessionId = state.activeSttSessionId + 1;
         debugPrint('🔄 [AUTO RESTART STT]: Session $nextSessionId in user_turn ${state.userTurnId}');
         state = state.copyWith(activeSttSessionId: nextSessionId);
-        await _singleAudioService.startListening(sttSessionId: nextSessionId);
+        await _singleAudioService.startListening(
+          sttSessionId: nextSessionId,
+          keepCaptureWarm: true,
+        );
       }
     });
   }
@@ -572,10 +603,10 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     await enterThinking();
   }
 
-  /// Toggle microphone mute
-  void toggleMute() {
+  /// Toggle microphone mute (idempotent & serialized without double-stop)
+  Future<void> toggleMute() async {
+    if (_isDisposed || !mounted) return;
     final newMute = !state.isMuted;
-    _singleAudioService.setMuted(newMute);
     state = state.copyWith(isMuted: newMute);
     if (state.callId.isNotEmpty) {
       _wsClient.sendAudioBoundary(
@@ -584,10 +615,15 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       );
     }
 
-    if (newMute) {
-      _singleAudioService.stopListening();
-    } else if (state.callState == CallState.listening) {
-      _singleAudioService.startListening(sttSessionId: state.activeSttSessionId);
+    await _singleAudioService.setMuted(newMute);
+    if (!newMute &&
+        !_isDisposed &&
+        mounted &&
+        state.callState == CallState.listening &&
+        !_singleAudioService.isListening) {
+      await _singleAudioService.startListening(
+        sttSessionId: state.activeSttSessionId,
+      );
     }
   }
 
@@ -752,17 +788,20 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     } catch (e) {
       debugPrint('⚠️ [SESSION ARTIFACTS COMMIT ERROR]: $e');
     } finally {
-      state = state.copyWith(
-        pendingMemoryCandidates: candidates,
-        isFinalizing: false,
-        callState: CallState.ended,
-      );
+      if (!_isDisposed && mounted) {
+        state = state.copyWith(
+          pendingMemoryCandidates: candidates,
+          isFinalizing: false,
+          callState: CallState.ended,
+        );
+      }
       _wsClient.disconnect();
     }
   }
 
   /// End Call & Disconnect (with post-session artifact finalization)
   Future<void> endCall() async {
+    if (_isDisposed || !mounted) return;
     if (state.isFinalizing || state.callState == CallState.ended) return;
 
     // 0. Cancel mic audio chunk sender immediately to stop streaming to VPS
@@ -788,11 +827,21 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     // 2. Immediately commit local fallback artifacts to ensure 0% data loss
     await _commitLocalFallbackArtifacts();
 
+    if (_isDisposed || !mounted) {
+      _wsClient.disconnect();
+      return;
+    }
+
     if (_synthesisService != null && state.accumulatedTranscript.trim().isNotEmpty) {
       await _synthesisService.markSessionPending(
         sessionId: state.callId,
         initialSummary: state.accumulatedTranscript,
       );
+    }
+
+    if (_isDisposed || !mounted) {
+      _wsClient.disconnect();
+      return;
     }
 
     if (_wsClient.isConnected) {
@@ -805,19 +854,23 @@ class AiCallController extends StateNotifier<AiCallViewState> {
 
       // 2. Allow up to 15 seconds for DeepSeek LLM artifact generation
       _finalizeWatchdogTimer = Timer(const Duration(seconds: 15), () async {
-        if (!_isDisposed && state.isFinalizing) {
+        if (!_isDisposed && mounted && state.isFinalizing) {
           debugPrint('⏱️ [FINALIZE TIMEOUT] Triggering background stateless synthesis fallback...');
-          _wsClient.sendEndCall(state.callDurationSeconds);
-          _wsClient.disconnect();
+          final callIdSnapshot = state.callId;
+          final durationSnapshot = state.callDurationSeconds;
           state = state.copyWith(isFinalizing: false, callState: CallState.ended);
-          final ok = await _synthesisService?.synthesizeSessionOnDemand(sessionId: state.callId) ?? false;
-          if (ok) {
+          _wsClient.sendEndCall(durationSnapshot);
+          _wsClient.disconnect();
+          final ok = await _synthesisService?.synthesizeSessionOnDemand(sessionId: callIdSnapshot) ?? false;
+          if (ok && !_isDisposed && mounted) {
             _onArtifactsCommitted?.call();
           }
         }
       });
     } else {
-      state = state.copyWith(isFinalizing: false, callState: CallState.ended);
+      if (!_isDisposed && mounted) {
+        state = state.copyWith(isFinalizing: false, callState: CallState.ended);
+      }
       _synthesisService?.synthesizeSessionOnDemand(sessionId: state.callId).then((ok) {
         if (ok) _onArtifactsCommitted?.call();
       });
@@ -835,17 +888,19 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     _wsAudioSubscription?.cancel();
     _wsEventSubscription?.cancel();
     _errorSubscription?.cancel();
+    _diagnosticSubscription?.cancel();
   }
 
   @override
   void dispose() {
+    if (_isDisposed) return;
     _isDisposed = true;
     _cancelSubscriptions();
     _durationTimer?.cancel();
     _restartTimer?.cancel();
     _thinkingWatchdogTimer?.cancel();
     _finalizeWatchdogTimer?.cancel();
-    if (state.isFinalizing) {
+    if (mounted && state.isFinalizing) {
       _commitLocalFallbackArtifacts();
     }
     _singleAudioService.dispose();

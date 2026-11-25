@@ -490,11 +490,11 @@ void main() {
     await controller.startCall();
     expect(controller.state.isMuted, isFalse);
 
-    controller.toggleMute();
+    await controller.toggleMute();
     expect(controller.state.isMuted, isTrue);
     expect(fakeSpeech.isListening, isFalse);
 
-    controller.toggleMute();
+    await controller.toggleMute();
     expect(controller.state.isMuted, isFalse);
     expect(fakeSpeech.isListening, isTrue);
   });
@@ -684,7 +684,7 @@ void main() {
 
   test('toggleMute sends optional audio.boundary event to backend segmenter', () async {
     await controller.startCall();
-    controller.toggleMute();
+    await controller.toggleMute();
     expect(controller.state.isMuted, true);
 
     final boundaryEvt = fakeWs.sentEvents.firstWhere(
@@ -692,5 +692,37 @@ void main() {
       orElse: () => {},
     );
     expect(boundaryEvt['reason'], 'mute');
+
+    await controller.toggleMute();
+    expect(controller.state.isMuted, false);
+    final unmuteEvt = fakeWs.sentEvents.lastWhere(
+      (e) => e['type'] == 'audio.boundary',
+      orElse: () => {},
+    );
+    expect(unmuteEvt['reason'], 'unmute');
+  });
+
+  test('enterThinking and enterAiSpeaking emit audio.boundary hints cleanly', () async {
+    await controller.startCall();
+    await controller.enterThinking();
+    expect(
+      fakeWs.sentEvents.any((e) => e['type'] == 'audio.boundary' && e['reason'] == 'turn_thinking'),
+      isTrue,
+    );
+
+    await controller.enterAiSpeaking(1);
+    expect(
+      fakeWs.sentEvents.any((e) => e['type'] == 'audio.boundary' && e['reason'] == 'ai_speaking'),
+      isTrue,
+    );
+  });
+
+  test('endCall while disconnected does not throw when disposed mid-flight', () async {
+    await controller.startCall();
+    fakeWs.isConnected = false;
+
+    final endFuture = controller.endCall();
+    controller.dispose();
+    await endFuture;
   });
 }

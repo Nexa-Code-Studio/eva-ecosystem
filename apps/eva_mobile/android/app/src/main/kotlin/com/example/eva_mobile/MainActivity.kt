@@ -1,146 +1,171 @@
 package com.example.eva_mobile
 
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import com.example.eva_mobile.audio.AndroidAudioRecordSource
 import com.example.eva_mobile.audio.AudioCaptureEngine
+import com.example.eva_mobile.audio.AudioLogSink
+import com.example.eva_mobile.audio.NativeAudioCapabilityChecker
+import com.example.eva_mobile.audio.SingleAudioCoordinator
 import com.example.eva_mobile.audio.SpeechRecognizerPipeManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 
+/**
+ * Thin Flutter Platform Channel Bridge for EVA Mobile's Native Single-Mic Async Fan-Out pipeline.
+ * Contains zero hardcoded emulator restrictions and delegates all audio lifecycle orchestration
+ * to SingleAudioCoordinator.
+ */
 class MainActivity : FlutterActivity() {
+
+    companion object {
+        private const val MAX_INFLIGHT_MAIN_LOOPER_FRAMES = 4
+    }
 
     private val methodChannelName = "com.eva.single_audio/methods"
     private val audioStreamChannelName = "com.eva.single_audio/audio_stream"
     private val sttEventsChannelName = "com.eva.single_audio/stt_events"
 
-    private lateinit var audioCaptureEngine: AudioCaptureEngine
-    private lateinit var speechRecognizerPipeManager: SpeechRecognizerPipeManager
+    private lateinit var coordinator: SingleAudioCoordinator
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val pendingMainLooperFrames = AtomicInteger(0)
+    private val workerExecutor: ExecutorService = Executors.newSingleThreadExecutor { r ->
+        Thread(r, "EvaSingleAudioChannelWorker").apply { isDaemon = true }
+    }
 
+    @Volatile
     private var audioEventSink: EventChannel.EventSink? = null
+
+    @Volatile
     private var sttEventSink: EventChannel.EventSink? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        audioCaptureEngine = AudioCaptureEngine()
-        speechRecognizerPipeManager = SpeechRecognizerPipeManager(applicationContext)
+        val logSink = AudioLogSink { level, tag, message ->
+            when (level) {
+                "E" -> Log.e(tag, message)
+                "W" -> Log.w(tag, message)
+                "D" -> Log.d(tag, message)
+                else -> Log.i(tag, message)
+            }
+        }
 
-        // 1. Method Channel
+        val capabilityChecker = NativeAudioCapabilityChecker(applicationContext)
+        val captureEngine = AudioCaptureEngine(
+            frameSourceFactory = { sampleRate, chunkSizeBytes ->
+                AndroidAudioRecordSource(applicationContext, sampleRate, chunkSizeBytes)
+            },
+            logSink = logSink
+        )
+        val sttPipeManager = SpeechRecognizerPipeManager(applicationContext)
+
+        coordinator = SingleAudioCoordinator(
+            capabilityProvider = capabilityChecker,
+            captureEngine = captureEngine,
+            sttPipeEngine = sttPipeManager,
+            onAudioFrameEgress = { frame ->
+                val sink = audioEventSink ?: return@SingleAudioCoordinator
+                if (pendingMainLooperFrames.incrementAndGet() > MAX_INFLIGHT_MAIN_LOOPER_FRAMES) {
+                    pendingMainLooperFrames.decrementAndGet()
+                    return@SingleAudioCoordinator
+                }
+                mainHandler.post {
+                    try {
+                        sink.success(frame.pcmBytes)
+                    } catch (_: Exception) {
+                        // Isolated: EventChannel failure never disrupts audio capture or STT
+                    } finally {
+                        pendingMainLooperFrames.decrementAndGet()
+                    }
+                }
+            },
+            onSttEvent = { eventMap ->
+                val sink = sttEventSink ?: return@SingleAudioCoordinator
+                mainHandler.post {
+                    try {
+                        sink.success(eventMap)
+                    } catch (_: Exception) {
+                    }
+                }
+            },
+            logSink = logSink
+        )
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, methodChannelName)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "checkCapability" -> {
-                        val supported = speechRecognizerPipeManager.isInjectionSupported()
-                        val isEmulator = (Build.HARDWARE.contains("goldfish")
-                                || Build.HARDWARE.contains("ranchu")
-                                || Build.MODEL.contains("google_sdk")
-                                || Build.MODEL.contains("Emulator")
-                                || Build.FINGERPRINT.startsWith("generic"))
-                        result.success(
-                            mapOf(
-                                "supported" to supported,
-                                "sdkInt" to Build.VERSION.SDK_INT,
-                                "isEmulator" to isEmulator
-                            )
-                        )
-                    }
-                    "startAudioCapture" -> {
-                        val isEmulator = (Build.HARDWARE.contains("goldfish")
-                                || Build.HARDWARE.contains("ranchu")
-                                || Build.MODEL.contains("google_sdk")
-                                || Build.MODEL.contains("Emulator")
-                                || Build.FINGERPRINT.startsWith("generic"))
-                        if (isEmulator) {
-                            Log.w("MainActivity", "🎙️ Android Emulator detected: Skipping concurrent AudioRecord to preserve exclusive mic access for SpeechRecognizer.")
-                            result.success(false)
-                        } else {
-                            val captureStarted = audioCaptureEngine.startCapture(
-                                null, // Parallel mode: No virtual pipe, direct mic capture
-                                object : AudioCaptureEngine.AudioCaptureListener {
-                                    override fun onAudioChunk(bytes: ByteArray) {
-                                        sendAudioChunk(bytes)
-                                    }
-
-                                    override fun onSoundLevel(level: Double) {
-                                        sendSttEvent(mapOf("type" to "sound_level", "level" to level))
-                                    }
-
-                                    override fun onError(message: String) {
-                                        sendSttEvent(mapOf("type" to "error", "error" to message))
-                                    }
-                                }
-                            )
-                            result.success(captureStarted)
+                        val locale = call.argument<String>("locale") ?: "id-ID"
+                        workerExecutor.execute {
+                            val report = coordinator.checkCapability(locale)
+                            mainHandler.post { result.success(report.toMap()) }
                         }
                     }
-                    "stopAudioCapture" -> {
-                        audioCaptureEngine.stopCapture()
-                        result.success(true)
-                    }
-                    "startListening" -> {
+
+                    "startNativeHybrid", "startListening" -> {
                         val locale = call.argument<String>("locale") ?: "id-ID"
-                        val pipeStarted = speechRecognizerPipeManager.startListening(
-                            locale,
-                            object : SpeechRecognizerPipeManager.SttEventListener {
-                                override fun onStatus(status: String) {
-                                    sendSttEvent(mapOf("type" to "status", "status" to status))
-                                }
-
-                                override fun onPartial(text: String) {
-                                    sendSttEvent(mapOf("type" to "partial", "text" to text))
-                                }
-
-                                override fun onFinal(text: String) {
-                                    sendSttEvent(mapOf("type" to "final", "text" to text))
-                                }
-
-                                override fun onSoundLevel(level: Double) {
-                                    sendSttEvent(mapOf("type" to "sound_level", "level" to level))
-                                }
-
-                                override fun onError(error: String) {
-                                    sendSttEvent(mapOf("type" to "error", "error" to error))
-                                }
-                            }
-                        )
-
-                        val pipeOutStream = speechRecognizerPipeManager.getPipeOutputStream()
-                        val captureStarted = audioCaptureEngine.startCapture(
-                            pipeOutStream,
-                            object : AudioCaptureEngine.AudioCaptureListener {
-                                override fun onAudioChunk(bytes: ByteArray) {
-                                    sendAudioChunk(bytes)
-                                }
-
-                                override fun onSoundLevel(level: Double) {
-                                    sendSttEvent(mapOf("type" to "sound_level", "level" to level))
-                                }
-
-                                override fun onError(message: String) {
-                                    sendSttEvent(mapOf("type" to "error", "error" to message))
-                                }
-                            }
-                        )
-
-                        result.success(pipeStarted && captureStarted)
+                        val sttSessionId = (call.argument<Number>("sttSessionId")?.toLong()) ?: 1L
+                        val enableSegmented = call.argument<Boolean>("enableSegmentedSession") ?: true
+                        val allowFallback = call.argument<Boolean>("allowAutomaticFallback") ?: true
+                        workerExecutor.execute {
+                            val ok = coordinator.startNativeHybrid(
+                                sttSessionId = sttSessionId,
+                                locale = locale,
+                                enableSegmentedSession = enableSegmented,
+                                allowAutomaticFallback = allowFallback
+                            )
+                            mainHandler.post { result.success(ok) }
+                        }
                     }
-                    "stopListening" -> {
-                        audioCaptureEngine.stopCapture()
-                        speechRecognizerPipeManager.stopListening()
-                        result.success(true)
+
+                    "rearmStt" -> {
+                        val locale = call.argument<String>("locale") ?: "id-ID"
+                        val sttSessionId = (call.argument<Number>("sttSessionId")?.toLong()) ?: 1L
+                        val enableSegmented = call.argument<Boolean>("enableSegmentedSession") ?: true
+                        workerExecutor.execute {
+                            val ok = coordinator.rearmStt(
+                                sttSessionId = sttSessionId,
+                                locale = locale,
+                                enableSegmentedSession = enableSegmented
+                            )
+                            mainHandler.post { result.success(ok) }
+                        }
                     }
-                    else -> {
-                        result.notImplemented()
+
+                    "setMuted" -> {
+                        val muted = call.argument<Boolean>("muted") ?: false
+                        workerExecutor.execute {
+                            val ok = coordinator.setMuted(muted)
+                            mainHandler.post { result.success(ok) }
+                        }
                     }
+
+                    "stopAll", "stopListening", "stopAudioCapture" -> {
+                        val destroyRecognizer = call.argument<Boolean>("destroyRecognizer") ?: false
+                        workerExecutor.execute {
+                            val barrierComplete = coordinator.stopAll(destroyRecognizer = destroyRecognizer)
+                            mainHandler.post { result.success(barrierComplete) }
+                        }
+                    }
+
+                    "getDiagnostics" -> {
+                        workerExecutor.execute {
+                            val snapshot = coordinator.getDiagnostics().toMap()
+                            mainHandler.post { result.success(snapshot) }
+                        }
+                    }
+
+                    else -> result.notImplemented()
                 }
             }
 
-        // 2. Audio Stream Channel (Raw PCM chunks)
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, audioStreamChannelName)
             .setStreamHandler(object : EventChannel.StreamHandler {
                 override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
@@ -152,7 +177,6 @@ class MainActivity : FlutterActivity() {
                 }
             })
 
-        // 3. STT Events Channel
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, sttEventsChannelName)
             .setStreamHandler(object : EventChannel.StreamHandler {
                 override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
@@ -165,25 +189,13 @@ class MainActivity : FlutterActivity() {
             })
     }
 
-    private fun sendAudioChunk(bytes: ByteArray) {
-        mainHandler.post {
-            audioEventSink?.success(bytes)
-        }
-    }
-
-    private fun sendSttEvent(event: Map<String, Any>) {
-        mainHandler.post {
-            sttEventSink?.success(event)
-        }
-    }
-
     override fun onDestroy() {
-        if (::audioCaptureEngine.isInitialized) {
-            audioCaptureEngine.stopCapture()
+        audioEventSink = null
+        sttEventSink = null
+        if (::coordinator.isInitialized) {
+            coordinator.destroy()
         }
-        if (::speechRecognizerPipeManager.isInitialized) {
-            speechRecognizerPipeManager.destroy()
-        }
+        workerExecutor.shutdownNow()
         super.onDestroy()
     }
 }

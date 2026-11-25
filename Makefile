@@ -1,4 +1,4 @@
-.PHONY: help dev dev-d dev-build dev-api dev-mcp dev-worker prod prod-down logs logs-api logs-worker logs-prod ps down db-shell migrate migration-gen db-reset seed mobile-usb mobile-emu mobile-mock mobile-hybrid mobile-emu-hybrid mobile-web-hybrid mobile-web-build mobile-vercel mobile-web mobile-usb-cloud mobile-emu-cloud mobile-web-cloud mobile-cloud counselor-usb counselor-emu counselor-web counselor-mock counselor-usb-cloud counselor-emu-cloud counselor-web-cloud counselor-cloud counselor-build-web test-counselor web-dev web-build web-lint test test-backend test-mobile lint format doctor tasks bootstrap test-agentic link-project view-project check-server
+.PHONY: help dev dev-d dev-build dev-api dev-mcp dev-worker prod prod-down logs logs-api logs-worker logs-prod ps down db-shell migrate migration-gen db-reset seed mobile-usb mobile-emu mobile-mock mobile-hybrid mobile-usb-hybrid mobile-emu-hybrid mobile-web-hybrid mobile-web-build mobile-vercel mobile-web mobile-usb-cloud mobile-emu-cloud mobile-web-cloud mobile-cloud counselor-usb counselor-emu counselor-web counselor-mock counselor-usb-cloud counselor-emu-cloud counselor-web-cloud counselor-cloud counselor-build-web test-counselor web-dev web-build web-lint test test-backend test-mobile lint format doctor tasks bootstrap test-agentic link-project view-project check-server
 
 help:
 	@echo "EVA Ecosystem Management Commands (Full Docker Environment):"
@@ -34,6 +34,7 @@ help:
 	@echo "    make mobile-web        - Jalankan di Chrome Web (DEFAULT: API Lokal 127.0.0.1:8888)"
 	@echo "    make mobile-mock       - Jalankan dengan Mock Data lokal (offline)"
 	@echo "    make mobile-hybrid     - Jalankan mode Hybrid di HP Fisik (Remote API + Auto Fallback Mock)"
+	@echo "    make mobile-usb-hybrid - Jalankan mode Hybrid di HP Fisik via USB"
 	@echo "    make mobile-emu-hybrid - Jalankan mode Hybrid di Android Emulator"
 	@echo "    make mobile-web-hybrid - Jalankan mode Hybrid di Chrome Web"
 	@echo "    make mobile-web-build  - Build Flutter Web Eva Mobile (Release, Hybrid API, GitHub Pages ready)"
@@ -151,25 +152,28 @@ seed:
 # DEFAULT: Local API (8888). Append '-cloud' to connect to production cloud.
 # ------------------------------------------------------------------------------
 mobile-usb:
-	@./scripts/run_mobile.sh usb $(ARGS)
+	@./scripts/run_mobile.sh usb --dart-define=ENABLE_QRIS_TOPUP=true $(ARGS)
 
 mobile-emu:
-	@./scripts/run_mobile.sh emu $(ARGS)
+	@./scripts/run_mobile.sh emu --dart-define=ENABLE_QRIS_TOPUP=true $(ARGS)
 
 mobile-web:
-	@./scripts/run_mobile.sh web $(ARGS)
+	@./scripts/run_mobile.sh web --dart-define=ENABLE_QRIS_TOPUP=true $(ARGS)
 
 mobile-mock:
-	@./scripts/run_mobile.sh mock $(ARGS)
+	@./scripts/run_mobile.sh mock --dart-define=ENABLE_QRIS_TOPUP=true $(ARGS)
 
 mobile-hybrid:
-	@./scripts/run_mobile.sh hybrid $(ARGS)
+	@./scripts/run_mobile.sh hybrid --dart-define=ENABLE_QRIS_TOPUP=true $(ARGS)
+
+mobile-usb-hybrid:
+	@./scripts/run_mobile.sh usb-hybrid --dart-define=ENABLE_QRIS_TOPUP=true $(ARGS)
 
 mobile-emu-hybrid:
-	@./scripts/run_mobile.sh emu-hybrid $(ARGS)
+	@./scripts/run_mobile.sh emu-hybrid --dart-define=ENABLE_QRIS_TOPUP=true $(ARGS)
 
 mobile-web-hybrid:
-	@./scripts/run_mobile.sh web-hybrid $(ARGS)
+	@./scripts/run_mobile.sh web-hybrid --dart-define=ENABLE_QRIS_TOPUP=true $(ARGS)
 
 mobile-web-build:
 	@./scripts/build_mobile_web.sh $(ARGS)

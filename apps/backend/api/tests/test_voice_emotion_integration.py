@@ -229,3 +229,95 @@ def test_call_websocket_streaming_non_blocking_end_to_end(monkeypatch):
         # Session state purged on disconnect
         assert "e2e_stream_sess" not in coordinator._sessions
 
+
+def test_call_websocket_chunked_4800b_fanout_and_emotion_failure_isolation(monkeypatch):
+    """Verify 4800-byte 150ms PCM fan-out frames + stt.partial/final_segment + audio.boundary
+    never stall or fail conversation even when emotion_service raises an error."""
+    from app.api.routes.call import router as call_router
+    from app.services.call import call_session_manager
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from packages.shared.config import settings
+
+    class _FailingEmotionProvider(MockEmotionProvider):
+        async def predict_audio_window(self, audio_bytes: bytes, sample_rate: int = 16000):
+            raise RuntimeError("Simulated emotion_service 503 outage")
+
+    coordinator = CallEmotionCoordinator(provider_getter=lambda: _FailingEmotionProvider())
+
+    monkeypatch.setattr(settings, "EMOTION_STREAMING_ENABLED", True)
+    monkeypatch.setattr(call_session_manager, "emotion_coordinator", coordinator)
+    monkeypatch.setattr(call_session_manager.orchestrator, "llm_provider", _FastMockLLM())
+
+    ws_app = FastAPI()
+    ws_app.include_router(call_router, prefix="/api/v1")
+    test_client = TestClient(ws_app)
+
+    with (
+        patch("app.services.call.persistence.AsyncSessionLocal") as mock_db,
+        patch(
+            "app.services.call.session_manager.TTSFactory.get_provider",
+            return_value=MockTTSProvider(),
+        ),
+    ):
+        with test_client.websocket_connect(
+            "/api/v1/call/ws/e2e_isolation_sess?privacy_mode=local_private"
+        ) as ws:
+            assert ws.receive_json()["type"] == "call_connected"
+            ws.send_json({"type": "start_call"})
+            assert ws.receive_json()["type"] == "call_started"
+
+            # Stream 20 frames * 4800B = 96,000B (3.0s) matching Android AudioCaptureEngine
+            full_pcm = _speech_pcm(3.0)
+            for offset in range(0, len(full_pcm), 4800):
+                ws.send_bytes(full_pcm[offset : offset + 4800])
+
+            # Interleave native STT partial + final_segment + audio.boundary(turn_thinking)
+            ws.send_json({
+                "type": "stt.partial",
+                "call_id": "e2e_isolation_sess",
+                "user_turn_id": 1,
+                "stt_session_id": 1,
+                "sequence": 1,
+                "text": "aku lagi merasa",
+            })
+            ws.send_json({
+                "type": "stt.final_segment",
+                "call_id": "e2e_isolation_sess",
+                "user_turn_id": 1,
+                "stt_session_id": 1,
+                "sequence": 2,
+                "text": "aku lagi merasa cukup cemas hari ini.",
+            })
+            ws.send_json({
+                "type": "audio.boundary",
+                "call_id": "e2e_isolation_sess",
+                "reason": "turn_thinking",
+            })
+            ws.send_json({
+                "type": "user.force_commit",
+                "call_id": "e2e_isolation_sess",
+                "user_turn_id": 1,
+            })
+
+            seen_types: list[str] = []
+            emotion_evt = None
+            for _ in range(15):
+                evt = ws.receive_json()
+                seen_types.append(evt.get("type", ""))
+                if evt.get("type") == "emotion_result":
+                    emotion_evt = evt
+                if evt.get("type") == "voice_session_summary":
+                    break
+
+            assert "turn.committed" in seen_types
+            assert "ai.thinking" in seen_types
+            assert emotion_evt is not None
+            # Failure isolation: degraded emotion reports truthful unavailable without breaking call
+            assert emotion_evt["status"] == "unavailable"
+            ws.send_json({"type": "end_call", "duration_seconds": 4})
+
+        mock_db.assert_not_called()
+        assert "e2e_isolation_sess" not in coordinator._sessions
+

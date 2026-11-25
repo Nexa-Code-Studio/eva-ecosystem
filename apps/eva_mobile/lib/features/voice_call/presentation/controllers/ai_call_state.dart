@@ -1,3 +1,4 @@
+import '../../domain/entities/audio_pipeline_mode.dart';
 import '../../domain/entities/call_state.dart';
 
 class AiCallViewState {
@@ -26,6 +27,7 @@ class AiCallViewState {
   final String? detectedEmotion;
   final double? detectedEmotionConfidence;
   final List<Map<String, dynamic>> activeEmotionsBreakdown;
+  final AudioPipelineDiagnosticSnapshot? audioDiagnostics;
 
   const AiCallViewState({
     this.callState = CallState.idle,
@@ -53,6 +55,7 @@ class AiCallViewState {
     this.detectedEmotion,
     this.detectedEmotionConfidence,
     this.activeEmotionsBreakdown = const [],
+    this.audioDiagnostics,
   });
 
   AiCallViewState copyWith({
@@ -81,6 +84,7 @@ class AiCallViewState {
     String? detectedEmotion,
     double? detectedEmotionConfidence,
     List<Map<String, dynamic>>? activeEmotionsBreakdown,
+    AudioPipelineDiagnosticSnapshot? audioDiagnostics,
     bool clearCrisis = false,
     bool clearError = false,
   }) {
@@ -110,6 +114,7 @@ class AiCallViewState {
       detectedEmotion: detectedEmotion ?? this.detectedEmotion,
       detectedEmotionConfidence: detectedEmotionConfidence ?? this.detectedEmotionConfidence,
       activeEmotionsBreakdown: activeEmotionsBreakdown ?? this.activeEmotionsBreakdown,
+      audioDiagnostics: audioDiagnostics ?? this.audioDiagnostics,
     );
   }
 }
