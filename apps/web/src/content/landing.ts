@@ -22,7 +22,6 @@ export const navLinks = [
   { id: 'cara-kerja', label: 'Cara Kerja' },
   { id: 'keunggulan', label: 'Keunggulan' },
   { id: 'faq', label: 'FAQ' },
-  { id: 'early-access', label: 'Early Access' },
 ] as const
 
 export type NavId = (typeof navLinks)[number]['id']

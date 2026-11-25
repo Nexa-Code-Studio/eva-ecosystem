@@ -1,5 +1,6 @@
 from app.models.ai import AIRun, AIWorkerRun
 from app.models.base import BaseModel
+from app.models.booth_feedback import BoothFeedback, BoothFeedbackPhoto
 from app.models.certificate import CertificateTemplate, PsychologistCertificate
 from app.models.coin import CoinEconomyConfig, CoinPackage, CoinTransaction
 from app.models.content import CrisisConfig, FaqEntry
@@ -71,6 +72,8 @@ __all__ = [
     "AIWorkerRun",
     "AIWorkerType",
     "BaseModel",
+    "BoothFeedback",
+    "BoothFeedbackPhoto",
     "CertificateTemplate",
     "PsychologistCertificate",
     "CoinEconomyConfig",

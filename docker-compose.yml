@@ -10,6 +10,7 @@ services:
       - "8888:8888"
     volumes:
       - .:/workspace
+      - eva_uploads:/app/uploads
     env_file:
       - .env
     environment:
@@ -131,3 +132,4 @@ volumes:
   postgres_data:
   redis_data:
   qdrant_data:
+  eva_uploads:

@@ -7,6 +7,9 @@ import { NotFoundPage } from '@/pages/NotFoundPage'
 const LoginPage = lazy(() =>
   import('@/pages/LoginPage').then((m) => ({ default: m.LoginPage })),
 )
+const FeedbackPage = lazy(() =>
+  import('@/pages/FeedbackPage').then((m) => ({ default: m.FeedbackPage })),
+)
 const AdminDashboardPage = lazy(() =>
   import('@/pages/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })),
 )
@@ -52,6 +55,14 @@ const router = createBrowserRouter([
         element: <NotFoundPage />,
       },
     ],
+  },
+  {
+    path: '/feedback',
+    element: (
+      <Suspense fallback={<div className="min-h-screen bg-[#F8F9FE]" />}>
+        <FeedbackPage />
+      </Suspense>
+    ),
   },
   {
     path: '/login',

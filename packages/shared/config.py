@@ -63,6 +63,9 @@ class BaseConfig(BaseSettings):
     LOG_LEVEL: str = "INFO"
     PORT: int = 8888
     MCP_PORT: int = 8889
+    UPLOAD_DIR: str = "/app/uploads"
+    BOOTH_FEEDBACK_MAX_PHOTOS: int = 5
+    BOOTH_FEEDBACK_MAX_PHOTO_BYTES: int = 5 * 1024 * 1024
 
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5435/luna_ai"
     REDIS_URL: str = "redis://localhost:6380/0"
@@ -95,6 +98,7 @@ class BaseConfig(BaseSettings):
             "QDRANT_URL",
             "CLOUDFLARE_TURN_TOKEN_ID",
             "CLOUDFLARE_TURN_API_TOKEN",
+            "UPLOAD_DIR",
         ):
             if env_key in os.environ:
                 setattr(self, env_key, os.environ[env_key])

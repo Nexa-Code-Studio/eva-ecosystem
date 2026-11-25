@@ -319,3 +319,54 @@ export interface PortalDatabase {
   eligibleCounselorSummaries: CounselorCertificateEligibility[]
   psychologistLevels: PsychologistLevelConfig[]
 }
+
+export interface BoothFeedbackPhoto {
+  id: string
+  mimeType: string
+  fileSizeBytes: number
+  sortOrder: number
+  createdAt: string
+  mockDataUrl?: string
+}
+
+export interface BoothFeedbackEntry {
+  id: string
+  rating: number
+  message: string
+  visitorName: string | null
+  visitorContact: string | null
+  eventLabel: string
+  photos: BoothFeedbackPhoto[]
+  createdAt: string
+}
+
+export interface BoothFeedbackSummary {
+  totalCount: number
+  averageRating: number
+  ratingCounts: Record<number, number>
+}
+
+export interface BoothFeedbackListResult {
+  summary: BoothFeedbackSummary
+  items: BoothFeedbackEntry[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export interface SubmitBoothFeedbackPayload {
+  rating: number
+  message: string
+  visitorName?: string
+  visitorContact?: string
+  eventLabel?: string
+  photos: File[]
+}
+
+export interface SubmitBoothFeedbackResult {
+  id: string
+  rating: number
+  photoCount: number
+  createdAt: string
+  message: string
+}

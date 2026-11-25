@@ -1,5 +1,6 @@
 import { buildPsychologistCertificates } from '@/data/mock/psychologists.mock'
 import type {
+  BackendAdminBoothFeedbackListDto,
   BackendAdminSessionDto,
   BackendAdminUserDto,
   BackendCertificateEvaluationSummaryDto,
@@ -18,6 +19,8 @@ import type {
   RegisterPsychologistRequestDto,
 } from '@/types/api/contracts'
 import type {
+  BoothFeedbackEntry,
+  BoothFeedbackListResult,
   CertificateEvaluationSummary,
   CertificateTemplate,
   CertificateTriggerType,
@@ -434,5 +437,43 @@ export function mapBackendLevelEvaluationToDomain(
     evaluatedCounselors: dto.evaluated_counselors,
     upgradedCount: dto.upgraded_count,
     message: dto.message,
+  }
+}
+
+export function mapBackendAdminBoothFeedbackListToDomain(
+  dto: BackendAdminBoothFeedbackListDto,
+): BoothFeedbackListResult {
+  const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+  for (const score of [1, 2, 3, 4, 5]) {
+    counts[score] = Number(dto.summary.rating_counts?.[String(score)] ?? 0)
+  }
+
+  const items: BoothFeedbackEntry[] = dto.items.map((item) => ({
+    id: item.id,
+    rating: item.rating,
+    message: item.message,
+    visitorName: item.visitor_name ?? null,
+    visitorContact: item.visitor_contact ?? null,
+    eventLabel: item.event_label || 'Event Booth EVA',
+    photos: item.photos.map((p) => ({
+      id: p.id,
+      mimeType: p.mime_type,
+      fileSizeBytes: p.file_size_bytes,
+      sortOrder: p.sort_order,
+      createdAt: p.created_at,
+    })),
+    createdAt: item.created_at,
+  }))
+
+  return {
+    summary: {
+      totalCount: dto.summary.total_count,
+      averageRating: dto.summary.average_rating,
+      ratingCounts: counts,
+    },
+    items,
+    total: dto.total,
+    page: dto.page,
+    pageSize: dto.page_size,
   }
 }

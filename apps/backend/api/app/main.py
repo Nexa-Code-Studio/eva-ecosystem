@@ -11,6 +11,10 @@ from app.api.routes.admin_counselors import router as admin_counselors_router
 from app.api.routes.admin_sessions import router as admin_sessions_router
 from app.api.routes.analytics import router as analytics_router
 from app.api.routes.auth import router as auth_router
+from app.api.routes.booth_feedbacks import (
+    admin_router as booth_feedbacks_admin_router,
+    public_router as booth_feedbacks_public_router,
+)
 from app.api.routes.call import router as call_router
 from app.api.routes.care import community_router, router as care_router
 from app.api.routes.certificates import (
@@ -93,6 +97,8 @@ app.include_router(admin_counselors_router, prefix="/api/v1")
 app.include_router(admin_sessions_router, prefix="/api/v1")
 app.include_router(content_public_router, prefix="/api/v1")
 app.include_router(content_admin_router, prefix="/api/v1")
+app.include_router(booth_feedbacks_public_router, prefix="/api/v1")
+app.include_router(booth_feedbacks_admin_router, prefix="/api/v1")
 app.include_router(community_router, prefix="/api/v1")
 app.include_router(certificates_counselor_router, prefix="/api/v1")
 app.include_router(certificates_admin_router, prefix="/api/v1")

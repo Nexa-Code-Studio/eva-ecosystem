@@ -190,5 +190,12 @@
     "updated_at": 1795555308,
     "evidence_summary": "Evidence accepted: PR and test verification documented.",
     "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/131"
+  },
+  "134": {
+    "issue": 134,
+    "branch": "feat/134-event-booth-feedback",
+    "state": "In Progress",
+    "updated_at": 1795577764,
+    "evidence_summary": "Evidence accepted: active task branch verified."
   }
 }
