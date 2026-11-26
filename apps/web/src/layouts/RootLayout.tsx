@@ -47,9 +47,10 @@ function RootShell() {
               ? { y: 0, opacity: 1 }
               : reducedMotion
                 ? { y: 0, opacity: 0 }
-                : { y: '100dvh', opacity: 1 }
+                : { y: '110dvh', opacity: 1 }
             : { y: 0, opacity: 1 }
         }
+        transformTemplate={(_, generated) => (isSheetMode ? generated : 'none')}
         transition={
           isSlidingUp
             ? { duration: slideDurationMs / 1000, ease: SLIDE_UP_EASE }
@@ -60,7 +61,8 @@ function RootShell() {
         }}
         className={cn(
           'relative flex min-h-screen flex-1 flex-col bg-canvas',
-          isSheetMode && 'z-70 pointer-events-none select-none',
+          isSlidingUp && 'z-70 pointer-events-none select-none',
+          isSheetMode && !isSlidingUp && 'z-40 invisible pointer-events-none select-none',
         )}
         style={isSheetMode ? { willChange: 'transform, opacity' } : undefined}
       >

@@ -1,7 +1,6 @@
 import '../../../../core/network/api_client.dart';
 import '../../domain/entities/consultation_session_entity.dart';
 import '../models/psychologist_model.dart';
-import '../models/clinic_model.dart';
 import '../models/community_status_model.dart';
 import '../models/consultation_session_model.dart';
 import '../models/counselor_timeline_dto.dart';
@@ -14,31 +13,34 @@ class RemoteCareDataSource implements CareDataSource {
 
   @override
   Future<List<PsychologistModel>> getPsychologists({String? category, String? query}) async {
-    final queryParams = <String, String>{};
-    if (category != null && category.isNotEmpty) queryParams['category'] = category;
-    if (query != null && query.isNotEmpty) queryParams['q'] = query;
-
-    final response = await _apiClient.get(
-      '/care/psychologists',
-      queryParams: queryParams.isNotEmpty ? queryParams : null,
-    );
-
+    final response = await _apiClient.get('/counselors');
     final list = response as List? ?? [];
-    return list.map((e) => PsychologistModel.fromJson(e as Map<String, dynamic>)).toList();
-  }
+    var items = list
+        .whereType<Map<String, dynamic>>()
+        .map(PsychologistModel.fromJson)
+        .toList();
 
-  @override
-  Future<List<ClinicModel>> getClinics({String? query}) async {
-    final queryParams = <String, String>{};
-    if (query != null && query.isNotEmpty) queryParams['q'] = query;
+    if (category != null && category.isNotEmpty && category != 'all') {
+      final cat = category.toLowerCase();
+      if (cat == 'volunteer' || cat == 'relawan') {
+        items = items.where((p) => p.isVolunteer).toList();
+      } else if (cat == 'psychologist' || cat == 'psikolog') {
+        items = items.where((p) => !p.isVolunteer).toList();
+      } else if (cat == 'psychiatrist') {
+        items = items.where((p) => p.isPsychiatrist).toList();
+      }
+    }
 
-    final response = await _apiClient.get(
-      '/care/clinics',
-      queryParams: queryParams.isNotEmpty ? queryParams : null,
-    );
+    if (query != null && query.trim().isNotEmpty) {
+      final q = query.trim().toLowerCase();
+      items = items.where((p) {
+        return p.name.toLowerCase().contains(q) ||
+            p.title.toLowerCase().contains(q) ||
+            p.specialties.any((s) => s.toLowerCase().contains(q));
+      }).toList();
+    }
 
-    final list = response as List? ?? [];
-    return list.map((e) => ClinicModel.fromJson(e as Map<String, dynamic>)).toList();
+    return items;
   }
 
   @override
@@ -63,7 +65,10 @@ class RemoteCareDataSource implements CareDataSource {
   Future<List<ConsultationSessionModel>> getConsultationSessions() async {
     final response = await _apiClient.get('/care/sessions');
     final list = response as List? ?? [];
-    return list.map((e) => ConsultationSessionModel.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .whereType<Map<String, dynamic>>()
+        .map(ConsultationSessionModel.fromJson)
+        .toList();
   }
 
   @override
@@ -94,14 +99,16 @@ class RemoteCareDataSource implements CareDataSource {
     String? complaints,
     bool shareAiChatHistory = false,
   }) async {
+    final startIso = preferredDateTime.toUtc().toIso8601String();
     final response = await _apiClient.post(
       '/counselors/$psychologistId/book',
       body: {
         'psychologist_id': psychologistId,
-        'preferred_datetime': preferredDateTime.toIso8601String(),
-        'session_type': sessionType.name,
+        'scheduled_start_time': startIso,
+        'preferred_date_time': startIso,
+        'session_type': ConsultationType.onlineVideo.name,
         'session_count': sessionCount,
-        'duration_minutes': durationMinutes,
+        'duration_minutes': durationMinutes > 0 ? durationMinutes : sessionCount * 30,
         'complaints': complaints,
         'share_ai_chat_history': shareAiChatHistory,
       },

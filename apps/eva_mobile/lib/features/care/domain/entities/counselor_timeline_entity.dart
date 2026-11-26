@@ -122,6 +122,7 @@ class CounselorTimelineEntity {
   final OperatingHoursEntity operatingHours;
   final List<BlockedRangeEntity> blockedRanges;
   final List<TimeRangeEntity> availableWindows;
+  final int bufferTimeMinutes;
 
   const CounselorTimelineEntity({
     required this.counselorId,
@@ -129,6 +130,7 @@ class CounselorTimelineEntity {
     required this.operatingHours,
     this.blockedRanges = const [],
     this.availableWindows = const [],
+    this.bufferTimeMinutes = 0,
   });
 
   CollisionResult evaluateSelection(TimeOfDay selectedStart, int durationMinutes) {
@@ -156,6 +158,16 @@ class CounselorTimelineEntity {
           hasClash: true,
           reason: 'Menabrak $label (${blocked.startFormatted} - ${blocked.endFormatted})',
           clashType: blocked.type,
+        );
+      }
+      if (bufferTimeMinutes > 0 &&
+          blocked.type == BlockedRangeType.booked &&
+          blocked.overlapsWith(startMin, endMin + bufferTimeMinutes)) {
+        return CollisionResult(
+          hasClash: true,
+          reason:
+              'Jeda buffer ($bufferTimeMinutes menit) sebelum ${blocked.label ?? blocked.type.displayName} (${blocked.startFormatted})',
+          clashType: BlockedRangeType.buffer,
         );
       }
     }

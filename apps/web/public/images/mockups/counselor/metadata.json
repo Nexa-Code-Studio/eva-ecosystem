@@ -1,0 +1,42 @@
+{
+  "generatedAt": "2026-11-25T07:10:07.708Z",
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "scale": 2
+  },
+  "screens": [
+    {
+      "id": "schedule",
+      "title": "Beranda Praktik & Jadwal Psikolog",
+      "route": "/#/counselor-shell",
+      "webp": "schedule.webp",
+      "png": "schedule.png",
+      "fileSizeKb": 71.4
+    },
+    {
+      "id": "consent",
+      "title": "Ringkasan Klinis DASS-21 Berbasis Consent",
+      "route": "/#/counselor-patient-detail",
+      "webp": "consent.webp",
+      "png": "consent.png",
+      "fileSizeKb": 77
+    },
+    {
+      "id": "teleconsult",
+      "title": "Ruang Telekonsultasi Video 30 Menit",
+      "route": "/#/counselor-video-call",
+      "webp": "teleconsult.webp",
+      "png": "teleconsult.png",
+      "fileSizeKb": 44
+    },
+    {
+      "id": "finance",
+      "title": "Honorarium EVA Coin & Pencairan Dana",
+      "route": "/#/counselor-finances",
+      "webp": "finance.webp",
+      "png": "finance.png",
+      "fileSizeKb": 70.1
+    }
+  ]
+}

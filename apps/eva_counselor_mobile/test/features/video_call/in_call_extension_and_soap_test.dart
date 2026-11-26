@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:webrtc_client/webrtc_client.dart';
 import 'package:eva_counselor_mobile/core/config/app_config.dart';
 import 'package:eva_counselor_mobile/features/auth/domain/entities/psychologist_user_entity.dart';
 import 'package:eva_counselor_mobile/features/auth/presentation/providers/auth_provider.dart';
@@ -72,6 +73,38 @@ void main() {
       expect(controller.state.maxDuration, const Duration(minutes: 30));
       expect(controller.state.isExtensionRequested, false);
       expect(controller.state.isExtensionApproved, false);
+    });
+
+    test('Receives extension_updated signaling from patient and extends counselor timer to 60m',
+        () async {
+      final mockSignaling = MockSignalingService();
+      final controller = VideoCallController(
+        repository,
+        initialSession,
+        peerManager: MockWebRtcPeerManager(),
+        signalingService: mockSignaling,
+      );
+
+      await controller.initializeCall();
+      controller.triggerExtensionRequest();
+      expect(controller.state.isExtensionRequested, true);
+
+      mockSignaling.emitMockMessage(SignalingMessage.create(
+        type: 'extension_updated',
+        senderRole: 'patient',
+        payload: {
+          'is_approved': true,
+          'max_duration_minutes': 60,
+        },
+      ));
+      await Future.delayed(const Duration(milliseconds: 30));
+
+      expect(controller.state.isExtended, true);
+      expect(controller.state.isExtensionRequested, false);
+      expect(controller.state.isExtensionApproved, true);
+      expect(controller.state.maxDuration, const Duration(minutes: 60));
+
+      controller.dispose();
     });
 
     testWidgets('VideoConsultationScreen displays in-call extension prompt and handles approval',

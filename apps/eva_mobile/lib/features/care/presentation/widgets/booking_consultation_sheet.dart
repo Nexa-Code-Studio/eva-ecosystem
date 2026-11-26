@@ -7,7 +7,6 @@ import '../../domain/entities/consultation_session_entity.dart';
 import '../../domain/entities/counselor_timeline_entity.dart';
 import '../providers/care_provider.dart';
 import '../../../coin/presentation/providers/coin_provider.dart';
-import 'clinic_location_map_card.dart';
 import 'psychologist_availability_timeline_bar.dart';
 import 'session_duration_stepper.dart';
 
@@ -33,7 +32,6 @@ class BookingConsultationSheet extends ConsumerStatefulWidget {
 }
 
 class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSheet> {
-  ConsultationType _selectedType = ConsultationType.onlineVideo;
   int _selectedDayOffset = 1; // 1 = Besok, 2 = Lusa, 3 = 3 Hari Lagi
   int _sessionCount = 1; // 1 sesi = 30m, 2 sesi = 60m, dst.
   TimeOfDay _selectedStartTime = const TimeOfDay(hour: 9, minute: 0);
@@ -61,14 +59,14 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
 
     if (picked != null) {
       final rawMin = picked.hour * 60 + picked.minute;
-      final snappedMin = ((rawMin / 15).round() * 15).clamp(
-        opHours.startMinutes,
-        opHours.endMinutes - 30,
-      );
+      final durationMin = _sessionCount * 30;
+      final maxStart = (opHours.endMinutes - durationMin)
+          .clamp(opHours.startMinutes, opHours.endMinutes);
+      final clampedMin = rawMin.clamp(opHours.startMinutes, maxStart);
       setState(() {
         _selectedStartTime = TimeOfDay(
-          hour: snappedMin ~/ 60,
-          minute: snappedMin % 60,
+          hour: clampedMin ~/ 60,
+          minute: clampedMin % 60,
         );
       });
     }
@@ -126,7 +124,7 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
     final success = await ref.read(consultationSessionsProvider.notifier).bookNewSession(
           psychologistId: widget.psychologist.id,
           preferredDateTime: finalDateTime,
-          sessionType: _selectedType,
+          sessionType: ConsultationType.onlineVideo,
           sessionCount: _sessionCount,
           durationMinutes: _sessionCount * 30,
           complaints: _notesController.text.trim(),
@@ -137,9 +135,9 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
     setState(() => _isLoading = false);
 
     if (success) {
-      // Potong koin sesuai jumlah sesi
+      // Sinkronkan saldo koin dari PostgreSQL (atau kurangi lokal pada mock mode)
       if (requiredCoins > 0) {
-        await ref.read(coinBalanceProvider.notifier).spendCoins(requiredCoins);
+        await ref.read(coinBalanceProvider.notifier).syncAfterServerDebit(requiredCoins);
       }
       if (!mounted) return;
       Navigator.pop(context);
@@ -330,46 +328,37 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
             ),
             const SizedBox(height: 18),
 
-            // Mode Sesi Selector
-            Text(
-              'Pilih Moda Konsultasi',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+            // Mode Telekonsultasi Online (100% Video Call)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.primaryContainer.withValues(alpha: 0.35),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.videocam_rounded,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Telekonsultasi Video Call Online • Durasi 30 Menit / Sesi',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTypeOption(
-                    title: 'Online Video',
-                    subtitle: 'Via WebRTC Room',
-                    icon: Icons.videocam_outlined,
-                    type: ConsultationType.onlineVideo,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _buildTypeOption(
-                    title: 'Tatap Muka',
-                    subtitle: widget.psychologist.clinicAffiliation ?? 'Klinik Mitra',
-                    icon: Icons.location_city_outlined,
-                    type: ConsultationType.offlineClinic,
-                  ),
-                ),
-              ],
-            ),
-
-            // Tunjukkan Maps Jika Moda Offline / Tatap Muka
-            if (_selectedType == ConsultationType.offlineClinic) ...[
-              const SizedBox(height: 12),
-              ClinicLocationMapCard(
-                clinicName: widget.psychologist.clinicAffiliation ?? 'Klinik Mitra Eva Care',
-                address: 'Jl. Kemanggisan Raya No. 45, Palmerah, Jakarta Barat',
-              ),
-            ],
 
             const SizedBox(height: 18),
 
@@ -645,12 +634,14 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
                             color: AppColors.primary,
                           ),
                           const SizedBox(width: 5),
-                          Text(
-                            'Bagikan Ringkasan Klinis Terpilih ke Psikolog',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
+                          Expanded(
+                            child: Text(
+                              'Bagikan Ringkasan Klinis Terpilih ke Psikolog',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                           ),
                         ],
@@ -779,64 +770,6 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
                   fontWeight: FontWeight.w700,
                 ),
               ),
-      ),
-    );
-  }
-
-  Widget _buildTypeOption({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required ConsultationType type,
-  }) {
-    final isSelected = _selectedType == type;
-
-    return GestureDetector(
-      onTap: () => setState(() => _selectedType = type),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryContainer.withValues(alpha: 0.5) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
-            width: isSelected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 20,
-              color: isSelected ? AppColors.primary : AppColors.textSecondary,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                      color: isSelected ? AppColors.primary : AppColors.textPrimary,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 10.5,
-                      color: AppColors.textSecondary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import Lenis from 'lenis'
 import { useEffect } from 'react'
+import { isBodyScrollLocked } from '@/hooks/useBodyScrollLock'
 import { scrollToCenteredSection, usePrefersReducedMotion } from '@/hooks/useScroll'
 
 /**
@@ -19,6 +20,9 @@ export function SmoothScroll() {
       smoothWheel: true,
     })
     window.__evaLenis = lenis
+    if (isBodyScrollLocked()) {
+      lenis.stop()
+    }
 
     let rafId = 0
     const raf = (time: number) => {

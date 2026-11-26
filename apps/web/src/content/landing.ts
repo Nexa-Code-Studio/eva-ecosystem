@@ -1,6 +1,9 @@
 import {
+  BadgeCheck,
   BookOpen,
   Brain,
+  CalendarClock,
+  FileCheck2,
   Flame,
   Gauge,
   HeartHandshake,
@@ -9,6 +12,8 @@ import {
   ShieldCheck,
   Smile,
   Stethoscope,
+  Video,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react'
 import apkMetadata from '@/config/apkMetadata.json'
@@ -21,6 +26,7 @@ export const navLinks = [
   { id: 'fitur', label: 'Fitur' },
   { id: 'cara-kerja', label: 'Cara Kerja' },
   { id: 'keunggulan', label: 'Keunggulan' },
+  { id: 'psikolog', label: 'Psikolog' },
   { id: 'faq', label: 'FAQ' },
 ] as const
 
@@ -28,6 +34,9 @@ export type NavId = (typeof navLinks)[number]['id']
 
 export const DOWNLOAD_APK_URL =
   'https://github.com/Nexa-Code-Studio/eva-ecosystem/releases/latest/download/eva-mobile-release.apk'
+
+export const DOWNLOAD_COUNSELOR_APK_URL =
+  'https://github.com/Nexa-Code-Studio/eva-ecosystem/releases/download/prototype/eva-counselor-mobile-release.apk'
 
 /* ------------------------------------------------------------------ */
 /* ------------------------------------------------------------------ */
@@ -255,52 +264,144 @@ export const clinicalEvaluationData: ClinicalEvaluationItem[] = [
   {
     id: 'supervision',
     title: 'Supervisi Psikologi Klinis (HIMPSI)',
-    badge: 'Etika & Batasan Praktik',
+    badge: 'Etika & Batas Layanan',
     summary:
-      'Perancangan alur respon dan intervensi mikro EVA disupervisi oleh psikolog klinis berlisensi HIMPSI untuk memastikan batasan non-diagnostik yang etis dan bertanggung jawab.',
+      'Psikolog klinis berlisensi HIMPSI ikut mengawasi alur percakapan EVA agar tetap berfungsi sebagai pendamping awal, bukan pengganti terapi.',
     details: [
-      'Berfungsi murni sebagai pertolongan pertama emosi digital (first-aid), bukan terapi maupun diagnosa klinis psikiatrik.',
-      'Dialog empatik menggunakan prinsip active listening dan validasi emosi tanpa penghakiman.',
-      'Pengawasan berkala terhadap tone dan panduan respon interaksi model AI.',
+      'Berperan sebagai pertolongan pertama emosi sehari-hari, bukan untuk memberi terapi medis atau diagnosis gangguan kejiwaan.',
+      'Percakapan dirancang agar mendengarkan dengan hangat dan menerima perasaan pengguna tanpa menghakimi.',
+      'Tim klinis meninjau gaya bahasa dan panduan respon EVA secara berkala.',
     ],
   },
   {
     id: 'screening',
-    title: 'Validasi Instrumen Skrining DASS-21',
-    badge: 'Psikometri Terstandar',
+    title: 'Pemeriksaan Stres DASS-21',
+    badge: 'Alat Ukur Teruji',
     summary:
-      'EVA mengadopsi instrumen DASS-21 (Depression Anxiety Stress Scales) versi adaptasi bahasa Indonesia untuk deteksi dini indikasi stres secara berkala.',
+      'EVA memakai kuesioner DASS-21 versi bahasa Indonesia yang terstandar untuk membantu pengguna mengenali tingkat stresnya sejak dini.',
     details: [
-      '21 butir instrumen tervalidasi dengan sistem scoring berjenjang (Normal hingga Extreme).',
-      'Hasil skrining disajikan secara transparan dan objektif tanpa menimbulkan kecemasan diagnostik baru.',
-      'Opsi ekspor Intake Summary terenkripsi untuk mempermudah rujukan ke psikolog profesional.',
+      'Berisi 21 pertanyaan tervalidasi dengan rentang hasil dari Normal hingga Sangat Berat.',
+      'Hasil ditampilkan apa adanya dengan bahasa yang tenang agar tidak memicu rasa takut berlebih.',
+      'Pengguna dapat membagikan ringkasan hasil ini kepada psikolog saat butuh rujukan lanjutan.',
     ],
   },
   {
     id: 'safetynet',
-    title: 'Protokol Darurat Krisis 24/7 (Standar WHO)',
+    title: 'Siaga Kondisi Krisis 24/7 (Standar WHO)',
     badge: 'Protokol Keselamatan',
     summary:
-      'Arsitektur deteksi krisis siaga yang otomatis memutus dialog santai jika terdeteksi indikasi risiko bahaya diri atau krisis akut.',
+      'Saat terdeteksi tanda bahaya diri atau krisis berat, EVA menghentikan obrolan santai dan langsung mengarahkan ke bantuan darurat.',
     details: [
-      'Penyediaan akses langsung satu sentuhan ke Layanan Krisis Bebas Pulsa Kemenkes (Hotline 119 Ext 8).',
-      'Penyediaan kontak darurat personal (wali atau orang terpercaya) yang tersimpan aman di ponsel.',
-      'Sistem non-retensi: log krisis tidak dibagikan atau dipublikasikan demi menjaga integritas privasi pengguna.',
+      'Menyediakan tombol panggil cepat ke Layanan Krisis Bebas Pulsa Kemenkes (Hotline 119 Ext 8).',
+      'Menampilkan nomor wali atau orang kepercayaan yang disimpan pengguna di ponselnya sendiri.',
+      'Catatan kondisi krisis tidak dibagikan ke pihak mana pun demi menjaga penuh privasi pengguna.',
     ],
   },
+]
+
+/* ------------------------------------------------------------------ */
+/* Eva Counselor (Psikolog Klinis)                                     */
+/* ------------------------------------------------------------------ */
+export type CounselorFeatureId = 'schedule' | 'consent' | 'teleconsult' | 'finance'
+
+export const COUNSELOR_SCREENSHOTS: Record<CounselorFeatureId, string> = {
+  schedule: '/images/mockups/counselor/schedule.webp',
+  consent: '/images/mockups/counselor/consent.webp',
+  teleconsult: '/images/mockups/counselor/teleconsult.webp',
+  finance: '/images/mockups/counselor/finance.webp',
+}
+
+export interface CounselorFeature {
+  id: CounselorFeatureId
+  icon: LucideIcon
+  tone: IconTileTone
+  tag: string
+  title: string
+  body: string
+  workflow: string
+}
+
+export const counselorSection = {
+  kicker: 'Khusus Psikolog Klinis (HIMPSI)',
+  titleLead: 'Ruang Praktik di Ponsel',
+  titleAccent: 'Untuk Psikolog.',
+  subtitle:
+    'Atur jadwal praktik, baca ringkasan kondisi pasien sebelum bertemu, dan jalani konsultasi video lewat satu aplikasi Android.',
+  verifyHeading: 'Cara Bergabung & Aturan Privasi',
+  verifyNote:
+    'Psikolog mendaftar langsung di aplikasi Eva Counselor dengan mengunggah berkas STR dan SIP aktif untuk kami periksa.',
+  secondaryCta: 'Lihat Standar Layanan EVA',
+}
+
+export const counselorFeatures: CounselorFeature[] = [
+  {
+    id: 'schedule',
+    icon: CalendarClock,
+    tone: 'primary',
+    tag: 'Daftar & Jadwal',
+    title: 'Unggah STR/SIP dan Atur Jadwal Sendiri',
+    body: 'Daftarkan akunmu langsung lewat aplikasi dengan mengunggah STR dan SIP. Setelah terverifikasi, kamu bebas memilih hari dan jam praktik.',
+    workflow: 'Kamu tetap memegang kendali penuh atas jam aktif dan kesiapan menerima pasien baru.',
+  },
+  {
+    id: 'consent',
+    icon: FileCheck2,
+    tone: 'success',
+    tag: 'Izin Pasien',
+    title: 'Gambaran Stres DASS-21 Sebelum Sesi',
+    body: 'Sebelum panggilan mulai, baca skor DASS-21 dan catatan awal yang dibagikan atas izin pasien. Obrolan pribadi mereka di aplikasi tetap tertutup.',
+    workflow: 'Membantu kamu memahami kondisi pasien sejak awal tanpa membuka isi curhat pribadinya.',
+  },
+  {
+    id: 'teleconsult',
+    icon: Video,
+    tone: 'tertiary',
+    tag: 'Konsultasi Video',
+    title: 'Sesi Video 30 Menit di Dalam Aplikasi',
+    body: 'Temui pasien langsung lewat panggilan video 30 menit di aplikasi. Jika obrolan selesai lebih cepat, sesi bisa ditutup bersama dengan satu konfirmasi.',
+    workflow: 'Semua jadwal dan panggilan berjalan di tempat yang sama, tanpa perlu kirim tautan ke aplikasi lain.',
+  },
+  {
+    id: 'finance',
+    icon: Wallet,
+    tone: 'secondary',
+    tag: 'Pendapatan Sesi',
+    title: 'Catatan Honorarium & Pencairan Jelas',
+    body: 'Pantau perolehan EVA Coin dari setiap sesi konsultasi yang selesai, lalu ajukan pencairan dana ke rekening bank yang sudah terdaftar.',
+    workflow: 'Rincian pendapatan tiap sesi dan status transfer tercatat rapi di halaman keuangan.',
+  },
+]
+
+export const counselorOnboardingHighlights = [
+  { icon: BadgeCheck, label: 'Unggah STR dan SIP aktif lewat aplikasi' },
+  { icon: ShieldCheck, label: 'Catatan pasien hanya terbuka jika diizinkan' },
+  { icon: Stethoscope, label: 'EVA memberi pendampingan awal, bukan diagnosa' },
 ]
 
 /* ------------------------------------------------------------------ */
 /* CTA                                                                 */
 /* ------------------------------------------------------------------ */
 export const waitlist = {
+  badge: 'Untuk Pengguna',
+  appName: 'Eva Mobile',
   kicker: 'Akses Awal Langsung',
   title: 'Mulai Perjalanan Tenangmu Bersama EVA.',
+  subtitle: 'Curhat suara 24/7, misi koping 3 menit, dan skrining DASS-21 terenkripsi di ponselmu.',
   description:
     'Unduh versi beta sekarang untuk mencoba fitur curhat suara dan latihan koping terpandu langsung di ponsel Android kamu.',
-  button: 'Unduh Versi Beta (APK)',
-  specs: ['Android 8.0+', `Rilis ${apkMetadata.version}`, apkMetadata.sizeFormatted, 'Bebas Biaya Langganan'],
-  note: '100% Aman • Privasi tersimpan di ponsel • Bebas biaya',
+  button: 'Unduh Eva Mobile (APK)',
+  specs: ['Android 8.0+', `Rilis ${apkMetadata.mobile.version}`, apkMetadata.mobile.sizeFormatted, 'Bebas Biaya Langganan'],
+  note: '100% Aman • Privasi tersimpan di ponsel • Bebas biaya langganan',
+}
+
+export const counselorCta = {
+  badge: 'Untuk Psikolog',
+  appName: 'Eva Counselor',
+  subtitle:
+    'Untuk psikolog mitra yang ingin mengatur jadwal praktik, membaca ringkasan izin pasien, menjalani sesi video 30 menit, dan mencairkan honorarium.',
+  button: 'Unduh Eva Counselor (APK)',
+  specs: ['Android 8.0+', `Rilis ${apkMetadata.counselor.version}`, apkMetadata.counselor.sizeFormatted, 'Verifikasi STR & SIP'],
+  note: 'Verifikasi STR & SIP • Rekening pencairan tercatat',
 }
 
 export const psychologistCtas = ['Daftar Psikolog Mandiri', 'Baca Evaluasi Klinis Psikolog']

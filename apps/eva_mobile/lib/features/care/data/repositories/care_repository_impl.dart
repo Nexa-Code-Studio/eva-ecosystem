@@ -1,6 +1,5 @@
 import '../../domain/repositories/care_repository.dart';
 import '../../domain/entities/psychologist_entity.dart';
-import '../../domain/entities/clinic_entity.dart';
 import '../../domain/entities/community_status_entity.dart';
 import '../../domain/entities/consultation_session_entity.dart';
 import '../../domain/entities/counselor_timeline_entity.dart';
@@ -14,11 +13,6 @@ class CareRepositoryImpl implements CareRepository {
   @override
   Future<List<PsychologistEntity>> getPsychologists({String? category, String? query}) {
     return _dataSource.getPsychologists(category: category, query: query);
-  }
-
-  @override
-  Future<List<ClinicEntity>> getClinics({String? query}) {
-    return _dataSource.getClinics(query: query);
   }
 
   @override

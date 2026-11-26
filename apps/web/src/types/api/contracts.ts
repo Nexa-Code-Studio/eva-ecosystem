@@ -475,4 +475,68 @@ export interface BackendPublicBoothFeedbackCreateDto {
   message: string
 }
 
+export interface BackendErrorDetailObjectDto {
+  code?: string
+  message?: string
+}
+
+export interface BackendErrorEnvelopeDto {
+  detail?: string | BackendErrorDetailObjectDto | null
+}
+
+export interface BackendFinanceSummaryDto {
+  currency: string
+  from: string
+  to: string
+  money_in_paid_idr: number
+  money_in_pending_idr: number
+  money_out_completed_idr: number
+  money_out_pending_idr: number
+  refund_completed_idr: number
+  provider_fees_known_idr: number | null
+  commission_earned_idr: number
+  client_credit_liability_idr: number
+  counselor_payable_idr: number
+  unreconciled_count: number
+  provider_payout_available_idr: number | null
+  provider_balance_as_of: string | null
+}
+
+export interface BackendFinanceTransactionDto {
+  id: string
+  direction: string
+  source: string
+  reference_id: string
+  provider_reference: string | null
+  actor_label: string
+  amount_idr: number | null
+  fee_idr: number | null
+  net_amount_idr: number | null
+  wallet_debit_idr?: number | null
+  currency: string
+  status: string
+  reconciliation_status: string
+  created_at: string
+  completed_at: string | null
+  bank_account_masked: string | null
+}
+
+export interface BackendFinanceEventDto {
+  status: string
+  occurred_at: string
+  source: string
+  message: string
+}
+
+export interface BackendFinanceTransactionDetailDto extends BackendFinanceTransactionDto {
+  events: BackendFinanceEventDto[]
+}
+
+export interface BackendFinanceTransactionsPageDto {
+  items: BackendFinanceTransactionDto[]
+  page: number
+  page_size: number
+  total: number
+}
+
 export type PortalDatabaseSnapshot = PortalDatabase

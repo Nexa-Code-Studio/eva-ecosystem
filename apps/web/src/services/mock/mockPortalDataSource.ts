@@ -3,6 +3,11 @@ import {
   MOCK_ADMIN_ACCOUNT,
   getMockDashboardAnalyticsBaseline,
 } from '@/data/mock'
+import {
+  queryMockFinanceSummary,
+  queryMockFinanceTransactionDetail,
+  queryMockFinanceTransactions,
+} from '@/data/mock/financeMetrics.mock'
 import type { IPortalDataSource } from '@/services/contracts/portalDataSource'
 import {
   buildDomainPsychologistFromRegister,
@@ -24,6 +29,12 @@ import type {
   UpsertPsychologistLevelRequestDto,
   VerifyPsychologistRequestDto,
 } from '@/types/api/contracts'
+import type {
+  FinanceSummary,
+  FinanceTransactionDetail,
+  FinanceTransactionsQuery,
+  PaginatedFinanceTransactions,
+} from '@/types/domain/finance'
 import type {
   BoothFeedbackEntry,
   BoothFeedbackListResult,
@@ -1079,5 +1090,24 @@ export class MockPortalDataSource implements IPortalDataSource {
   async deleteAdminBoothFeedback(feedbackId: string): Promise<void> {
     const next = this.readMockBoothFeedbacks().filter((item) => item.id !== feedbackId)
     this.writeMockBoothFeedbacks(next)
+  }
+
+  async fetchAdminFinanceSummary(params: {
+    from: string
+    to: string
+  }): Promise<FinanceSummary> {
+    return queryMockFinanceSummary(params)
+  }
+
+  async fetchAdminFinanceTransactions(
+    query: FinanceTransactionsQuery,
+  ): Promise<PaginatedFinanceTransactions> {
+    return queryMockFinanceTransactions(query)
+  }
+
+  async fetchAdminFinanceTransactionDetail(
+    transactionId: string,
+  ): Promise<FinanceTransactionDetail> {
+    return queryMockFinanceTransactionDetail(transactionId)
   }
 }

@@ -1,18 +1,14 @@
 import '../entities/psychologist_entity.dart';
-import '../entities/clinic_entity.dart';
 import '../entities/community_status_entity.dart';
 import '../entities/consultation_session_entity.dart';
 import '../entities/counselor_timeline_entity.dart';
 
 abstract class CareRepository {
-  /// Mendapatkan daftar psikolog & psikiater dengan opsi filter kategori dan pencarian nama.
+  /// Mendapatkan daftar psikolog & relawan dengan opsi filter kategori dan pencarian nama.
   Future<List<PsychologistEntity>> getPsychologists({
-    String? category, // 'all', 'psychologist', 'psychiatrist'
+    String? category,
     String? query,
   });
-
-  /// Mendapatkan daftar klinik rekanan.
-  Future<List<ClinicEntity>> getClinics({String? query});
 
   /// Mendapatkan status keanggotaan komunitas Discord pengguna.
   Future<CommunityStatusEntity> getCommunityStatus();
@@ -29,7 +25,7 @@ abstract class CareRepository {
     required DateTime date,
   });
 
-  /// Melakukan booking sesi konsultasi baru.
+  /// Melakukan booking sesi konsultasi baru (telekonsultasi video online).
   Future<ConsultationSessionEntity> bookConsultation({
     required String psychologistId,
     required DateTime preferredDateTime,

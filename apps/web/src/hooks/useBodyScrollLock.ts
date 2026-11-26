@@ -1,28 +1,71 @@
 import { useEffect } from 'react'
 
+let activeLocks = 0
+let savedHtmlOverflow = ''
+let savedBodyOverflow = ''
+let savedHtmlOverscroll = ''
+let savedBodyOverscroll = ''
+let savedBodyPaddingRight = ''
+
+export function isBodyScrollLocked(): boolean {
+  return activeLocks > 0
+}
+
+function applyScrollLock(): void {
+  const html = document.documentElement
+  const body = document.body
+
+  savedHtmlOverflow = html.style.overflow
+  savedBodyOverflow = body.style.overflow
+  savedHtmlOverscroll = html.style.overscrollBehavior
+  savedBodyOverscroll = body.style.overscrollBehavior
+  savedBodyPaddingRight = body.style.paddingRight
+
+  const scrollbarWidth = window.innerWidth - html.clientWidth
+  if (scrollbarWidth > 0) {
+    const currentPadding = Number.parseFloat(window.getComputedStyle(body).paddingRight) || 0
+    body.style.paddingRight = `${currentPadding + scrollbarWidth}px`
+  }
+
+  html.style.overflow = 'hidden'
+  body.style.overflow = 'hidden'
+  html.style.overscrollBehavior = 'none'
+  body.style.overscrollBehavior = 'none'
+
+  window.__evaLenis?.stop()
+}
+
+function releaseScrollLock(): void {
+  const html = document.documentElement
+  const body = document.body
+
+  html.style.overflow = savedHtmlOverflow
+  body.style.overflow = savedBodyOverflow
+  html.style.overscrollBehavior = savedHtmlOverscroll
+  body.style.overscrollBehavior = savedBodyOverscroll
+  body.style.paddingRight = savedBodyPaddingRight
+
+  window.__evaLenis?.start()
+}
+
 /**
- * Custom hook to lock body scrolling when a modal or dialog is open.
- * Prevents background scroll and compensates for scrollbar disappearance to avoid layout shift.
+ * Reference-counted scroll lock for modals and overlays.
+ * Locks both html/body overflow (with scrollbar compensation) and pauses Lenis smooth scroll.
  */
 export function useBodyScrollLock(isLocked: boolean) {
   useEffect(() => {
     if (typeof document === 'undefined' || !isLocked) return
 
-    const originalOverflow = document.body.style.overflow
-    const originalPaddingRight = document.body.style.paddingRight
-
-    // Calculate scrollbar width to prevent content jumping
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
-    if (scrollbarWidth > 0) {
-      document.body.style.paddingRight = `${scrollbarWidth}px`
+    if (activeLocks === 0) {
+      applyScrollLock()
     }
-
-    document.body.style.overflow = 'hidden'
+    activeLocks += 1
 
     return () => {
-      document.body.style.overflow = originalOverflow
-      document.body.style.paddingRight = originalPaddingRight
+      activeLocks = Math.max(0, activeLocks - 1)
+      if (activeLocks === 0) {
+        releaseScrollLock()
+      }
     }
   }, [isLocked])
 }
-

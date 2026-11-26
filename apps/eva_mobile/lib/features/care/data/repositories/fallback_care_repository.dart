@@ -1,6 +1,5 @@
 import '../../domain/repositories/care_repository.dart';
 import '../../domain/entities/psychologist_entity.dart';
-import '../../domain/entities/clinic_entity.dart';
 import '../../domain/entities/community_status_entity.dart';
 import '../../domain/entities/consultation_session_entity.dart';
 import '../../domain/entities/counselor_timeline_entity.dart';
@@ -22,15 +21,6 @@ class FallbackCareRepository implements CareRepository {
       remoteCall: () => _remote.getPsychologists(category: category, query: query),
       mockCall: () => _mock.getPsychologists(category: category, query: query),
       operationName: 'getPsychologists',
-    );
-  }
-
-  @override
-  Future<List<ClinicEntity>> getClinics({String? query}) {
-    return FallbackExecutor.execute(
-      remoteCall: () => _remote.getClinics(query: query),
-      mockCall: () => _mock.getClinics(query: query),
-      operationName: 'getClinics',
     );
   }
 

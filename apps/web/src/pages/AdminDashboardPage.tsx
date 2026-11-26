@@ -14,6 +14,7 @@ import {
   type AdminSummaryCounts,
 } from '@/components/portal/admin/AdminSidebarAndKpi'
 import { AdminUsersCoinsModule } from '@/components/portal/admin/AdminUsersCoinsModule'
+import { AdminFinanceModule } from '@/components/portal/admin/finance/AdminFinanceModule'
 import {
   useAdminOutletContext,
   type AdminOutletContext,
@@ -117,6 +118,7 @@ export function AdminDashboardPage() {
       monitoring: '/admin/monitoring',
       settings: '/admin/settings',
       users_coins: '/admin/users-coins',
+      finance: '/admin/finance',
       content_config: '/admin/content-config',
     }
     navigate(pathMap[mod])
@@ -194,6 +196,10 @@ export function AdminSettingsRoute() {
 export function AdminUsersCoinsRoute() {
   const { db, onFeedback } = useAdminOutletContext()
   return <AdminUsersCoinsModule db={db} onFeedback={onFeedback} />
+}
+
+export function AdminFinanceRoute() {
+  return <AdminFinanceModule />
 }
 
 export function AdminContentConfigRoute() {

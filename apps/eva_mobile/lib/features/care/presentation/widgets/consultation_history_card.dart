@@ -118,9 +118,7 @@ class ConsultationHistoryCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      session.type == ConsultationType.onlineVideo
-                          ? 'Sesi Konseling Video Call'
-                          : 'Tatap Muka di ${session.locationName ?? "Klinik"}',
+                      'Sesi Konseling Video Call',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11.5,
                         color: AppColors.textSecondary,

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:webrtc_client/webrtc_client.dart';
 import 'consultation_session_entity.dart';
+import 'extension_availability_entity.dart';
 
 enum VideoCallConnectionState {
   connecting,
@@ -19,6 +20,13 @@ class VideoCallStateEntity {
   final bool isSpeakerOn;
   final bool isRemoteSpeaking;
   final int callDurationSeconds;
+  final int maxDurationSeconds;
+  final bool isExtended;
+  final bool isCheckingExtension;
+  final bool isExtending;
+  final bool isExtensionPromptDismissed;
+  final ExtensionAvailabilityEntity? extensionAvailability;
+  final bool? isExtensionApproved;
   final String roomId;
   final String? token;
   final String? errorMessage;
@@ -40,6 +48,13 @@ class VideoCallStateEntity {
     this.isSpeakerOn = true,
     this.isRemoteSpeaking = false,
     this.callDurationSeconds = 0,
+    this.maxDurationSeconds = 1800,
+    this.isExtended = false,
+    this.isCheckingExtension = false,
+    this.isExtending = false,
+    this.isExtensionPromptDismissed = false,
+    this.extensionAvailability,
+    this.isExtensionApproved,
     required this.roomId,
     this.token,
     this.errorMessage,
@@ -53,6 +68,16 @@ class VideoCallStateEntity {
     this.wsUrl,
   });
 
+  int get remainingSeconds =>
+      (maxDurationSeconds - callDurationSeconds).clamp(0, maxDurationSeconds);
+
+  bool get canShowExtensionBanner =>
+      !isExtended &&
+      !session.isExtended &&
+      !isExtensionPromptDismissed &&
+      connectionState == VideoCallConnectionState.connected &&
+      remainingSeconds <= 300;
+
   VideoCallStateEntity copyWith({
     ConsultationSessionEntity? session,
     VideoCallConnectionState? connectionState,
@@ -62,6 +87,14 @@ class VideoCallStateEntity {
     bool? isSpeakerOn,
     bool? isRemoteSpeaking,
     int? callDurationSeconds,
+    int? maxDurationSeconds,
+    bool? isExtended,
+    bool? isCheckingExtension,
+    bool? isExtending,
+    bool? isExtensionPromptDismissed,
+    ExtensionAvailabilityEntity? extensionAvailability,
+    bool clearExtensionAvailability = false,
+    bool? isExtensionApproved,
     String? roomId,
     String? token,
     String? errorMessage,
@@ -84,6 +117,16 @@ class VideoCallStateEntity {
       isSpeakerOn: isSpeakerOn ?? this.isSpeakerOn,
       isRemoteSpeaking: isRemoteSpeaking ?? this.isRemoteSpeaking,
       callDurationSeconds: callDurationSeconds ?? this.callDurationSeconds,
+      maxDurationSeconds: maxDurationSeconds ?? this.maxDurationSeconds,
+      isExtended: isExtended ?? this.isExtended,
+      isCheckingExtension: isCheckingExtension ?? this.isCheckingExtension,
+      isExtending: isExtending ?? this.isExtending,
+      isExtensionPromptDismissed:
+          isExtensionPromptDismissed ?? this.isExtensionPromptDismissed,
+      extensionAvailability: clearExtensionAvailability
+          ? null
+          : (extensionAvailability ?? this.extensionAvailability),
+      isExtensionApproved: isExtensionApproved ?? this.isExtensionApproved,
       roomId: roomId ?? this.roomId,
       token: token ?? this.token,
       errorMessage: errorMessage ?? this.errorMessage,

@@ -20,6 +20,7 @@ from app.schemas.session import (
     TimeSlotResponse,
     UpdateSoapNotesRequest,
 )
+from app.services.session.scheduling_service import SchedulingService
 
 
 class TestSchedulingAndSlotGeneration(unittest.TestCase):
@@ -147,6 +148,63 @@ class TestInCallSessionExtension(unittest.TestCase):
         self.assertFalse(res.can_extend)
         self.assertEqual(len(res.next_available_slots), 1)
         self.assertEqual(res.next_available_slots[0].duration_minutes, 30)
+
+    def test_extension_schedule_config_rejects_break_closing_and_inactive_day(self):
+        # 2026-11-20 is Friday
+        counselor = PsychologistProfile(
+            user_id=uuid.uuid4(),
+            full_name="Dr. Schedule Test",
+            str_number="STR-TEST-1",
+            schedule_config={
+                "friday": {
+                    "is_active": True,
+                    "operating_hours": {"start": "08:00", "end": "17:00"},
+                    "breaks": [
+                        {"start": "11:30", "end": "13:00", "label": "Shalat Jumat & Istirahat"},
+                    ],
+                },
+                "saturday": {
+                    "is_active": False,
+                    "operating_hours": {"start": "08:00", "end": "17:00"},
+                    "breaks": [],
+                },
+            },
+        )
+
+        # 1. Overlaps break (11:15 - 11:45 overlaps 11:30 - 13:00)
+        conflict_break = SchedulingService.evaluate_schedule_config_conflict(
+            counselor,
+            datetime(2026, 11, 20, 11, 15, tzinfo=UTC),
+            datetime(2026, 11, 20, 11, 45, tzinfo=UTC),
+        )
+        self.assertIsNotNone(conflict_break)
+        self.assertIn("istirahat", conflict_break.lower())
+
+        # 2. Exceeds closing hours (16:40 - 17:10 passes 17:00)
+        conflict_closing = SchedulingService.evaluate_schedule_config_conflict(
+            counselor,
+            datetime(2026, 11, 20, 16, 40, tzinfo=UTC),
+            datetime(2026, 11, 20, 17, 10, tzinfo=UTC),
+        )
+        self.assertIsNotNone(conflict_closing)
+        self.assertIn("jam operasional", conflict_closing.lower())
+
+        # 3. Inactive day (Saturday)
+        conflict_inactive = SchedulingService.evaluate_schedule_config_conflict(
+            counselor,
+            datetime(2026, 11, 21, 10, 0, tzinfo=UTC),
+            datetime(2026, 11, 21, 10, 30, tzinfo=UTC),
+        )
+        self.assertIsNotNone(conflict_inactive)
+        self.assertIn("tidak membuka jadwal", conflict_inactive.lower())
+
+        # 4. Completely free 30m slot (08:37 - 09:07) inside working hours without breaks
+        no_conflict = SchedulingService.evaluate_schedule_config_conflict(
+            counselor,
+            datetime(2026, 11, 20, 8, 37, tzinfo=UTC),
+            datetime(2026, 11, 20, 9, 7, tzinfo=UTC),
+        )
+        self.assertIsNone(no_conflict)
 
 
 class TestPatientConsentAndSoapNotes(unittest.TestCase):

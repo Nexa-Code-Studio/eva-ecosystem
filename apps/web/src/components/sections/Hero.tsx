@@ -35,15 +35,15 @@ export function Hero() {
     <section
       id="top"
       aria-labelledby="hero-title"
-      className="relative isolate flex min-h-[100dvh] w-full flex-col justify-center overflow-hidden bg-canvas pt-24 pb-16 sm:pt-28 sm:pb-16 lg:pt-28 lg:pb-16 border-b border-border-subtle/50"
+      className="relative isolate flex min-h-[100dvh] w-full flex-col justify-center overflow-hidden bg-canvas pt-20 pb-8 sm:pt-24 sm:pb-12 lg:pt-20 lg:pb-14 border-b border-border-subtle/50"
     >
       <HeroBackdrop />
 
       {/* Unified container synchronized with Navbar and all content sections */}
       <Container className="flex flex-1 items-center">
-        <div className="grid w-full items-center gap-12 lg:grid-cols-[1.12fr_0.88fr] lg:gap-12 xl:gap-16">
-          {/* Copy column: Spans 100dvh on mobile with balanced proportional spacing */}
-          <div className="flex min-h-[calc(100dvh-5.5rem)] w-full flex-col justify-center py-6 sm:py-8 items-center text-center lg:min-h-0 lg:py-0 lg:items-start lg:text-left">
+        <div className="grid w-full items-center gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10 xl:gap-14">
+          {/* Copy column */}
+          <div className="flex w-full flex-col justify-center py-4 sm:py-6 items-center text-center lg:py-0 lg:items-start lg:text-left">
             {/* Kicker */}
             <span
               className="animate-enter text-overline font-bold tracking-[0.14em] uppercase text-primary"
@@ -52,10 +52,10 @@ export function Hero() {
               {hero.kicker}
             </span>
 
-            {/* Title: Tambah mt agar lebih lega dari kicker */}
+            {/* Title */}
             <h1
               id="hero-title"
-              className="mt-6 max-w-3xl xl:max-w-4xl 2xl:max-w-5xl animate-enter text-hero sm:mt-8"
+              className="mt-4 max-w-3xl xl:max-w-4xl 2xl:max-w-5xl animate-enter text-hero sm:mt-5"
               style={stagger(1)}
             >
               {hero.titleLead} <span className="text-primary">{hero.titleAccent}</span>
@@ -63,14 +63,14 @@ export function Hero() {
 
             {/* Subtitle */}
             <p
-              className="mt-3.5 max-w-2xl 2xl:max-w-3xl animate-enter text-body-lg text-ink-soft sm:mt-4 sm:text-[19px] sm:leading-[1.65]"
+              className="mt-3 max-w-xl 2xl:max-w-2xl animate-enter text-body-lg text-ink-soft sm:mt-4 sm:text-[18px] sm:leading-[1.6]"
               style={stagger(2)}
             >
               {hero.subtitle}
             </p>
 
-            {/* CTA Buttons & Microcopy: Kurangi mt menjadi proporsional */}
-            <div className="mt-5 flex w-full flex-col items-center sm:mt-7 lg:items-start">
+            {/* CTA Buttons & Unified Metadata Line */}
+            <div className="mt-5 flex w-full flex-col items-center sm:mt-6 lg:items-start">
               <div
                 className="flex w-full animate-enter flex-col gap-3 sm:w-auto sm:flex-row"
                 style={stagger(3)}
@@ -93,19 +93,31 @@ export function Hero() {
                   data-cursor="UNDUH"
                   variant="secondary"
                   size="lg"
+                  className="hidden lg:inline-flex"
                   leftIcon={<Download />}
                 >
                   {hero.secondaryCta}
                 </Button>
+                <a
+                  id="hero-mobile-apk-link"
+                  href={downloadUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-10 items-center justify-center gap-1.5 text-body-md font-semibold text-primary transition-colors hover:text-primary-deep focus-visible:outline-2 focus-visible:outline-primary lg:hidden"
+                >
+                  <Download className="size-4" aria-hidden />
+                  <span>Unduh APK Android ({sizeFormatted})</span>
+                </a>
               </div>
 
               <div
                 id="hero-apk-specs"
-                className="mt-3 flex animate-enter flex-wrap items-center justify-center gap-x-2 gap-y-1 text-caption font-medium text-ink-soft lg:justify-start"
+                className="mt-3.5 hidden animate-enter flex-wrap items-center gap-x-2.5 gap-y-1 text-caption font-medium text-ink-soft lg:flex"
                 style={stagger(4)}
               >
-                <span className="rounded-pill border border-border-subtle bg-white px-2.5 py-0.5 text-[11px] font-bold text-primary shadow-subtle">
-                  Rilis {version}
+                <span className="inline-flex items-center gap-1.5 text-ink">
+                  <Lock className="size-3.5 text-primary" aria-hidden />
+                  100% Privat di Ponsel
                 </span>
                 <span aria-hidden className="text-ink-muted">
                   ·
@@ -114,24 +126,8 @@ export function Hero() {
                 <span aria-hidden className="text-ink-muted">
                   ·
                 </span>
-                <span>{sizeFormatted}</span>
+                <span>Rilis {version} ({sizeFormatted})</span>
               </div>
-
-              <ul
-                className="mt-2.5 flex animate-enter flex-wrap justify-center gap-x-4 gap-y-2 text-caption text-ink-muted sm:mt-3 lg:justify-start"
-                style={stagger(4)}
-              >
-                {hero.microcopy.map((m, i) => (
-                  <li key={m} className="flex items-center gap-1.5">
-                    {i === 0 ? (
-                      <Lock className="size-3.5 text-primary" />
-                    ) : (
-                      <span className="size-1 rounded-full bg-primary-light" />
-                    )}
-                    {m}
-                  </li>
-                ))}
-              </ul>
 
               {splashPhase === 'hidden' &&
                 !audioDeclined &&
@@ -164,22 +160,22 @@ export function Hero() {
               )}
             </div>
 
-            {/* Social Proof (Card 3 Kolom) & Scroll Cue: Kurangi mt menjadi proporsional */}
-            <div className="mt-6 flex w-full flex-col items-center sm:mt-8 lg:items-start">
+            {/* Concise inline metrics on desktop (unboxed to avoid Hero card bloat) & Scroll Cue on mobile */}
+            <div className="mt-6 flex w-full flex-col items-center lg:mt-7 lg:items-start">
               <dl
-                className="grid w-full max-w-xl animate-enter grid-cols-3 divide-x divide-border-subtle rounded-card border border-border-subtle/80 bg-white py-4 shadow-subtle"
+                className="hidden w-full max-w-lg animate-enter grid-cols-3 gap-6 border-t border-border-subtle/80 pt-5 lg:grid"
                 style={stagger(5)}
               >
                 {hero.stats.map((s) => (
-                  <div key={s.label} className="px-5 text-center">
+                  <div key={s.label}>
                     <dt className="sr-only">{s.label}</dt>
-                    <dd className="text-headline text-ink font-bold">{s.value}</dd>
-                    <dd className="mt-0.5 text-[11px] leading-tight text-ink-soft">{s.label}</dd>
+                    <dd className="text-title-md font-bold text-ink">{s.value}</dd>
+                    <dd className="mt-0.5 text-caption leading-snug text-ink-soft">{s.label}</dd>
                   </div>
                 ))}
               </dl>
 
-              {/* Minimal scroll down cue below 3-column card on mobile */}
+              {/* Minimal scroll down cue on mobile */}
               <a
                 href="#fitur"
                 aria-label="Gulir ke bagian fitur"
@@ -190,10 +186,10 @@ export function Hero() {
             </div>
           </div>
 
-          {/* Visual column: clean phone showcase visible only on desktop (lg:block), keeping mobile focus on Features mockup */}
+          {/* Visual column: proportional PhoneFrame sized to fit inside 100dvh on laptops & desktops */}
           <div
             id="hero-mockup-preview"
-            className="relative mx-auto hidden w-full max-w-[560px] animate-enter pt-12 pb-8 sm:pt-16 sm:pb-12 lg:block lg:max-w-none lg:pt-0 lg:pb-0"
+            className="relative mx-auto hidden w-full max-w-[460px] animate-enter lg:block lg:max-w-none"
             style={stagger(3)}
           >
             <div className="relative flex justify-center">
@@ -201,7 +197,7 @@ export function Hero() {
                 screenshot="/images/mockups/home.webp"
                 screenshotAlt="Tangkapan layar asli beranda aplikasi Eva Mobile"
                 priority
-                className="w-[300px] sm:w-[330px] lg:w-[350px] xl:w-[380px]"
+                className="w-[268px] xl:w-[296px] 2xl:w-[324px]"
               >
                 <HomeScreen speaking={isPlaying} />
               </PhoneFrame>

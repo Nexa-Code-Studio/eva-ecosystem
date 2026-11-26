@@ -302,11 +302,89 @@ class SchedulingService:
 
         return self._to_session_response(session)
 
+    @staticmethod
+    def _resolve_day_schedule(
+        counselor: PsychologistProfile | None,
+        target_date: Any,
+    ) -> tuple[bool, str, str, list[dict[str, Any]]]:
+        """Resolve (is_active, op_start, op_end, breaks) consistently with counselor timeline."""
+        day_name = target_date.strftime("%A").lower()
+        sched_cfg = (counselor.schedule_config or {}) if counselor else {}
+        day_cfg = sched_cfg.get(day_name, {})
+
+        op_hours = day_cfg.get("operating_hours", {}) if isinstance(day_cfg, dict) else {}
+        op_start = op_hours.get("start", "08:00")
+        op_end = op_hours.get("end", "17:00")
+        is_active = day_cfg.get("is_active", True) if isinstance(day_cfg, dict) else True
+
+        breaks = list(day_cfg.get("breaks", [])) if isinstance(day_cfg, dict) else []
+        if not breaks and not day_cfg:
+            if day_name in ["monday", "tuesday", "wednesday", "thursday"]:
+                breaks = [{"start": "12:00", "end": "13:00", "label": "Istirahat Siang"}]
+            elif day_name == "friday":
+                breaks = [
+                    {"start": "11:30", "end": "13:00", "label": "Shalat Jumat & Istirahat"},
+                    {"start": "15:30", "end": "16:00", "label": "Istirahat Sore"},
+                ]
+        return is_active, op_start, op_end, breaks
+
+    @classmethod
+    def evaluate_schedule_config_conflict(
+        cls,
+        counselor: PsychologistProfile | None,
+        window_start: datetime,
+        window_end: datetime,
+    ) -> str | None:
+        """Return conflict reason if [window_start, window_end] violates active day, operating hours, or breaks."""
+        if counselor is None:
+            return None
+
+        is_active, op_start_str, op_end_str, breaks = cls._resolve_day_schedule(
+            counselor, window_start.date()
+        )
+        day_name = window_start.strftime("%A").capitalize()
+        if not is_active:
+            return f"Konselor tidak membuka jadwal praktik pada hari {day_name}."
+
+        try:
+            op_s_h, op_s_m = [int(x) for x in op_start_str.split(":")]
+            op_e_h, op_e_m = [int(x) for x in op_end_str.split(":")]
+            op_start_dt = datetime.combine(window_start.date(), time(op_s_h, op_s_m), tzinfo=window_start.tzinfo)
+            op_end_dt = datetime.combine(window_start.date(), time(op_e_h, op_e_m), tzinfo=window_start.tzinfo)
+            if window_start < op_start_dt or window_end > op_end_dt:
+                return (
+                    f"Perpanjangan (+30 menit) melewati jam operasional praktik konselor "
+                    f"({op_start_str} - {op_end_str})."
+                )
+        except (ValueError, IndexError):
+            pass
+
+        for brk in breaks:
+            b_start_str = brk.get("start")
+            b_end_str = brk.get("end")
+            if not (b_start_str and b_end_str):
+                continue
+            try:
+                b_s_h, b_s_m = [int(x) for x in b_start_str.split(":")]
+                b_e_h, b_e_m = [int(x) for x in b_end_str.split(":")]
+                brk_start = datetime.combine(window_start.date(), time(b_s_h, b_s_m), tzinfo=window_start.tzinfo)
+                brk_end = datetime.combine(window_start.date(), time(b_e_h, b_e_m), tzinfo=window_start.tzinfo)
+                if window_start < brk_end and window_end > brk_start:
+                    brk_label = brk.get("label", "Istirahat")
+                    return (
+                        f"Slot waktu bertabrakan dengan jam istirahat konselor "
+                        f"({brk_label}: {b_start_str} - {b_end_str})."
+                    )
+            except (ValueError, IndexError):
+                continue
+
+        return None
+
     async def check_extension_availability(
         self,
         session_id: uuid.UUID,
     ) -> ExtensionAvailabilityResponse:
-        """Check if an active session can be extended by +30 minutes without scheduling conflicts."""
+        """Check if an active session can be extended by +30 minutes without scheduling, break, or closing conflicts."""
         query = select(ConsultationSession).where(ConsultationSession.id == session_id)
         res = await self.db.execute(query)
         session = res.scalar_one_or_none()
@@ -325,13 +403,19 @@ class SchedulingService:
 
         # Next 30-minute block interval
         next_start = session.scheduled_end_time
+        if next_start.tzinfo is None:
+            next_start = next_start.replace(tzinfo=UTC)
         next_end = next_start + timedelta(minutes=30)
 
-        # Counselor buffer delta
+        # Counselor buffer delta & schedule config
         c_query = select(PsychologistProfile).where(PsychologistProfile.id == session.counselor_id)
         c_res = await self.db.execute(c_query)
         counselor = c_res.scalar_one_or_none()
         buffer_delta = timedelta(minutes=counselor.buffer_time_minutes) if counselor else timedelta(minutes=10)
+
+        schedule_conflict_reason = self.evaluate_schedule_config_conflict(
+            counselor, next_start, next_end
+        )
 
         # Check for conflicts including buffer time after extension
         collision_query = select(ConsultationSession).where(
@@ -355,20 +439,23 @@ class SchedulingService:
         )
         extension_price = float(resolved_pricing.extension_price_per_session)
 
-        if has_collision:
+        if schedule_conflict_reason or has_collision:
             # Query next available open slots
-            target_date_str = session.scheduled_end_time.strftime("%Y-%m-%d")
+            target_date_str = next_start.strftime("%Y-%m-%d")
             open_slots = await self.get_available_slots(session.counselor_id, target_date_str)
             future_open = [
                 s for s in open_slots.slots
-                if s.is_available and s.start_time > session.scheduled_end_time
+                if s.is_available
+                and s.start_time > next_start
+                and self.evaluate_schedule_config_conflict(counselor, s.start_time, s.end_time) is None
             ][:3]
 
             return ExtensionAvailabilityResponse(
                 session_id=str(session_id),
                 can_extend=False,
                 extension_price=extension_price,
-                reason="Psikolog memiliki jadwal konsultasi lain tepat setelah sesi ini. Pasien dapat memesan slot berikutnya.",
+                reason=schedule_conflict_reason
+                or "Psikolog memiliki jadwal konsultasi lain tepat setelah sesi ini. Pasien dapat memesan slot berikutnya.",
                 next_available_slots=future_open,
             )
 
