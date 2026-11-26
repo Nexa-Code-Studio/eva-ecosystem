@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../config/app_config.dart';
 import '../../../../theme/app_colors.dart';
 import '../../domain/entities/consultation_session_entity.dart';
 
@@ -36,21 +37,32 @@ class ConsultationResultBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final advice = session.adviceList.isNotEmpty
         ? session.adviceList
-        : const [
-            'Lakukan relaksasi napas diafragma 4-7-8 setiap pagi dan 15 menit sebelum tidur.',
-            'Terapkan teknik restrukturisasi kognitif di Eva Diary saat mulai overthinking.',
-            'Luangkan jeda hening (mindful pause) 3-5 menit di sela aktivitas kerja.',
-          ];
+        : (AppConfig.useMockData
+            ? const [
+                'Lakukan relaksasi napas diafragma 4-7-8 setiap pagi dan 15 menit sebelum tidur.',
+                'Terapkan teknik restrukturisasi kognitif di Eva Diary saat mulai overthinking.',
+                'Luangkan jeda hening (mindful pause) 3-5 menit di sela aktivitas kerja.',
+              ]
+            : const <String>[]);
 
     final actionItems = session.actionItems.isNotEmpty
         ? session.actionItems
-        : const [
-            'Tuliskan 3 bukti objektif pencapaian dan hal yang disyukuri setiap malam.',
-            'Latih penetapan batasan tegas (boundary setting) dalam komunikasi profesional.',
-          ];
+        : (AppConfig.useMockData
+            ? const [
+                'Tuliskan 3 bukti objektif pencapaian dan hal yang disyukuri setiap malam.',
+                'Latih penetapan batasan tegas (boundary setting) dalam komunikasi profesional.',
+              ]
+            : const <String>[]);
 
-    final summary = session.sessionSummary ??
-        'Sesi konsultasi tatap muka selesai dilaksanakan dengan baik. Pasien menunjukkan keterbukaan dalam mengidentifikasi pemicu stres dan memiliki rencana aksi mandiri yang jelas.';
+    final summary = (session.sessionSummary != null && session.sessionSummary!.trim().isNotEmpty)
+        ? session.sessionSummary!
+        : (AppConfig.useMockData
+            ? 'Sesi konsultasi telekonseling selesai dilaksanakan dengan baik. Pasien menunjukkan keterbukaan dalam mengidentifikasi pemicu stres dan memiliki rencana aksi mandiri yang jelas.'
+            : 'Catatan klinis / SOAP untuk sesi ini belum ditambahkan oleh konselor.');
+
+    final hasMoodProgress = AppConfig.useMockData ||
+        (session.moodBefore != null && session.moodBefore!.isNotEmpty) ||
+        (session.moodAfter != null && session.moodAfter!.isNotEmpty);
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.88,
@@ -220,83 +232,86 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                   const SizedBox(height: 18),
 
                   // 2. Perubahan Suasana Hati / Mood Transition
-                  Text(
-                    'EVALUASI KONDISI EMOSI PASIEN',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textLight,
-                      letterSpacing: 0.8,
+                  if (hasMoodProgress) ...[
+                    Text(
+                      'EVALUASI KONDISI EMOSI PASIEN',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textLight,
+                        letterSpacing: 0.8,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Sebelum Sesi',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textSecondary,
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Sebelum Sesi',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textSecondary,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                session.moodBefore ?? 'Cemas Tinggi (8/10)',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFFEF4444),
+                                const SizedBox(height: 2),
+                                Text(
+                                  session.moodBefore ??
+                                      (AppConfig.useMockData ? 'Cemas Tinggi (8/10)' : '-'),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFFEF4444),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                        const Icon(
-                          Icons.arrow_forward_rounded,
-                          size: 18,
-                          color: Color(0xFF94A3B8),
-                        ),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                'Sesudah Sesi',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                session.moodAfter ?? 'Lebih Tenang (4/10)',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF16A34A),
-                                ),
-                              ),
-                            ],
+                          const Icon(
+                            Icons.arrow_forward_rounded,
+                            size: 18,
+                            color: Color(0xFF94A3B8),
                           ),
-                        ),
-                      ],
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Sesudah Sesi',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  session.moodAfter ??
+                                      (AppConfig.useMockData ? 'Lebih Tenang (4/10)' : '-'),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF16A34A),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-
-                  const SizedBox(height: 18),
+                    const SizedBox(height: 18),
+                  ],
 
                   // 3. Saran & Rekomendasi Klinis (Advice List)
                   Row(
@@ -319,7 +334,19 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Column(
+                  if (advice.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        'Belum ada saran tertulis dari konselor untuk sesi ini.',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    )
+                  else
+                    Column(
                     children: List.generate(advice.length, (idx) {
                       return Container(
                         margin: const EdgeInsets.only(bottom: 8),
@@ -391,7 +418,16 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Column(
+                  if (actionItems.isEmpty)
+                    Text(
+                      'Belum ada latihan mandiri yang tercatat.',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    )
+                  else
+                    Column(
                     children: actionItems.map((item) {
                       return Container(
                         margin: const EdgeInsets.only(bottom: 6),

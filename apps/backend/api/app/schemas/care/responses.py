@@ -85,10 +85,10 @@ class PatientReviewItemSchema(BaseModel):
 
 
 class PatientStatsSchema(BaseModel):
-    total_sessions: int = 120
-    satisfaction_percentage: int = 98
-    repeat_patient_rate: int = 86
-    recovery_rate: int = 92
+    total_sessions: int = 0
+    satisfaction_percentage: int = 0
+    repeat_patient_rate: int = 0
+    recovery_rate: int = 0
 
 
 class CertificateItemSchema(BaseModel):
@@ -106,8 +106,8 @@ class PsychologistItemResponse(BaseModel):
     title: str
     registration_number: str
     avatar_url: str
-    rating: float = 4.95
-    review_count: int = 50
+    rating: float = 0.0
+    review_count: int = 0
     experience_years: int = 1
     specialties: list[str] = Field(default_factory=list)
     patient_review_tags: list[str] = Field(default_factory=list)
@@ -126,6 +126,9 @@ class PsychologistItemResponse(BaseModel):
     practitioner_type: str = "professional"
     has_psychologist_certificate: bool = True
     is_volunteer: bool = False
+    level_tier: int | None = None
+    level_name: str | None = None
+    level_badge_icon: str | None = None
 
 
 class ClinicItemResponse(BaseModel):
@@ -187,6 +190,20 @@ class CounselorTimelineResponse(BaseModel):
     available_windows: list[TimeRangeSchema] = Field(default_factory=list)
 
 
+class SessionReviewSummarySchema(BaseModel):
+    """Summary of the patient's submitted review attached to a completed consultation session."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    session_id: str
+    rating: float
+    highlight_label: str | None = None
+    review_text: str | None = None
+    is_anonymous: bool = False
+    created_at: str
+
+
 class CareSessionResponse(BaseModel):
     """Consultation session response matching ConsultationSessionModel in Eva Mobile."""
 
@@ -208,7 +225,10 @@ class CareSessionResponse(BaseModel):
     mood_after: str | None = None
     duration_minutes: int = 30
     session_summary: str | None = None
-    share_ai_chat_history: bool = True
+    share_ai_chat_history: bool = False
+    is_extended: bool = False
+    has_review: bool = False
+    my_review: SessionReviewSummarySchema | None = None
 
 
 class CareRatingResponse(BaseModel):

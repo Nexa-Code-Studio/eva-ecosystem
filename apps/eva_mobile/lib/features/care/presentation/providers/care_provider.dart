@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../config/app_config.dart';
 import '../../domain/entities/psychologist_entity.dart';
@@ -27,20 +29,30 @@ final careRepositoryProvider = Provider<CareRepository>((ref) {
   }
 });
 
-// Category Filter: 'all', 'psychologist', 'volunteer'
-final careCategoryFilterProvider = StateProvider<String>((ref) => 'all');
+// Availability Filter: 'all', 'available_now', 'available_today', 'available_tomorrow'
+final careAvailabilityFilterProvider = StateProvider<String>((ref) => 'all');
+
+// Sort Filter: 'default', 'rating'
+final careSortByProvider = StateProvider<String>((ref) => 'default');
+
+// Level Tier Filter: null = all levels, or integer tier (1, 2, 3, 4...)
+final careLevelTierFilterProvider = StateProvider<int?>((ref) => null);
 
 // Search Query Filter
 final careSearchQueryProvider = StateProvider<String>((ref) => '');
 
-// Psychologists & Volunteers Provider
+// Verified Psychologists Directory Provider
 final psychologistsListProvider = FutureProvider<List<PsychologistEntity>>((ref) async {
   final repo = ref.watch(careRepositoryProvider);
-  final category = ref.watch(careCategoryFilterProvider);
+  final availability = ref.watch(careAvailabilityFilterProvider);
+  final levelTier = ref.watch(careLevelTierFilterProvider);
+  final sortBy = ref.watch(careSortByProvider);
   final query = ref.watch(careSearchQueryProvider);
 
   return repo.getPsychologists(
-    category: category == 'all' ? null : category,
+    availability: availability == 'all' ? null : availability,
+    levelTier: levelTier,
+    sortBy: sortBy == 'default' ? null : sortBy,
     query: query,
   );
 });
@@ -50,6 +62,20 @@ final counselorTimelineProvider = FutureProvider.autoDispose
     .family<CounselorTimelineEntity, ({String counselorId, DateTime date})>((ref, arg) async {
   final repo = ref.watch(careRepositoryProvider);
   return repo.getCounselorTimeline(counselorId: arg.counselorId, date: arg.date);
+});
+
+// Live Counselor Detail Provider (GET /api/v1/counselors/{id})
+final counselorDetailProvider =
+    FutureProvider.autoDispose.family<PsychologistEntity, String>((ref, counselorId) async {
+  final repo = ref.watch(careRepositoryProvider);
+  return repo.getCounselorDetail(counselorId);
+});
+
+// Live Counselor Reviews Provider (GET /api/v1/counselors/{id}/reviews)
+final counselorReviewsProvider =
+    FutureProvider.autoDispose.family<List<PatientReviewItem>, String>((ref, counselorId) async {
+  final repo = ref.watch(careRepositoryProvider);
+  return repo.getCounselorReviews(counselorId);
 });
 
 // Community Status Notifier (Handles instant upgrade & state sync)
@@ -155,29 +181,43 @@ class ConsultationSessionsNotifier
         if (s.id == sessionId) {
           return s.copyWith(
             status: ConsultationStatus.completed,
-            adviceList: adviceList ??
-                (s.adviceList.isNotEmpty
-                    ? s.adviceList
-                    : const [
-                        'Lakukan teknik relaksasi napas dalam saat merasa cemas.',
-                        'Catat perubahan suasana hati di Jurnal Eva.',
-                        'Jadwalkan sesi follow-up dalam 2 minggu ke depan.',
-                      ]),
-            actionItems: actionItems ??
-                (s.actionItems.isNotEmpty
-                    ? s.actionItems
-                    : const [
-                        'Praktikkan latihan mindfulness 5 menit setiap pagi.',
-                      ]),
-            sessionSummary: sessionSummary ??
-                s.sessionSummary ??
-                'Sesi konsultasi telekonseling online selesai dilaksanakan dengan hasil positif.',
-            moodAfter: moodAfter ?? 'Tenang & Lebih Lega (Skala 4/10)',
+            adviceList: adviceList ?? s.adviceList,
+            actionItems: actionItems ?? s.actionItems,
+            sessionSummary: sessionSummary ?? s.sessionSummary,
+            moodAfter: moodAfter ?? s.moodAfter,
           );
         }
         return s;
       }).toList(),
     );
+  }
+
+  Future<PsychologistRatingReview> submitSessionReview({
+    required String sessionId,
+    required String psychologistId,
+    required double rating,
+    String? highlightLabel,
+    String? reviewText,
+    bool isAnonymous = true,
+  }) async {
+    final submitted = await _repo.submitSessionReview(
+      sessionId: sessionId,
+      psychologistId: psychologistId,
+      rating: rating,
+      highlightLabel: highlightLabel,
+      reviewText: reviewText,
+      isAnonymous: isAnonymous,
+    );
+    final current = state.value ?? [];
+    state = AsyncValue.data(
+      current
+          .map((s) => s.id == sessionId
+              ? s.copyWith(hasReview: true, myReview: submitted)
+              : s)
+          .toList(),
+    );
+    unawaited(loadSessions());
+    return submitted;
   }
 
   void markSessionExtended(String sessionId, {int newDurationMinutes = 60}) {

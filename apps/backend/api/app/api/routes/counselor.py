@@ -3,11 +3,11 @@ import uuid
 from fastapi import APIRouter, Depends, Query, status
 
 from app.api.dependencies import (
-
     get_care_service,
     get_counselor_service,
     get_current_admin,
     get_current_user,
+    get_level_service,
     get_scheduling_service,
 )
 from app.models.user import User
@@ -19,10 +19,9 @@ from app.schemas.care import (
     SubmitRatingRequest,
 )
 from app.schemas.counselor import (
-    CounselorLevelMetricsResponse,
-    CounselorReviewsListResponse,
     CounselorTimelineResponse,
     PsychologistProfileResponse,
+    PsychologistPublicDetailResponse,
     PsychologistPublicResponse,
     PsychologistVerificationResponse,
     RegisterPsychologistRequest,
@@ -30,14 +29,15 @@ from app.schemas.counselor import (
     ScheduleConfigResponse,
     ToggleAvailabilityRequest,
     UpdateBankDetailsRequest,
-    UpdatePricingRequest,
     UpdatePsychologistProfileRequest,
     UpdateScheduleConfigRequest,
     VerifyPsychologistRequest,
 )
+from app.schemas.level import PsychologistLevelResponse
 from app.schemas.session import AvailableSlotsResponse, BookSessionRequest, ConsultationSessionResponse
 from app.services.care import CareService
 from app.services.counselor import CounselorService
+from app.services.level import LevelService
 from app.services.session import SchedulingService
 
 router = APIRouter(prefix="/counselors", tags=["Counselors"])
@@ -120,60 +120,47 @@ async def update_my_schedule_config(
     return await service.update_schedule_config(user.id, payload)
 
 
-@router.get("/me/level-metrics", response_model=CounselorLevelMetricsResponse)
-async def get_my_level_metrics(
-    user: User = Depends(get_current_user),
-    service: CounselorService = Depends(get_counselor_service),
-) -> CounselorLevelMetricsResponse:
-    """Get real-time counselor gamification level, reputation metrics, and dynamic tariff."""
-    return await service.get_level_metrics(user.id)
-
-
-@router.patch("/me/pricing", response_model=CounselorLevelMetricsResponse)
-async def update_my_pricing(
-    payload: UpdatePricingRequest,
-    user: User = Depends(get_current_user),
-    service: CounselorService = Depends(get_counselor_service),
-) -> CounselorLevelMetricsResponse:
-    """Update custom consultation price (only allowed for qualifying level tiers)."""
-    return await service.update_pricing(user.id, payload.custom_price_per_session)
-
-
-@router.get("/me/reviews", response_model=CounselorReviewsListResponse)
-async def get_my_reviews(
-    user: User = Depends(get_current_user),
-    service: CounselorService = Depends(get_counselor_service),
-) -> CounselorReviewsListResponse:
-    """Get verified patient reviews and ratings for current logged-in counselor."""
-    return await service.get_my_reviews(user.id)
-
-
-@router.get("/{counselor_id}/reviews", response_model=CounselorReviewsListResponse)
-async def get_counselor_reviews(
-    counselor_id: uuid.UUID,
-    service: CounselorService = Depends(get_counselor_service),
-) -> CounselorReviewsListResponse:
-    """Publicly retrieve verified patient reviews and ratings for a psychologist."""
-    return await service.get_reviews(counselor_id)
-
-
 @router.get("", response_model=list[PsychologistPublicResponse])
 async def list_verified_counselors(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
+    availability: str | None = Query(
+        default=None,
+        pattern=r"^(all|available_now|available_today|available_tomorrow)$",
+    ),
+    level_tier: int | None = Query(default=None, ge=1, le=99),
+    sort_by: str | None = Query(default=None, pattern=r"^(default|rating|experience)$"),
+    search: str | None = Query(default=None),
+    tz_offset_minutes: int = Query(default=420, ge=-720, le=840),
     service: CounselorService = Depends(get_counselor_service),
 ) -> list[PsychologistPublicResponse]:
-    """Public directory of active, verified psychologists available for teleconsultations."""
-    return await service.list_verified_counselors(limit=limit, offset=offset)
+    """Public directory of active, verified psychologists with real-time availability, level, and rating filters."""
+    return await service.list_verified_counselors(
+        limit=limit,
+        offset=offset,
+        availability=availability,
+        level_tier=level_tier,
+        sort_by=sort_by,
+        search=search,
+        tz_offset_minutes=tz_offset_minutes,
+    )
 
 
-@router.get("/{counselor_id}", response_model=PsychologistProfileResponse)
+@router.get("/levels", response_model=list[PsychologistLevelResponse])
+async def list_public_counselor_levels(
+    service: LevelService = Depends(get_level_service),
+) -> list[PsychologistLevelResponse]:
+    """List active psychologist career levels for directory filtering."""
+    return await service.list_levels(active_only=True)
+
+
+@router.get("/{counselor_id}", response_model=PsychologistPublicDetailResponse)
 async def get_counselor_profile_by_id(
     counselor_id: uuid.UUID,
     service: CounselorService = Depends(get_counselor_service),
-) -> PsychologistProfileResponse:
-    """Get counselor profile by ID."""
-    return await service.get_profile_by_id(counselor_id)
+) -> PsychologistPublicDetailResponse:
+    """Get public verified counselor profile detail by ID."""
+    return await service.get_public_detail_by_id(counselor_id)
 
 
 @router.post("/{counselor_id}/verify", response_model=PsychologistVerificationResponse)

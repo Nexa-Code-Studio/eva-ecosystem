@@ -59,6 +59,9 @@ class PsychologistPublicResponse(BaseModel):
     id: str
     full_name: str
     title_degree: str
+    registration_number: str | None = None
+    str_verified: bool = False
+    sip_verified: bool = False
     association: str
     specializations: list[str] = []
     years_of_experience: int
@@ -75,6 +78,27 @@ class PsychologistPublicResponse(BaseModel):
     total_consultation_hours: float = 0.0
     average_rating: float = 0.0
     rating_count: int = 0
+    availability_status: str = "available_today"
+    next_available_slot: str | None = None
+    next_available_date: str | None = None
+    remaining_slots_today: int = 0
+    has_slots_tomorrow: bool = False
+    next_slot_tomorrow: str | None = None
+
+
+class CounselorDocumentItemResponse(BaseModel):
+    title: str
+    image_url: str
+
+
+class PsychologistPublicDetailResponse(PsychologistPublicResponse):
+    education: str | None = None
+    str_number: str | None = None
+    sip_number: str | None = None
+    str_doc_url: str | None = None
+    sip_doc_url: str | None = None
+    certificate_doc_url: str | None = None
+    certificate_items: list[CounselorDocumentItemResponse] = []
 
 
 class PsychologistVerificationResponse(BaseModel):

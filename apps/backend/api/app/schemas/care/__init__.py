@@ -20,6 +20,7 @@ from app.schemas.care.responses import (
     PatientStatsSchema,
     PsychologistItemResponse,
     SessionActionResponse,
+    SessionReviewSummarySchema,
     TimeRangeSchema,
     VideoTokenResponse,
 )
@@ -44,6 +45,7 @@ __all__ = [
     "PatientStatsSchema",
     "PsychologistItemResponse",
     "SessionActionResponse",
+    "SessionReviewSummarySchema",
     "TimeRangeSchema",
     "VideoTokenResponse",
 ]

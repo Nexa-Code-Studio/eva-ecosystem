@@ -13,11 +13,13 @@ import '../providers/care_provider.dart';
 /// Follows the repository standard format: Star, Ulasan Singkat, & Deskripsi.
 class ConsultationRatingScreen extends ConsumerStatefulWidget {
   final PsychologistEntity psychologist;
+  final String? sessionId;
   final PsychologistRatingReview? initialRating;
 
   const ConsultationRatingScreen({
     super.key,
     required this.psychologist,
+    this.sessionId,
     this.initialRating,
   });
 
@@ -76,15 +78,55 @@ class _ConsultationRatingScreenState
 
     setState(() => _isSubmitting = true);
 
-    ref.read(psychologistRatingsProvider.notifier).submitRating(
-      psychologistId: widget.psychologist.id,
-      rating: _rating,
-      isPositive: _rating >= 4.0,
-      label: label,
-      description: _descriptionController.text.trim(),
-      tags: [label],
-      isAnonymous: _isAnonymous,
-    );
+    PsychologistRatingReview? submittedReview;
+    try {
+      final sid = widget.sessionId;
+      if (sid != null && sid.isNotEmpty) {
+        submittedReview = await ref
+            .read(consultationSessionsProvider.notifier)
+            .submitSessionReview(
+              sessionId: sid,
+              psychologistId: widget.psychologist.id,
+              rating: _rating,
+              highlightLabel: label,
+              reviewText: _descriptionController.text.trim(),
+              isAnonymous: _isAnonymous,
+            );
+        ref.invalidate(counselorReviewsProvider(widget.psychologist.id));
+        ref.invalidate(counselorDetailProvider(widget.psychologist.id));
+        ref.invalidate(psychologistsListProvider);
+      } else {
+        ref.read(psychologistRatingsProvider.notifier).submitRating(
+          psychologistId: widget.psychologist.id,
+          rating: _rating,
+          isPositive: _rating >= 4.0,
+          label: label,
+          description: _descriptionController.text.trim(),
+          tags: [label],
+          isAnonymous: _isAnonymous,
+        );
+        submittedReview = PsychologistRatingReview(
+          psychologistId: widget.psychologist.id,
+          rating: _rating,
+          isPositive: _rating >= 4.0,
+          label: label,
+          description: _descriptionController.text.trim(),
+          tags: [label],
+          createdAt: DateTime.now(),
+          isAnonymous: _isAnonymous,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        AppSnackBar.create(
+          message: 'Gagal mengirim ulasan ke server: $e',
+          variant: SnackBarVariant.danger,
+        ),
+      );
+      return;
+    }
 
     if (!mounted) return;
     setState(() => _isSubmitting = false);
@@ -98,7 +140,7 @@ class _ConsultationRatingScreenState
       ),
     );
 
-    Navigator.pop(context, true);
+    Navigator.pop(context, submittedReview);
   }
 
   @override
