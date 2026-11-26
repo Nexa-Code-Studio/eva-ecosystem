@@ -90,7 +90,9 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
   Widget build(BuildContext context) {
     final flow = ref.watch(topupFlowProvider);
     final coinBalance = ref.watch(coinBalanceProvider);
+    final sandboxEnabled = ref.watch(sandboxSimulationProvider);
     final order = flow.activeOrder;
+    final showFloatingSim = sandboxEnabled && order != null && order.status.isActivePending;
 
     ref.listen<TopupFlowState>(topupFlowProvider, (prev, next) {
       final nextOrder = next.activeOrder;
@@ -108,6 +110,8 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      floatingActionButton: showFloatingSim ? _buildSandboxFloatingCard(flow) : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: SafeArea(
         child: Column(
           children: [
@@ -148,12 +152,64 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
               child: order == null
                   ? _buildEmptyState(context)
                   : SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      padding: EdgeInsets.fromLTRB(20, 8, 20, showFloatingSim ? 116 : 24),
                       child: _buildOrderBody(context, flow, order, coinBalance),
                     ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSandboxFloatingCard(TopupFlowState flow) {
+    return Container(
+      width: 228,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.16),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.science_rounded, size: 14, color: AppColors.primary),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  'Simulator Sandbox',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          CustomButton(
+            text: 'Simulasikan Bayar',
+            height: 36,
+            isLoading: flow.isRefreshing,
+            onPressed: flow.isRefreshing
+                ? null
+                : () => ref.read(topupFlowProvider.notifier).simulateSandboxPayment(),
+          ),
+        ],
       ),
     );
   }
@@ -178,6 +234,8 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
             const SizedBox(height: 16),
             CustomButton(
               text: 'Kembali ke Paket Koin',
+              height: 40,
+              width: 220,
               onPressed: () => Navigator.pop(context),
             ),
           ],
@@ -258,17 +316,22 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
                   color: AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(height: 18),
-              Container(
-                width: 240,
-                height: 240,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: _buildQrContent(flow, order),
+              const SizedBox(height: 16),
+              Builder(
+                builder: (context) {
+                  final qrSize = (MediaQuery.sizeOf(context).width - 80).clamp(260.0, 320.0);
+                  return Container(
+                    width: qrSize,
+                    height: qrSize,
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: _buildQrContent(flow, order),
+                  );
+                },
               ),
               const SizedBox(height: 14),
               if (flow.errorMessage != null)
@@ -286,6 +349,9 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
                 ),
               CustomButton(
                 text: 'Cek Status Pembayaran',
+                height: 40,
+                width: 230,
+                isOutline: true,
                 isLoading: flow.isRefreshing,
                 onPressed: flow.isRefreshing
                     ? null
@@ -386,6 +452,8 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
           const SizedBox(height: 20),
           CustomButton(
             text: 'Selesai',
+            height: 40,
+            width: 180,
             onPressed: () {
               ref.read(topupFlowProvider.notifier).resetForNewOrder();
               Navigator.pop(context);
@@ -427,6 +495,8 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
           const SizedBox(height: 20),
           CustomButton(
             text: 'Pilih Paket Lagi',
+            height: 40,
+            width: 200,
             onPressed: () {
               ref.read(topupFlowProvider.notifier).resetForNewOrder();
               Navigator.pop(context);
@@ -461,6 +531,8 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
           const SizedBox(height: 20),
           CustomButton(
             text: 'Kembali',
+            height: 40,
+            width: 180,
             onPressed: () => Navigator.pop(context),
           ),
         ],

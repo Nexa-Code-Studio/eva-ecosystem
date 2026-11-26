@@ -307,6 +307,57 @@ class CoinTopupService:
         await self.db.refresh(order)
         return self._to_order_response(order)
 
+    async def simulate_sandbox_payment(
+        self, user_id: uuid.UUID, topup_id: uuid.UUID
+    ) -> CoinTopupOrderResponse:
+        """Sandbox/dev-only helper to simulate successful QRIS settlement during QA testing."""
+        app_env = str(getattr(self._settings, "APP_ENV", settings.APP_ENV)).strip().lower()
+        is_prod = bool(getattr(self._settings, "MIDTRANS_IS_PRODUCTION", True))
+        if is_prod or app_env == "production":
+            raise_contract_error(
+                status.HTTP_403_FORBIDDEN,
+                "SANDBOX_ONLY",
+                "Simulasi pembayaran hanya tersedia pada environment Sandbox non-produksi.",
+            )
+
+        self._ensure_payment_enabled()
+        locked_res = await self.db.execute(
+            select(CoinTopupOrder)
+            .where(CoinTopupOrder.id == topup_id, CoinTopupOrder.user_id == user_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        order = locked_res.scalar_one_or_none()
+        if order is None:
+            raise_contract_error(
+                status.HTTP_404_NOT_FOUND,
+                "TOPUP_NOT_FOUND",
+                "Pesanan top-up koin tidak ditemukan.",
+            )
+        if order.status in _TERMINAL_TOPUP_STATUSES:
+            return self._to_order_response(order)
+
+        now = datetime.now(UTC)
+        sim_status = PaymentStatusResult(
+            order_id=order.order_id,
+            provider_transaction_id=order.provider_transaction_id
+            or f"sandbox-sim-{uuid.uuid4().hex[:10]}",
+            transaction_status="settlement",
+            fraud_status="accept",
+            payment_type="qris",
+            gross_amount_idr=order.amount_idr,
+            currency=order.currency,
+            status_code="200",
+            signature_key=None,
+            refund_amount_idr=0,
+            settlement_time=now,
+            raw_payload={"simulated_sandbox": True},
+        )
+        await self._apply_settlement(order, sim_status, now)
+        await self.db.commit()
+        await self.db.refresh(order)
+        return self._to_order_response(order)
+
     async def handle_midtrans_webhook(self, payload: dict[str, Any]) -> MidtransNotificationAckResponse:
         """Verify Midtrans webhook signature, persist inbox, cross-check Get Status, and credit atomically."""
         order_id = str(payload.get("order_id") or "").strip()
