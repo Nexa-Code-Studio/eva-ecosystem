@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Image as ImageIcon, Loader2, Search, Star, Trash2, X } from 'lucide-react'
+import { Image as ImageIcon, Loader2, Search, Smartphone, Star, Stethoscope, Trash2, Users, X } from 'lucide-react'
+import { cn } from '@/lib/cn'
 import { TablePagination } from '@/components/portal/TablePagination'
 import { AdminActionConfirmModal } from '@/components/portal/admin/AdminActionConfirmModal'
 import {
@@ -7,7 +8,7 @@ import {
   fetchAdminBoothFeedbackPhotoUrl,
   fetchAdminBoothFeedbacks,
 } from '@/lib/portalStore'
-import type { BoothFeedbackEntry, BoothFeedbackSummary } from '@/types/portal'
+import type { BoothFeedbackEntry, BoothFeedbackSummary, BoothVisitorRole } from '@/types/portal'
 
 interface BoothFeedbackAdminTabProps {
   onFeedback: (message: string) => void
@@ -18,11 +19,19 @@ export function BoothFeedbackAdminTab({ onFeedback }: BoothFeedbackAdminTabProps
     totalCount: 0,
     averageRating: 0,
     ratingCounts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+    roleCounts: { user: 0, counselor: 0 },
+    averageUsageLikelihood: 0,
+    highUsageIntentCount: 0,
+    highUsageIntentPercentage: 0,
+    averageRecommendationScore: 0,
+    promoterCount: 0,
+    promoterPercentage: 0,
   })
   const [items, setItems] = useState<BoothFeedbackEntry[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [roleFilter, setRoleFilter] = useState<'all' | BoothVisitorRole>('all')
   const [ratingFilter, setRatingFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -82,6 +91,7 @@ export function BoothFeedbackAdminTab({ onFeedback }: BoothFeedbackAdminTabProps
     let active = true
     fetchAdminBoothFeedbacks({
       rating: ratingFilter === 'all' ? undefined : Number(ratingFilter),
+      visitorRole: roleFilter === 'all' ? undefined : roleFilter,
       search: search.trim() || undefined,
       page,
       pageSize,
@@ -104,7 +114,7 @@ export function BoothFeedbackAdminTab({ onFeedback }: BoothFeedbackAdminTabProps
     return () => {
       active = false
     }
-  }, [ratingFilter, search, page, pageSize, reloadNonce, applyBoothResponse])
+  }, [ratingFilter, roleFilter, search, page, pageSize, reloadNonce, applyBoothResponse])
 
   useEffect(() => {
     return () => {
@@ -137,29 +147,112 @@ export function BoothFeedbackAdminTab({ onFeedback }: BoothFeedbackAdminTabProps
     }
   }
 
+  const totalRolePopulation = summary.roleCounts.user + summary.roleCounts.counselor
+
   return (
     <div className="space-y-5">
+      {/* Role Segment Switcher */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div
+          role="tablist"
+          aria-label="Filter peran responden booth"
+          className="inline-flex flex-wrap gap-1.5 rounded-[12px] border border-[#E2E8F0] bg-white p-1"
+        >
+          {(
+            [
+              { key: 'all', label: `Semua Peran (${totalRolePopulation})` },
+              { key: 'user', label: `Pengguna Biasa (${summary.roleCounts.user})` },
+              { key: 'counselor', label: `Psikolog (${summary.roleCounts.counselor})` },
+            ] as const
+          ).map((tab) => (
+            <button
+              key={tab.key}
+              id={`admin-booth-role-tab-${tab.key}`}
+              type="button"
+              role="tab"
+              aria-selected={roleFilter === tab.key}
+              onClick={() => {
+                setLoading(true)
+                setRoleFilter(tab.key)
+                setPage(1)
+              }}
+              className={cn(
+                'min-h-9 cursor-pointer rounded-[9px] px-3 text-xs font-semibold',
+                roleFilter === tab.key
+                  ? 'bg-primary text-white'
+                  : 'text-ink-soft hover:bg-[#F8FAFC] hover:text-ink',
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-[11px] font-medium text-ink-muted">
+          KPI di bawah menghitung metrik untuk segmen peran yang dipilih
+        </p>
+      </div>
+
       {/* Summary KPI Cards */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-[12px] border border-[#E2E8F0] bg-white p-4">
-          <p className="text-xs font-semibold text-ink-muted">Total Feedback Booth</p>
-          <p className="mt-1 text-2xl font-bold text-ink">{summary.totalCount}</p>
+          <p className="text-xs font-semibold text-ink-muted">
+            {roleFilter === 'counselor'
+              ? 'Total Feedback Psikolog'
+              : roleFilter === 'user'
+                ? 'Total Feedback Pengguna'
+                : 'Total Feedback Booth'}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-ink">{summary.totalCount}</p>
+          <p className="mt-1 text-[11px] text-ink-soft">
+            5★: {summary.ratingCounts[5] ?? 0} · 4★: {summary.ratingCounts[4] ?? 0} · ≤3★:{' '}
+            {(summary.ratingCounts[3] ?? 0) +
+              (summary.ratingCounts[2] ?? 0) +
+              (summary.ratingCounts[1] ?? 0)}
+          </p>
         </div>
         <div className="rounded-[12px] border border-[#E2E8F0] bg-white p-4">
           <p className="text-xs font-semibold text-ink-muted">Rata-Rata Rating Booth</p>
-          <p className="mt-1 inline-flex items-center gap-1.5 text-2xl font-bold text-ink">
+          <p className="mt-1 inline-flex items-center gap-1.5 text-2xl font-bold tabular-nums text-ink">
             <Star className="size-5 fill-[#D97706] text-[#B45309]" aria-hidden="true" />
             <span>{summary.totalCount > 0 ? summary.averageRating.toFixed(2) : '0.00'}</span>
             <span className="text-xs font-normal text-ink-muted">/ 5</span>
           </p>
+          <p className="mt-1 text-[11px] text-ink-soft">Kesan pengunjung mencoba di booth</p>
         </div>
         <div className="rounded-[12px] border border-[#E2E8F0] bg-white p-4">
-          <p className="text-xs font-semibold text-ink-muted">Distribusi Skor (5★ / 4★ / ≤3★)</p>
-          <p className="mt-1.5 text-sm font-bold text-ink">
-            {summary.ratingCounts[5] ?? 0} / {summary.ratingCounts[4] ?? 0} /{' '}
-            {(summary.ratingCounts[3] ?? 0) +
-              (summary.ratingCounts[2] ?? 0) +
-              (summary.ratingCounts[1] ?? 0)}
+          <p className="text-xs font-semibold text-ink-muted">Minat Menggunakan Apps</p>
+          <p className="mt-1 inline-flex items-center gap-1.5 text-2xl font-bold tabular-nums text-ink">
+            <Smartphone className="size-4 text-primary" aria-hidden="true" />
+            <span>
+              {summary.totalCount > 0 ? summary.averageUsageLikelihood.toFixed(2) : '0.00'}
+            </span>
+            <span className="text-xs font-normal text-ink-muted">/ 5</span>
+          </p>
+          <p className="mt-1 text-[11px] font-medium text-[#166534]">
+            {summary.totalCount > 0
+              ? `${summary.highUsageIntentPercentage.toFixed(1)}% skor 4-5 (${summary.highUsageIntentCount} orang)`
+              : 'Belum ada data responden'}
+          </p>
+        </div>
+        <div className="rounded-[12px] border border-[#E2E8F0] bg-white p-4">
+          <p className="text-xs font-semibold text-ink-muted">
+            {roleFilter === 'counselor'
+              ? 'Skor Rekomendasi Rekan'
+              : roleFilter === 'user'
+                ? 'Skor Rekomendasi Teman'
+                : 'Skor Rekomendasi'}
+          </p>
+          <p className="mt-1 inline-flex items-center gap-1.5 text-2xl font-bold tabular-nums text-ink">
+            <Users className="size-4 text-primary" aria-hidden="true" />
+            <span>
+              {summary.totalCount > 0 ? summary.averageRecommendationScore.toFixed(2) : '0.00'}
+            </span>
+            <span className="text-xs font-normal text-ink-muted">/ 5</span>
+          </p>
+          <p className="mt-1 text-[11px] font-medium text-[#166534]">
+            {summary.totalCount > 0
+              ? `${summary.promoterPercentage.toFixed(1)}% skor 4-5 (${summary.promoterCount} orang)`
+              : 'Belum ada data responden'}
           </p>
         </div>
       </div>
@@ -219,17 +312,18 @@ export function BoothFeedbackAdminTab({ onFeedback }: BoothFeedbackAdminTabProps
           ) : items.length === 0 ? (
             <div className="rounded-[10px] border border-dashed border-[#CBD5E1] py-10 text-center text-xs">
               <p className="font-semibold text-ink">
-                {search.trim() || ratingFilter !== 'all'
+                {search.trim() || ratingFilter !== 'all' || roleFilter !== 'all'
                   ? 'Tidak ada feedback booth yang sesuai filter.'
                   : 'Belum ada feedback pengunjung booth yang masuk.'}
               </p>
-              {(search.trim() || ratingFilter !== 'all') && (
+              {(search.trim() || ratingFilter !== 'all' || roleFilter !== 'all') && (
                 <button
                   type="button"
                   onClick={() => {
                     setLoading(true)
                     setSearch('')
                     setRatingFilter('all')
+                    setRoleFilter('all')
                     setPage(1)
                   }}
                   className="mt-2 inline-flex min-h-9 cursor-pointer items-center rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-xs font-semibold text-ink hover:bg-[#F8FAFC]"
@@ -247,9 +341,32 @@ export function BoothFeedbackAdminTab({ onFeedback }: BoothFeedbackAdminTabProps
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={cn(
+                          'inline-flex items-center gap-1 rounded-[6px] border px-2 py-0.5 text-xs font-semibold',
+                          item.visitorRole === 'counselor'
+                            ? 'border-[#C7D2FE] bg-[#EEF0FF] text-primary'
+                            : 'border-[#E2E8F0] bg-white text-ink-soft',
+                        )}
+                      >
+                        {item.visitorRole === 'counselor' ? (
+                          <Stethoscope className="size-3" aria-hidden="true" />
+                        ) : (
+                          <Smartphone className="size-3" aria-hidden="true" />
+                        )}
+                        {item.visitorRole === 'counselor' ? 'Psikolog' : 'Pengguna Biasa'}
+                      </span>
                       <span className="inline-flex items-center gap-1 rounded-[6px] border border-[#FDE68A] bg-[#FFFBEB] px-2 py-0.5 text-xs font-bold text-[#92400E]">
                         <Star className="size-3.5 fill-[#D97706] text-[#B45309]" aria-hidden="true" />
                         {item.rating}/5
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-[6px] border border-[#E2E8F0] bg-white px-2 py-0.5 text-xs font-semibold text-ink">
+                        <Smartphone className="size-3 text-primary" aria-hidden="true" />
+                        Pakai: {item.usageLikelihood}/5
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-[6px] border border-[#E2E8F0] bg-white px-2 py-0.5 text-xs font-semibold text-ink">
+                        <Users className="size-3 text-primary" aria-hidden="true" />
+                        Rekomendasi: {item.recommendationScore}/5
                       </span>
                       <span className="text-xs font-semibold text-ink">
                         {item.visitorName || 'Pengunjung Anonim'}

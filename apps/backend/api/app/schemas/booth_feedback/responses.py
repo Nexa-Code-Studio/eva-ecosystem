@@ -1,6 +1,9 @@
 from datetime import datetime
+from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+BoothVisitorRoleLiteral = Literal["user", "counselor"]
 
 
 class BoothFeedbackPhotoResponse(BaseModel):
@@ -18,6 +21,9 @@ class BoothFeedbackItemResponse(BaseModel):
 
     id: str
     rating: int
+    usage_likelihood: int
+    recommendation_score: int
+    visitor_role: BoothVisitorRoleLiteral = "user"
     message: str
     visitor_name: str | None = None
     visitor_contact: str | None = None
@@ -32,6 +38,13 @@ class BoothFeedbackSummaryResponse(BaseModel):
     total_count: int
     average_rating: float
     rating_counts: dict[int, int]
+    role_counts: dict[str, int] = Field(default_factory=lambda: {"user": 0, "counselor": 0})
+    average_usage_likelihood: float = 0.0
+    high_usage_intent_count: int = 0
+    high_usage_intent_percentage: float = 0.0
+    average_recommendation_score: float = 0.0
+    promoter_count: int = 0
+    promoter_percentage: float = 0.0
 
 
 class AdminBoothFeedbackListResponse(BaseModel):
@@ -49,6 +62,9 @@ class PublicBoothFeedbackCreateResponse(BaseModel):
 
     id: str
     rating: int
+    usage_likelihood: int
+    recommendation_score: int
+    visitor_role: BoothVisitorRoleLiteral = "user"
     photo_count: int
     created_at: datetime
     message: str

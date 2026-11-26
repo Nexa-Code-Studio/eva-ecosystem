@@ -24,6 +24,7 @@ import type {
 import type {
   BoothFeedbackEntry,
   BoothFeedbackListResult,
+  BoothVisitorRole,
   CertificateEvaluationSummary,
   CertificateTemplate,
   CoinEconomyConfig,
@@ -131,6 +132,7 @@ export interface IPortalDataSource {
   submitBoothFeedback(payload: SubmitBoothFeedbackPayload): Promise<SubmitBoothFeedbackResult>
   fetchAdminBoothFeedbacks(params?: {
     rating?: number
+    visitorRole?: BoothVisitorRole
     search?: string
     page?: number
     pageSize?: number

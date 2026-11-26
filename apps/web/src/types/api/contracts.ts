@@ -445,6 +445,9 @@ export interface BackendBoothFeedbackPhotoDto {
 export interface BackendBoothFeedbackItemDto {
   id: string
   rating: number
+  usage_likelihood: number
+  recommendation_score: number
+  visitor_role?: 'user' | 'counselor'
   message: string
   visitor_name?: string | null
   visitor_contact?: string | null
@@ -457,6 +460,13 @@ export interface BackendBoothFeedbackSummaryDto {
   total_count: number
   average_rating: number
   rating_counts: Record<string, number>
+  role_counts?: Record<string, number>
+  average_usage_likelihood?: number
+  high_usage_intent_count?: number
+  high_usage_intent_percentage?: number
+  average_recommendation_score?: number
+  promoter_count?: number
+  promoter_percentage?: number
 }
 
 export interface BackendAdminBoothFeedbackListDto {
@@ -470,6 +480,9 @@ export interface BackendAdminBoothFeedbackListDto {
 export interface BackendPublicBoothFeedbackCreateDto {
   id: string
   rating: number
+  usage_likelihood: number
+  recommendation_score: number
+  visitor_role?: 'user' | 'counselor'
   photo_count: number
   created_at: string
   message: string

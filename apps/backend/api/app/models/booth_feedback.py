@@ -13,9 +13,30 @@ class BoothFeedback(BaseModel):
     __tablename__ = "booth_feedbacks"
     __table_args__ = (
         CheckConstraint("rating >= 1 AND rating <= 5", name="ck_booth_feedbacks_rating_range"),
+        CheckConstraint(
+            "usage_likelihood >= 1 AND usage_likelihood <= 5",
+            name="ck_booth_feedbacks_usage_likelihood_range",
+        ),
+        CheckConstraint(
+            "recommendation_score >= 1 AND recommendation_score <= 5",
+            name="ck_booth_feedbacks_recommendation_score_range",
+        ),
+        CheckConstraint(
+            "visitor_role IN ('user', 'counselor')",
+            name="ck_booth_feedbacks_visitor_role",
+        ),
     )
 
     rating: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    usage_likelihood: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    recommendation_score: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    visitor_role: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default="user",
+        server_default="user",
+        index=True,
+    )
     message: Mapped[str] = mapped_column(Text, nullable=False)
     visitor_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
     visitor_contact: Mapped[str | None] = mapped_column(String(150), nullable=True)

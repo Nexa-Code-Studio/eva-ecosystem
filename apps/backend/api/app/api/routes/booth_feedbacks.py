@@ -1,3 +1,4 @@
+from typing import Literal
 import uuid
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
@@ -19,6 +20,9 @@ admin_router = APIRouter(prefix="/admin/content/booth-feedbacks", tags=["Admin B
 @public_router.post("", response_model=PublicBoothFeedbackCreateResponse, status_code=status.HTTP_201_CREATED)
 async def submit_booth_feedback(
     rating: int = Form(..., ge=1, le=5),
+    usage_likelihood: int = Form(..., ge=1, le=5),
+    recommendation_score: int = Form(..., ge=1, le=5),
+    visitor_role: Literal["user", "counselor"] = Form(default="user"),
     message: str = Form(..., min_length=5, max_length=2000),
     visitor_name: str | None = Form(default=None, max_length=120),
     visitor_contact: str | None = Form(default=None, max_length=150),
@@ -26,25 +30,33 @@ async def submit_booth_feedback(
     photos: list[UploadFile] = File(...),
     service: BoothFeedbackService = Depends(get_booth_feedback_service),
 ) -> PublicBoothFeedbackCreateResponse:
-    """Submit event booth feedback, 1-5 rating, and 1..5 selfie photos."""
+    """Submit event booth feedback, role, 1-5 scores, and 1..5 selfie photos."""
     return await service.submit_feedback(
-        rating=rating, message=message, visitor_name=visitor_name,
-        visitor_contact=visitor_contact, event_label=event_label, photos=photos,
+        rating=rating,
+        usage_likelihood=usage_likelihood,
+        recommendation_score=recommendation_score,
+        visitor_role=visitor_role,
+        message=message,
+        visitor_name=visitor_name,
+        visitor_contact=visitor_contact,
+        event_label=event_label,
+        photos=photos,
     )
 
 
 @admin_router.get("", response_model=AdminBoothFeedbackListResponse)
 async def list_admin_booth_feedbacks(
     rating: int | None = Query(default=None, ge=1, le=5),
+    visitor_role: Literal["user", "counselor"] | None = Query(default=None),
     search: str | None = Query(default=None, max_length=120),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1, le=50),
     admin: User = Depends(get_current_admin),
     service: BoothFeedbackService = Depends(get_booth_feedback_service),
 ) -> AdminBoothFeedbackListResponse:
-    """List submitted event booth feedbacks with rating summary and filters (Admin)."""
+    """List submitted event booth feedbacks with role-filtered summary and filters (Admin)."""
     return await service.list_admin_feedbacks(
-        rating=rating, search=search, page=page, page_size=page_size,
+        rating=rating, visitor_role=visitor_role, search=search, page=page, page_size=page_size,
     )
 
 
