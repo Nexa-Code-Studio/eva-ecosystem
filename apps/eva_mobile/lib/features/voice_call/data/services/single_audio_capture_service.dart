@@ -53,6 +53,13 @@ class SingleAudioCaptureService {
   int get activeSttSessionId => _activeSttSessionId;
   bool get isMuted => _isMuted;
 
+  /// Raw 16kHz PCM16 stream is currently implemented via Android native AudioRecord only.
+  /// On iOS and non-Android platforms, voice calls gracefully operate in text-only fallback mode.
+  bool get isRawAudioStreamSupported => Platform.isAndroid;
+
+  /// Backward-compatible capability flag (virtual STT pipe injection is disabled in parallel mode).
+  bool get isInjectionSupported => false;
+
   void _setupFallbackStreams() {
     for (final sub in _fallbackSubscriptions) {
       sub.cancel();

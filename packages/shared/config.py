@@ -210,6 +210,57 @@ class BaseConfig(BaseSettings):
     LUNA_AUDIO_TAG_POLICY_VERSION: str = "v2"  # 'v1' (strict map) | 'v2' (counseling safe hints)
     LUNA_NORMALIZER_MODE: str = "conversational"  # 'conversational' (preserves informal) | 'strict'
 
+    # Continuous 3-Second Speech Emotion Orchestration (Issue #143 — default OFF until gates pass)
+    EMOTION_STREAMING_ENABLED: bool = False
+    EMOTION_PROVIDER: str = "mock"  # 'mock' | 'remote_http'
+    EMOTION_SERVICE_URL: str = ""
+    EMOTION_SERVICE_AUTH_MODE: str = "none"  # 'none' | 'gcp_oidc' | 'bearer'
+    EMOTION_SERVICE_AUDIENCE: str = ""
+    EMOTION_SERVICE_BEARER_TOKEN: str = ""
+    EMOTION_SERVICE_TIMEOUT_MS: int = 2000
+    EMOTION_SERVICE_MAX_RETRIES: int = 1
+    EMOTION_SERVICE_CIRCUIT_FAIL_THRESHOLD: int = 5
+    EMOTION_SERVICE_CIRCUIT_COOLDOWN_S: float = 30.0
+    EMOTION_SEGMENT_DURATION_MS: int = 3000
+    EMOTION_MIN_TAIL_DURATION_MS: int = 750
+    EMOTION_WINDOW_TARGET_MS: int = 30000  # 30000..60000 ms valid speech target
+    EMOTION_WINDOW_STALENESS_MS: int = 180000
+    EMOTION_WINDOW_MIN_COVERAGE: float = 0.60
+    EMOTION_DISPATCHER_MAX_INFLIGHT: int = 32
+    EMOTION_DISPATCHER_PER_SESSION_MAX_INFLIGHT: int = 4
+    EMOTION_DISPATCHER_QUEUE_SIZE: int = 128
+    EMOTION_SEGMENT_DEADLINE_MS: int = 4000
+    EMOTION_FINALIZE_DRAIN_MS: int = 1500
+    EMOTION_ALLOW_INCOGNITO_CLOUD_AUDIO: bool = False  # Fail-closed by default
+
+    @field_validator("EMOTION_WINDOW_TARGET_MS")
+    @classmethod
+    def _validate_emotion_window_target_ms(cls, value: int) -> int:
+        if value < 10000 or value > 60000:
+            raise ValueError("EMOTION_WINDOW_TARGET_MS must be between 10000 and 60000 ms")
+        return value
+
+    @field_validator("EMOTION_SEGMENT_DURATION_MS")
+    @classmethod
+    def _validate_emotion_segment_duration_ms(cls, value: int) -> int:
+        if value < 1000 or value > 10000:
+            raise ValueError("EMOTION_SEGMENT_DURATION_MS must be between 1000 and 10000 ms")
+        return value
+
+    @field_validator("EMOTION_MIN_TAIL_DURATION_MS")
+    @classmethod
+    def _validate_emotion_min_tail_duration_ms(cls, value: int) -> int:
+        if value < 250 or value > 2500:
+            raise ValueError("EMOTION_MIN_TAIL_DURATION_MS must be between 250 and 2500 ms")
+        return value
+
+    @field_validator("EMOTION_WINDOW_MIN_COVERAGE")
+    @classmethod
+    def _validate_emotion_window_min_coverage(cls, value: float) -> float:
+        if value <= 0.0 or value > 1.0:
+            raise ValueError("EMOTION_WINDOW_MIN_COVERAGE must be in (0.0, 1.0]")
+        return value
+
     def get_elevenlabs_keys(self) -> list[str]:
         """Return list of valid ElevenLabs API keys from ELEVENLABS_API_KEYS or fallback to TTS_API_KEY."""
         if self.ELEVENLABS_API_KEYS:

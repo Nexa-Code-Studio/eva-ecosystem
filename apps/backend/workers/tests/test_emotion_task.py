@@ -8,7 +8,7 @@ os.environ["TQDM_DISABLE"] = "1"
 
 from app.tasks.emotion_task import detect_voice_emotion_task
 
-SAMPLE_AUDIO = str(Path(__file__).resolve().parent.parent.parent.parent.parent / "scripts" / "1.wav")
+SAMPLE_AUDIO = str(Path(__file__).resolve().parent.parent.parent.parent.parent / "tests" / "test_emotion" / "1.wav")
 
 
 @pytest.mark.asyncio
@@ -17,6 +17,8 @@ async def test_detect_voice_emotion_task_success():
     Integration test verifying detect_voice_emotion_task executes EmotionService,
     returns valid serializable dictionary, and preserves emotion metadata.
     """
+    pytest.importorskip("torch", reason="torch is not installed in lightweight container")
+    pytest.importorskip("funasr", reason="funasr is not installed in lightweight container")
     assert os.path.exists(SAMPLE_AUDIO), f"Sample audio file not found at {SAMPLE_AUDIO}"
 
     res = await detect_voice_emotion_task(
@@ -40,7 +42,7 @@ async def test_detect_voice_emotion_task_success():
     assert 0.0 <= emotion_result["confidence"] <= 1.0
     assert isinstance(emotion_result["scores"], dict)
     assert len(emotion_result["scores"]) == 9
-    assert emotion_result["model_used"] == "iic/emotion2vec_plus_large"
+    assert emotion_result["model_used"] == "iic/emotion2vec_plus_base"
     assert emotion_result["latency_ms"] > 0.0
 
     # Ensure return dictionary is 100% JSON serializable for ARQ Redis worker
@@ -55,3 +57,11 @@ async def test_detect_voice_emotion_task_file_not_found():
     """
     with pytest.raises(FileNotFoundError):
         await detect_voice_emotion_task({}, "non_existent_audio.wav")
+
+
+@pytest.mark.asyncio
+async def test_detect_voice_emotion_task_rejects_private_modes():
+    """Private session audio must never enter durable Redis/ARQ tasks (#96 & #143)."""
+    for mode in ("local_private", "incognito"):
+        with pytest.raises(PermissionError):
+            await detect_voice_emotion_task({}, "any_audio.wav", privacy_mode=mode)

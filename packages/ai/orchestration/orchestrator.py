@@ -23,6 +23,8 @@ from ai.vector_store.qdrant import QdrantVectorStore
 from packages.shared.config import settings
 from shared.domain_types import (
     EmotionDetectionResult,
+    EmotionSource,
+    EmotionWindowStatus,
     LLMMode,
     MentalHealthSeverity,
     ProtocolAction,
@@ -32,6 +34,7 @@ from shared.domain_types import (
     SafetyGateInput,
     SafetyPolicyDecision,
     SymptomExtractionResult,
+    TemporalEmotionSnapshot,
 )
 
 logger = logging.getLogger(__name__)
@@ -148,8 +151,10 @@ class AIOrchestrator:
             intensity=intensity,
             secondary_emotion=secondary,
             scores=scores,
-            model_used="emotion2vec_plus_large (text-heuristic)",
+            model_used="text-lexicon-heuristic",
             latency_ms=0.5,
+            source=EmotionSource.TEXT_HEURISTIC,
+            status=EmotionWindowStatus.READY,
         )
 
 
@@ -371,11 +376,31 @@ class AIOrchestrator:
             )
 
         # Layer 3 — Safety & Grounding
+        temporal = getattr(emotion, "temporal_snapshot", None)
+        if temporal is not None and temporal.status in (EmotionWindowStatus.READY, EmotionWindowStatus.PARTIAL) and temporal.primary_emotion:
+            dur_s = round(temporal.speech_analyzed_ms / 1000.0, 1)
+            cov_pct = int(round(temporal.coverage * 100))
+            acoustic_line = (
+                f"- Sinyal akustik suara tentatif (status={temporal.status.value}, durasi_valid={dur_s}s, cakupan={cov_pct}%): "
+                f"indikasi cenderung '{temporal.primary_emotion}' (skor model {int(round((temporal.confidence or 0.0) * 100))}%). "
+                "Sinyal ini bersifat tentatif dan dapat keliru; DILARANG menyatakan pasti seperti 'kamu pasti sedih'. "
+                "Jika ucapan/teks pengguna berbeda dengan nada suara, SELALU utamakan pengakuan langsung pengguna dan lakukan klarifikasi lembut bila wajar."
+            )
+        elif temporal is not None or getattr(emotion, "source", None) == EmotionSource.UNAVAILABLE:
+            acoustic_line = (
+                "- Sinyal akustik suara belum tersedia pada giliran ini. "
+                "Tanggapi sepenuhnya berdasarkan ucapan dan konteks percakapan pengguna secara empatik tanpa berasumsi tentang nada suara."
+            )
+        else:
+            acoustic_line = (
+                f"- Observasi emosi pengguna (tentatif): '{emotion.primary_emotion}' (skor model {int(emotion.confidence * 100)}%). "
+                "Jangan pernah memperlakukan hasil deteksi sebagai fakta mutlak; utamakan pernyataan langsung pengguna dan gunakan bahasa yang tentatif."
+            )
+
         prompt_parts.extend([
             "\n[LAYER 3 — SAFETY & GROUNDING]",
             f"- Status Risiko: '{safety_decision.risk_level}'. Kebijakan respon: '{safety_decision.response_policy}'.",
-            f"- Observasi emosi pengguna: '{emotion.primary_emotion}' (indikasi awal keyakinan {int(emotion.confidence * 100)}%). "
-            "Jangan pernah memperlakukan hasil deteksi sebagai fakta mutlak; gunakan bahasa yang tentatif dan menghargai perasaan pengguna.",
+            acoustic_line,
         ])
 
         if dass_scores:
@@ -429,6 +454,8 @@ class AIOrchestrator:
         user_name: Optional[str] = None,
         precomputed_emotion: Optional[EmotionDetectionResult] = None,
         structured_persisted_context: Optional[List[Dict[str, Any]]] = None,
+        temporal_emotion: Optional[TemporalEmotionSnapshot] = None,
+        allow_sync_audio_fallback: bool = True,
     ) -> OrchestratedTurnResult:
         """Memproses seluruh evaluasi orkestrasi (Emosi -> Gejala -> Risiko -> RAG)
 
@@ -437,15 +464,54 @@ class AIOrchestrator:
         start_t = time.perf_counter()
         logger.info(f"🚀 [ORCHESTRATOR TURN START] User text: \"{user_text}\" | User Name: {user_name or 'None'}")
 
-        # 1. Deteksi Emosi (Precomputed, Voice Audio, atau Teks Fallback)
-        if precomputed_emotion is not None:
+        # 1. Deteksi Emosi (Temporal Snapshot, Precomputed, Voice Audio, atau Teks Fallback eksplisit)
+        if temporal_emotion is not None:
+            normalized_snap = (
+                temporal_emotion
+                if isinstance(temporal_emotion, TemporalEmotionSnapshot)
+                else TemporalEmotionSnapshot.model_validate(temporal_emotion.model_dump())
+            )
+            if (
+                normalized_snap.status in (EmotionWindowStatus.READY, EmotionWindowStatus.PARTIAL)
+                and normalized_snap.scores
+                and normalized_snap.primary_emotion
+            ):
+                conf = round(float(normalized_snap.confidence or 0.0), 4)
+                emotion_res = EmotionDetectionResult(
+                    primary_emotion=normalized_snap.primary_emotion,
+                    confidence=conf,
+                    intensity=conf,
+                    secondary_emotion=normalized_snap.secondary_emotion,
+                    scores=dict(normalized_snap.scores),
+                    model_used=normalized_snap.model_version or "emotion2vec_plus_base",
+                    latency_ms=0.0,
+                    source=EmotionSource(normalized_snap.source.value),
+                    status=EmotionWindowStatus(normalized_snap.status.value),
+                    temporal_snapshot=normalized_snap,
+                )
+            else:
+                # Explicit unavailable/text-only fallback: NEVER invoke sync audio model on live call path
+                emotion_res = EmotionDetectionResult(
+                    primary_emotion="unknown",
+                    confidence=0.0,
+                    intensity=0.0,
+                    secondary_emotion=None,
+                    scores={},
+                    model_used="unavailable",
+                    latency_ms=0.0,
+                    source=EmotionSource.UNAVAILABLE,
+                    status=EmotionWindowStatus(normalized_snap.status.value),
+                    temporal_snapshot=normalized_snap,
+                )
+        elif precomputed_emotion is not None:
             emotion_res = precomputed_emotion
             logger.info(
                 f"🎙️ [ORCHESTRATOR] Using precomputed emotion: '{emotion_res.primary_emotion}' "
                 f"(conf: {emotion_res.confidence:.2f}, intensity: {getattr(emotion_res, 'intensity', 0.5):.2f})"
             )
         else:
-            emotion_res = self._detect_emotion(user_text, audio_path=audio_path)
+            effective_audio_path = audio_path if allow_sync_audio_fallback else None
+            emotion_res = self._detect_emotion(user_text, audio_path=effective_audio_path)
 
 
         # 2. Ekstraksi Gejala
