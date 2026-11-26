@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../../core/storage/token_storage.dart';
 import '../../domain/entities/psychologist_user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../data/datasources/auth_datasource.dart';
@@ -291,6 +293,21 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
       } catch (_) {
         // Keep optimistic state if availability toggle network call fails
       }
+    }
+
+    try {
+      final cachedJson = await TokenStorage.getProfileJson();
+      if (cachedJson != null && cachedJson.isNotEmpty) {
+        final decoded = jsonDecode(cachedJson);
+        if (decoded is Map<String, dynamic>) {
+          decoded['schedule_config'] = Map<String, dynamic>.from(scheduleConfig);
+          decoded['buffer_time_minutes'] = bufferTimeMinutes;
+          decoded['is_online'] = isOnline;
+          await TokenStorage.saveProfileJson(jsonEncode(decoded));
+        }
+      }
+    } catch (_) {
+      // Non-fatal cache sync error
     }
   }
 
