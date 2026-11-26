@@ -77,6 +77,7 @@ import type {
 } from '@/types/domain/finance'
 import type {
   BoothFeedbackListResult,
+  BoothVisitorRole,
   CertificateEvaluationSummary,
   CertificateTemplate,
   CoinEconomyConfig,
@@ -1084,6 +1085,9 @@ export class RemotePortalDataSource implements IPortalDataSource {
   async submitBoothFeedback(payload: SubmitBoothFeedbackPayload): Promise<SubmitBoothFeedbackResult> {
     const form = new FormData()
     form.append('rating', String(payload.rating))
+    form.append('usage_likelihood', String(payload.usageLikelihood))
+    form.append('recommendation_score', String(payload.recommendationScore))
+    form.append('visitor_role', payload.visitorRole)
     form.append('message', payload.message.trim())
     if (payload.visitorName?.trim()) {
       form.append('visitor_name', payload.visitorName.trim())
@@ -1120,6 +1124,9 @@ export class RemotePortalDataSource implements IPortalDataSource {
       return {
         id: dto.id,
         rating: dto.rating,
+        usageLikelihood: dto.usage_likelihood,
+        recommendationScore: dto.recommendation_score,
+        visitorRole: dto.visitor_role === 'counselor' ? 'counselor' : 'user',
         photoCount: dto.photo_count,
         createdAt: dto.created_at,
         message: dto.message,
@@ -1131,6 +1138,7 @@ export class RemotePortalDataSource implements IPortalDataSource {
 
   async fetchAdminBoothFeedbacks(params?: {
     rating?: number
+    visitorRole?: BoothVisitorRole
     search?: string
     page?: number
     pageSize?: number
@@ -1138,6 +1146,9 @@ export class RemotePortalDataSource implements IPortalDataSource {
     const searchParams = new URLSearchParams()
     if (params?.rating) {
       searchParams.set('rating', String(params.rating))
+    }
+    if (params?.visitorRole) {
+      searchParams.set('visitor_role', params.visitorRole)
     }
     if (params?.search?.trim()) {
       searchParams.set('search', params.search.trim())

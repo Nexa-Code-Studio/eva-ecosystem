@@ -329,9 +329,14 @@ export interface BoothFeedbackPhoto {
   mockDataUrl?: string
 }
 
+export type BoothVisitorRole = 'user' | 'counselor'
+
 export interface BoothFeedbackEntry {
   id: string
   rating: number
+  usageLikelihood: number
+  recommendationScore: number
+  visitorRole: BoothVisitorRole
   message: string
   visitorName: string | null
   visitorContact: string | null
@@ -344,6 +349,13 @@ export interface BoothFeedbackSummary {
   totalCount: number
   averageRating: number
   ratingCounts: Record<number, number>
+  roleCounts: Record<BoothVisitorRole, number>
+  averageUsageLikelihood: number
+  highUsageIntentCount: number
+  highUsageIntentPercentage: number
+  averageRecommendationScore: number
+  promoterCount: number
+  promoterPercentage: number
 }
 
 export interface BoothFeedbackListResult {
@@ -356,6 +368,9 @@ export interface BoothFeedbackListResult {
 
 export interface SubmitBoothFeedbackPayload {
   rating: number
+  usageLikelihood: number
+  recommendationScore: number
+  visitorRole: BoothVisitorRole
   message: string
   visitorName?: string
   visitorContact?: string
@@ -366,6 +381,9 @@ export interface SubmitBoothFeedbackPayload {
 export interface SubmitBoothFeedbackResult {
   id: string
   rating: number
+  usageLikelihood: number
+  recommendationScore: number
+  visitorRole: BoothVisitorRole
   photoCount: number
   createdAt: string
   message: string

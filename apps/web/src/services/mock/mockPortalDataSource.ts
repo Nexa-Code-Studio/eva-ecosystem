@@ -38,6 +38,7 @@ import type {
 import type {
   BoothFeedbackEntry,
   BoothFeedbackListResult,
+  BoothVisitorRole,
   CertificateEvaluationSummary,
   CertificateTemplate,
   CoinEconomyConfig,
@@ -972,7 +973,19 @@ export class MockPortalDataSource implements IPortalDataSource {
     try {
       const raw = window.localStorage.getItem('eva_mock_booth_feedbacks_v1')
       if (!raw) return []
-      return JSON.parse(raw) as BoothFeedbackEntry[]
+      const parsed = JSON.parse(raw) as Array<
+        Omit<BoothFeedbackEntry, 'usageLikelihood' | 'recommendationScore' | 'visitorRole'> & {
+          usageLikelihood?: number
+          recommendationScore?: number
+          visitorRole?: BoothVisitorRole
+        }
+      >
+      return parsed.map((item) => ({
+        ...item,
+        usageLikelihood: item.usageLikelihood ?? 3,
+        recommendationScore: item.recommendationScore ?? 3,
+        visitorRole: item.visitorRole === 'counselor' ? 'counselor' : 'user',
+      }))
     } catch {
       return []
     }
@@ -984,6 +997,18 @@ export class MockPortalDataSource implements IPortalDataSource {
   }
 
   async submitBoothFeedback(payload: SubmitBoothFeedbackPayload): Promise<SubmitBoothFeedbackResult> {
+    if (payload.rating < 1 || payload.rating > 5) {
+      throw new Error('Ketuk bintang 1 sampai 5 terlebih dahulu.')
+    }
+    if (payload.usageLikelihood < 1 || payload.usageLikelihood > 5) {
+      throw new Error('Pilih skala kemungkinan menggunakan aplikasi antara 1 sampai 5.')
+    }
+    if (payload.recommendationScore < 1 || payload.recommendationScore > 5) {
+      throw new Error('Pilih skala rekomendasi ke teman antara 1 sampai 5.')
+    }
+    if (payload.visitorRole !== 'user' && payload.visitorRole !== 'counselor') {
+      throw new Error('Pilih peran responden yang valid.')
+    }
     if (payload.photos.length === 0) {
       throw new Error('Lampirkan minimal 1 foto selfie atau momen di booth.')
     }
@@ -1011,6 +1036,9 @@ export class MockPortalDataSource implements IPortalDataSource {
     const entry: BoothFeedbackEntry = {
       id,
       rating: payload.rating,
+      usageLikelihood: payload.usageLikelihood,
+      recommendationScore: payload.recommendationScore,
+      visitorRole: payload.visitorRole,
       message: payload.message.trim(),
       visitorName: payload.visitorName?.trim() || null,
       visitorContact: payload.visitorContact?.trim() || null,
@@ -1025,6 +1053,9 @@ export class MockPortalDataSource implements IPortalDataSource {
     return {
       id,
       rating: entry.rating,
+      usageLikelihood: entry.usageLikelihood,
+      recommendationScore: entry.recommendationScore,
+      visitorRole: entry.visitorRole,
       photoCount: photos.length,
       createdAt: nowIso,
       message: 'Terima kasih! Feedback dan foto booth Anda telah tersimpan (Mode Mock).',
@@ -1033,22 +1064,40 @@ export class MockPortalDataSource implements IPortalDataSource {
 
   async fetchAdminBoothFeedbacks(params?: {
     rating?: number
+    visitorRole?: BoothVisitorRole
     search?: string
     page?: number
     pageSize?: number
   }): Promise<BoothFeedbackListResult> {
     const all = this.readMockBoothFeedbacks()
+    const roleCounts: Record<BoothVisitorRole, number> = { user: 0, counselor: 0 }
+    for (const item of all) {
+      roleCounts[item.visitorRole] += 1
+    }
+
+    const roleScoped = params?.visitorRole
+      ? all.filter((item) => item.visitorRole === params.visitorRole)
+      : all
+
     const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
     let sum = 0
-    for (const item of all) {
+    let usageSum = 0
+    let highUsageCount = 0
+    let recSum = 0
+    let promoterCount = 0
+    for (const item of roleScoped) {
       if (item.rating >= 1 && item.rating <= 5) {
         counts[item.rating] = (counts[item.rating] ?? 0) + 1
         sum += item.rating
       }
+      usageSum += item.usageLikelihood
+      if (item.usageLikelihood >= 4) highUsageCount += 1
+      recSum += item.recommendationScore
+      if (item.recommendationScore >= 4) promoterCount += 1
     }
 
     const q = params?.search?.trim().toLowerCase() || ''
-    const filtered = all.filter((item) => {
+    const filtered = roleScoped.filter((item) => {
       if (params?.rating && item.rating !== params.rating) return false
       if (
         q &&
@@ -1061,14 +1110,25 @@ export class MockPortalDataSource implements IPortalDataSource {
       return true
     })
 
+    const totalScoped = roleScoped.length
     const pageSize = Math.max(1, params?.pageSize ?? 10)
     const page = Math.max(1, params?.page ?? 1)
     const start = (page - 1) * pageSize
     return {
       summary: {
-        totalCount: all.length,
-        averageRating: all.length > 0 ? Math.round((sum / all.length) * 100) / 100 : 0,
+        totalCount: totalScoped,
+        averageRating: totalScoped > 0 ? Math.round((sum / totalScoped) * 100) / 100 : 0,
         ratingCounts: counts,
+        roleCounts,
+        averageUsageLikelihood: totalScoped > 0 ? Math.round((usageSum / totalScoped) * 100) / 100 : 0,
+        highUsageIntentCount: highUsageCount,
+        highUsageIntentPercentage:
+          totalScoped > 0 ? Math.round((highUsageCount / totalScoped) * 1000) / 10 : 0,
+        averageRecommendationScore:
+          totalScoped > 0 ? Math.round((recSum / totalScoped) * 100) / 100 : 0,
+        promoterCount,
+        promoterPercentage:
+          totalScoped > 0 ? Math.round((promoterCount / totalScoped) * 1000) / 10 : 0,
       },
       items: filtered.slice(start, start + pageSize),
       total: filtered.length,

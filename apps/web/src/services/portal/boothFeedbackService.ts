@@ -1,6 +1,7 @@
 import { getActivePortalDataSource } from './storage'
 import type {
   BoothFeedbackListResult,
+  BoothVisitorRole,
   SubmitBoothFeedbackPayload,
   SubmitBoothFeedbackResult,
 } from '@/types/domain/portal'
@@ -13,6 +14,7 @@ export async function submitBoothFeedback(
 
 export async function fetchAdminBoothFeedbacks(params?: {
   rating?: number
+  visitorRole?: BoothVisitorRole
   search?: string
   page?: number
   pageSize?: number
