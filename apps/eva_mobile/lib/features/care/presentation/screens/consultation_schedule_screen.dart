@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -24,6 +23,16 @@ class ConsultationScheduleScreen extends ConsumerStatefulWidget {
 class _ConsultationScheduleScreenState
     extends ConsumerState<ConsultationScheduleScreen> {
   String _selectedTab = 'upcoming'; // 'upcoming', 'completed', 'all'
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(consultationSessionsProvider.notifier).loadSessions();
+      }
+    });
+  }
 
   String _formatTime(DateTime dt) {
     final hour = dt.hour.toString().padLeft(2, '0');
@@ -140,7 +149,7 @@ class _ConsultationScheduleScreenState
           ],
         ),
         actions: [
-          if (kDebugMode || AppConfig.useLocalApi || AppConfig.useHybridFallback || AppConfig.useMockData)
+          if (AppConfig.useMockData)
             TextButton(
               onPressed: () {
                 Navigator.pop(ctx);
@@ -204,28 +213,6 @@ class _ConsultationScheduleScreenState
   @override
   Widget build(BuildContext context) {
     final sessionsAsync = ref.watch(consultationSessionsProvider);
-    final allSessions = sessionsAsync.value ?? [];
-
-    final upcomingSessions = (allSessions
-        .where((s) => s.status == ConsultationStatus.upcoming)
-        .toList())
-      ..sort((a, b) => a.sessionDateTime.compareTo(b.sessionDateTime));
-    final completedSessions = (allSessions
-        .where((s) => s.status == ConsultationStatus.completed)
-        .toList())
-      ..sort((a, b) => b.sessionDateTime.compareTo(a.sessionDateTime));
-
-    List<ConsultationSessionEntity> displayedSessions;
-    if (_selectedTab == 'upcoming') {
-      displayedSessions = upcomingSessions;
-    } else if (_selectedTab == 'completed') {
-      displayedSessions = completedSessions;
-    } else {
-      displayedSessions = allSessions;
-    }
-
-    // Identify ready or imminent session
-    final readySession = upcomingSessions.isNotEmpty ? upcomingSessions.first : null;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -265,44 +252,136 @@ class _ConsultationScheduleScreenState
               ),
             ),
 
-            // 2. Scrollable Body
+            // 2. Scrollable Body with live API loading/error & pull-to-refresh
             Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Highlight Banner: Ready to Join Video Call Banner
-                    if (readySession != null) ...[
-                      _buildReadyVideoCallBanner(readySession),
-                      const SizedBox(height: 20),
-                    ],
-
-                    // Filter Tabs (Sesi Aktif, Selesai, Semua)
-                    _buildFilterTabs(
-                      upcomingCount: upcomingSessions.length,
-                      completedCount: completedSessions.length,
-                      totalCount: allSessions.length,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Session List
-                    if (displayedSessions.isEmpty)
-                      _buildEmptyState()
-                    else
-                      ...displayedSessions.map((session) {
-                        return _buildSessionCard(session);
-                      }),
-
-                    const SizedBox(height: 24),
-                  ],
+              child: sessionsAsync.when(
+                loading: () => const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
                 ),
+                error: (err, _) => RefreshIndicator(
+                  color: AppColors.primary,
+                  onRefresh: () =>
+                      ref.read(consultationSessionsProvider.notifier).loadSessions(),
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                    child: _buildErrorState(err.toString()),
+                  ),
+                ),
+                data: (allSessions) {
+                  final upcomingSessions = (allSessions
+                      .where((s) => s.status == ConsultationStatus.upcoming)
+                      .toList())
+                    ..sort((a, b) => a.sessionDateTime.compareTo(b.sessionDateTime));
+                  final completedSessions = (allSessions
+                      .where((s) => s.status == ConsultationStatus.completed)
+                      .toList())
+                    ..sort((a, b) => b.sessionDateTime.compareTo(a.sessionDateTime));
+
+                  List<ConsultationSessionEntity> displayedSessions;
+                  if (_selectedTab == 'upcoming') {
+                    displayedSessions = upcomingSessions;
+                  } else if (_selectedTab == 'completed') {
+                    displayedSessions = completedSessions;
+                  } else {
+                    displayedSessions = allSessions;
+                  }
+
+                  final readySession =
+                      upcomingSessions.isNotEmpty ? upcomingSessions.first : null;
+
+                  return RefreshIndicator(
+                    color: AppColors.primary,
+                    onRefresh: () =>
+                        ref.read(consultationSessionsProvider.notifier).loadSessions(),
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (readySession != null) ...[
+                            _buildReadyVideoCallBanner(readySession),
+                            const SizedBox(height: 20),
+                          ],
+                          _buildFilterTabs(
+                            upcomingCount: upcomingSessions.length,
+                            completedCount: completedSessions.length,
+                            totalCount: allSessions.length,
+                          ),
+                          const SizedBox(height: 16),
+                          if (displayedSessions.isEmpty)
+                            _buildEmptyState()
+                          else
+                            ...displayedSessions.map(_buildSessionCard),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFFECACA)),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.cloud_off_rounded, size: 40, color: AppColors.error),
+          const SizedBox(height: 12),
+          Text(
+            'Gagal Memuat Jadwal Sesi',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () =>
+                ref.read(consultationSessionsProvider.notifier).loadSessions(),
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: Text(
+              'Coba Lagi',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -618,6 +697,7 @@ class _ConsultationScheduleScreenState
   Widget _buildSessionCard(ConsultationSessionEntity session) {
     final isUpcoming = session.status == ConsultationStatus.upcoming;
     final isCompleted = session.status == ConsultationStatus.completed;
+    final isMissed = session.status == ConsultationStatus.missed;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -685,7 +765,9 @@ class _ConsultationScheduleScreenState
                       ? 'Online Video'
                       : isCompleted
                           ? 'Selesai'
-                          : 'Dibatalkan',
+                          : isMissed
+                              ? 'Terlewat'
+                              : 'Dibatalkan',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w700,
@@ -693,7 +775,9 @@ class _ConsultationScheduleScreenState
                         ? AppColors.successDark
                         : isCompleted
                             ? AppColors.primary
-                            : AppColors.textSecondary,
+                            : isMissed
+                                ? const Color(0xFFD97706)
+                                : AppColors.textSecondary,
                   ),
                 ),
               ),

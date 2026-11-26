@@ -1,5 +1,6 @@
 import '../../domain/repositories/care_repository.dart';
 import '../../domain/entities/psychologist_entity.dart';
+import '../../domain/entities/psychologist_rating_review.dart';
 import '../../domain/entities/community_status_entity.dart';
 import '../../domain/entities/consultation_session_entity.dart';
 import '../../domain/entities/counselor_timeline_entity.dart';
@@ -11,8 +12,47 @@ class CareRepositoryImpl implements CareRepository {
   CareRepositoryImpl(this._dataSource);
 
   @override
-  Future<List<PsychologistEntity>> getPsychologists({String? category, String? query}) {
-    return _dataSource.getPsychologists(category: category, query: query);
+  Future<List<PsychologistEntity>> getPsychologists({
+    String? availability,
+    int? levelTier,
+    String? sortBy,
+    String? query,
+  }) {
+    return _dataSource.getPsychologists(
+      availability: availability,
+      levelTier: levelTier,
+      sortBy: sortBy,
+      query: query,
+    );
+  }
+
+  @override
+  Future<PsychologistEntity> getCounselorDetail(String counselorId) {
+    return _dataSource.getCounselorDetail(counselorId);
+  }
+
+  @override
+  Future<List<PatientReviewItem>> getCounselorReviews(String counselorId) {
+    return _dataSource.getCounselorReviews(counselorId);
+  }
+
+  @override
+  Future<PsychologistRatingReview> submitSessionReview({
+    required String sessionId,
+    required String psychologistId,
+    required double rating,
+    String? highlightLabel,
+    String? reviewText,
+    bool isAnonymous = true,
+  }) {
+    return _dataSource.submitSessionReview(
+      sessionId: sessionId,
+      psychologistId: psychologistId,
+      rating: rating,
+      highlightLabel: highlightLabel,
+      reviewText: reviewText,
+      isAnonymous: isAnonymous,
+    );
   }
 
   @override

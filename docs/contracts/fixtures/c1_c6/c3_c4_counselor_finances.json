@@ -1,0 +1,95 @@
+{
+  "c3_banks_list": {
+    "items": [
+      { "code": "bca", "name": "Bank Central Asia (BCA)" },
+      { "code": "mandiri", "name": "Bank Mandiri" },
+      { "code": "bni", "name": "Bank Negara Indonesia (BNI)" },
+      { "code": "bri", "name": "Bank Rakyat Indonesia (BRI)" }
+    ]
+  },
+  "c3_bank_validation_matched": {
+    "validation_id": "validation-uuid-001",
+    "bank_code": "mandiri",
+    "bank_name": "Bank Mandiri",
+    "account_number_masked": "****3333",
+    "account_holder_name": "BUDI SANTOSO",
+    "status": "verified",
+    "name_match": "matched",
+    "expires_at": "2026-11-25T02:10:00Z"
+  },
+  "c3_bank_validation_mismatch": {
+    "validation_id": "validation-uuid-002",
+    "bank_code": "mandiri",
+    "bank_name": "Bank Mandiri",
+    "account_number_masked": "****9999",
+    "account_holder_name": "NAMA BERBEDA",
+    "status": "verified",
+    "name_match": "mismatch",
+    "expires_at": "2026-11-25T02:10:00Z"
+  },
+  "c3_current_bank_account": {
+    "bank_account": {
+      "id": "bank-account-uuid-001",
+      "bank_code": "mandiri",
+      "bank_name": "Bank Mandiri",
+      "account_number_masked": "****3333",
+      "account_holder_name": "BUDI SANTOSO",
+      "verification_status": "verified",
+      "verified_at": "2026-11-25T02:01:00Z",
+      "is_active": true
+    }
+  },
+  "c4_finance_summary": {
+    "available_balance": 850000,
+    "pending_clearing_balance": 127500,
+    "locked_withdrawal_balance": 0,
+    "total_earnings_this_month": 977500,
+    "total_withdrawn": 0,
+    "currency": "IDR"
+  },
+  "c4_payout_policy": {
+    "min_amount_idr": 50000,
+    "max_amount_idr": 10000000,
+    "fee_idr": 5000,
+    "fee_bearer": "counselor",
+    "currency": "IDR",
+    "payout_enabled": true
+  },
+  "c4_payout_quote": {
+    "quote_id": "quote-uuid-001",
+    "bank_account_id": "bank-account-uuid-001",
+    "amount_idr": 250000,
+    "fee_idr": 5000,
+    "fee_bearer": "counselor",
+    "net_amount_idr": 245000,
+    "wallet_debit_idr": 250000,
+    "expires_at": "2026-11-25T02:10:00Z",
+    "currency": "IDR"
+  },
+  "c4_payout_waiting_approval": {
+    "id": "withdrawal-uuid-001",
+    "reference_id": "EVA-WD-20261125-001",
+    "status": "waiting_approval",
+    "amount_idr": 250000,
+    "fee_idr": 5000,
+    "fee_bearer": "counselor",
+    "net_amount_idr": 245000,
+    "wallet_debit_idr": 250000,
+    "currency": "IDR",
+    "bank_account": {
+      "id": "bank-account-uuid-001",
+      "bank_code": "mandiri",
+      "bank_name": "Bank Mandiri",
+      "account_number_masked": "****3333",
+      "account_holder_name": "BUDI SANTOSO",
+      "verification_status": "verified",
+      "verified_at": "2026-11-25T02:01:00Z",
+      "is_active": true
+    },
+    "created_at": "2026-11-25T02:02:00Z",
+    "updated_at": "2026-11-25T02:02:00Z",
+    "completed_at": null,
+    "failure_code": null,
+    "failure_message": null
+  }
+}

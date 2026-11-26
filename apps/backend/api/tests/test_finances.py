@@ -91,7 +91,7 @@ async def test_finances_summary_and_transactions(counselor_auth):
         assert txs[0]["id"] == "TRX-2026-TEST01"
         assert txs[0]["net_earnings"] == 150000
 
-        # 3. Request Payout
+        # 3. Legacy direct payout bypass is disabled
         payout_res = await client.post(
             "/api/v1/finances/payout",
             headers=headers,
@@ -102,23 +102,10 @@ async def test_finances_summary_and_transactions(counselor_auth):
                 "account_holder": "Test Counselor",
             },
         )
-        assert payout_res.status_code == 201
-        payout_data = payout_res.json()
-        assert payout_data["success"] is True
+        assert payout_res.status_code == 400
+        assert payout_res.json()["detail"]["code"] == "USE_QUOTED_PAYOUT"
 
-        # 4. Verify balance was deducted
+        # 4. Verify balance remained intact
         sum_after = await client.get("/api/v1/finances/summary", headers=headers)
-        assert sum_after.json()["available_balance"] == 2000000
-
-        # 5. Overdraft should fail
-        overdraft_res = await client.post(
-            "/api/v1/finances/payout",
-            headers=headers,
-            json={
-                "amount": 50000000,
-                "bank_name": "BCA",
-                "account_number": "8192039182",
-                "account_holder": "Test Counselor",
-            },
-        )
-        assert overdraft_res.status_code == 400
+        assert sum_after.json()["available_balance"] == 2500000
+        assert sum_after.json()["locked_withdrawal_balance"] == 0

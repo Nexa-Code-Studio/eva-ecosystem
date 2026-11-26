@@ -79,6 +79,34 @@ class BaseConfig(BaseSettings):
     WEBRTC_RECONNECT_GRACE_SECONDS: int = 25
     QDRANT_URL: str = "http://localhost:6333"
 
+    # Midtrans Payment (Core API QRIS) & BI-SNAP Optional Settings
+    MIDTRANS_IS_PRODUCTION: bool = False
+    MIDTRANS_MERCHANT_ID: str = ""
+    MIDTRANS_SERVER_KEY: str = ""
+    MIDTRANS_SIGNATURE_SECRET_KEY: str = ""
+    MIDTRANS_CLIENT_KEY: str = ""
+    MIDTRANS_QRIS_ACQUIRER: str = "gopay"
+    MIDTRANS_PAYMENT_ENABLED: bool = False
+
+    # Midtrans BI-SNAP Optional Credentials
+    MIDTRANS_BISNAP_CLIENT_ID: str = ""
+    MIDTRANS_BISNAP_CLIENT_SECRET: str = ""
+    MIDTRANS_BISNAP_PRIVATE_KEY_PATH: str = ""
+    MIDTRANS_BISNAP_PARTNER_ID: str = ""
+    MIDTRANS_BISNAP_CHANNEL_ID: str = ""
+
+    # Midtrans Payout (Iris Primary Adapter)
+    MIDTRANS_PAYOUT_ENABLED: bool = False
+    MIDTRANS_PAYOUT_PROVIDER_MODE: str = "iris"  # iris | mock (isolated test only)
+    MIDTRANS_IRIS_BASE_URL: str = ""
+    MIDTRANS_IRIS_CREATOR_KEY: str = ""
+    MIDTRANS_IRIS_APPROVER_KEY: str = ""
+    MIDTRANS_IRIS_NOTIFICATION_SECRET: str = ""
+    MIDTRANS_PAYOUT_AUTO_APPROVE: bool = False
+
+    # At-Rest Bank Account Encryption
+    BANK_ACCOUNT_ENCRYPTION_KEY: str = ""
+
     @field_validator("WEBRTC_STUN_URLS", mode="before")
     @classmethod
     def _validate_webrtc_stun_urls(cls, value: Any) -> list[str]:
@@ -99,9 +127,35 @@ class BaseConfig(BaseSettings):
             "CLOUDFLARE_TURN_TOKEN_ID",
             "CLOUDFLARE_TURN_API_TOKEN",
             "UPLOAD_DIR",
+            "MIDTRANS_MERCHANT_ID",
+            "MIDTRANS_SERVER_KEY",
+            "MIDTRANS_SIGNATURE_SECRET_KEY",
+            "MIDTRANS_CLIENT_KEY",
+            "MIDTRANS_QRIS_ACQUIRER",
+            "MIDTRANS_BISNAP_CLIENT_ID",
+            "MIDTRANS_BISNAP_CLIENT_SECRET",
+            "MIDTRANS_BISNAP_PRIVATE_KEY_PATH",
+            "MIDTRANS_BISNAP_PARTNER_ID",
+            "MIDTRANS_BISNAP_CHANNEL_ID",
+            "MIDTRANS_PAYOUT_PROVIDER_MODE",
+            "MIDTRANS_IRIS_BASE_URL",
+            "MIDTRANS_IRIS_CREATOR_KEY",
+            "MIDTRANS_IRIS_APPROVER_KEY",
+            "MIDTRANS_IRIS_NOTIFICATION_SECRET",
+            "BANK_ACCOUNT_ENCRYPTION_KEY",
         ):
             if env_key in os.environ:
                 setattr(self, env_key, os.environ[env_key])
+
+        for bool_env_key in (
+            "MIDTRANS_IS_PRODUCTION",
+            "MIDTRANS_PAYMENT_ENABLED",
+            "MIDTRANS_PAYOUT_ENABLED",
+            "MIDTRANS_PAYOUT_AUTO_APPROVE",
+        ):
+            if bool_env_key in os.environ:
+                raw_val = os.environ[bool_env_key].strip().lower()
+                setattr(self, bool_env_key, raw_val in ("1", "true", "yes", "on"))
 
         if "WS_BASE_URL" in os.environ:
             self.WS_BASE_URL = normalize_ws_base_url(os.environ["WS_BASE_URL"])
@@ -155,6 +209,57 @@ class BaseConfig(BaseSettings):
     LUNA_PROMPT_VERSION: str = "v2"  # 'v1' (legacy) | 'v2' (layered spoken Indonesian)
     LUNA_AUDIO_TAG_POLICY_VERSION: str = "v2"  # 'v1' (strict map) | 'v2' (counseling safe hints)
     LUNA_NORMALIZER_MODE: str = "conversational"  # 'conversational' (preserves informal) | 'strict'
+
+    # Continuous 3-Second Speech Emotion Orchestration (Issue #143 — default OFF until gates pass)
+    EMOTION_STREAMING_ENABLED: bool = False
+    EMOTION_PROVIDER: str = "mock"  # 'mock' | 'remote_http'
+    EMOTION_SERVICE_URL: str = ""
+    EMOTION_SERVICE_AUTH_MODE: str = "none"  # 'none' | 'gcp_oidc' | 'bearer'
+    EMOTION_SERVICE_AUDIENCE: str = ""
+    EMOTION_SERVICE_BEARER_TOKEN: str = ""
+    EMOTION_SERVICE_TIMEOUT_MS: int = 2000
+    EMOTION_SERVICE_MAX_RETRIES: int = 1
+    EMOTION_SERVICE_CIRCUIT_FAIL_THRESHOLD: int = 5
+    EMOTION_SERVICE_CIRCUIT_COOLDOWN_S: float = 30.0
+    EMOTION_SEGMENT_DURATION_MS: int = 3000
+    EMOTION_MIN_TAIL_DURATION_MS: int = 750
+    EMOTION_WINDOW_TARGET_MS: int = 30000  # 30000..60000 ms valid speech target
+    EMOTION_WINDOW_STALENESS_MS: int = 180000
+    EMOTION_WINDOW_MIN_COVERAGE: float = 0.60
+    EMOTION_DISPATCHER_MAX_INFLIGHT: int = 32
+    EMOTION_DISPATCHER_PER_SESSION_MAX_INFLIGHT: int = 4
+    EMOTION_DISPATCHER_QUEUE_SIZE: int = 128
+    EMOTION_SEGMENT_DEADLINE_MS: int = 4000
+    EMOTION_FINALIZE_DRAIN_MS: int = 1500
+    EMOTION_ALLOW_INCOGNITO_CLOUD_AUDIO: bool = False  # Fail-closed by default
+
+    @field_validator("EMOTION_WINDOW_TARGET_MS")
+    @classmethod
+    def _validate_emotion_window_target_ms(cls, value: int) -> int:
+        if value < 10000 or value > 60000:
+            raise ValueError("EMOTION_WINDOW_TARGET_MS must be between 10000 and 60000 ms")
+        return value
+
+    @field_validator("EMOTION_SEGMENT_DURATION_MS")
+    @classmethod
+    def _validate_emotion_segment_duration_ms(cls, value: int) -> int:
+        if value < 1000 or value > 10000:
+            raise ValueError("EMOTION_SEGMENT_DURATION_MS must be between 1000 and 10000 ms")
+        return value
+
+    @field_validator("EMOTION_MIN_TAIL_DURATION_MS")
+    @classmethod
+    def _validate_emotion_min_tail_duration_ms(cls, value: int) -> int:
+        if value < 250 or value > 2500:
+            raise ValueError("EMOTION_MIN_TAIL_DURATION_MS must be between 250 and 2500 ms")
+        return value
+
+    @field_validator("EMOTION_WINDOW_MIN_COVERAGE")
+    @classmethod
+    def _validate_emotion_window_min_coverage(cls, value: float) -> float:
+        if value <= 0.0 or value > 1.0:
+            raise ValueError("EMOTION_WINDOW_MIN_COVERAGE must be in (0.0, 1.0]")
+        return value
 
     def get_elevenlabs_keys(self) -> list[str]:
         """Return list of valid ElevenLabs API keys from ELEVENLABS_API_KEYS or fallback to TTS_API_KEY."""

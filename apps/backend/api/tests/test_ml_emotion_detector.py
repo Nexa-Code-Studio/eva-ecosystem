@@ -14,7 +14,8 @@ async def test_dynamic_text_emotion_happy():
     text = "Saya sangat bersyukur, senang, dan bahagia sekali hari ini!"
     res = await MLEmotionDetectorService.predict_message_emotion(text=text, audio_bytes=None)
 
-    assert res["model_name"] == "emotion2vec_plus_large (dynamic-text)"
+    assert res["model_name"] == "text-lexicon-heuristic"
+    assert res["source"] == "text_heuristic"
     assert res["primary_emotion"] == "happy"
     assert res["confidence"] > 0.40
     assert len(res["emotions_breakdown"]) == 9
@@ -33,7 +34,7 @@ async def test_dynamic_text_emotion_fearful():
     text = "Aku cemas dan takut banget, panik, stres dan gelisah sekali."
     res = await MLEmotionDetectorService.predict_message_emotion(text=text, audio_bytes=None)
 
-    assert res["model_name"] == "emotion2vec_plus_large (dynamic-text)"
+    assert res["model_name"] == "text-lexicon-heuristic"
     assert res["primary_emotion"] == "fearful"
     assert res["confidence"] > 0.40
     assert res["emotions_breakdown"][0]["name"] == "fearful"
@@ -44,7 +45,7 @@ async def test_dynamic_text_emotion_sad():
     text = "Aku sangat sedih, kecewa, lelah, dan menangis terus."
     res = await MLEmotionDetectorService.predict_message_emotion(text=text, audio_bytes=None)
 
-    assert res["model_name"] == "emotion2vec_plus_large (dynamic-text)"
+    assert res["model_name"] == "text-lexicon-heuristic"
     assert res["primary_emotion"] == "sad"
     assert res["confidence"] > 0.40
     assert res["emotions_breakdown"][0]["name"] == "sad"
@@ -55,7 +56,7 @@ async def test_dynamic_text_emotion_neutral():
     text = "Saya ingin menanyakan informasi jadwal sesi besok."
     res = await MLEmotionDetectorService.predict_message_emotion(text=text, audio_bytes=None)
 
-    assert res["model_name"] == "emotion2vec_plus_large (dynamic-text)"
+    assert res["model_name"] == "text-lexicon-heuristic"
     assert res["primary_emotion"] == "neutral"
 
 
@@ -73,7 +74,8 @@ async def test_audio_emotion_with_real_wav_bytes():
         audio_bytes=audio_bytes,
     )
 
-    assert res["model_name"] == "emotion2vec_plus_large"
+    assert res["model_name"] == "iic/emotion2vec_plus_base"
+    assert res["source"] == "audio_single"
     assert res["primary_emotion"] in [
         "angry", "disgusted", "fearful", "happy", "neutral", "other", "sad", "surprised", "unknown"
     ]
@@ -81,6 +83,10 @@ async def test_audio_emotion_with_real_wav_bytes():
     assert len(res["emotions_breakdown"]) == 9
     assert "latency_ms" in res
     assert res["latency_ms"] > 0
+
+
+def test_aggregate_session_emotions_empty_returns_empty_not_fabricated():
+    assert MLEmotionDetectorService.aggregate_session_emotions([]) == []
 
 
 def test_aggregate_session_emotions():

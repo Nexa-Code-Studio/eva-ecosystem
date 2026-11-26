@@ -16,6 +16,8 @@ class FakeSpeechRecognitionService extends Fake implements SpeechRecognitionServ
   int activeSessionId = 0;
   @override
   bool isMuted = false;
+  @override
+  String get resolvedLocaleId => 'id_ID';
 
   final StreamController<SttPartialResult> partialController =
       StreamController<SttPartialResult>.broadcast();
@@ -147,6 +149,15 @@ class FakeVoiceCallWsClient extends Fake implements VoiceCallWsClient {
       payload['voice_mode'] = voiceMode;
     }
     sentEvents.add(payload);
+  }
+
+  @override
+  void sendAudioBoundary({required String callId, required String reason}) {
+    sentEvents.add({
+      'type': 'audio.boundary',
+      'call_id': callId,
+      'reason': reason,
+    });
   }
 
   @override
@@ -651,5 +662,35 @@ void main() {
 
     expect(controller.state.isFinalizing, false);
     expect(controller.state.callState, CallState.ended);
+  });
+
+  test('emotion_result with unavailable status does not apply fabricated neutral score', () async {
+    await controller.startCall();
+    final initialEmotion = controller.state.detectedEmotion;
+    final initialConfidence = controller.state.detectedEmotionConfidence;
+
+    fakeWs.eventController.add({
+      'type': 'emotion_result',
+      'status': 'unavailable',
+      'source': 'unavailable',
+      'primary_emotion': null,
+      'confidence': null,
+    });
+    await pumpEventQueue();
+
+    expect(controller.state.detectedEmotion, initialEmotion);
+    expect(controller.state.detectedEmotionConfidence, initialConfidence);
+  });
+
+  test('toggleMute sends optional audio.boundary event to backend segmenter', () async {
+    await controller.startCall();
+    controller.toggleMute();
+    expect(controller.state.isMuted, true);
+
+    final boundaryEvt = fakeWs.sentEvents.firstWhere(
+      (e) => e['type'] == 'audio.boundary',
+      orElse: () => {},
+    );
+    expect(boundaryEvt['reason'], 'mute');
   });
 }

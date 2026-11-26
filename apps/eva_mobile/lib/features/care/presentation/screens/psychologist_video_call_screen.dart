@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:webrtc_client/webrtc_client.dart';
 
+import '../../../../config/app_config.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_snack_bar.dart';
 import '../../../coin/presentation/providers/coin_provider.dart';
@@ -247,28 +248,39 @@ class _PsychologistVideoCallScreenState
 
     final advice = widget.session.adviceList.isNotEmpty
         ? widget.session.adviceList
-        : const [
-            'Lakukan relaksasi napas 4-7-8 setiap pagi dan malam.',
-            'Gunakan format restrukturisasi kognitif di Eva Diary saat overthinking.',
-            'Jadwalkan sesi evaluasi lanjutan dalam 2 minggu ke depan.',
-          ];
+        : (AppConfig.useMockData
+            ? const [
+                'Lakukan relaksasi napas 4-7-8 setiap pagi dan malam.',
+                'Gunakan format restrukturisasi kognitif di Eva Diary saat overthinking.',
+                'Jadwalkan sesi evaluasi lanjutan dalam 2 minggu ke depan.',
+              ]
+            : const <String>[]);
 
     final actionItems = widget.session.actionItems.isNotEmpty
         ? widget.session.actionItems
-        : const [
-            'Tulis 3 hal yang disyukuri setiap malam di Jurnal Eva.',
-            'Latih mindful pause 3 detik sebelum merespon saat merasa tegang.',
-          ];
+        : (AppConfig.useMockData
+            ? const [
+                'Tulis 3 hal yang disyukuri setiap malam di Jurnal Eva.',
+                'Latih mindful pause 3 detik sebelum merespon saat merasa tegang.',
+              ]
+            : const <String>[]);
 
-    const sessionSummary =
-        'Sesi video call telekonsultasi psikologi telah selesai dilaksanakan dengan lancar.';
-    const moodAfter = 'Lebih Tenang & Terarah (Skala 4/10)';
+    final String? sessionSummary =
+        (widget.session.sessionSummary != null && widget.session.sessionSummary!.isNotEmpty)
+            ? widget.session.sessionSummary
+            : (AppConfig.useMockData
+                ? 'Sesi video call telekonsultasi psikologi telah selesai dilaksanakan dengan lancar.'
+                : null);
+    final String? moodAfter =
+        (widget.session.moodAfter != null && widget.session.moodAfter!.isNotEmpty)
+            ? widget.session.moodAfter
+            : (AppConfig.useMockData ? 'Lebih Tenang & Terarah (Skala 4/10)' : null);
 
     try {
       await ref.read(consultationSessionsProvider.notifier).completeSession(
             widget.session.id,
-            adviceList: advice,
-            actionItems: actionItems,
+            adviceList: advice.isNotEmpty ? advice : null,
+            actionItems: actionItems.isNotEmpty ? actionItems : null,
             sessionSummary: sessionSummary,
             moodAfter: moodAfter,
           );
@@ -276,12 +288,27 @@ class _PsychologistVideoCallScreenState
 
     if (!mounted) return;
 
-    final updatedSession = widget.session.copyWith(
+    final refreshedSessions = ref.read(consultationSessionsProvider).value;
+    ConsultationSessionEntity? serverSession;
+    if (refreshedSessions != null) {
+      for (final item in refreshedSessions) {
+        if (item.id == widget.session.id) {
+          serverSession = item;
+          break;
+        }
+      }
+    }
+
+    final updatedSession = (serverSession ?? widget.session).copyWith(
       status: ConsultationStatus.completed,
-      adviceList: advice,
-      actionItems: actionItems,
-      sessionSummary: sessionSummary,
-      moodAfter: moodAfter,
+      adviceList: (serverSession?.adviceList.isNotEmpty ?? false)
+          ? serverSession!.adviceList
+          : advice,
+      actionItems: (serverSession?.actionItems.isNotEmpty ?? false)
+          ? serverSession!.actionItems
+          : actionItems,
+      sessionSummary: serverSession?.sessionSummary ?? sessionSummary,
+      moodAfter: serverSession?.moodAfter ?? moodAfter,
     );
 
     await ConsultationResultBottomSheet.show(

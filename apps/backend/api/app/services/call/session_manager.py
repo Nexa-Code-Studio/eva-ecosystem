@@ -23,6 +23,7 @@ from app.models.dass import DASSAssessment
 from app.models.diary import DiaryEntry
 from app.models.enums import MessageType
 from app.models.user import User
+from app.services.call.emotion_coordinator import CallEmotionCoordinator, call_emotion_coordinator
 from app.services.call.persistence import CallPersistenceService
 from app.services.call.stream_buffer import audio_buffer_service
 from app.services.call.turn_aggregator import TurnAggregator
@@ -45,7 +46,12 @@ from packages.ai.utils.voice_character_modes import (
     DEFAULT_VOICE_MODE,
     get_voice_character_mode,
 )
-from shared.domain_types import EmotionDetectionResult
+from packages.shared.config import settings
+from shared.domain_types import (
+    EmotionDetectionResult,
+    EmotionWindowStatus,
+    TemporalEmotionSnapshot,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -58,11 +64,15 @@ class CallSession:
         websocket: WebSocket,
         auth_token: str | None = None,
         voice_mode: str | None = None,
+        privacy_mode: str | None = None,
     ) -> None:
         self.session_id = session_id
         self.websocket = websocket
         self.auth_token = auth_token
         self.voice_mode: str = voice_mode or DEFAULT_VOICE_MODE
+        self.privacy_mode: str | None = (privacy_mode or "").strip().lower() or None
+        self.emotion_generation_token: str | None = None
+        self.latest_emotion_snapshot: TemporalEmotionSnapshot | None = None
         self.state: str = "idle"  # idle | listening | user_speaking | ai_thinking | ai_speaking | interrupted
         self.db_conversation_id: Any | None = None
         self.user_id: Any | None = None
@@ -107,9 +117,10 @@ class CallSession:
 class CallSessionManager:
     """Session Manager for real-time WebSocket AI phone calls with conversation history & dynamic AI emotion analysis."""
 
-    def __init__(self) -> None:
+    def __init__(self, emotion_coordinator: CallEmotionCoordinator | None = None) -> None:
         self._active_sessions: dict[str, CallSession] = {}
         self.orchestrator = AIOrchestrator()
+        self.emotion_coordinator: CallEmotionCoordinator = emotion_coordinator or call_emotion_coordinator
 
     def register_session(
         self,
@@ -117,25 +128,40 @@ class CallSessionManager:
         websocket: WebSocket,
         auth_token: str | None = None,
         voice_mode: str | None = None,
+        privacy_mode: str | None = None,
     ) -> CallSession:
         session = CallSession(
             session_id=session_id,
             websocket=websocket,
             auth_token=auth_token,
             voice_mode=voice_mode,
+            privacy_mode=privacy_mode,
         )
+        if settings.EMOTION_STREAMING_ENABLED:
+            session.emotion_generation_token = self.emotion_coordinator.register_session(
+                session_id,
+                privacy_mode=session.privacy_mode,
+            )
         self._active_sessions[session_id] = session
-        logger.info(f"Registered call session {session_id} (Voice Mode: {session.voice_mode})")
+        logger.info(
+            f"Registered call session {session_id} (Voice Mode: {session.voice_mode}, "
+            f"Privacy: {session.privacy_mode or 'legacy'}, EmotionStreaming: {settings.EMOTION_STREAMING_ENABLED})"
+        )
         return session
 
     def unregister_session(self, session_id: str) -> None:
+        self.emotion_coordinator.cleanup_session(session_id)
         if session_id in self._active_sessions:
             session = self._active_sessions[session_id]
             session.cancel_active_ai_task()
             session.cancel_endpoint_timer()
 
-            # Launch background sync for Today's Diary & DASS-21 ONCE upon session disconnect
-            if session.conversation_history and len(session.conversation_history) > 1:
+            # Launch background sync for Today's Diary & DASS-21 ONLY for non-private sessions
+            if (
+                not CallPersistenceService.is_private_session(session)
+                and session.conversation_history
+                and len(session.conversation_history) > 1
+            ):
                 logger.info(f"🔌 [DISCONNECT DIARY SYNC START] Session {session_id}: Generating today's diary entry via DeepSeek LLM...")
                 asyncio.create_task(self._sync_today_diary(session))
                 logger.info(f"📊 [DISCONNECT DASS SYNC START] Session {session_id}: Extracting today's DASS-21 assessment...")
@@ -153,20 +179,28 @@ class CallSessionManager:
         session_id: str,
         token: str | None = None,
         voice_mode: str | None = None,
+        privacy_mode: str | None = None,
     ) -> None:
         """Handle entire bi-directional WebSocket connection lifecycle for AI Phone Call sessions."""
         await websocket.accept()
-        session = self.register_session(session_id, websocket, auth_token=token, voice_mode=voice_mode)
+        session = self.register_session(
+            session_id,
+            websocket,
+            auth_token=token,
+            voice_mode=voice_mode,
+            privacy_mode=privacy_mode,
+        )
         logger.info(f"🔌 [WEBSOCKET CONNECTED] Session: {session_id} (Voice Mode: {session.voice_mode})")
 
         try:
-            # Pre-load previous conversation history from DB so DeepSeek LLM remembers past context
+            # Pre-load previous conversation history from DB (no-op in local_private / incognito modes)
             await self.load_conversation_history(session)
 
             # Notify client connection accepted
             await websocket.send_json({
                 "type": "call_connected",
                 "session_id": session_id,
+                "privacy_mode_active": session.privacy_mode or "legacy",
                 "message": "Connected to Eva AI Phone Service",
             })
 
@@ -174,8 +208,16 @@ class CallSessionManager:
                 message = await websocket.receive()
                 if "bytes" in message and message["bytes"]:
                     audio_bytes = message["bytes"]
-                    logger.info(f"🎙️ [INCOMING MIC AUDIO] Session {session_id}: Received {len(audio_bytes)} raw mic bytes")
-                    await audio_buffer_service.handle_incoming_audio_chunk(session_id, audio_bytes)
+                    if settings.EMOTION_STREAMING_ENABLED:
+                        # Strictly non-blocking in-memory 3s segmentation & fair async dispatch
+                        self.emotion_coordinator.ingest_pcm_chunk(
+                            session_id,
+                            audio_bytes,
+                            user_turn_id=session.aggregator.user_turn_id,
+                        )
+                    else:
+                        logger.info(f"🎙️ [INCOMING MIC AUDIO] Session {session_id}: Received {len(audio_bytes)} raw mic bytes")
+                        await audio_buffer_service.handle_incoming_audio_chunk(session_id, audio_bytes)
 
                 elif "text" in message and message["text"]:
                     try:
@@ -185,7 +227,13 @@ class CallSessionManager:
                         if event_type == "end_call":
                             duration_sec = payload.get("duration_seconds")
                             logger.info(f"🛑 [CALL ENDED BY USER] Session {session_id}, Duration: {duration_sec}s")
-                            await self.update_session_end(session_id, duration_seconds=duration_sec)
+                            if settings.EMOTION_STREAMING_ENABLED:
+                                await self.emotion_coordinator.drain_and_build_artifact(
+                                    session_id,
+                                    user_turn_id=session.aggregator.user_turn_id,
+                                )
+                            if not CallPersistenceService.is_private_session(session):
+                                await self.update_session_end(session_id, duration_seconds=duration_sec)
                             break
 
                         await self.handle_event(session, payload)
@@ -246,6 +294,15 @@ class CallSessionManager:
             await self._handle_force_commit(session, payload)
         elif event_type == "call.sync":
             await self._handle_call_sync(session, payload)
+        elif event_type == "audio.boundary":
+            if settings.EMOTION_STREAMING_ENABLED:
+                reason = str(payload.get("reason") or "client_boundary")
+                self.emotion_coordinator.flush_boundary(
+                    session.session_id,
+                    user_turn_id=session.aggregator.user_turn_id,
+                    reason=reason,
+                    advance_epoch=True,
+                )
         # Backward compatibility events
         elif event_type == "start_call":
             if "voice_mode" in payload and payload["voice_mode"]:
@@ -332,6 +389,14 @@ class CallSessionManager:
         session.cancel_endpoint_timer()
         session.cancelled_assistant_turn_ids.add(turn_id)
         session.state = "interrupted"
+
+        if settings.EMOTION_STREAMING_ENABLED:
+            self.emotion_coordinator.flush_boundary(
+                session.session_id,
+                user_turn_id=session.aggregator.user_turn_id,
+                reason="assistant_interrupt",
+                advance_epoch=True,
+            )
 
         # Prepare new user turn for immediate speaking
         session.aggregator.reset_for_new_turn()
@@ -520,40 +585,61 @@ class CallSessionManager:
         else:
             session.conversation_history.append(LLMMessage(role="user", content=final_transcript))
 
-        # 1. Single-pass unified emotion detection from audio buffer or text
+        # 1. Emotion resolution: non-blocking temporal snapshot (when streaming enabled) or legacy path
         analysis_result: dict[str, Any] | None = None
         precomputed_emotion: EmotionDetectionResult | None = None
-        try:
-            buf = audio_buffer_service.get_or_create_buffer(session.session_id)
-            turn_audio_bytes = buf.get_full_audio() if buf.total_bytes > 0 else None
-            buf.clear()
-            analysis_result = await MLEmotionDetectorService.predict_message_emotion(
-                final_transcript, audio_bytes=turn_audio_bytes
+        temporal_snapshot: TemporalEmotionSnapshot | None = None
+
+        if settings.EMOTION_STREAMING_ENABLED:
+            # Flush remaining audio tail non-blockingly and immediately snapshot completed segments
+            self.emotion_coordinator.flush_boundary(
+                session.session_id,
+                user_turn_id=user_turn_id,
+                reason="turn_commit",
+                advance_epoch=True,
             )
-            scores = {item["name"]: float(item["percent"]) for item in analysis_result.get("emotions_breakdown", [])}
-            precomputed_emotion = EmotionDetectionResult(
-                primary_emotion=analysis_result.get("primary_emotion", "neutral"),
-                confidence=float(analysis_result.get("confidence", 0.5)),
-                intensity=float(analysis_result.get("intensity", 0.5)),
-                secondary_emotion=analysis_result.get("secondary_emotion"),
-                scores=scores,
-                model_used=analysis_result.get("model_name", "emotion2vec_plus_large"),
-                latency_ms=float(analysis_result.get("latency_ms", 0.0)),
+            temporal_snapshot = self.emotion_coordinator.get_snapshot(
+                session.session_id,
+                current_turn_id=user_turn_id,
             )
-        except Exception as emo_err:
-            logger.warning(f"⚠️ [EMOTION DETECTION EXCEPTION] Session {session.session_id}: {emo_err}")
+            session.latest_emotion_snapshot = temporal_snapshot
+            precomputed_emotion = self.emotion_coordinator.snapshot_to_detection_result(temporal_snapshot)
+        else:
+            try:
+                buf = audio_buffer_service.get_or_create_buffer(session.session_id)
+                turn_audio_bytes = buf.get_full_audio() if buf.total_bytes > 0 else None
+                buf.clear()
+                analysis_result = await MLEmotionDetectorService.predict_message_emotion(
+                    final_transcript, audio_bytes=turn_audio_bytes
+                )
+                scores = {item["name"]: float(item["percent"]) for item in analysis_result.get("emotions_breakdown", [])}
+                precomputed_emotion = EmotionDetectionResult(
+                    primary_emotion=analysis_result.get("primary_emotion", "neutral"),
+                    confidence=float(analysis_result.get("confidence", 0.5)),
+                    intensity=float(analysis_result.get("intensity", 0.5)),
+                    secondary_emotion=analysis_result.get("secondary_emotion"),
+                    scores=scores,
+                    model_used=analysis_result.get("model_name", "text-lexicon-heuristic"),
+                    latency_ms=float(analysis_result.get("latency_ms", 0.0)),
+                )
+            except Exception as emo_err:
+                logger.warning(f"⚠️ [EMOTION DETECTION EXCEPTION] Session {session.session_id}: {emo_err}")
 
         session.current_task_id = assistant_turn_id
         session._current_ai_task = asyncio.create_task(
             self._process_ai_response_pipeline(
-                session, assistant_turn_id, precomputed_emotion=precomputed_emotion
+                session,
+                assistant_turn_id,
+                precomputed_emotion=precomputed_emotion,
+                temporal_emotion=temporal_snapshot,
             )
         )
 
-        # Save user message and emotion to DB concurrently in background without blocking audio pipeline
-        asyncio.create_task(
-            self._save_message_to_db(session, "user", final_transcript, analysis_result=analysis_result)
-        )
+        # Save user message and emotion to DB ONLY in non-private modes
+        if not CallPersistenceService.is_private_session(session):
+            asyncio.create_task(
+                self._save_message_to_db(session, "user", final_transcript, analysis_result=analysis_result)
+            )
 
 
     # Legacy method wrapper
@@ -574,38 +660,85 @@ class CallSessionManager:
             ]
 
             turn = session.latest_orchestration_turn
-            if turn:
+            snap = session.latest_emotion_snapshot
+
+            if settings.EMOTION_STREAMING_ENABLED or snap is not None:
+                active_snap = snap or self.emotion_coordinator.get_snapshot(session.session_id)
+                stress_level = (
+                    "Tinggi"
+                    if (turn and turn.safety_decision.risk_level in ["high", "critical"])
+                    else ("Sedang" if (turn and turn.safety_decision.risk_level == "medium") else "Rendah")
+                )
+                has_valid_scores = (
+                    active_snap.status in (EmotionWindowStatus.READY, EmotionWindowStatus.PARTIAL)
+                    and bool(active_snap.scores)
+                    and active_snap.primary_emotion is not None
+                )
+                emotion_analysis: dict[str, Any] = {
+                    "status": active_snap.status.value,
+                    "source": active_snap.source.value,
+                    "coverage": active_snap.coverage,
+                    "speech_analyzed_ms": active_snap.speech_analyzed_ms,
+                    "speech_received_ms": active_snap.speech_received_ms,
+                    "wall_span_ms": active_snap.wall_span_ms,
+                    "segment_count": active_snap.segment_count,
+                    "dominant_emotion": active_snap.primary_emotion.capitalize() if has_valid_scores and active_snap.primary_emotion else None,
+                    "calm_score": (
+                        f"{int(round((active_snap.scores or {}).get('neutral', 0.0) * 100))}%"
+                        if has_valid_scores
+                        else None
+                    ),
+                    "stress_level": stress_level,
+                    "empathy_level": "Sangat Tinggi",
+                    "ai_insight": "Pengguna sedang berdialog dengan EVA AI.",
+                    "scores": active_snap.scores if has_valid_scores else None,
+                    "emotions_breakdown": [],
+                }
+            elif turn and turn.emotion and turn.emotion.scores:
                 dominant = turn.emotion.primary_emotion.capitalize()
-                scores = turn.emotion.scores or {}
+                scores = turn.emotion.scores
                 stress_level = "Tinggi" if turn.safety_decision.risk_level in ["high", "critical"] else ("Sedang" if turn.safety_decision.risk_level == "medium" else "Rendah")
-                calm_pct = round(scores.get("neutral", 0.70), 2)
-                happy_pct = round(scores.get("happy", 0.20), 2)
-                stress_pct = round(max(0.05, 1.0 - calm_pct - happy_pct), 2)
-                breakdown = [
-                    {"label": "Ketenangan & Kedamaian", "emoji": "😌", "percent": calm_pct, "color": "#4ECDC4"},
-                    {"label": "Bahagia & Puas", "emoji": "😃", "percent": happy_pct, "color": "#FFE6A7"},
-                    {"label": "Tingkat Stres / Cemas", "emoji": "😟", "percent": stress_pct, "color": "#FF8B94"},
-                ]
+                calm_pct = round(scores.get("neutral", 0.0), 2)
+                happy_pct = round(scores.get("happy", 0.0), 2)
+                distress_pct = round(
+                    min(1.0, scores.get("sad", 0.0) + scores.get("fearful", 0.0) + scores.get("angry", 0.0)),
+                    2,
+                )
+                emotion_analysis = {
+                    "status": getattr(turn.emotion, "status", EmotionWindowStatus.READY).value
+                    if hasattr(getattr(turn.emotion, "status", None), "value")
+                    else "ready",
+                    "source": getattr(turn.emotion, "source", "text_heuristic").value
+                    if hasattr(getattr(turn.emotion, "source", None), "value")
+                    else "text_heuristic",
+                    "dominant_emotion": dominant,
+                    "calm_score": f"{int(calm_pct * 100)}%",
+                    "stress_level": stress_level,
+                    "empathy_level": "Sangat Tinggi",
+                    "ai_insight": "Pengguna sedang berdialog dengan EVA AI.",
+                    "emotions_breakdown": [
+                        {"label": "Ketenangan & Kedamaian", "emoji": "😌", "percent": calm_pct, "color": "#4ECDC4"},
+                        {"label": "Bahagia & Puas", "emoji": "😃", "percent": happy_pct, "color": "#FFE6A7"},
+                        {"label": "Tingkat Stres / Cemas", "emoji": "😟", "percent": distress_pct, "color": "#FF8B94"},
+                    ],
+                }
             else:
-                dominant = "Tenang 🌿"
-                stress_level = "Rendah"
-                breakdown = [
-                    {"label": "Ketenangan & Kedamaian", "emoji": "😌", "percent": 0.70, "color": "#4ECDC4"},
-                    {"label": "Bahagia & Puas", "emoji": "😃", "percent": 0.20, "color": "#FFE6A7"},
-                    {"label": "Tingkat Stres", "emoji": "😟", "percent": 0.10, "color": "#FF8B94"},
-                ]
+                emotion_analysis = {
+                    "status": "unavailable",
+                    "source": "unavailable",
+                    "coverage": 0.0,
+                    "dominant_emotion": None,
+                    "calm_score": None,
+                    "stress_level": None,
+                    "empathy_level": "Sangat Tinggi",
+                    "ai_insight": "Pengguna sedang berdialog dengan EVA AI.",
+                    "emotions_breakdown": [],
+                }
 
             summary_payload = {
                 "type": "voice_session_summary",
                 "session_id": session.session_id,
-                "emotion_analysis": {
-                    "dominant_emotion": dominant,
-                    "calm_score": f"{int((turn.emotion.scores.get('neutral', 0.85) if turn else 0.85) * 100)}%",
-                    "stress_level": stress_level,
-                    "empathy_level": "Sangat Tinggi",
-                    "ai_insight": "Pengguna sedang berdialog dengan EVA AI.",
-                    "emotions_breakdown": breakdown,
-                },
+                "emotion_analysis": emotion_analysis,
                 "transcript": transcript_list,
             }
 
@@ -619,6 +752,7 @@ class CallSessionManager:
         session: CallSession,
         task_id: int,
         precomputed_emotion: EmotionDetectionResult | None = None,
+        temporal_emotion: TemporalEmotionSnapshot | None = None,
     ) -> None:
         t_start = time.perf_counter()
         t_llm_first_token: float | None = None
@@ -648,6 +782,8 @@ class CallSessionManager:
                 dass_scores=session.dass_scores,
                 user_name=session.user_name,
                 precomputed_emotion=precomputed_emotion,
+                temporal_emotion=temporal_emotion,
+                allow_sync_audio_fallback=(not settings.EMOTION_STREAMING_ENABLED),
             )
             session.latest_orchestration_turn = turn
 
@@ -667,11 +803,12 @@ class CallSessionManager:
                 except Exception as ws_err:
                     logger.warning(f"Failed to send crisis event over websocket: {ws_err}")
 
-            # Dynamic Voice Resolution: Voice Character Mode + Empathetic Adaptive Emotion Modulation
+            # Dynamic Voice Resolution: Voice Character Mode + Guarded Adaptive Emotion Modulation
             detected_emo = turn.emotion.primary_emotion if turn.emotion else "neutral"
             confidence = turn.emotion.confidence if turn.emotion else 0.5
             intensity = getattr(turn.emotion, "intensity", 0.5) if turn.emotion else 0.5
             risk = turn.safety_decision.risk_level if turn.safety_decision else "low"
+            snap_ref = temporal_emotion or getattr(turn.emotion, "temporal_snapshot", None)
 
             dyn_res = resolve_dynamic_voice_style(
                 mode_id=session.voice_mode,
@@ -679,6 +816,9 @@ class CallSessionManager:
                 confidence=confidence,
                 intensity=intensity,
                 risk_level=risk,
+                emotion_status=snap_ref.status.value if snap_ref else None,
+                emotion_source=snap_ref.source.value if snap_ref else None,
+                segment_count=snap_ref.segment_count if snap_ref else None,
             )
             delivery_style = dyn_res.delivery_style
             audio_tag = dyn_res.audio_tag
@@ -863,12 +1003,13 @@ class CallSessionManager:
             if not full_spoken_text:
                 full_spoken_text = "Aku di sini mendengarkanmu. Ceritakan apa yang sedang kamu rasakan."
 
-            # Save clean assistant response to conversation history and DB (NEVER SAVE AUDIO TAGS!)
+            # Save clean assistant response to conversation history and DB (no-op DB in private modes)
             clean_history_text = strip_audio_tags(full_spoken_text)
             session.conversation_history.append(
                 LLMMessage(role="assistant", content=clean_history_text)
             )
-            await self._save_message_to_db(session, "assistant", clean_history_text)
+            if not CallPersistenceService.is_private_session(session):
+                await self._save_message_to_db(session, "assistant", clean_history_text)
 
             t_end = time.perf_counter()
             total_duration_ms = (t_end - t_start) * 1000.0

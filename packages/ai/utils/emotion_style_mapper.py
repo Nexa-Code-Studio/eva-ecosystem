@@ -341,12 +341,24 @@ def resolve_dynamic_voice_style(
     intensity: float = 0.5,
     risk_level: str = "low",
     intent: str | None = None,
+    *,
+    emotion_status: str | None = None,
+    emotion_source: str | None = None,
+    segment_count: int | None = None,
 ) -> DynamicVoiceResolution:
     """Dynamically resolve voice ID and Audio Tag based on active Voice Character Mode and user emotional state."""
     mode = get_voice_character_mode(mode_id)
 
+    # Guard: avoid TTS style override from unavailable, stale, or single weak temporal segment
+    effective_emotion = detected_emotion
+    if risk_level not in ("high", "critical"):
+        if emotion_status in ("unavailable", "stale"):
+            effective_emotion = "neutral"
+        elif emotion_source == "audio_temporal" and emotion_status != "ready" and (segment_count or 0) < 2:
+            effective_emotion = "neutral"
+
     style, tag = map_emotion_to_delivery_style(
-        detected_emotion=detected_emotion,
+        detected_emotion=effective_emotion,
         confidence=confidence,
         risk_level=risk_level,
         intent=intent,

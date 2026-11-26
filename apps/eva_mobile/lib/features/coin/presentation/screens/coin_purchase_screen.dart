@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,10 +9,13 @@ import 'package:eva_mobile/widgets/app_back_button.dart';
 import 'package:eva_mobile/widgets/app_snack_bar.dart';
 import 'package:eva_mobile/widgets/custom_button.dart';
 import 'package:eva_mobile/widgets/glass_card.dart';
+import 'package:eva_mobile/widgets/skeleton_shimmer.dart';
 import '../../domain/entities/coin_package_entity.dart';
 import '../providers/coin_provider.dart';
+import 'coin_topup_history_screen.dart';
+import 'qris_payment_screen.dart';
 
-/// Screen for browsing, selecting, and purchasing Eva AI coins.
+/// Screen for browsing, selecting, and purchasing Eva AI coins via server-authoritative QRIS.
 class CoinPurchaseScreen extends ConsumerStatefulWidget {
   const CoinPurchaseScreen({super.key});
 
@@ -19,186 +24,63 @@ class CoinPurchaseScreen extends ConsumerStatefulWidget {
 }
 
 class _CoinPurchaseScreenState extends ConsumerState<CoinPurchaseScreen> {
-  String _selectedPackageId = 'pkg_popular';
-  String _selectedPaymentMethod = 'qris';
-  bool _isProcessing = false;
+  String? _selectedPackageId;
 
-  final List<Map<String, dynamic>> _paymentMethods = [
-    {
-      'id': 'qris',
-      'name': 'QRIS (Instant)',
-      'desc': 'GoPay, OVO, DANA, ShopeePay & M-Banking',
-      'icon': Icons.qr_code_2_rounded,
-    },
-    {
-      'id': 'va',
-      'name': 'Virtual Account Bank',
-      'desc': 'BCA, Mandiri, BRI, BNI & Permata',
-      'icon': Icons.account_balance_rounded,
-    },
-    {
-      'id': 'gplay',
-      'name': 'Google Play Billing',
-      'desc': 'Saldo Google Play & Tagihan Operator',
-      'icon': Icons.shop_two_rounded,
-    },
-  ];
-
-  Future<void> _handlePurchase(CoinPackageEntity package) async {
-    setState(() => _isProcessing = true);
-
-    // Simulate instant secure payment processing
-    await Future.delayed(const Duration(milliseconds: 900));
-
-    if (!mounted) return;
-
-    await ref.read(coinBalanceProvider.notifier).addCoins(package.totalCoins);
-
-    setState(() => _isProcessing = false);
-
-    if (!mounted) return;
-
-    _showSuccessDialog(package);
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(ref.read(coinBalanceProvider.notifier).syncFromServer());
+      unawaited(ref.read(topupFlowProvider.notifier).restorePendingOrder());
+    });
   }
 
-  void _showSuccessDialog(CoinPackageEntity package) {
-    final currentBalance = ref.read(coinBalanceProvider);
+  Future<void> _handlePurchase(CoinPackageEntity package) async {
+    final enabled = ref.read(qrisTopupEnabledProvider);
+    if (!enabled) {
+      AppSnackBar.showError(
+        context,
+        'Pembelian koin QRIS belum diaktifkan pada build rilis ini.',
+      );
+      return;
+    }
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 44,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE2E8F0),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFF3F4FE),
-                  border: Border.all(
-                    color: AppColors.primaryContainer,
-                    width: 2,
-                  ),
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.check_circle_rounded,
-                    size: 46,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                'Pembelian Berhasil!',
-                style: GoogleFonts.inter(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Selamat! ${package.totalCoins} Koin telah ditambahkan ke akunmu.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Saldo Koin Sekarang:',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.monetization_on_rounded,
-                          size: 18,
-                          color: Color(0xFFFFD54F),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '$currentBalance Koin',
-                          style: GoogleFonts.inter(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 26),
-              CustomButton(
-                text: 'Gunakan Koin Sekarang',
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  AppSnackBar.showSuccess(
-                    context,
-                    'Koin siap digunakan untuk berbicara dengan EVA & konsultasi psikolog!',
-                  );
-                },
-              ),
-            ],
-          ),
-        );
-      },
+    final order = await ref.read(topupFlowProvider.notifier).startTopup(package.id);
+    if (!mounted) return;
+
+    if (order == null) {
+      final err = ref.read(topupFlowProvider).errorMessage ?? 'Gagal membuat tagihan QRIS.';
+      AppSnackBar.showError(context, err);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const QrisPaymentScreen()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final coinBalance = ref.watch(coinBalanceProvider);
-    final packages = ref.watch(coinPackagesProvider);
-    final selectedPackage = packages.firstWhere(
-      (pkg) => pkg.id == _selectedPackageId,
-      orElse: () => packages.first,
-    );
+    final packagesAsync = ref.watch(coinPackagesProvider);
+    final qrisEnabled = ref.watch(qrisTopupEnabledProvider);
+    final flowState = ref.watch(topupFlowProvider);
+
+    final packages = packagesAsync.valueOrNull ?? const <CoinPackageEntity>[];
+    CoinPackageEntity? selectedPackage;
+    if (packages.isNotEmpty) {
+      selectedPackage = packages.firstWhere(
+        (p) => p.id == _selectedPackageId,
+        orElse: () => packages.firstWhere((p) => p.isPopular, orElse: () => packages.first),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
-            // 1. Top Navigation Bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
@@ -218,7 +100,7 @@ class _CoinPurchaseScreenState extends ConsumerState<CoinPurchaseScreen> {
                           ),
                         ),
                         Text(
-                          'Top up koin untuk berbicara dengan EVA & konsultasi psikolog',
+                          'Top up koin via QRIS untuk berbicara dengan EVA & konsultasi psikolog',
                           style: GoogleFonts.inter(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
@@ -228,67 +110,85 @@ class _CoinPurchaseScreenState extends ConsumerState<CoinPurchaseScreen> {
                       ],
                     ),
                   ),
+                  IconButton(
+                    tooltip: 'Riwayat Pembelian',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const CoinTopupHistoryScreen()),
+                      );
+                    },
+                    icon: const Icon(Icons.receipt_long_rounded, color: AppColors.primary),
+                  ),
                 ],
               ),
             ),
-
-            // 2. Scrollable Content
             Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Balance Hero Card (Theme Purple Gradient)
-                    _buildBalanceHeroCard(coinBalance),
-
-                    const SizedBox(height: 24),
-
-                    // Section: Pilih Paket Koin
-                    Text(
-                      'PILIH PAKET KOIN',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textLight,
-                        letterSpacing: 0.8,
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  await ref.read(coinBalanceProvider.notifier).syncFromServer();
+                  ref.invalidate(coinPackagesProvider);
+                },
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildBalanceHeroCard(coinBalance),
+                      if (flowState.activeOrder != null &&
+                          flowState.activeOrder!.status.isActivePending) ...[
+                        const SizedBox(height: 16),
+                        _buildPendingResumeBanner(context, flowState),
+                      ],
+                      if (!qrisEnabled) ...[
+                        const SizedBox(height: 16),
+                        _buildReleaseGateBanner(),
+                      ],
+                      const SizedBox(height: 24),
+                      Text(
+                        'PILIH PAKET KOIN',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textLight,
+                          letterSpacing: 0.8,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Packages Grid
-                    _buildPackagesGrid(packages),
-
-                    const SizedBox(height: 24),
-
-                    // Section: Metode Pembayaran
-                    Text(
-                      'METODE PEMBAYARAN',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textLight,
-                        letterSpacing: 0.8,
+                      const SizedBox(height: 12),
+                      packagesAsync.when(
+                        loading: () => _buildLoadingPackages(),
+                        error: (err, _) => _buildPackagesError(ref),
+                        data: (items) => items.isEmpty
+                            ? _buildEmptyPackages()
+                            : _buildPackagesGrid(items, selectedPackage?.id),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    _buildPaymentMethodsList(),
-
-                    const SizedBox(height: 24),
-
-                    // Section: Manfaat Koin
-                    _buildBenefitsCard(),
-
-                    const SizedBox(height: 32),
-                  ],
+                      const SizedBox(height: 24),
+                      Text(
+                        'METODE PEMBAYARAN',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textLight,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildQrisMethodCard(),
+                      const SizedBox(height: 24),
+                      _buildBenefitsCard(),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
                 ),
               ),
             ),
-
-            // 3. Sticky Bottom Checkout Bar
-            _buildStickyBottomBar(selectedPackage),
+            if (selectedPackage != null)
+              _buildStickyBottomBar(
+                selectedPackage,
+                isCreating: flowState.isCreating,
+                qrisEnabled: qrisEnabled,
+              ),
           ],
         ),
       ),
@@ -301,10 +201,7 @@ class _CoinPurchaseScreenState extends ConsumerState<CoinPurchaseScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [
-            Color(0xFF5358CB), // AppColors.primary
-            Color(0xFF8B93FF), // AppColors.primaryLight
-          ],
+          colors: [Color(0xFF5358CB), Color(0xFF8B93FF)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -325,17 +222,10 @@ class _CoinPurchaseScreenState extends ConsumerState<CoinPurchaseScreen> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white.withValues(alpha: 0.18),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.35),
-                width: 1.5,
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 1.5),
             ),
             child: const Center(
-              child: Icon(
-                Icons.monetization_on_rounded,
-                size: 30,
-                color: Color(0xFFFFD54F),
-              ),
+              child: Icon(Icons.monetization_on_rounded, size: 30, color: Color(0xFFFFD54F)),
             ),
           ),
           const SizedBox(width: 16),
@@ -369,18 +259,12 @@ class _CoinPurchaseScreenState extends ConsumerState<CoinPurchaseScreen> {
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.3),
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.verified_rounded,
-                  size: 14,
-                  color: Colors.white,
-                ),
+                const Icon(Icons.verified_rounded, size: 14, color: Colors.white),
                 const SizedBox(width: 4),
                 Text(
                   'Aktif',
@@ -398,17 +282,119 @@ class _CoinPurchaseScreenState extends ConsumerState<CoinPurchaseScreen> {
     );
   }
 
-  Widget _buildPackagesGrid(List<CoinPackageEntity> packages) {
+  Widget _buildPendingResumeBanner(BuildContext context, TopupFlowState flowState) {
+    final order = flowState.activeOrder!;
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const QrisPaymentScreen()),
+        );
+      },
+      child: GlassCard(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFFC2410C), size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Pembayaran QRIS Tertunda',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    '${order.package.name} (${order.formattedAmountIdr}) • Ketuk untuk lanjutkan',
+                    style: GoogleFonts.inter(fontSize: 11.5, color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.primary),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReleaseGateBanner() {
+    return GlassCard(
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          const Icon(Icons.lock_clock_rounded, color: AppColors.primary, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Pembelian koin via QRIS sedang dinonaktifkan pada build distribusi ini sampai kebijakan rilis disetujui.',
+              style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingPackages() {
+    return SkeletonShimmerHost(
+      child: Column(
+        children: List.generate(
+          3,
+          (_) => const Padding(
+            padding: EdgeInsets.only(bottom: 12),
+            child: SkeletonBox(height: 86, borderRadius: 18),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPackagesError(WidgetRef ref) {
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Text(
+            'Gagal memuat daftar paket koin dari server.',
+            style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () => ref.invalidate(coinPackagesProvider),
+            child: const Text('Muat Ulang'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyPackages() {
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Center(
+        child: Text(
+          'Belum ada paket koin aktif saat ini.',
+          style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPackagesGrid(List<CoinPackageEntity> packages, String? selectedId) {
     return Column(
       children: packages.map((pkg) {
-        final isSelected = pkg.id == _selectedPackageId;
-
+        final isSelected = pkg.id == selectedId;
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: InkWell(
-            onTap: () {
-              setState(() => _selectedPackageId = pkg.id);
-            },
+            onTap: () => setState(() => _selectedPackageId = pkg.id),
             borderRadius: BorderRadius.circular(18),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
@@ -420,21 +406,15 @@ class _CoinPurchaseScreenState extends ConsumerState<CoinPurchaseScreen> {
                   color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
                   width: isSelected ? 2 : 1,
                 ),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.12),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ]
-                    : [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                boxShadow: [
+                  BoxShadow(
+                    color: isSelected
+                        ? AppColors.primary.withValues(alpha: 0.12)
+                        : Colors.black.withValues(alpha: 0.03),
+                    blurRadius: isSelected ? 12 : 6,
+                    offset: Offset(0, isSelected ? 4 : 2),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
@@ -475,10 +455,7 @@ class _CoinPurchaseScreenState extends ConsumerState<CoinPurchaseScreen> {
                             ),
                             if (pkg.badge != null)
                               Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                  vertical: 2,
-                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: pkg.isPopular
                                       ? const Color(0xFFFFF7ED)
@@ -574,84 +551,54 @@ class _CoinPurchaseScreenState extends ConsumerState<CoinPurchaseScreen> {
     );
   }
 
-  Widget _buildPaymentMethodsList() {
-    return Column(
-      children: _paymentMethods.map((method) {
-        final isSelected = method['id'] == _selectedPaymentMethod;
-
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: InkWell(
-            onTap: () {
-              setState(() => _selectedPaymentMethod = method['id'] as String);
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
-                  width: isSelected ? 1.5 : 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.primaryContainer
-                          : const Color(0xFFF8F9FE),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        method['icon'] as IconData,
-                        size: 20,
-                        color: isSelected ? AppColors.primary : const Color(0xFF64748B),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          method['name'] as String,
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        Text(
-                          method['desc'] as String,
-                          style: GoogleFonts.inter(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    isSelected
-                        ? Icons.radio_button_checked_rounded
-                        : Icons.radio_button_off_rounded,
-                    size: 18,
-                    color: isSelected ? AppColors.primary : const Color(0xFFCBD5E1),
-                  ),
-                ],
-              ),
+  Widget _buildQrisMethodCard() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primary, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: AppColors.primaryContainer,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Center(
+              child: Icon(Icons.qr_code_2_rounded, size: 22, color: AppColors.primary),
             ),
           ),
-        );
-      }).toList(),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'QRIS Midtrans (Instan)',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  'GoPay, OVO, DANA, ShopeePay & semua M-Banking QRIS',
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.radio_button_checked_rounded, size: 18, color: AppColors.primary),
+        ],
+      ),
     );
   }
 
@@ -663,11 +610,7 @@ class _CoinPurchaseScreenState extends ConsumerState<CoinPurchaseScreen> {
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.stars_rounded,
-                size: 20,
-                color: AppColors.primary,
-              ),
+              const Icon(Icons.stars_rounded, size: 20, color: AppColors.primary),
               const SizedBox(width: 8),
               Text(
                 'Manfaat Koin EVA',
@@ -709,7 +652,7 @@ class _CoinPurchaseScreenState extends ConsumerState<CoinPurchaseScreen> {
         Container(
           margin: const EdgeInsets.only(top: 2),
           padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: AppColors.primaryContainer,
             shape: BoxShape.circle,
           ),
@@ -745,14 +688,16 @@ class _CoinPurchaseScreenState extends ConsumerState<CoinPurchaseScreen> {
     );
   }
 
-  Widget _buildStickyBottomBar(CoinPackageEntity selectedPackage) {
+  Widget _buildStickyBottomBar(
+    CoinPackageEntity selectedPackage, {
+    required bool isCreating,
+    required bool qrisEnabled,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: const Border(
-          top: BorderSide(color: Color(0xFFE2E8F0), width: 1),
-        ),
+        border: const Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -792,9 +737,11 @@ class _CoinPurchaseScreenState extends ConsumerState<CoinPurchaseScreen> {
           Expanded(
             flex: 2,
             child: CustomButton(
-              text: 'Beli Sekarang',
-              isLoading: _isProcessing,
-              onPressed: _isProcessing ? null : () => _handlePurchase(selectedPackage),
+              text: qrisEnabled ? 'Bayar via QRIS' : 'Segera Hadir',
+              isLoading: isCreating,
+              onPressed: (isCreating || !qrisEnabled)
+                  ? null
+                  : () => _handlePurchase(selectedPackage),
             ),
           ),
         ],

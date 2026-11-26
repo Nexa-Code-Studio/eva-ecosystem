@@ -1,0 +1,74 @@
+{
+  "c5_admin_finance_summary": {
+    "currency": "IDR",
+    "from": "2026-11-01T00:00:00Z",
+    "to": "2026-12-01T00:00:00Z",
+    "money_in_paid_idr": 15000000,
+    "money_in_pending_idr": 500000,
+    "money_out_completed_idr": 8500000,
+    "money_out_pending_idr": 750000,
+    "refund_completed_idr": 100000,
+    "provider_fees_known_idr": 150000,
+    "commission_earned_idr": 2250000,
+    "client_credit_liability_idr": 1500000,
+    "counselor_payable_idr": 750000,
+    "unreconciled_count": 2,
+    "provider_payout_available_idr": null,
+    "provider_balance_as_of": null
+  },
+  "c5_admin_finance_transactions_paginated": {
+    "items": [
+      {
+        "id": "finance-record-uuid-001",
+        "direction": "in",
+        "source": "qris_topup",
+        "reference_id": "EVA-TOPUP-20261125-001",
+        "provider_reference": "example-provider-tx-id",
+        "actor_label": "User EVA-USR-0001",
+        "amount_idr": 50000,
+        "fee_idr": null,
+        "net_amount_idr": null,
+        "currency": "IDR",
+        "status": "paid",
+        "reconciliation_status": "matched",
+        "created_at": "2026-11-25T02:00:00Z",
+        "completed_at": "2026-11-25T02:05:00Z",
+        "bank_account_masked": null
+      }
+    ],
+    "page": 1,
+    "page_size": 20,
+    "total": 1
+  },
+  "c5_admin_finance_transaction_detail": {
+    "id": "finance-record-uuid-001",
+    "direction": "in",
+    "source": "qris_topup",
+    "reference_id": "EVA-TOPUP-20261125-001",
+    "provider_reference": "example-provider-tx-id",
+    "actor_label": "User EVA-USR-0001",
+    "amount_idr": 50000,
+    "fee_idr": null,
+    "net_amount_idr": null,
+    "currency": "IDR",
+    "status": "paid",
+    "reconciliation_status": "matched",
+    "created_at": "2026-11-25T02:00:00Z",
+    "completed_at": "2026-11-25T02:05:00Z",
+    "bank_account_masked": null,
+    "events": [
+      {
+        "status": "pending",
+        "occurred_at": "2026-11-25T02:00:00Z",
+        "source": "backend",
+        "message": "Tagihan QRIS dibuat"
+      },
+      {
+        "status": "paid",
+        "occurred_at": "2026-11-25T02:05:00Z",
+        "source": "midtrans",
+        "message": "Pembayaran QRIS terverifikasi dan koin dikreditkan"
+      }
+    ]
+  }
+}

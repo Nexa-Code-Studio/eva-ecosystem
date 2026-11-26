@@ -40,7 +40,7 @@ def test_emotion_service_predict_correctness_and_reuse():
     assert 0.0 <= result_1.confidence <= 1.0
     assert isinstance(result_1.scores, dict)
     assert len(result_1.scores) == 9
-    assert result_1.model_used == "iic/emotion2vec_plus_large"
+    assert result_1.model_used == "iic/emotion2vec_plus_base"
     assert result_1.latency_ms > 0.0
 
     # 3. Model reuse check

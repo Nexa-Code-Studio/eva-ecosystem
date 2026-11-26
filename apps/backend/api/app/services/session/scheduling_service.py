@@ -286,20 +286,17 @@ class SchedulingService:
             session_id=session.id,
         )
 
-        # 6. Record Initial Counselor Earning Transaction
+        # 6. Record Initial Counselor Earning Transaction (held in pending_clearing until completion)
         transaction = CounselorTransaction(
             counselor_id=counselor.id,
             session_id=session.id,
             transaction_type=TransactionType.EARNING.value,
-            status=TransactionStatus.COMPLETED.value,
+            status=TransactionStatus.PENDING.value,
             amount=counselor_share,
             description=f"Honorarium telekonsultasi {duration_minutes} menit ({session_count} sesi: {session_code})",
             reference_number=f"TX-{uuid.uuid4().hex[:10].upper()}",
         )
         self.db.add(transaction)
-
-        # Update counselor balance
-        counselor.wallet_balance += counselor_share
 
         await self.db.commit()
         await self.db.refresh(session)
@@ -331,6 +328,165 @@ class SchedulingService:
                     {"start": "15:30", "end": "16:00", "label": "Istirahat Sore"},
                 ]
         return is_active, op_start, op_end, breaks
+
+    @staticmethod
+    def _parse_hhmm_to_minutes(t_str: str) -> int | None:
+        try:
+            parts = t_str.strip().split(":")
+            return int(parts[0]) * 60 + int(parts[1])
+        except (ValueError, IndexError, AttributeError):
+            return None
+
+    @staticmethod
+    def _format_minutes_hhmm(mins: int) -> str:
+        return f"{mins // 60:02d}:{mins % 60:02d}"
+
+    @classmethod
+    def compute_day_open_windows(
+        cls,
+        counselor: PsychologistProfile,
+        target_date: Any,
+        sessions: list[ConsultationSession],
+        local_tz: timezone,
+    ) -> list[tuple[int, int]]:
+        """Compute open [start_min, end_min] windows (>= 30m) for a counselor on target_date."""
+        is_active, op_start, op_end, breaks = cls._resolve_day_schedule(counselor, target_date)
+        if not is_active:
+            return []
+
+        op_start_min = cls._parse_hhmm_to_minutes(op_start)
+        op_end_min = cls._parse_hhmm_to_minutes(op_end)
+        if op_start_min is None or op_end_min is None or op_end_min <= op_start_min:
+            return []
+
+        blocked: list[tuple[int, int]] = []
+        for brk in breaks:
+            b_start = cls._parse_hhmm_to_minutes(brk.get("start", ""))
+            b_end = cls._parse_hhmm_to_minutes(brk.get("end", ""))
+            if b_start is not None and b_end is not None and b_end > b_start:
+                blocked.append((b_start, b_end))
+
+        buffer_mins = max(0, int(counselor.buffer_time_minutes or 0))
+        for sess in sessions:
+            s_start_dt = sess.scheduled_start_time
+            s_end_dt = sess.scheduled_end_time
+            if s_start_dt.tzinfo is None:
+                s_start_dt = s_start_dt.replace(tzinfo=UTC)
+            if s_end_dt.tzinfo is None:
+                s_end_dt = s_end_dt.replace(tzinfo=UTC)
+            s_start_local = s_start_dt.astimezone(local_tz)
+            s_end_local = s_end_dt.astimezone(local_tz)
+            if s_start_local.date() != target_date and s_end_local.date() != target_date:
+                continue
+            s_start_min = (
+                s_start_local.hour * 60 + s_start_local.minute
+                if s_start_local.date() == target_date
+                else 0
+            )
+            s_end_min = (
+                s_end_local.hour * 60 + s_end_local.minute + buffer_mins
+                if s_end_local.date() == target_date
+                else 24 * 60
+            )
+            if s_end_min > s_start_min:
+                blocked.append((s_start_min, s_end_min))
+
+        blocked.sort(key=lambda item: item[0])
+        windows: list[tuple[int, int]] = []
+        current_min = op_start_min
+        for br_start, br_end in blocked:
+            if br_start > current_min and current_min < op_end_min:
+                window_end = min(br_start, op_end_min)
+                if window_end - current_min >= 30:
+                    windows.append((current_min, window_end))
+            current_min = max(current_min, br_end)
+
+        if current_min < op_end_min and (op_end_min - current_min >= 30):
+            windows.append((current_min, op_end_min))
+        return windows
+
+    @classmethod
+    def compute_counselor_availability_summary(
+        cls,
+        counselor: PsychologistProfile,
+        now_local: datetime,
+        sessions: list[ConsultationSession],
+        local_tz: timezone,
+    ) -> dict[str, Any]:
+        """Compute real-time availability status, next open slot, and remaining slot count."""
+        today_date = now_local.date()
+        tomorrow_date = today_date + timedelta(days=1)
+        now_minutes = now_local.hour * 60 + now_local.minute
+
+        today_windows = cls.compute_day_open_windows(counselor, today_date, sessions, local_tz)
+        tomorrow_windows = cls.compute_day_open_windows(counselor, tomorrow_date, sessions, local_tz)
+
+        has_slots_tomorrow = len(tomorrow_windows) > 0
+        next_slot_tomorrow = (
+            cls._format_minutes_hhmm(tomorrow_windows[0][0]) if has_slots_tomorrow else None
+        )
+
+        available_now = False
+        remaining_slots_today = 0
+        next_today_start: int | None = None
+
+        for w_start, w_end in today_windows:
+            eff_start = max(w_start, now_minutes)
+            if w_end - eff_start >= 30:
+                remaining_slots_today += (w_end - eff_start) // 30
+                if next_today_start is None:
+                    next_today_start = eff_start
+                if w_start <= now_minutes < w_end:
+                    available_now = True
+
+        if not counselor.is_online:
+            return {
+                "availability_status": "unavailable",
+                "next_available_slot": None,
+                "next_available_date": None,
+                "remaining_slots_today": 0,
+                "has_slots_tomorrow": False,
+                "next_slot_tomorrow": None,
+            }
+
+        if available_now:
+            return {
+                "availability_status": "available_now",
+                "next_available_slot": cls._format_minutes_hhmm(now_minutes),
+                "next_available_date": today_date.isoformat(),
+                "remaining_slots_today": remaining_slots_today,
+                "has_slots_tomorrow": has_slots_tomorrow,
+                "next_slot_tomorrow": next_slot_tomorrow,
+            }
+
+        if remaining_slots_today > 0 and next_today_start is not None:
+            return {
+                "availability_status": "available_today",
+                "next_available_slot": cls._format_minutes_hhmm(next_today_start),
+                "next_available_date": today_date.isoformat(),
+                "remaining_slots_today": remaining_slots_today,
+                "has_slots_tomorrow": has_slots_tomorrow,
+                "next_slot_tomorrow": next_slot_tomorrow,
+            }
+
+        if has_slots_tomorrow:
+            return {
+                "availability_status": "available_tomorrow",
+                "next_available_slot": next_slot_tomorrow,
+                "next_available_date": tomorrow_date.isoformat(),
+                "remaining_slots_today": 0,
+                "has_slots_tomorrow": True,
+                "next_slot_tomorrow": next_slot_tomorrow,
+            }
+
+        return {
+            "availability_status": "unavailable",
+            "next_available_slot": None,
+            "next_available_date": None,
+            "remaining_slots_today": 0,
+            "has_slots_tomorrow": False,
+            "next_slot_tomorrow": None,
+        }
 
     @classmethod
     def evaluate_schedule_config_conflict(
@@ -531,24 +687,17 @@ class SchedulingService:
             session_id=session.id,
         )
 
-        # Record extension transaction
+        # Record extension transaction (held in pending_clearing until session completion)
         tx = CounselorTransaction(
             counselor_id=session.counselor_id,
             session_id=session.id,
             transaction_type=TransactionType.EARNING.value,
-            status=TransactionStatus.COMPLETED.value,
+            status=TransactionStatus.PENDING.value,
             amount=ext_counselor,
             description=f"Honorarium perpanjangan sesi +30 menit (Sesi: {session.session_code})",
             reference_number=f"TX-EXT-{uuid.uuid4().hex[:10].upper()}",
         )
         self.db.add(tx)
-
-        # Update counselor balance
-        counselor_query = select(PsychologistProfile).where(PsychologistProfile.id == session.counselor_id)
-        counselor_res = await self.db.execute(counselor_query)
-        counselor = counselor_res.scalar_one_or_none()
-        if counselor:
-            counselor.wallet_balance += ext_counselor
 
         await self.db.commit()
         await self.db.refresh(session)
@@ -658,6 +807,8 @@ class SchedulingService:
         await self.db.commit()
         await self.db.refresh(session)
 
+        await self.release_pending_session_earnings(session.id)
+
         try:
             from app.services.certificate import CertificateService
             from app.services.level import LevelService
@@ -668,6 +819,127 @@ class SchedulingService:
             pass
 
         return self._to_session_response(session)
+
+    async def release_pending_session_earnings(self, session_id: uuid.UUID) -> Decimal:
+        """Atomically release pending clearing honorarium to counselor available wallet_balance once."""
+        tx_res = await self.db.execute(
+            select(CounselorTransaction)
+            .where(
+                CounselorTransaction.session_id == session_id,
+                CounselorTransaction.transaction_type == TransactionType.EARNING.value,
+                CounselorTransaction.status == TransactionStatus.PENDING.value,
+            )
+            .with_for_update()
+        )
+        pending_txs = tx_res.scalars().all()
+        if not pending_txs:
+            return Decimal("0.00")
+
+        counselor_id = pending_txs[0].counselor_id
+        c_res = await self.db.execute(
+            select(PsychologistProfile).where(PsychologistProfile.id == counselor_id).with_for_update()
+        )
+        counselor = c_res.scalar_one_or_none()
+        if not counselor:
+            return Decimal("0.00")
+
+        released = Decimal("0.00")
+        for tx in pending_txs:
+            tx.status = TransactionStatus.COMPLETED.value
+            released += tx.amount
+
+        counselor.wallet_balance += released
+        await self.db.commit()
+        return released
+
+    async def cancel_session_and_refund(
+        self,
+        session_id: uuid.UUID,
+        *,
+        reason: str | None = None,
+    ) -> int:
+        """Atomically cancel an uncompleted session, void pending earnings, and refund patient coins once."""
+        sess_res = await self.db.execute(
+            select(ConsultationSession).where(ConsultationSession.id == session_id).with_for_update()
+        )
+        session = sess_res.scalar_one_or_none()
+        if not session:
+            return 0
+        if session.status == ConsultationSessionStatus.COMPLETED.value:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Sesi yang sudah selesai tidak dapat dibatalkan.",
+            )
+
+        session.status = ConsultationSessionStatus.CANCELLED.value
+        if reason and not session.cancellation_reason:
+            session.cancellation_reason = reason
+
+        # Void pending counselor earnings so uncompleted sessions never become withdrawable
+        earn_res = await self.db.execute(
+            select(CounselorTransaction)
+            .where(
+                CounselorTransaction.session_id == session_id,
+                CounselorTransaction.transaction_type == TransactionType.EARNING.value,
+                CounselorTransaction.status == TransactionStatus.PENDING.value,
+            )
+            .with_for_update()
+        )
+        for etx in earn_res.scalars().all():
+            etx.status = TransactionStatus.FAILED.value
+
+        # Check if a refund coin ledger entry already exists for this session (idempotent)
+        existing_refund = await self.db.execute(
+            select(CoinTransaction.id).where(
+                CoinTransaction.reference_session_id == session_id,
+                CoinTransaction.transaction_type == CoinTransactionType.REFUND.value,
+            )
+        )
+        if existing_refund.scalar_one_or_none() is not None:
+            await self.db.commit()
+            return 0
+
+        debit_res = await self.db.execute(
+            select(CoinTransaction).where(
+                CoinTransaction.reference_session_id == session_id,
+                CoinTransaction.transaction_type.in_(
+                    [CoinTransactionType.BOOKING_DEBIT.value, CoinTransactionType.EXTENSION_DEBIT.value]
+                ),
+            )
+        )
+        debit_txs = debit_res.scalars().all()
+        total_refund_coins = sum(abs(int(d.coins_delta)) for d in debit_txs if d.coins_delta < 0)
+        if total_refund_coins <= 0:
+            await self.db.commit()
+            return 0
+
+        patient_res = await self.db.execute(
+            select(User).where(User.id == session.patient_id).with_for_update()
+        )
+        patient = patient_res.scalar_one_or_none()
+        if patient is None:
+            await self.db.commit()
+            return 0
+
+        now_utc = datetime.now(UTC)
+        patient.coin_balance += total_refund_coins
+        self.db.add(
+            CoinTransaction(
+                invoice_code=f"EVA-REFSES-{now_utc.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}",
+                user_id=patient.id,
+                transaction_type=CoinTransactionType.REFUND.value,
+                coins_delta=total_refund_coins,
+                balance_after=patient.coin_balance,
+                amount_idr=0,
+                payment_method="EVA Wallet",
+                package_name=f"Refund Pembatalan Sesi ({session.session_code})",
+                status=TransactionStatus.COMPLETED.value,
+                reference_session_id=session.id,
+                completed_at=now_utc,
+            )
+        )
+        await self.db.commit()
+        return total_refund_coins
 
     async def get_patient_clinical_notes(
         self,

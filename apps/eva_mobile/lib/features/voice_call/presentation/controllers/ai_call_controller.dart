@@ -236,8 +236,16 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     } else if (type == 'context_ack_v1') {
       debugPrint('📥 [LTM CONTEXT ACK] Accepted: ${event['accepted_count']}, Rejected: ${event['rejected_count']}');
     } else if (type == 'emotion_result') {
-      final primaryEmotion = event['primary_emotion'] as String? ?? 'neutral';
-      final confidence = (event['confidence'] as num?)?.toDouble() ?? 0.5;
+      final status = (event['status'] as String?)?.toLowerCase();
+      if (status == 'unavailable' || status == 'stale') {
+        debugPrint('🎙️ [EMOTION RESULT WS] Status=$status (no fabricated score applied)');
+        return;
+      }
+      final primaryEmotion = event['primary_emotion'] as String?;
+      final confidence = (event['confidence'] as num?)?.toDouble();
+      if (primaryEmotion == null || confidence == null) {
+        return;
+      }
       final breakdown = (event['emotions_breakdown'] as List<dynamic>?)
           ?.map((e) => Map<String, dynamic>.from(e as Map))
           .toList() ?? [];
@@ -569,6 +577,12 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     final newMute = !state.isMuted;
     _singleAudioService.setMuted(newMute);
     state = state.copyWith(isMuted: newMute);
+    if (state.callId.isNotEmpty) {
+      _wsClient.sendAudioBoundary(
+        callId: state.callId,
+        reason: newMute ? 'mute' : 'unmute',
+      );
+    }
 
     if (newMute) {
       _singleAudioService.stopListening();
