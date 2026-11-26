@@ -212,5 +212,13 @@
     "updated_at": 1795618603,
     "evidence_summary": "Evidence accepted: PR and test verification documented.",
     "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/146"
+  },
+  "151": {
+    "issue": 151,
+    "branch": "fix/151-counselor-schedule-sync",
+    "state": "In Review",
+    "updated_at": 1795728480,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/152"
   }
 }

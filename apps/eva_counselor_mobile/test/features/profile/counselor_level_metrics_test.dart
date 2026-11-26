@@ -6,6 +6,7 @@ import 'package:eva_counselor_mobile/features/auth/domain/entities/psychologist_
 import 'package:eva_counselor_mobile/features/profile/data/datasources/counselor_profile_remote_data_source.dart';
 import 'package:eva_counselor_mobile/features/profile/domain/entities/counselor_level_metrics_entity.dart';
 import 'package:eva_counselor_mobile/features/profile/domain/entities/counselor_review_entity.dart';
+import 'package:eva_counselor_mobile/features/profile/domain/entities/counselor_schedule_config_entity.dart';
 import 'package:eva_counselor_mobile/features/profile/presentation/providers/counselor_level_metrics_provider.dart';
 import 'package:eva_counselor_mobile/features/profile/presentation/widgets/counselor_level_progress_modal.dart';
 import 'package:eva_counselor_mobile/features/profile/presentation/widgets/counselor_profile_header_card.dart';
@@ -35,6 +36,29 @@ class _FakeCounselorProfileDataSource implements ICounselorProfileDataSource {
       activeSessionPrice: customPrice,
     );
   }
+
+  @override
+  Future<CounselorScheduleConfigEntity> fetchScheduleConfig() async =>
+      CounselorScheduleConfigEntity.defaults(counselorId: metrics.counselorId);
+
+  @override
+  Future<CounselorScheduleConfigEntity> updateScheduleConfig({
+    required Map<String, dynamic> scheduleConfig,
+    required int bufferTimeMinutes,
+  }) async =>
+      CounselorScheduleConfigEntity.fromJson({
+        'counselor_id': metrics.counselorId,
+        'buffer_time_minutes': bufferTimeMinutes,
+        'schedule_config': scheduleConfig,
+      });
+
+  @override
+  Future<CounselorDailyTimelineEntity> fetchMyDailyTimeline(
+          DateTime date) async =>
+      CounselorDailyTimelineEntity.empty(
+        '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+        counselorId: metrics.counselorId,
+      );
 }
 
 void main() {

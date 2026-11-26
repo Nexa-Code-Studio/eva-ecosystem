@@ -91,12 +91,23 @@ class AuthRepositoryImpl implements IAuthRepository {
   @override
   Future<PsychologistUserEntity?> getCurrentProfile() async {
     try {
+      final token = await TokenStorage.getToken();
+      if (token != null && token.isNotEmpty) {
+        try {
+          final dto = await _dataSource.getProfile();
+          await TokenStorage.saveProfileJson(jsonEncode(dto.toJson()));
+          return dto.toEntity();
+        } catch (_) {
+          // Offline/transient fallback to last cached profile below
+        }
+      }
       final cachedJson = await TokenStorage.getProfileJson();
       if (cachedJson != null && cachedJson.isNotEmpty) {
         final decoded = jsonDecode(cachedJson) as Map<String, dynamic>;
         return PsychologistProfileResponseDto.fromJson(decoded).toEntity();
       }
       final dto = await _dataSource.getProfile();
+      await TokenStorage.saveProfileJson(jsonEncode(dto.toJson()));
       return dto.toEntity();
     } catch (_) {
       return null;

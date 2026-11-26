@@ -30,6 +30,7 @@ from app.models.enums import (
 )
 from app.schemas.counselor import (
     BlockedRangeItem,
+    CounselorTimelineBookedSessionItem,
     CounselorTimelineResponse,
     OperatingHoursItem,
     TimeRangeItem,
@@ -1544,8 +1545,36 @@ class SchedulingService:
         )
 
 
+    async def get_my_counselor_timeline(
+        self,
+        user_id: uuid.UUID,
+        date_str: str,
+        tz_offset_minutes: int = 420,
+    ) -> CounselorTimelineResponse:
+        """Retrieve authenticated counselor daily timeline including booked patient details."""
+        c_res = await self.db.execute(
+            select(PsychologistProfile).where(PsychologistProfile.user_id == user_id)
+        )
+        counselor = c_res.scalar_one_or_none()
+        if not counselor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Profil psikolog tidak ditemukan.",
+            )
+        return await self.get_counselor_timeline(
+            counselor.id,
+            date_str,
+            include_booked_details=True,
+            tz_offset_minutes=tz_offset_minutes,
+        )
+
     async def get_counselor_timeline(
-        self, counselor_id: uuid.UUID, date_str: str
+        self,
+        counselor_id: uuid.UUID,
+        date_str: str,
+        *,
+        include_booked_details: bool = False,
+        tz_offset_minutes: int = 0,
     ) -> CounselorTimelineResponse:
         """Calculate operating hours, break intervals, booked sessions, buffers, and open windows."""
         query = select(PsychologistProfile).where(PsychologistProfile.id == counselor_id)
@@ -1565,24 +1594,11 @@ class SchedulingService:
                 detail="Format tanggal tidak valid. Gunakan YYYY-MM-DD.",
             )
 
-        day_name = target_date.strftime("%A").lower()
-        sched_cfg = counselor.schedule_config or {}
-        day_cfg = sched_cfg.get(day_name, {})
-
-        op_start = day_cfg.get("operating_hours", {}).get("start", "08:00")
-        op_end = day_cfg.get("operating_hours", {}).get("end", "17:00")
-        is_active = day_cfg.get("is_active", True)
+        is_active, op_start, op_end, breaks = self._resolve_day_schedule(
+            counselor, target_date
+        )
 
         blocked_ranges: list[BlockedRangeItem] = []
-
-        breaks = day_cfg.get("breaks", [])
-        if not breaks and day_name in ["monday", "tuesday", "wednesday", "thursday"]:
-            breaks = [{"start": "12:00", "end": "13:00", "label": "Istirahat Siang"}]
-        elif not breaks and day_name == "friday":
-            breaks = [
-                {"start": "11:30", "end": "13:00", "label": "Shalat Jumat & Istirahat"},
-                {"start": "15:30", "end": "16:00", "label": "Istirahat Sore"},
-            ]
 
         if is_active:
             for brk in breaks:
@@ -1598,8 +1614,9 @@ class SchedulingService:
                     )
                 )
 
-        day_start = datetime.combine(target_date, time(0, 0), tzinfo=UTC)
-        day_end = datetime.combine(target_date, time(23, 59, 59), tzinfo=UTC)
+        local_tz = timezone(timedelta(minutes=tz_offset_minutes))
+        day_start = datetime.combine(target_date, time(0, 0), tzinfo=local_tz).astimezone(UTC)
+        day_end = datetime.combine(target_date, time(23, 59, 59), tzinfo=local_tz).astimezone(UTC)
 
         s_query = (
             select(ConsultationSession)
@@ -1615,12 +1632,25 @@ class SchedulingService:
             )
             .order_by(ConsultationSession.scheduled_start_time.asc())
         )
+        if include_booked_details:
+            s_query = s_query.options(selectinload(ConsultationSession.patient))
+
         s_res = await self.db.execute(s_query)
         sessions = s_res.scalars().all()
 
+        booked_sessions: list[CounselorTimelineBookedSessionItem] = []
         for sess in sessions:
-            s_start = sess.scheduled_start_time.strftime("%H:%M")
-            s_end = sess.scheduled_end_time.strftime("%H:%M")
+            s_start_dt = sess.scheduled_start_time
+            s_end_dt = sess.scheduled_end_time
+            if s_start_dt.tzinfo is None:
+                s_start_dt = s_start_dt.replace(tzinfo=UTC)
+            if s_end_dt.tzinfo is None:
+                s_end_dt = s_end_dt.replace(tzinfo=UTC)
+
+            s_start_local = s_start_dt.astimezone(local_tz)
+            s_end_local = s_end_dt.astimezone(local_tz)
+            s_start = s_start_local.strftime("%H:%M")
+            s_end = s_end_local.strftime("%H:%M")
             code_suffix = sess.session_code[-6:] if sess.session_code else "LIVE"
             blocked_ranges.append(
                 BlockedRangeItem(
@@ -1630,8 +1660,39 @@ class SchedulingService:
                     label=f"Sesi Pasien #{code_suffix}",
                 )
             )
+            if include_booked_details:
+                patient_obj = sess.patient
+                patient_name = (
+                    (patient_obj.display_name or "").strip()
+                    if patient_obj
+                    else ""
+                )
+                if not patient_name and patient_obj and patient_obj.email:
+                    patient_name = patient_obj.email.split("@")[0]
+                if not patient_name:
+                    patient_name = f"Pasien #{code_suffix}"
+                soap = sess.soap_notes if isinstance(sess.soap_notes, dict) else {}
+                complaint_text = (
+                    soap.get("subjective")
+                    or soap.get("assessment")
+                    or getattr(sess, "patient_complaints", None)
+                )
+                booked_sessions.append(
+                    CounselorTimelineBookedSessionItem(
+                        session_id=str(sess.id),
+                        session_code=sess.session_code or code_suffix,
+                        patient_id=str(sess.patient_id),
+                        patient_name=patient_name,
+                        start=s_start,
+                        end=s_end,
+                        duration_minutes=int(sess.duration_minutes or 30),
+                        status=sess.status,
+                        complaints=str(complaint_text) if complaint_text else None,
+                    )
+                )
+
             if counselor.buffer_time_minutes > 0:
-                buf_end_dt = sess.scheduled_end_time + timedelta(minutes=counselor.buffer_time_minutes)
+                buf_end_dt = s_end_local + timedelta(minutes=counselor.buffer_time_minutes)
                 buf_end = buf_end_dt.strftime("%H:%M")
                 blocked_ranges.append(
                     BlockedRangeItem(
@@ -1676,10 +1737,13 @@ class SchedulingService:
         return CounselorTimelineResponse(
             counselor_id=str(counselor_id),
             date=date_str,
+            is_active=is_active,
+            is_online=bool(counselor.is_online),
             operating_hours=OperatingHoursItem(start=op_start, end=op_end),
             buffer_time_minutes=counselor.buffer_time_minutes,
             blocked_ranges=blocked_ranges,
             available_windows=available_windows,
+            booked_sessions=booked_sessions,
         )
 
     async def get_patient_clinical_triggers(

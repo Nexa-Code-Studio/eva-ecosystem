@@ -1,4 +1,5 @@
-from pydantic import BaseModel, EmailStr, Field
+import re
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 
 class RegisterPsychologistRequest(BaseModel):
@@ -74,10 +75,28 @@ class ToggleAvailabilityRequest(BaseModel):
     is_online: bool
 
 
+_HHMM_RE = re.compile(r"^\d{2}:\d{2}$")
+
+
+def _to_minutes(hhmm: str) -> int:
+    if not _HHMM_RE.match(hhmm):
+        raise ValueError("Format jam harus HH:MM.")
+    h, m = int(hhmm[:2]), int(hhmm[3:])
+    if h > 23 or m > 59:
+        raise ValueError("Jam atau menit di luar rentang valid (00:00–23:59).")
+    return h * 60 + m
+
+
 class DayBreakItem(BaseModel):
     start: str = Field(..., pattern=r"^\d{2}:\d{2}$", description="HH:MM format")
     end: str = Field(..., pattern=r"^\d{2}:\d{2}$", description="HH:MM format")
     label: str = Field(default="Istirahat", max_length=100)
+
+    @model_validator(mode="after")
+    def _validate_range(self) -> "DayBreakItem":
+        if _to_minutes(self.start) >= _to_minutes(self.end):
+            raise ValueError("Jam mulai istirahat harus lebih awal dari jam selesai.")
+        return self
 
 
 class DayScheduleConfig(BaseModel):
@@ -86,6 +105,16 @@ class DayScheduleConfig(BaseModel):
         default_factory=lambda: {"start": "08:00", "end": "17:00"}
     )
     breaks: list[DayBreakItem] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _validate_operating_hours(self) -> "DayScheduleConfig":
+        start_str = self.operating_hours.get("start", "")
+        end_str = self.operating_hours.get("end", "")
+        start_min = _to_minutes(start_str)
+        end_min = _to_minutes(end_str)
+        if self.is_active and start_min >= end_min:
+            raise ValueError("Jam buka operasional harus lebih awal dari jam tutup.")
+        return self
 
 
 class UpdateScheduleConfigRequest(BaseModel):

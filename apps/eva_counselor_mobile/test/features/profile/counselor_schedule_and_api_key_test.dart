@@ -12,6 +12,7 @@ import 'package:eva_counselor_mobile/features/profile/presentation/widgets/couns
 import 'package:eva_counselor_mobile/features/profile/data/datasources/counselor_profile_remote_data_source.dart';
 import 'package:eva_counselor_mobile/features/profile/domain/entities/counselor_level_metrics_entity.dart';
 import 'package:eva_counselor_mobile/features/profile/domain/entities/counselor_review_entity.dart';
+import 'package:eva_counselor_mobile/features/profile/domain/entities/counselor_schedule_config_entity.dart';
 import 'package:eva_counselor_mobile/features/profile/presentation/providers/counselor_level_metrics_provider.dart';
 
 class _MockCounselorProfileDataSource implements ICounselorProfileDataSource {
@@ -45,6 +46,29 @@ class _MockCounselorProfileDataSource implements ICounselorProfileDataSource {
   Future<CounselorLevelMetricsEntity> updateCustomPrice(
           double customPrice) async =>
       fetchLevelMetrics();
+
+  @override
+  Future<CounselorScheduleConfigEntity> fetchScheduleConfig() async =>
+      CounselorScheduleConfigEntity.defaults(counselorId: 'test-counselor');
+
+  @override
+  Future<CounselorScheduleConfigEntity> updateScheduleConfig({
+    required Map<String, dynamic> scheduleConfig,
+    required int bufferTimeMinutes,
+  }) async =>
+      CounselorScheduleConfigEntity.fromJson({
+        'counselor_id': 'test-counselor',
+        'buffer_time_minutes': bufferTimeMinutes,
+        'schedule_config': scheduleConfig,
+      });
+
+  @override
+  Future<CounselorDailyTimelineEntity> fetchMyDailyTimeline(
+          DateTime date) async =>
+      CounselorDailyTimelineEntity.empty(
+        '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+        counselorId: 'test-counselor',
+      );
 }
 
 void main() {
@@ -528,6 +552,13 @@ class _MockAuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEn
     String? breakStartTime,
     String? breakEndTime,
   }) {}
+
+  @override
+  Future<void> applyScheduleConfig({
+    required Map<String, dynamic> scheduleConfig,
+    required int bufferTimeMinutes,
+    required bool isOnline,
+  }) async {}
 
   @override
   void upgradeToProfessional({
