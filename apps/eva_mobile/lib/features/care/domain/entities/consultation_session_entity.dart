@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'psychologist_entity.dart';
+import 'psychologist_rating_review.dart';
 
 enum ConsultationStatus {
   upcoming,
   completed,
   cancelled,
+  missed,
 }
 
 enum ConsultationType {
@@ -30,6 +32,8 @@ class ConsultationSessionEntity {
   final String? sessionSummary;
   final bool shareAiChatHistory;
   final bool isExtended;
+  final bool hasReview;
+  final PsychologistRatingReview? myReview;
 
   const ConsultationSessionEntity({
     required this.id,
@@ -49,11 +53,14 @@ class ConsultationSessionEntity {
     this.sessionSummary,
     this.shareAiChatHistory = false,
     this.isExtended = false,
+    this.hasReview = false,
+    this.myReview,
   });
 
   bool get isUpcoming => status == ConsultationStatus.upcoming;
   bool get isCompleted => status == ConsultationStatus.completed;
   bool get isCancelled => status == ConsultationStatus.cancelled;
+  bool get isMissed => status == ConsultationStatus.missed;
   bool get isOnlineVideo => type == ConsultationType.onlineVideo;
 
   ConsultationSessionEntity copyWith({
@@ -74,6 +81,8 @@ class ConsultationSessionEntity {
     String? sessionSummary,
     bool? shareAiChatHistory,
     bool? isExtended,
+    bool? hasReview,
+    PsychologistRatingReview? myReview,
   }) {
     return ConsultationSessionEntity(
       id: id ?? this.id,
@@ -93,6 +102,8 @@ class ConsultationSessionEntity {
       sessionSummary: sessionSummary ?? this.sessionSummary,
       shareAiChatHistory: shareAiChatHistory ?? this.shareAiChatHistory,
       isExtended: isExtended ?? this.isExtended,
+      hasReview: hasReview ?? this.hasReview,
+      myReview: myReview ?? this.myReview,
     );
   }
 }

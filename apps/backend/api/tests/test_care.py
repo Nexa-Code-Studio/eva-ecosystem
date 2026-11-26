@@ -263,3 +263,105 @@ async def test_care_community_and_timeline_and_booking(consultation_fixture):
         assert res_rate.status_code == 200
         assert res_rate.json()["success"] is True
 
+
+@pytest.mark.asyncio
+async def test_care_sessions_and_public_reviews_live_integration(consultation_fixture):
+    session_id = consultation_fixture["session_id"]
+    counselor_id = consultation_fixture["counselor_id"]
+    patient_headers = consultation_fixture["patient_headers"]
+    counselor_headers = consultation_fixture["counselor_headers"]
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        # 1. Public counselor detail sanitizes private financial fields
+        detail_res = await client.get(f"/api/v1/counselors/{counselor_id}")
+        assert detail_res.status_code == 200
+        detail_json = detail_res.json()
+        assert detail_json["id"] == counselor_id
+        assert "bank_account_number" not in detail_json
+        assert "wallet_balance" not in detail_json
+
+        # 2. Complete session so patient can review
+        end_res = await client.post(
+            f"/api/v1/sessions/{session_id}/end",
+            headers=counselor_headers,
+            json={"status": "completed", "duration_seconds": 1800},
+        )
+        assert end_res.status_code == 200
+
+        # 3. Submit authoritative per-session review
+        review_res = await client.post(
+            f"/api/v1/sessions/{session_id}/reviews",
+            headers=patient_headers,
+            json={
+                "rating": 4.5,
+                "highlight_label": "Sangat Terstruktur",
+                "review_text": "Konseling sangat jelas dan terarah.",
+                "is_anonymous": True,
+            },
+        )
+        assert review_res.status_code == 201
+
+        # 4. GET /care/sessions reflects real review, updated level pricing, and session_number
+        updated_detail_res = await client.get(f"/api/v1/counselors/{counselor_id}")
+        assert updated_detail_res.status_code == 200
+        updated_detail = updated_detail_res.json()
+
+        sessions_res = await client.get("/api/v1/care/sessions", headers=patient_headers)
+        assert sessions_res.status_code == 200
+        sessions = sessions_res.json()
+        target = next(s for s in sessions if s["id"] == session_id)
+        assert target["has_review"] is True
+        assert target["my_review"]["highlight_label"] == "Sangat Terstruktur"
+        assert target["my_review"]["rating"] == 4.5
+        assert target["session_number"] == 1
+        assert target["psychologist"]["coins_per_session"] == int(
+            round(updated_detail["effective_session_price"])
+        )
+        assert target["psychologist"]["level_tier"] == updated_detail["level_tier"]
+        assert target["psychologist"]["rating"] == 4.5
+        assert target["psychologist"]["rating"] == 4.5
+
+        # 5. GET /counselors/{id}/reviews hits LevelService cleanly (no shadowing crash)
+        public_reviews_res = await client.get(f"/api/v1/counselors/{counselor_id}/reviews")
+        assert public_reviews_res.status_code == 200
+        reviews = public_reviews_res.json()
+        assert len(reviews) >= 1
+        assert reviews[0]["highlight_label"] == "Sangat Terstruktur"
+
+        # 6. GET /counselors returns real-time availability summary & supports filters/sort
+        directory_res = await client.get(
+            "/api/v1/counselors?limit=100&sort_by=rating&search=Sarah%20Video%20Test"
+        )
+        assert directory_res.status_code == 200
+        directory_items = directory_res.json()
+        assert any(item["id"] == counselor_id for item in directory_items)
+        me_item = next(item for item in directory_items if item["id"] == counselor_id)
+        assert me_item["availability_status"] in {
+            "available_now",
+            "available_today",
+            "available_tomorrow",
+            "unavailable",
+        }
+        assert "remaining_slots_today" in me_item
+        assert "has_slots_tomorrow" in me_item
+
+        for avail_key in ("all", "available_now", "available_today", "available_tomorrow"):
+            avail_res = await client.get(f"/api/v1/counselors?availability={avail_key}")
+            assert avail_res.status_code == 200
+            assert isinstance(avail_res.json(), list)
+
+        if me_item["level_tier"] is not None:
+            tier_res = await client.get(
+                f"/api/v1/counselors?level_tier={me_item['level_tier']}"
+            )
+            assert tier_res.status_code == 200
+            assert all(
+                item["level_tier"] == me_item["level_tier"] for item in tier_res.json()
+            )
+
+        # 7. GET /counselors/levels lists active levels cleanly without UUID route collision
+        levels_res = await client.get("/api/v1/counselors/levels")
+        assert levels_res.status_code == 200
+        assert isinstance(levels_res.json(), list)
+
+

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../config/app_config.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_back_button.dart';
 import '../../domain/entities/consultation_session_entity.dart';
@@ -32,6 +33,33 @@ class ConsultationSessionLogsScreen extends ConsumerStatefulWidget {
 class _ConsultationSessionLogsScreenState
     extends ConsumerState<ConsultationSessionLogsScreen> {
   DateTime? _selectedDate; // null means 'Semua Tanggal'
+  final Map<String, PsychologistRatingReview> _submittedReviewsBySession = {};
+
+  PsychologistRatingReview? _reviewForSession(ConsultationSessionEntity session) {
+    return _submittedReviewsBySession[session.id] ?? session.myReview;
+  }
+
+  Future<void> _openRatingScreen({
+    required ConsultationSessionEntity targetSession,
+    PsychologistRatingReview? initialRating,
+  }) async {
+    final result = await Navigator.push<Object?>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ConsultationRatingScreen(
+          psychologist: widget.psychologist,
+          sessionId: targetSession.id,
+          initialRating: initialRating,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (result is PsychologistRatingReview) {
+      setState(() {
+        _submittedReviewsBySession[targetSession.id] = result;
+      });
+    }
+  }
 
   String _formatDate(DateTime dt) {
     final months = [
@@ -78,7 +106,25 @@ class _ConsultationSessionLogsScreenState
             .where((s) => _isSameDay(s.sessionDateTime, _selectedDate!))
             .toList();
 
-    final userRating = ref.watch(psychologistRatingsProvider)[widget.psychologist.id];
+    final completedSessions =
+        activeSessions.where((s) => s.isCompleted).toList();
+    final unreviewedSession = completedSessions
+        .where((s) => !s.hasReview && _reviewForSession(s) == null)
+        .cast<ConsultationSessionEntity?>()
+        .firstOrNull;
+    final latestReviewedSession = completedSessions
+        .where((s) => _reviewForSession(s) != null)
+        .cast<ConsultationSessionEntity?>()
+        .firstOrNull;
+    final legacyRating =
+        ref.watch(psychologistRatingsProvider)[widget.psychologist.id];
+    final bannerTargetSession =
+        unreviewedSession ?? latestReviewedSession ?? (activeSessions.isNotEmpty ? activeSessions.first : null);
+    final bannerRating = unreviewedSession != null
+        ? null
+        : (latestReviewedSession != null
+            ? _reviewForSession(latestReviewedSession)
+            : legacyRating);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -128,9 +174,11 @@ class _ConsultationSessionLogsScreenState
                   _buildPsychologistHeaderCard(activeSessions.length),
                   const SizedBox(height: 14),
 
-                  // Rating Section (Prompt to rate or Preview of submitted rating)
-                  _buildRatingSection(userRating),
-                  const SizedBox(height: 14),
+                  // Rating Section (Prompt to rate unreviewed completed session or Preview of submitted rating)
+                  if (bannerTargetSession != null) ...[
+                    _buildRatingSection(bannerRating, bannerTargetSession),
+                    const SizedBox(height: 14),
+                  ],
 
                   // Date Filter Bar
                   if (activeSessions.isNotEmpty) ...[
@@ -276,15 +324,18 @@ class _ConsultationSessionLogsScreenState
   }
 
   /// Rating section: switches between Rating Prompt Card and Rating Preview Card
-  Widget _buildRatingSection(PsychologistRatingReview? userRating) {
+  Widget _buildRatingSection(
+    PsychologistRatingReview? userRating,
+    ConsultationSessionEntity targetSession,
+  ) {
     if (userRating != null) {
-      return _buildRatingPreviewCard(userRating);
+      return _buildRatingPreviewCard(userRating, targetSession);
     }
-    return _buildRatingPromptCard();
+    return _buildRatingPromptCard(targetSession);
   }
 
   /// Interactive card prompting the user to submit a rating and review
-  Widget _buildRatingPromptCard() {
+  Widget _buildRatingPromptCard(ConsultationSessionEntity targetSession) {
     final counselorFirstName = widget.psychologist.name.split(',')[0];
     return Container(
       width: double.infinity,
@@ -352,16 +403,7 @@ class _ConsultationSessionLogsScreenState
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ConsultationRatingScreen(
-                    psychologist: widget.psychologist,
-                  ),
-                ),
-              );
-            },
+            onPressed: () => _openRatingScreen(targetSession: targetSession),
             child: Text(
               'Beri Rating',
               style: GoogleFonts.plusJakartaSans(
@@ -377,7 +419,10 @@ class _ConsultationSessionLogsScreenState
 
   /// Preview card of the rating & review submitted by the user
   /// Strictly follows the format: Star, Baik/Tidak (Sentiment), Label, & Deskripsi
-  Widget _buildRatingPreviewCard(PsychologistRatingReview userRating) {
+  Widget _buildRatingPreviewCard(
+    PsychologistRatingReview userRating,
+    ConsultationSessionEntity targetSession,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(15),
@@ -451,43 +496,37 @@ class _ConsultationSessionLogsScreenState
                 ),
               ),
 
-              // 'Ubah' Button
-              InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ConsultationRatingScreen(
-                        psychologist: widget.psychologist,
-                        initialRating: userRating,
-                      ),
-                    ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.edit_outlined,
-                        size: 13,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 3),
-                      Text(
-                        'Ubah',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
+              // 'Ubah' Button (only allowed in offline mock preview; backend enforces 1 session = 1 review)
+              if (AppConfig.useMockData)
+                InkWell(
+                  onTap: () => _openRatingScreen(
+                    targetSession: targetSession,
+                    initialRating: userRating,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.edit_outlined,
+                          size: 13,
                           color: AppColors.primary,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 3),
+                        Text(
+                          'Ubah',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
 
@@ -1068,6 +1107,66 @@ class _ConsultationSessionLogsScreenState
                   ),
                 ],
               ),
+            ),
+          ],
+
+          // 6. Per-Session Review Action / Status (1 Sesi = 1 Review)
+          if (session.isCompleted) ...[
+            const SizedBox(height: 12),
+            Builder(
+              builder: (_) {
+                final sessionReview = _reviewForSession(session);
+                if (sessionReview != null) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFFDE68A)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.star_rounded, size: 16, color: Color(0xFFF59E0B)),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Ulasan Sesi #${session.sessionNumber}: ${sessionReview.rating.toStringAsFixed(1)} • ${sessionReview.label}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF92400E),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return Align(
+                  alignment: Alignment.centerRight,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _openRatingScreen(targetSession: session),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: const BorderSide(color: AppColors.primary),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    icon: const Icon(Icons.star_outline_rounded, size: 16),
+                    label: Text(
+                      'Ulas Sesi #${session.sessionNumber}',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ],

@@ -1,5 +1,6 @@
 import '../../domain/entities/consultation_session_entity.dart';
 import 'psychologist_model.dart';
+import 'session_review_dto.dart';
 
 class ConsultationSessionModel extends ConsultationSessionEntity {
   const ConsultationSessionModel({
@@ -20,6 +21,8 @@ class ConsultationSessionModel extends ConsultationSessionEntity {
     super.sessionSummary,
     super.shareAiChatHistory = false,
     super.isExtended = false,
+    super.hasReview = false,
+    super.myReview,
   });
 
   factory ConsultationSessionModel.fromJson(Map<String, dynamic> json) {
@@ -35,12 +38,20 @@ class ConsultationSessionModel extends ConsultationSessionEntity {
             title: 'Psikolog Klinis',
             registrationNumber: '',
             avatarUrl: '',
-            rating: 5.0,
+            rating: 0.0,
             reviewCount: 0,
             experienceYears: 1,
             specialties: const [],
             bio: '',
           );
+
+    final rawReview = json['my_review'];
+    final parsedReview = rawReview is Map<String, dynamic>
+        ? SessionReviewDto.fromJson(
+            rawReview,
+            fallbackCounselorId: fallbackPsy.id,
+          ).toRatingReview(overrideCounselorId: fallbackPsy.id)
+        : null;
 
     return ConsultationSessionModel(
       id: json['id']?.toString() ?? '',
@@ -67,6 +78,8 @@ class ConsultationSessionModel extends ConsultationSessionEntity {
       shareAiChatHistory: json['share_ai_chat_history'] as bool? ?? false,
       isExtended: json['is_extended'] as bool? ??
           ((json['duration_minutes'] as num?)?.toInt() ?? 30) >= 60,
+      hasReview: (json['has_review'] as bool?) ?? (parsedReview != null),
+      myReview: parsedReview,
     );
   }
 
@@ -76,6 +89,8 @@ class ConsultationSessionModel extends ConsultationSessionEntity {
         return ConsultationStatus.completed;
       case 'cancelled':
         return ConsultationStatus.cancelled;
+      case 'missed':
+        return ConsultationStatus.missed;
       default:
         return ConsultationStatus.upcoming;
     }
@@ -100,6 +115,8 @@ class ConsultationSessionModel extends ConsultationSessionEntity {
       'session_summary': sessionSummary,
       'share_ai_chat_history': shareAiChatHistory,
       'is_extended': isExtended,
+      'has_review': hasReview,
+      if (myReview != null) 'my_review': myReview!.toJson(),
     };
   }
 }

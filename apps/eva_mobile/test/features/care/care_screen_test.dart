@@ -49,7 +49,7 @@ void main() {
 
     // Verify Title & Subtitle
     expect(find.text('Layanan Konseling'), findsOneWidget);
-    expect(find.text('Konseling psikolog berlisensi & relawan sebaya'), findsOneWidget);
+    expect(find.text('Konseling psikolog klinis berlisensi & terverifikasi'), findsOneWidget);
 
     // Verify Community Banner is REMOVED
     expect(find.byType(CommunityBannerCard), findsNothing);
@@ -62,24 +62,26 @@ void main() {
     expect(find.text('Koin Saya'), findsOneWidget);
     expect(find.text('Panduan'), findsOneWidget);
 
-    // Verify Filter Chips: Semua, Psikolog, Relawan
+    // Verify Availability, Rating & Level Filter Chips (Psikolog/Relawan removed)
     expect(find.text('Semua'), findsOneWidget);
-    expect(find.text('Psikolog'), findsOneWidget);
-    expect(find.text('Relawan'), findsWidgets);
-    expect(find.text('Psikolog Profesional'), findsNothing);
-    expect(find.text('Psikolog Freelance'), findsNothing);
-    expect(find.text('Volunteer'), findsNothing);
+    expect(find.text('Saat Ini'), findsOneWidget);
+    expect(find.text('Hari Ini'), findsOneWidget);
+    expect(find.text('Besok'), findsOneWidget);
+    expect(find.text('Rating Terbaik'), findsOneWidget);
+    expect(find.text('Level'), findsOneWidget);
+    expect(find.text('Psikolog'), findsNothing);
+    expect(find.text('Relawan'), findsNothing);
 
     // Verify Psychologist Cards rendered from mock data
     expect(find.byType(PsychologistCard), findsWidgets);
     expect(find.text('Amanda Zahra, M.Psi., Psikolog'), findsOneWidget);
 
-    // Verify Tag chips rendered on cards (without volunteer explanation container)
-    expect(find.text('Profesional'), findsWidgets);
-    expect(find.text('Relawan'), findsWidgets);
+    // Verify Availability Tags & Avatar Level Badges rendered on cards
+    expect(find.text('Tersedia Sekarang'), findsWidgets);
+    expect(find.text('Lv.3'), findsWidgets);
   });
 
-  testWidgets('Tapping Psikolog and Relawan filter chips filters counselors list accordingly', (tester) async {
+  testWidgets('Tapping availability filter chips filters counselors list accordingly', (tester) async {
     tester.view.physicalSize = const Size(800, 1600);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -89,24 +91,29 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
-    // Tap on Psikolog chip
-    final psikologChip = find.widgetWithText(ChoiceChip, 'Psikolog');
-    expect(psikologChip, findsOneWidget);
-    await tester.tap(psikologChip);
+    // Tap on Saat Ini chip
+    final saatIniChip = find.widgetWithText(ChoiceChip, 'Saat Ini');
+    expect(saatIniChip, findsOneWidget);
+    await tester.tap(saatIniChip);
     await tester.pumpAndSettle();
 
-    // Verify psychologists are shown
+    // Verify counselors available right now are shown, while tomorrow-only counselors are filtered out
     expect(find.text('Amanda Zahra, M.Psi., Psikolog'), findsOneWidget);
-    expect(find.text('Dimas Wicaksono, M.Psi., Psikolog'), findsOneWidget);
+    expect(find.text('Rian Pratama, M.Psi., Psikolog'), findsNothing);
 
-    // Tap on Relawan chip
-    final relawanChip = find.widgetWithText(ChoiceChip, 'Relawan');
-    expect(relawanChip, findsOneWidget);
-    await tester.tap(relawanChip);
+    // Tap on Besok chip
+    final besokChip = find.widgetWithText(ChoiceChip, 'Besok');
+    expect(besokChip, findsOneWidget);
+    await tester.tap(besokChip);
     await tester.pumpAndSettle();
 
-    // Verify volunteer counselors are shown
-    expect(find.text('Bayu Aditya, S.Psi.'), findsOneWidget);
+    expect(find.text('Besok • 08:00'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Rian Pratama, M.Psi., Psikolog'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Rian Pratama, M.Psi., Psikolog'), findsOneWidget);
   });
 
   testWidgets('Tapping psychologist card navigates to PsychologistDetailScreen with patient stats, 4 tags, and 5 testimonials', (tester) async {

@@ -8,12 +8,14 @@ class PsychologistCard extends StatelessWidget {
   final PsychologistEntity psychologist;
   final VoidCallback onBookTap;
   final VoidCallback? onTap;
+  final bool preferTomorrowTag;
 
   const PsychologistCard({
     super.key,
     required this.psychologist,
     required this.onBookTap,
     this.onTap,
+    this.preferTomorrowTag = false,
   });
 
   @override
@@ -43,109 +45,51 @@ class PsychologistCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Avatar with Online indicator
+                  // Avatar with Level Badge at bottom-right
                   Stack(
+                    clipBehavior: Clip.none,
                     children: [
                       CircleAvatar(
                         radius: 28,
                         backgroundColor: AppColors.primaryContainer,
-                        backgroundImage: NetworkImage(psychologist.avatarUrl),
-                        onBackgroundImageError: (exception, stackTrace) {},
+                        backgroundImage: psychologist.avatarUrl.isNotEmpty
+                            ? NetworkImage(psychologist.avatarUrl)
+                            : null,
+                        onBackgroundImageError: psychologist.avatarUrl.isNotEmpty
+                            ? (exception, stackTrace) {}
+                            : null,
                         child: Text(
-                          psychologist.name.substring(0, 2).toUpperCase(),
+                          _initials(psychologist.name),
                           style: GoogleFonts.plusJakartaSans(
                             fontWeight: FontWeight.w700,
                             color: AppColors.primary,
                           ),
                         ),
                       ),
-                      if (psychologist.availableOnline)
+                      if (psychologist.levelTier != null)
                         Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            width: 13,
-                            height: 13,
-                            decoration: BoxDecoration(
-                              color: AppColors.success,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                            ),
+                          bottom: -2,
+                          right: -4,
+                          child: _AvatarLevelBadge(
+                            tier: psychologist.levelTier!,
+                            levelName: psychologist.levelName,
+                            badgeIcon: psychologist.levelBadgeIcon,
                           ),
                         ),
                     ],
                   ),
                   const SizedBox(width: 14),
 
-                  // Name, Practitioner Badge, Title & Rating
+                  // Availability Tags, Name, Title & Rating
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 4,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            if (psychologist.isVolunteer)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF0F9FF),
-                                  borderRadius: BorderRadius.circular(5),
-                                  border: Border.all(color: const Color(0xFFBAE6FD)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.volunteer_activism_rounded,
-                                      size: 11,
-                                      color: Color(0xFF0EA5E9),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Relawan',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w700,
-                                        color: const Color(0xFF0369A1),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            if (psychologist.hasPsychologistCertificate)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEEF2FF),
-                                  borderRadius: BorderRadius.circular(5),
-                                  border: Border.all(color: const Color(0xFFC7D2FE)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.school_rounded,
-                                      size: 11,
-                                      color: Color(0xFF6366F1),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Profesional',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w700,
-                                        color: const Color(0xFF3730A3),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
+                        _AvailabilityTagsRow(
+                          psychologist: psychologist,
+                          preferTomorrowTag: preferTomorrowTag,
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 5),
                         Text(
                           psychologist.name,
                           style: GoogleFonts.plusJakartaSans(
@@ -298,6 +242,262 @@ class PsychologistCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  static String _initials(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return 'PS';
+    if (trimmed.length == 1) return trimmed.toUpperCase();
+    return trimmed.substring(0, 2).toUpperCase();
+  }
+}
+
+class _AvatarLevelBadge extends StatelessWidget {
+  final int tier;
+  final String? levelName;
+  final String? badgeIcon;
+
+  const _AvatarLevelBadge({
+    required this.tier,
+    this.levelName,
+    this.badgeIcon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = _tierPalette(tier);
+    final badge = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: palette.bg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: palette.accent.withValues(alpha: 0.25),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_tierIcon(badgeIcon, tier), size: 10, color: palette.accent),
+          const SizedBox(width: 2),
+          Text(
+            'Lv.$tier',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              color: palette.accent,
+              height: 1.0,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (levelName != null && levelName!.trim().isNotEmpty) {
+      return Tooltip(message: levelName!, child: badge);
+    }
+    return badge;
+  }
+
+  static IconData _tierIcon(String? badgeIcon, int tier) {
+    switch (badgeIcon?.toLowerCase()) {
+      case 'crown':
+        return Icons.emoji_events_rounded;
+      case 'star':
+        return Icons.star_rounded;
+      case 'shield-check':
+        return Icons.verified_user_rounded;
+      case 'award':
+        return Icons.workspace_premium_rounded;
+      default:
+        if (tier >= 4) return Icons.emoji_events_rounded;
+        if (tier == 3) return Icons.star_rounded;
+        if (tier == 2) return Icons.verified_user_rounded;
+        return Icons.workspace_premium_rounded;
+    }
+  }
+
+  static ({Color bg, Color accent}) _tierPalette(int tier) {
+    if (tier >= 4) {
+      return (bg: const Color(0xFFF3E8FF), accent: const Color(0xFF7C3AED));
+    } else if (tier == 3) {
+      return (bg: const Color(0xFFFEF3C7), accent: const Color(0xFFB45309));
+    } else if (tier == 2) {
+      return (bg: const Color(0xFFE0E7FF), accent: const Color(0xFF4338CA));
+    }
+    return (bg: const Color(0xFFCCFBF1), accent: const Color(0xFF0F766E));
+  }
+}
+
+class _AvailabilityTagsRow extends StatelessWidget {
+  final PsychologistEntity psychologist;
+  final bool preferTomorrowTag;
+
+  const _AvailabilityTagsRow({
+    required this.psychologist,
+    this.preferTomorrowTag = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final status = psychologist.availabilityStatus;
+
+    if (preferTomorrowTag && psychologist.hasSlotsTomorrow) {
+      final slot = psychologist.nextSlotTomorrow ?? psychologist.nextAvailableSlot;
+      return Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        children: [
+          _TagPill(
+            bgColor: const Color(0xFFF5F3FF),
+            borderColor: const Color(0xFFDDD6FE),
+            textColor: const Color(0xFF5B21B6),
+            icon: Icons.event_available_rounded,
+            label: slot != null ? 'Besok • $slot' : 'Tersedia Besok',
+          ),
+        ],
+      );
+    }
+
+    switch (status) {
+      case CounselorAvailabilityStatus.availableNow:
+        return Wrap(
+          spacing: 6,
+          runSpacing: 4,
+          children: [
+            const _TagPill(
+              bgColor: Color(0xFFECFDF5),
+              borderColor: Color(0xFFA7F3D0),
+              textColor: Color(0xFF047857),
+              showPulseDot: true,
+              label: 'Tersedia Sekarang',
+            ),
+            if (psychologist.remainingSlotsToday > 0)
+              _TagPill(
+                bgColor: const Color(0xFFF0FDFA),
+                borderColor: const Color(0xFF99F6E4),
+                textColor: const Color(0xFF0F766E),
+                label: '${psychologist.remainingSlotsToday} Slot Hari Ini',
+              ),
+          ],
+        );
+
+      case CounselorAvailabilityStatus.availableToday:
+        final slot = psychologist.nextAvailableSlot;
+        return Wrap(
+          spacing: 6,
+          runSpacing: 4,
+          children: [
+            _TagPill(
+              bgColor: const Color(0xFFEFF6FF),
+              borderColor: const Color(0xFFBFDBFE),
+              textColor: const Color(0xFF1D4ED8),
+              icon: Icons.schedule_rounded,
+              label: slot != null ? 'Hari Ini • $slot' : 'Tersedia Hari Ini',
+            ),
+            if (psychologist.remainingSlotsToday > 0)
+              _TagPill(
+                bgColor: const Color(0xFFF8FAFC),
+                borderColor: const Color(0xFFE2E8F0),
+                textColor: const Color(0xFF475569),
+                label: '${psychologist.remainingSlotsToday} Slot Tersisa',
+              ),
+          ],
+        );
+
+      case CounselorAvailabilityStatus.availableTomorrow:
+        final slot = psychologist.nextAvailableSlot ?? psychologist.nextSlotTomorrow;
+        return Wrap(
+          spacing: 6,
+          runSpacing: 4,
+          children: [
+            _TagPill(
+              bgColor: const Color(0xFFF5F3FF),
+              borderColor: const Color(0xFFDDD6FE),
+              textColor: const Color(0xFF5B21B6),
+              icon: Icons.event_available_rounded,
+              label: slot != null ? 'Besok • $slot' : 'Tersedia Besok',
+            ),
+          ],
+        );
+
+      case CounselorAvailabilityStatus.unavailable:
+        return const Wrap(
+          spacing: 6,
+          runSpacing: 4,
+          children: [
+            _TagPill(
+              bgColor: Color(0xFFF1F5F9),
+              borderColor: Color(0xFFCBD5E1),
+              textColor: Color(0xFF475569),
+              icon: Icons.event_busy_rounded,
+              label: 'Jadwal Penuh',
+            ),
+          ],
+        );
+    }
+  }
+}
+
+class _TagPill extends StatelessWidget {
+  final Color bgColor;
+  final Color borderColor;
+  final Color textColor;
+  final IconData? icon;
+  final bool showPulseDot;
+  final String label;
+
+  const _TagPill({
+    required this.bgColor,
+    required this.borderColor,
+    required this.textColor,
+    required this.label,
+    this.icon,
+    this.showPulseDot = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showPulseDot) ...[
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: textColor,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 4),
+          ] else if (icon != null) ...[
+            Icon(icon, size: 11, color: textColor),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: textColor,
+            ),
+          ),
+        ],
       ),
     );
   }

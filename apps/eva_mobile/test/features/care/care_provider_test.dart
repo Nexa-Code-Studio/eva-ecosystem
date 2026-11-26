@@ -14,6 +14,7 @@ import 'package:eva_mobile/features/care/domain/entities/community_status_entity
 import 'package:eva_mobile/features/care/domain/entities/consultation_session_entity.dart';
 import 'package:eva_mobile/features/care/domain/entities/counselor_timeline_entity.dart';
 import 'package:eva_mobile/features/care/domain/entities/psychologist_entity.dart';
+import 'package:eva_mobile/features/care/domain/entities/psychologist_rating_review.dart';
 import 'package:eva_mobile/features/care/domain/repositories/care_repository.dart';
 import 'package:eva_mobile/features/care/presentation/providers/care_provider.dart';
 import 'package:eva_mobile/features/coin/presentation/providers/coin_provider.dart';
@@ -205,17 +206,35 @@ void main() {
       expect(list.length, greaterThanOrEqualTo(3));
     });
 
-    test('Filters psychologists by practitioner category', () async {
-      final professionals = await dataSource.getPsychologists(category: 'professional');
-      expect(professionals.isNotEmpty, isTrue);
-      for (final p in professionals) {
-        expect(p.isProfessional, isTrue);
+    test('Filters psychologists by availability, levelTier, and rating sort', () async {
+      final availableNow = await dataSource.getPsychologists(availability: 'available_now');
+      expect(availableNow.isNotEmpty, isTrue);
+      for (final p in availableNow) {
+        expect(p.isAvailableNow, isTrue);
       }
 
-      final volunteers = await dataSource.getPsychologists(category: 'volunteer');
-      expect(volunteers.isNotEmpty, isTrue);
-      for (final p in volunteers) {
-        expect(p.isVolunteer, isTrue);
+      final availableToday = await dataSource.getPsychologists(availability: 'available_today');
+      expect(availableToday.isNotEmpty, isTrue);
+      for (final p in availableToday) {
+        expect(p.isAvailableToday, isTrue);
+      }
+
+      final availableTomorrow = await dataSource.getPsychologists(availability: 'available_tomorrow');
+      expect(availableTomorrow.isNotEmpty, isTrue);
+      for (final p in availableTomorrow) {
+        expect(p.hasSlotsTomorrow, isTrue);
+      }
+
+      final tier3 = await dataSource.getPsychologists(levelTier: 3);
+      expect(tier3.isNotEmpty, isTrue);
+      for (final p in tier3) {
+        expect(p.levelTier, 3);
+      }
+
+      final sortedByRating = await dataSource.getPsychologists(sortBy: 'rating');
+      expect(sortedByRating.length, greaterThanOrEqualTo(2));
+      for (var i = 0; i < sortedByRating.length - 1; i++) {
+        expect(sortedByRating[i].rating >= sortedByRating[i + 1].rating, isTrue);
       }
     });
 
@@ -430,7 +449,12 @@ class FakeRemoteCareRepository implements CareRepository {
   ];
 
   @override
-  Future<List<PsychologistEntity>> getPsychologists({String? category, String? query}) async {
+  Future<List<PsychologistEntity>> getPsychologists({
+    String? availability,
+    int? levelTier,
+    String? sortBy,
+    String? query,
+  }) async {
     if (shouldThrow404) throw ApiException('Not Found', statusCode: 404);
     if (shouldThrow500) throw ApiException('Internal Error', statusCode: 500);
     if (shouldThrowSocket) throw const SocketException('Connection refused');
@@ -493,5 +517,38 @@ class FakeRemoteCareRepository implements CareRepository {
   }) async {
     if (shouldThrow404) throw ApiException('Not Found', statusCode: 404);
     throw UnimplementedError();
+  }
+
+  @override
+  Future<PsychologistEntity> getCounselorDetail(String counselorId) async {
+    if (shouldThrow404) throw ApiException('Not Found', statusCode: 404);
+    return remotePsychologists.first;
+  }
+
+  @override
+  Future<List<PatientReviewItem>> getCounselorReviews(String counselorId) async {
+    if (shouldThrow404) throw ApiException('Not Found', statusCode: 404);
+    return const [];
+  }
+
+  @override
+  Future<PsychologistRatingReview> submitSessionReview({
+    required String sessionId,
+    required String psychologistId,
+    required double rating,
+    String? highlightLabel,
+    String? reviewText,
+    bool isAnonymous = true,
+  }) async {
+    if (shouldThrow404) throw ApiException('Not Found', statusCode: 404);
+    return PsychologistRatingReview(
+      psychologistId: psychologistId,
+      rating: rating,
+      isPositive: rating >= 4.0,
+      label: highlightLabel ?? 'Ulasan Sesi',
+      description: reviewText ?? '',
+      createdAt: DateTime.now(),
+      isAnonymous: isAnonymous,
+    );
   }
 }
