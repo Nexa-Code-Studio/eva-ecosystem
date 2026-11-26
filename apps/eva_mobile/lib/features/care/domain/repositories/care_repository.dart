@@ -1,13 +1,32 @@
 import '../entities/psychologist_entity.dart';
+import '../entities/psychologist_rating_review.dart';
 import '../entities/community_status_entity.dart';
 import '../entities/consultation_session_entity.dart';
 import '../entities/counselor_timeline_entity.dart';
 
 abstract class CareRepository {
-  /// Mendapatkan daftar psikolog & relawan dengan opsi filter kategori dan pencarian nama.
+  /// Mendapatkan daftar psikolog berlisensi dengan opsi filter availability, level, sort, dan pencarian.
   Future<List<PsychologistEntity>> getPsychologists({
-    String? category,
+    String? availability,
+    int? levelTier,
+    String? sortBy,
     String? query,
+  });
+
+  /// Mendapatkan detail kredensial & profil konselor terverifikasi dari backend.
+  Future<PsychologistEntity> getCounselorDetail(String counselorId);
+
+  /// Mendapatkan daftar ulasan & testimoni pasien terverifikasi dari backend.
+  Future<List<PatientReviewItem>> getCounselorReviews(String counselorId);
+
+  /// Mengirim rating & ulasan untuk satu sesi konsultasi selesai (1 sesi = 1 review).
+  Future<PsychologistRatingReview> submitSessionReview({
+    required String sessionId,
+    required String psychologistId,
+    required double rating,
+    String? highlightLabel,
+    String? reviewText,
+    bool isAnonymous = true,
   });
 
   /// Mendapatkan status keanggotaan komunitas Discord pengguna.

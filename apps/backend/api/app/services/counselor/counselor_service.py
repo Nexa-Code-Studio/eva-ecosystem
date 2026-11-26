@@ -1,7 +1,7 @@
 import logging
 from typing import Literal
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time, timedelta, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy import case, or_, select
@@ -10,12 +10,19 @@ from sqlalchemy.orm import selectinload
 
 from app.core.payment_errors import raise_contract_error
 from app.core.security import hash_password
-from app.models.counselor import PlatformPricingConfig, PsychologistProfile
-from app.models.enums import PricingConfigStatus, PsychologistVerificationStatus
+from app.models.counselor import ConsultationSession, PlatformPricingConfig, PsychologistProfile
+from app.models.enums import (
+    ConsultationSessionStatus,
+    PricingConfigStatus,
+    PsychologistVerificationStatus,
+)
 from app.models.user import User
 from app.services.level import LevelService
+from app.services.session.scheduling_service import SchedulingService
 from app.schemas.counselor import (
+    CounselorDocumentItemResponse,
     PsychologistProfileResponse,
+    PsychologistPublicDetailResponse,
     PsychologistPublicResponse,
     PsychologistVerificationResponse,
     RegisterPsychologistRequest,
@@ -158,6 +165,103 @@ class CounselorService:
             )
         return self._to_profile_response(profile)
 
+    async def get_public_detail_by_id(
+        self, profile_id: uuid.UUID
+    ) -> PsychologistPublicDetailResponse:
+        """Fetch safe public detail and verified credentials for a psychologist."""
+        query = (
+            select(PsychologistProfile)
+            .options(selectinload(PsychologistProfile.current_level))
+            .where(PsychologistProfile.id == profile_id)
+        )
+        res = await self.db.execute(query)
+        p = res.scalar_one_or_none()
+        if not p:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Profil psikolog tidak ditemukan.",
+            )
+
+        fallback_res = await self.db.execute(
+            select(PlatformPricingConfig)
+            .where(PlatformPricingConfig.status == PricingConfigStatus.ACTIVE.value)
+            .order_by(PlatformPricingConfig.effective_from.desc())
+            .limit(1)
+        )
+        fallback = fallback_res.scalar_one_or_none()
+        fallback_price = fallback.price_per_session if fallback else Decimal("150.00")
+        fallback_fee = float(fallback.platform_fee_percentage) if fallback else 20.0
+
+        lvl = p.current_level if (p.current_level and p.current_level.is_active) else None
+        effective_price = float(
+            LevelService.compute_effective_price(p, lvl, fallback_price=fallback_price)
+        )
+        fee_pct = float(lvl.platform_fee_percentage) if lvl else fallback_fee
+
+        certificate_items: list[CounselorDocumentItemResponse] = []
+        if p.str_doc_url:
+            certificate_items.append(
+                CounselorDocumentItemResponse(
+                    title=f"STR: {p.str_number}" + (" (Terverifikasi)" if p.str_verified else ""),
+                    image_url=p.str_doc_url,
+                )
+            )
+        if p.sip_doc_url:
+            certificate_items.append(
+                CounselorDocumentItemResponse(
+                    title=f"SIP/SIPP: {p.sip_number or '-'}" + (" (Terverifikasi)" if p.sip_verified else ""),
+                    image_url=p.sip_doc_url,
+                )
+            )
+        if p.certificate_doc_url and p.certificate_doc_url not in {p.str_doc_url, p.sip_doc_url}:
+            certificate_items.append(
+                CounselorDocumentItemResponse(
+                    title="Sertifikat Profesi",
+                    image_url=p.certificate_doc_url,
+                )
+            )
+
+        avail_map = await self._compute_availability_map([p], tz_offset_minutes=420)
+        avail = avail_map.get(p.id, {})
+
+        return PsychologistPublicDetailResponse(
+            id=str(p.id),
+            full_name=p.full_name,
+            title_degree=p.title_degree,
+            registration_number=p.sip_number or p.str_number,
+            str_verified=p.str_verified,
+            sip_verified=p.sip_verified,
+            association=p.association,
+            specializations=p.specializations or [],
+            years_of_experience=p.years_of_experience,
+            bio=p.bio,
+            profile_photo_url=p.profile_photo_url,
+            is_online=p.is_online,
+            buffer_time_minutes=p.buffer_time_minutes,
+            level_tier=lvl.level_tier if lvl else None,
+            level_name=lvl.name if lvl else None,
+            level_badge_icon=lvl.badge_icon if lvl else None,
+            effective_session_price=effective_price,
+            platform_fee_percentage=fee_pct,
+            total_completed_sessions=p.total_completed_sessions,
+            total_consultation_hours=float(p.total_consultation_hours),
+            average_rating=float(p.average_rating),
+            rating_count=p.rating_count,
+            availability_status=avail.get("availability_status", "available_today"),
+            next_available_slot=avail.get("next_available_slot"),
+            next_available_date=avail.get("next_available_date"),
+            remaining_slots_today=avail.get("remaining_slots_today", 0),
+            has_slots_tomorrow=avail.get("has_slots_tomorrow", False),
+            next_slot_tomorrow=avail.get("next_slot_tomorrow"),
+            education=p.education,
+            str_number=p.str_number,
+            sip_number=p.sip_number,
+            str_doc_url=p.str_doc_url,
+            sip_doc_url=p.sip_doc_url,
+            certificate_doc_url=p.certificate_doc_url,
+            certificate_items=certificate_items,
+        )
+
     async def update_profile(
         self,
         user_id: uuid.UUID,
@@ -276,12 +380,63 @@ class CounselorService:
             "Perubahan rekening bank wajib melalui alur verifikasi (/api/v1/finances/bank-accounts/validate).",
         )
 
+    async def _compute_availability_map(
+        self,
+        profiles: list[PsychologistProfile],
+        tz_offset_minutes: int = 420,
+    ) -> dict[uuid.UUID, dict]:
+        """Batch-fetch relevant sessions and compute availability summaries without N+1 queries."""
+        if not profiles:
+            return {}
+
+        local_tz = timezone(timedelta(minutes=tz_offset_minutes))
+        now_local = datetime.now(UTC).astimezone(local_tz)
+        today_local = now_local.date()
+        tomorrow_local = today_local + timedelta(days=1)
+
+        window_start_utc = datetime.combine(today_local, time(0, 0), tzinfo=local_tz).astimezone(UTC)
+        window_end_utc = datetime.combine(tomorrow_local, time(23, 59, 59), tzinfo=local_tz).astimezone(UTC)
+
+        counselor_ids = [p.id for p in profiles]
+        sess_res = await self.db.execute(
+            select(ConsultationSession).where(
+                ConsultationSession.counselor_id.in_(counselor_ids),
+                ConsultationSession.status.in_([
+                    ConsultationSessionStatus.SCHEDULED.value,
+                    ConsultationSessionStatus.LIVE.value,
+                    ConsultationSessionStatus.COMPLETED.value,
+                ]),
+                ConsultationSession.scheduled_end_time >= window_start_utc,
+                ConsultationSession.scheduled_start_time <= window_end_utc,
+            )
+        )
+        sessions_by_counselor: dict[uuid.UUID, list[ConsultationSession]] = {
+            cid: [] for cid in counselor_ids
+        }
+        for sess in sess_res.scalars().all():
+            sessions_by_counselor.setdefault(sess.counselor_id, []).append(sess)
+
+        return {
+            p.id: SchedulingService.compute_counselor_availability_summary(
+                p,
+                now_local=now_local,
+                sessions=sessions_by_counselor.get(p.id, []),
+                local_tz=local_tz,
+            )
+            for p in profiles
+        }
+
     async def list_verified_counselors(
         self,
         limit: int = 20,
         offset: int = 0,
+        availability: str | None = None,
+        level_tier: int | None = None,
+        sort_by: str | None = None,
+        search: str | None = None,
+        tz_offset_minutes: int = 420,
     ) -> list[PsychologistPublicResponse]:
-        """List active and verified psychologists available for teleconsultation booking."""
+        """List active, verified psychologists with real-time availability, level, and rating filters."""
         fallback_res = await self.db.execute(
             select(PlatformPricingConfig)
             .where(PlatformPricingConfig.status == PricingConfigStatus.ACTIVE.value)
@@ -299,44 +454,108 @@ class CounselorService:
                 PsychologistProfile.verification_status == PsychologistVerificationStatus.VERIFIED.value,
                 PsychologistProfile.is_online.is_(True),
             )
-            .order_by(PsychologistProfile.years_of_experience.desc())
-            .limit(limit)
-            .offset(offset)
         )
         res = await self.db.execute(query)
-        profiles = res.scalars().all()
+        profiles = list(res.scalars().all())
 
-        items: list[PsychologistPublicResponse] = []
+        # Filter by level tier & search query
+        clean_search = search.strip().lower() if search and search.strip() else None
+        filtered_profiles: list[PsychologistProfile] = []
         for p in profiles:
+            lvl = p.current_level if (p.current_level and p.current_level.is_active) else None
+            if level_tier is not None and (lvl is None or lvl.level_tier != level_tier):
+                continue
+            if clean_search:
+                specs = " ".join(str(s).lower() for s in (p.specializations or []))
+                haystack = " ".join([
+                    p.full_name.lower(),
+                    p.title_degree.lower(),
+                    specs,
+                    (p.bio or "").lower(),
+                ])
+                if clean_search not in haystack:
+                    continue
+            filtered_profiles.append(p)
+
+        avail_map = await self._compute_availability_map(
+            filtered_profiles, tz_offset_minutes=tz_offset_minutes
+        )
+
+        # Apply availability filter
+        avail_filter = (availability or "all").strip().lower()
+        items_with_sort: list[tuple[tuple, PsychologistPublicResponse]] = []
+        status_rank = {
+            "available_now": 0,
+            "available_today": 1,
+            "available_tomorrow": 2,
+            "unavailable": 3,
+        }
+
+        for p in filtered_profiles:
+            avail = avail_map.get(p.id, {})
+            status_val = avail.get("availability_status", "unavailable")
+            has_tomorrow = bool(avail.get("has_slots_tomorrow", False))
+
+            if avail_filter == "available_now" and status_val != "available_now":
+                continue
+            if avail_filter == "available_today" and status_val not in ("available_now", "available_today"):
+                continue
+            if avail_filter == "available_tomorrow" and not has_tomorrow:
+                continue
+
             lvl = p.current_level if (p.current_level and p.current_level.is_active) else None
             effective_price = float(
                 LevelService.compute_effective_price(p, lvl, fallback_price=fallback_price)
             )
             fee_pct = float(lvl.platform_fee_percentage) if lvl else fallback_fee
-            items.append(
-                PsychologistPublicResponse(
-                    id=str(p.id),
-                    full_name=p.full_name,
-                    title_degree=p.title_degree,
-                    association=p.association,
-                    specializations=p.specializations or [],
-                    years_of_experience=p.years_of_experience,
-                    bio=p.bio,
-                    profile_photo_url=p.profile_photo_url,
-                    is_online=p.is_online,
-                    buffer_time_minutes=p.buffer_time_minutes,
-                    level_tier=lvl.level_tier if lvl else None,
-                    level_name=lvl.name if lvl else None,
-                    level_badge_icon=lvl.badge_icon if lvl else None,
-                    effective_session_price=effective_price,
-                    platform_fee_percentage=fee_pct,
-                    total_completed_sessions=p.total_completed_sessions,
-                    total_consultation_hours=float(p.total_consultation_hours),
-                    average_rating=float(p.average_rating),
-                    rating_count=p.rating_count,
-                )
+            avg_rating = float(p.average_rating)
+
+            item = PsychologistPublicResponse(
+                id=str(p.id),
+                full_name=p.full_name,
+                title_degree=p.title_degree,
+                registration_number=p.sip_number or p.str_number,
+                str_verified=p.str_verified,
+                sip_verified=p.sip_verified,
+                association=p.association,
+                specializations=p.specializations or [],
+                years_of_experience=p.years_of_experience,
+                bio=p.bio,
+                profile_photo_url=p.profile_photo_url,
+                is_online=p.is_online,
+                buffer_time_minutes=p.buffer_time_minutes,
+                level_tier=lvl.level_tier if lvl else None,
+                level_name=lvl.name if lvl else None,
+                level_badge_icon=lvl.badge_icon if lvl else None,
+                effective_session_price=effective_price,
+                platform_fee_percentage=fee_pct,
+                total_completed_sessions=p.total_completed_sessions,
+                total_consultation_hours=float(p.total_consultation_hours),
+                average_rating=avg_rating,
+                rating_count=p.rating_count,
+                availability_status=status_val,
+                next_available_slot=avail.get("next_available_slot"),
+                next_available_date=avail.get("next_available_date"),
+                remaining_slots_today=avail.get("remaining_slots_today", 0),
+                has_slots_tomorrow=has_tomorrow,
+                next_slot_tomorrow=avail.get("next_slot_tomorrow"),
             )
-        return items
+
+            if sort_by == "rating":
+                sort_key = (-avg_rating, -p.rating_count, -p.years_of_experience)
+            elif sort_by == "experience":
+                sort_key = (-p.years_of_experience, -avg_rating, -p.rating_count)
+            else:
+                sort_key = (
+                    status_rank.get(status_val, 3),
+                    -avg_rating,
+                    -p.years_of_experience,
+                )
+            items_with_sort.append((sort_key, item))
+
+        items_with_sort.sort(key=lambda pair: pair[0])
+        sorted_items = [pair[1] for pair in items_with_sort]
+        return sorted_items[offset : offset + limit]
 
     async def list_all_counselors_for_admin(
         self,

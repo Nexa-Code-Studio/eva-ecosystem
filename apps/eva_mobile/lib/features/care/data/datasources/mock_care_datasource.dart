@@ -1,6 +1,7 @@
 import 'dart:async';
 import '../../domain/entities/consultation_session_entity.dart';
 import '../../domain/entities/psychologist_entity.dart';
+import '../../domain/entities/psychologist_rating_review.dart';
 import '../models/psychologist_model.dart';
 import '../models/community_status_model.dart';
 import '../models/consultation_session_model.dart';
@@ -30,7 +31,17 @@ class MockCareDataSource implements CareDataSource {
       experienceYears: 6,
       practitionerType: PractitionerType.professional,
       hasPsychologistCertificate: true,
-      isVolunteerRole: true,
+      isVolunteerRole: false,
+      levelTier: 3,
+      levelName: 'Senior Specialist',
+      levelBadgeIcon: 'star',
+      strVerified: true,
+      sipVerified: true,
+      availabilityStatus: CounselorAvailabilityStatus.availableNow,
+      nextAvailableSlot: '14:00',
+      remainingSlotsToday: 5,
+      hasSlotsTomorrow: true,
+      nextSlotTomorrow: '08:00',
       specialties: ['Kecemasan', 'Quarter-Life Crisis', 'Burnout Karir', 'Self-Esteem'],
       patientReviewTags: [
         'Sangat Sabar & Empati',
@@ -129,6 +140,16 @@ class MockCareDataSource implements CareDataSource {
       practitionerType: PractitionerType.professional,
       hasPsychologistCertificate: true,
       isVolunteerRole: false,
+      levelTier: 4,
+      levelName: 'Master Expert',
+      levelBadgeIcon: 'crown',
+      strVerified: true,
+      sipVerified: true,
+      availabilityStatus: CounselorAvailabilityStatus.availableToday,
+      nextAvailableSlot: '16:00',
+      remainingSlotsToday: 2,
+      hasSlotsTomorrow: true,
+      nextSlotTomorrow: '09:00',
       specialties: ['Burnout & Stres Kerja', 'Depresi Ringan', 'Resolusi Konflik', 'Manajemen Emosi'],
       patientReviewTags: [
         'Solutif & Terarah',
@@ -226,7 +247,17 @@ class MockCareDataSource implements CareDataSource {
       experienceYears: 5,
       practitionerType: PractitionerType.freelance,
       hasPsychologistCertificate: true,
-      isVolunteerRole: true,
+      isVolunteerRole: false,
+      levelTier: 2,
+      levelName: 'Registered Counselor',
+      levelBadgeIcon: 'shield-check',
+      strVerified: true,
+      sipVerified: true,
+      availabilityStatus: CounselorAvailabilityStatus.availableTomorrow,
+      nextAvailableSlot: '09:30',
+      remainingSlotsToday: 0,
+      hasSlotsTomorrow: true,
+      nextSlotTomorrow: '09:30',
       specialties: ['Dinamika Hubungan', 'Luka Batin Masa Lalu', 'Komunikasi Pasangan', 'Grief'],
       patientReviewTags: [
         'Pendengar yang Sangat Baik',
@@ -325,6 +356,16 @@ class MockCareDataSource implements CareDataSource {
       practitionerType: PractitionerType.freelance,
       hasPsychologistCertificate: true,
       isVolunteerRole: false,
+      levelTier: 2,
+      levelName: 'Registered Counselor',
+      levelBadgeIcon: 'shield-check',
+      strVerified: true,
+      sipVerified: true,
+      availabilityStatus: CounselorAvailabilityStatus.availableNow,
+      nextAvailableSlot: '14:00',
+      remainingSlotsToday: 6,
+      hasSlotsTomorrow: true,
+      nextSlotTomorrow: '08:30',
       specialties: ['Mindfulness Terapan', 'Manajemen Emosi', 'Inner Child Healing', 'Kecemasan Sosial'],
       patientReviewTags: [
         'Menyejukkan Hati',
@@ -412,17 +453,27 @@ class MockCareDataSource implements CareDataSource {
     ),
     const PsychologistModel(
       id: 'psy_5',
-      name: 'Bayu Aditya, S.Psi.',
-      title: 'Relawan Konselor Sebaya (Peer Counselor)',
-      registrationNumber: 'Sertifikasi Konselor Sebaya Jiwa Sehat 2023',
+      name: 'Bayu Aditya, M.Psi., Psikolog',
+      title: 'Psikolog Klinis Dewasa Muda',
+      registrationNumber: 'SIPP: 1995-03-11-2024',
       avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
       rating: 4.85,
       reviewCount: 52,
       experienceYears: 2,
-      practitionerType: PractitionerType.volunteer,
-      hasPsychologistCertificate: false,
-      isVolunteerRole: true,
-      specialties: ['Teman Curhat Sebaya', 'Stres Kuliah & Skripsi', 'Quarter-Life Struggle', 'Kesepian'],
+      practitionerType: PractitionerType.professional,
+      hasPsychologistCertificate: true,
+      isVolunteerRole: false,
+      levelTier: 1,
+      levelName: 'Junior Practitioner',
+      levelBadgeIcon: 'award',
+      strVerified: true,
+      sipVerified: true,
+      availabilityStatus: CounselorAvailabilityStatus.availableToday,
+      nextAvailableSlot: '15:30',
+      remainingSlotsToday: 3,
+      hasSlotsTomorrow: true,
+      nextSlotTomorrow: '10:00',
+      specialties: ['Stres Akademik & Skripsi', 'Quarter-Life Crisis', 'Overthinking', 'Kesepian'],
       patientReviewTags: [
         'Teman Cerita yang Ramah',
         'Tanpa Menghakimi',
@@ -497,29 +548,39 @@ class MockCareDataSource implements CareDataSource {
         recoveryDescription: '91.2% teman sebaya merasa bebannya terurai & menemukan jalan keluar stres',
       ),
       certifications: [
+        'SIPP: 1995-03-11-2024 (HIMPSI)',
+        'Magister Profesi Psikologi Klinis (S2)',
         'Sertifikat Psychological First Aid (PFA) - Kemenkes RI',
-        'Pelatihan Konseling Sebaya & Peer Support (HIMPSI)',
-        'Fasilitator Komunitas Safe Space Indonesia',
       ],
-      coinsPerSession: 0,
+      coinsPerSession: 30,
       durationMinutes: 45,
       availableOnline: true,
-      clinicAffiliation: null,
-      bio: 'Relawan konselor sebaya terlatih di bidang Psychological First Aid (PFA). Siap menjadi ruang dengar yang aman dan tulus untuk teman sebaya yang sedang berjuang.',
+      clinicAffiliation: 'Klinik Jiwa Muda',
+      bio: 'Psikolog klinis yang fokus mendampingi dewasa muda menghadapi transisi karir, tekanan akademik, dan manajemen kecemasan sehari-hari.',
     ),
     const PsychologistModel(
       id: 'psy_6',
-      name: 'Nadira Putri, S.Sos.',
-      title: 'Relawan Pendamping Krisis Emosional',
-      registrationNumber: 'Sertifikasi Dukungan Psikososial Awal (PFA) 2024',
+      name: 'Nadira Putri, M.Psi., Psikolog',
+      title: 'Psikolog Klinis & Pemulihan Trauma',
+      registrationNumber: 'SIPP: 1992-09-14-2022',
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
       rating: 4.93,
       reviewCount: 41,
-      experienceYears: 3,
-      practitionerType: PractitionerType.volunteer,
-      hasPsychologistCertificate: false,
-      isVolunteerRole: true,
-      specialties: ['Dukungan Emosional', 'Ruang Dengar Hangat', 'Validasi Perasaan', 'Pencegahan Krisis'],
+      experienceYears: 5,
+      practitionerType: PractitionerType.professional,
+      hasPsychologistCertificate: true,
+      isVolunteerRole: false,
+      levelTier: 3,
+      levelName: 'Senior Specialist',
+      levelBadgeIcon: 'star',
+      strVerified: true,
+      sipVerified: true,
+      availabilityStatus: CounselorAvailabilityStatus.availableTomorrow,
+      nextAvailableSlot: '08:30',
+      remainingSlotsToday: 0,
+      hasSlotsTomorrow: true,
+      nextSlotTomorrow: '08:30',
+      specialties: ['Pemulihan Trauma', 'Regulasi Emosi', 'Validasi Perasaan', 'Krisis Emosional'],
       patientReviewTags: [
         'Sangat Tulus & Peduli',
         'Menenangkan Saat Kalut',
@@ -593,15 +654,15 @@ class MockCareDataSource implements CareDataSource {
         recoveryDescription: '94% penerima manfaat berhasil melewati fase krisis emosional awal dengan stabil',
       ),
       certifications: [
-        'Sertifikat Psychological First Aid (PFA) Terakreditasi',
-        'Pelatihan Pendampingan Krisis & Dukungan Psikososial',
-        'Relawan Tanggap Darurat Kesehatan Jiwa',
+        'SIPP: 1992-09-14-2022 (HIMPSI)',
+        'Magister Profesi Psikologi Klinis (S2)',
+        'Sertifikat Trauma-Informed Care & Stabilisasi Emosi',
       ],
-      coinsPerSession: 0,
-      durationMinutes: 45,
+      coinsPerSession: 50,
+      durationMinutes: 50,
       availableOnline: true,
-      clinicAffiliation: null,
-      bio: 'Memiliki komitmen penuh sebagai jembatan empati bagi siapa pun yang membutuhkan telinga untuk mendengar tanpa syarat di saat-saat paling sulit.',
+      clinicAffiliation: 'Klinik Ruang Aman',
+      bio: 'Psikolog klinis berlisensi dengan pendekatan trauma-informed care untuk membantu pemulihan emosional dan ketahanan mental.',
     ),
   ];
 
@@ -710,32 +771,66 @@ class MockCareDataSource implements CareDataSource {
   ];
 
   @override
-  Future<List<PsychologistModel>> getPsychologists({String? category, String? query}) async {
+  Future<List<PsychologistModel>> getPsychologists({
+    String? availability,
+    int? levelTier,
+    String? sortBy,
+    String? query,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 300));
     var result = List<PsychologistModel>.from(_psychologists);
 
-    if (category != null && category.isNotEmpty && category != 'all') {
-      if (category == 'professional') {
-        result = result.where((p) => p.isProfessional).toList();
-      } else if (category == 'freelance') {
-        result = result.where((p) => p.isFreelance).toList();
-      } else if (category == 'volunteer' || category == 'relawan') {
-        result = result.where((p) => p.isVolunteer || p.practitionerType == PractitionerType.volunteer).toList();
-      } else if (category == 'psychologist' || category == 'psikolog') {
-        result = result.where((p) => p.hasPsychologistCertificate || p.isProfessional || p.isFreelance).toList();
-      }
+    final avail = (availability ?? 'all').trim().toLowerCase();
+    if (avail == 'available_now') {
+      result = result.where((p) => p.isAvailableNow).toList();
+    } else if (avail == 'available_today') {
+      result = result.where((p) => p.isAvailableToday).toList();
+    } else if (avail == 'available_tomorrow') {
+      result = result.where((p) => p.hasSlotsTomorrow).toList();
+    }
+
+    if (levelTier != null) {
+      result = result.where((p) => p.levelTier == levelTier).toList();
     }
 
     if (query != null && query.trim().isNotEmpty) {
       final q = query.toLowerCase().trim();
       result = result.where((p) {
         final matchesName = p.name.toLowerCase().contains(q);
+        final matchesTitle = p.title.toLowerCase().contains(q);
         final matchesSpecialty = p.specialties.any((s) => s.toLowerCase().contains(q));
         final matchesReviewTag = p.patientReviewTags.any((t) => t.toLowerCase().contains(q));
-        final matchesBadge = p.badgeHeaderTitle.toLowerCase().contains(q);
+        final matchesLevel = p.levelName?.toLowerCase().contains(q) ?? false;
         final matchesClinic = p.clinicAffiliation?.toLowerCase().contains(q) ?? false;
-        return matchesName || matchesSpecialty || matchesReviewTag || matchesBadge || matchesClinic;
+        return matchesName ||
+            matchesTitle ||
+            matchesSpecialty ||
+            matchesReviewTag ||
+            matchesLevel ||
+            matchesClinic;
       }).toList();
+    }
+
+    if (sortBy == 'rating') {
+      result.sort((a, b) {
+        final ratingCmp = b.rating.compareTo(a.rating);
+        if (ratingCmp != 0) return ratingCmp;
+        return b.reviewCount.compareTo(a.reviewCount);
+      });
+    } else if (sortBy == 'experience') {
+      result.sort((a, b) => b.experienceYears.compareTo(a.experienceYears));
+    } else {
+      const rank = {
+        CounselorAvailabilityStatus.availableNow: 0,
+        CounselorAvailabilityStatus.availableToday: 1,
+        CounselorAvailabilityStatus.availableTomorrow: 2,
+        CounselorAvailabilityStatus.unavailable: 3,
+      };
+      result.sort((a, b) {
+        final rCmp = (rank[a.availabilityStatus] ?? 3).compareTo(rank[b.availabilityStatus] ?? 3);
+        if (rCmp != 0) return rCmp;
+        return b.rating.compareTo(a.rating);
+      });
     }
 
     return result;
@@ -882,5 +977,72 @@ class MockCareDataSource implements CareDataSource {
       vipRemainingDays: 30,
     );
     return _communityStatus;
+  }
+
+  @override
+  Future<PsychologistModel> getCounselorDetail(String counselorId) async {
+    await Future.delayed(const Duration(milliseconds: 150));
+    return _psychologists.firstWhere(
+      (p) => p.id == counselorId,
+      orElse: () => _psychologists.first,
+    );
+  }
+
+  @override
+  Future<List<PatientReviewItem>> getCounselorReviews(String counselorId) async {
+    await Future.delayed(const Duration(milliseconds: 150));
+    final psy = _psychologists.firstWhere(
+      (p) => p.id == counselorId,
+      orElse: () => _psychologists.first,
+    );
+    return List<PatientReviewItem>.from(psy.effectiveTestimonials);
+  }
+
+  @override
+  Future<PsychologistRatingReview> submitSessionReview({
+    required String sessionId,
+    required String psychologistId,
+    required double rating,
+    String? highlightLabel,
+    String? reviewText,
+    bool isAnonymous = true,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final review = PsychologistRatingReview(
+      psychologistId: psychologistId,
+      rating: rating,
+      isPositive: rating >= 4.0,
+      label: (highlightLabel ?? '').trim(),
+      description: (reviewText ?? '').trim(),
+      tags: (highlightLabel ?? '').trim().isNotEmpty ? [highlightLabel!.trim()] : const [],
+      createdAt: DateTime.now(),
+      isAnonymous: isAnonymous,
+    );
+    final idx = _sessions.indexWhere((s) => s.id == sessionId);
+    if (idx != -1) {
+      final old = _sessions[idx];
+      _sessions[idx] = ConsultationSessionModel(
+        id: old.id,
+        psychologist: old.psychologist,
+        sessionDateTime: old.sessionDateTime,
+        status: old.status,
+        type: old.type,
+        meetingUrl: old.meetingUrl,
+        notes: old.notes,
+        diagnosisSummary: old.diagnosisSummary,
+        sessionNumber: old.sessionNumber,
+        adviceList: old.adviceList,
+        actionItems: old.actionItems,
+        moodBefore: old.moodBefore,
+        moodAfter: old.moodAfter,
+        durationMinutes: old.durationMinutes,
+        sessionSummary: old.sessionSummary,
+        shareAiChatHistory: old.shareAiChatHistory,
+        isExtended: old.isExtended,
+        hasReview: true,
+        myReview: review,
+      );
+    }
+    return review;
   }
 }

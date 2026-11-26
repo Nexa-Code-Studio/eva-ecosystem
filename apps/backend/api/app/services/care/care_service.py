@@ -1,6 +1,7 @@
 import logging
 import uuid
 from datetime import UTC, datetime, time, timedelta
+from decimal import Decimal
 
 from fastapi import HTTPException, status
 from sqlalchemy import or_, select
@@ -8,8 +9,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.security import create_room_token
-from app.models.counselor import ConsultationSession, PsychologistProfile
-from app.models.enums import ConsultationSessionStatus, PsychologistVerificationStatus
+from app.models.counselor import (
+    ConsultationSession,
+    PlatformPricingConfig,
+    PsychologistProfile,
+)
+from app.models.enums import (
+    ConsultationSessionStatus,
+    PricingConfigStatus,
+    PsychologistVerificationStatus,
+)
+from app.models.level import CounselorReview
 from app.schemas.care.requests import (
     BookConsultationRequest,
     SubmitRatingRequest,
@@ -31,11 +41,13 @@ from app.schemas.care.responses import (
     PatientStatsSchema,
     PsychologistItemResponse,
     SessionActionResponse,
+    SessionReviewSummarySchema,
     TimeRangeSchema,
     VideoTokenResponse,
 )
 from app.schemas.session.requests import BookSessionRequest
 from app.services.care.ice_provider import IceServerProvider
+from app.services.level import LevelService
 from app.services.session.scheduling_service import SchedulingService
 from shared.config import normalize_ws_base_url, settings
 
@@ -269,88 +281,116 @@ class CareService:
         res = await self.update_call_status(session_id, user_id, update_req)
         return SessionActionResponse(success=res.success, session_id=res.session_id, status=res.status)
 
+    async def _resolve_fallback_price(self) -> Decimal:
+        pricing = await self.db.scalar(
+            select(PlatformPricingConfig)
+            .where(PlatformPricingConfig.status == PricingConfigStatus.ACTIVE.value)
+            .order_by(PlatformPricingConfig.effective_from.desc())
+            .limit(1)
+        )
+        return pricing.price_per_session if pricing else Decimal("150.00")
+
     @staticmethod
-    def _build_psychologist_response(p: PsychologistProfile) -> PsychologistItemResponse:
+    def _build_psychologist_response(
+        p: PsychologistProfile,
+        *,
+        fallback_price: Decimal = Decimal("150.00"),
+        reviews: list[CounselorReview] | None = None,
+    ) -> PsychologistItemResponse:
         title_lower = (p.title_degree or "").lower()
         full_name_lower = (p.full_name or "").lower()
         bio_lower = (p.bio or "").lower()
 
         is_psychiatrist = "sp.kj" in title_lower or "psikiater" in title_lower or "sp.kj" in full_name_lower
         is_volunteer = "relawan" in title_lower or "volunteer" in title_lower or "relawan" in bio_lower
+        practitioner_type = "volunteer" if is_volunteer else "professional"
 
-        if is_volunteer:
-            practitioner_type = "volunteer"
-        elif is_psychiatrist:
-            practitioner_type = "professional"
-        else:
-            practitioner_type = "professional"
+        specialties = p.specializations or []
 
-        specialties = p.specializations or ["Kecemasan", "Stres", "Pengembangan Diri"]
+        lvl = (
+            p.current_level
+            if "current_level" in p.__dict__
+            and p.current_level is not None
+            and p.current_level.is_active
+            else None
+        )
+        effective_coins = int(
+            round(float(LevelService.compute_effective_price(p, lvl, fallback_price=fallback_price)))
+        )
 
-        # Clinical review tags
+        # Build authentic review tags and testimonials from database reviews
+        real_reviews = reviews or []
+        seen_tags: dict[str, str] = {}
+        testimonials: list[PatientReviewItemSchema] = []
+        positive_count = 0
+        for rev in real_reviews:
+            score = float(rev.rating)
+            sentiment = "positive" if score >= 4.0 else "negative"
+            if score >= 4.0:
+                positive_count += 1
+            if rev.highlight_label and rev.highlight_label.strip() and rev.highlight_label.strip() not in seen_tags:
+                seen_tags[rev.highlight_label.strip()] = sentiment
+            patient_name = (
+                "Pasien Anonim"
+                if rev.is_anonymous
+                else (
+                    rev.patient.display_name
+                    if "patient" in rev.__dict__ and rev.patient and rev.patient.display_name
+                    else "Pasien Terverifikasi"
+                )
+            )
+            testimonials.append(
+                PatientReviewItemSchema(
+                    id=str(rev.id),
+                    patient_name=patient_name,
+                    sentiment=sentiment,
+                    label=rev.highlight_label or "",
+                    description=rev.review_text or "",
+                    rating=score,
+                    time_ago=rev.created_at.strftime("%d %b %Y") if rev.created_at else "",
+                )
+            )
+
         review_tags = [
-            PatientReviewTagSchema(label="Sangat Sabar & Empati", sentiment="positive"),
-            PatientReviewTagSchema(label="Teknik CBT Mudah Dipahami", sentiment="positive"),
-            PatientReviewTagSchema(label="Ruang Cerita Bebas Menghakimi", sentiment="positive"),
-            PatientReviewTagSchema(label="Slot Jadwal Cepat Penuh", sentiment="negative"),
+            PatientReviewTagSchema(label=lbl, sentiment=sent)
+            for lbl, sent in seen_tags.items()
         ]
         patient_review_tags = [t.label for t in review_tags]
+        patient_reviews = [t.description for t in testimonials if t.description]
 
-        # Clinical testimonials
-        testimonials = [
-            PatientReviewItemSchema(
-                id=f"rev_{p.id}_1",
-                patient_name="Pasien Terverifikasi (A. Z.)",
-                sentiment="positive",
-                label="Sangat Sabar & Empati",
-                description=f"Konsultasi dengan {p.full_name} sangat menenangkan dan membuka sudut pandang baru dalam menghadapi kecemasan.",
-                rating=5.0,
-                time_ago="2 hari lalu",
-            ),
-            PatientReviewItemSchema(
-                id=f"rev_{p.id}_2",
-                patient_name="Pasien Terverifikasi (R. K.)",
-                sentiment="positive",
-                label="Teknik CBT Mudah Dipahami",
-                description="Latihan relaksasi dan teknik manajemen emosi yang diberikan sangat aplikatif di kehidupan sehari-hari.",
-                rating=5.0,
-                time_ago="1 minggu lalu",
-            ),
-        ]
-        patient_reviews = [t.description for t in testimonials]
-
-        # Certificate items
+        # Build authentic credential certificates without stock placeholders
         reg_no = p.sip_number or p.str_number
-        certificate_items = [
-            CertificateItemSchema(
-                title=f"SIPP: {reg_no} (HIMPSI)",
-                image_url="https://images.unsplash.com/photo-1614036417651-efe5912149d8?w=800&auto=format&fit=crop&q=80",
-            ),
-            CertificateItemSchema(
-                title="Magister Profesi Psikologi Klinis Dewasa (S2)",
-                image_url="https://images.unsplash.com/photo-1659080928170-b9924d616f04?w=800&auto=format&fit=crop&q=80",
-            ),
-            CertificateItemSchema(
-                title="Sertifikasi CBT Terapan & Regulasi Emosi",
-                image_url="https://images.unsplash.com/photo-1659080907100-23f0dac0fe27?w=800&auto=format&fit=crop&q=80",
-            ),
-            CertificateItemSchema(
-                title="Sertifikat Psychological First Aid (PFA) Nasional",
-                image_url="https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&auto=format&fit=crop&q=80",
-            ),
-        ]
-        certifications = [c.title for c in certificate_items]
+        certifications: list[str] = [f"STR: {p.str_number}"]
+        if p.sip_number:
+            certifications.append(f"SIP/SIPP: {p.sip_number}")
+        if p.education:
+            certifications.append(p.education)
 
-        avatar_url = p.profile_photo_url or "https://images.unsplash.com/photo-1594824813583-059df30f1484?w=400&auto=format&fit=crop&q=80"
+        certificate_items: list[CertificateItemSchema] = []
+        if p.str_doc_url:
+            certificate_items.append(
+                CertificateItemSchema(title=f"STR: {p.str_number}", image_url=p.str_doc_url)
+            )
+        if p.sip_doc_url:
+            certificate_items.append(
+                CertificateItemSchema(title=f"SIP/SIPP: {p.sip_number or '-'}", image_url=p.sip_doc_url)
+            )
+        if p.certificate_doc_url and p.certificate_doc_url not in {p.str_doc_url, p.sip_doc_url}:
+            certificate_items.append(
+                CertificateItemSchema(title="Sertifikat Profesi", image_url=p.certificate_doc_url)
+            )
+
+        total_completed = int(p.total_completed_sessions or 0)
+        satisfaction_pct = int(round((positive_count / len(real_reviews)) * 100)) if real_reviews else 0
 
         return PsychologistItemResponse(
             id=str(p.id),
             name=p.full_name,
             title=p.title_degree,
             registration_number=reg_no,
-            avatar_url=avatar_url,
-            rating=4.95,
-            review_count=max(25, p.years_of_experience * 12),
+            avatar_url=p.profile_photo_url or "",
+            rating=float(p.average_rating or 0.0),
+            review_count=int(p.rating_count or 0),
             experience_years=p.years_of_experience,
             specialties=specialties,
             patient_review_tags=patient_review_tags,
@@ -358,22 +398,25 @@ class CareService:
             review_tags=review_tags,
             testimonials=testimonials,
             patient_stats=PatientStatsSchema(
-                total_sessions=max(80, p.years_of_experience * 35),
-                satisfaction_percentage=98,
-                repeat_patient_rate=87,
-                recovery_rate=93,
+                total_sessions=total_completed,
+                satisfaction_percentage=satisfaction_pct,
+                repeat_patient_rate=0,
+                recovery_rate=0,
             ),
             certifications=certifications,
             certificate_items=certificate_items,
-            coins_per_session=50,
-            fee_per_session=50,
+            coins_per_session=effective_coins,
+            fee_per_session=effective_coins,
             duration_minutes=30,
             available_online=p.is_online,
-            clinic_affiliation="Klinik Psikologi Terpadu UI & Terapi Holistik",
-            bio=p.bio or "Psikolog klinis profesional berdedikasi membantu kesehatan mental dan regulasi emosi.",
+            clinic_affiliation=None,
+            bio=p.bio or "",
             practitioner_type=practitioner_type,
-            has_psychologist_certificate=True,
+            has_psychologist_certificate=not is_volunteer,
             is_volunteer=is_volunteer,
+            level_tier=lvl.level_tier if lvl else None,
+            level_name=lvl.name if lvl else None,
+            level_badge_icon=lvl.badge_icon if lvl else None,
         )
 
     async def get_psychologists(
@@ -384,6 +427,7 @@ class CareService:
         """Fetch verified online psychologists and psychiatrists with search and category filters."""
         stmt = (
             select(PsychologistProfile)
+            .options(selectinload(PsychologistProfile.current_level))
             .where(
                 PsychologistProfile.verification_status == PsychologistVerificationStatus.VERIFIED.value,
                 PsychologistProfile.is_online.is_(True),
@@ -403,8 +447,28 @@ class CareService:
 
         res = await self.db.execute(stmt)
         profiles = res.scalars().all()
+        fallback_price = await self._resolve_fallback_price()
 
-        items = [self._build_psychologist_response(p) for p in profiles]
+        reviews_by_counselor: dict[uuid.UUID, list[CounselorReview]] = {}
+        if profiles:
+            rev_stmt = (
+                select(CounselorReview)
+                .options(selectinload(CounselorReview.patient))
+                .where(CounselorReview.counselor_id.in_([p.id for p in profiles]))
+                .order_by(CounselorReview.created_at.desc())
+            )
+            rev_res = await self.db.execute(rev_stmt)
+            for rev in rev_res.scalars().all():
+                reviews_by_counselor.setdefault(rev.counselor_id, []).append(rev)
+
+        items = [
+            self._build_psychologist_response(
+                p,
+                fallback_price=fallback_price,
+                reviews=reviews_by_counselor.get(p.id, []),
+            )
+            for p in profiles
+        ]
 
         # Category filter
         if category and category.lower() != "all":
@@ -597,27 +661,35 @@ class CareService:
         )
         session_res = await scheduling_service.book_session(user_id, book_req)
 
-        # Fetch session record with counselor profile
+        # Fetch session record with counselor profile and level
         stmt = (
             select(ConsultationSession)
             .where(ConsultationSession.id == uuid.UUID(session_res.id))
-            .options(selectinload(ConsultationSession.counselor))
+            .options(
+                selectinload(ConsultationSession.counselor).selectinload(
+                    PsychologistProfile.current_level
+                )
+            )
         )
         res = await self.db.execute(stmt)
         sess = res.scalar_one_or_none()
         if not sess or not sess.counselor:
             raise HTTPException(status_code=500, detail="Gagal memuat sesi terdaftar.")
 
+        soap_dict = dict(sess.soap_notes or {})
+        soap_dict["share_ai_chat_history"] = payload.share_ai_chat_history
         if payload.complaints:
-            sess.soap_notes = {"complaints": payload.complaints}
-            await self.db.commit()
-            await self.db.refresh(sess)
+            soap_dict["complaints"] = payload.complaints
+        sess.soap_notes = soap_dict
+        await self.db.commit()
+        await self.db.refresh(sess)
 
-        notes_val = None
-        if sess.soap_notes and isinstance(sess.soap_notes, dict):
-            notes_val = sess.soap_notes.get("complaints") or sess.soap_notes.get("plan")
-
-        psych_item = self._build_psychologist_response(sess.counselor)
+        notes_val = soap_dict.get("complaints") or soap_dict.get("plan")
+        fallback_price = await self._resolve_fallback_price()
+        psych_item = self._build_psychologist_response(
+            sess.counselor,
+            fallback_price=fallback_price,
+        )
         return CareSessionResponse(
             id=str(sess.id),
             psychologist=psych_item,
@@ -629,28 +701,75 @@ class CareService:
             session_number=1,
             notes=notes_val,
             share_ai_chat_history=payload.share_ai_chat_history,
+            is_extended=sess.duration_minutes >= 60,
+            has_review=False,
+            my_review=None,
         )
 
     async def get_user_sessions(self, user_id: uuid.UUID) -> list[CareSessionResponse]:
-        """Fetch all consultation sessions for the current patient."""
+        """Fetch all consultation sessions for the current patient with real reviews & pricing."""
         stmt = (
             select(ConsultationSession)
             .where(ConsultationSession.patient_id == user_id)
-            .options(selectinload(ConsultationSession.counselor))
+            .options(
+                selectinload(ConsultationSession.counselor).selectinload(
+                    PsychologistProfile.current_level
+                )
+            )
             .order_by(ConsultationSession.scheduled_start_time.desc())
         )
         res = await self.db.execute(stmt)
         sessions = res.scalars().all()
+        if not sessions:
+            return []
+
+        fallback_price = await self._resolve_fallback_price()
+
+        session_ids = [s.id for s in sessions]
+        reviews_by_session: dict[uuid.UUID, CounselorReview] = {}
+        rev_res = await self.db.execute(
+            select(CounselorReview).where(CounselorReview.session_id.in_(session_ids))
+        )
+        for rev in rev_res.scalars().all():
+            reviews_by_session[rev.session_id] = rev
+
+        # Compute chronological session_number per counselor for this patient
+        ordered_asc = sorted(sessions, key=lambda item: item.scheduled_start_time)
+        counselor_seq: dict[uuid.UUID, int] = {}
+        session_number_map: dict[uuid.UUID, int] = {}
+        for item in ordered_asc:
+            seq = counselor_seq.get(item.counselor_id, 0) + 1
+            counselor_seq[item.counselor_id] = seq
+            session_number_map[item.id] = seq
 
         results: list[CareSessionResponse] = []
         for s in sessions:
             if not s.counselor:
                 continue
-            psych_item = self._build_psychologist_response(s.counselor)
+            psych_item = self._build_psychologist_response(
+                s.counselor,
+                fallback_price=fallback_price,
+            )
             soap = s.soap_notes or {}
-            advice = [soap.get("plan")] if soap.get("plan") else []
-            action_items = soap.get("recommended_tasks") or []
-            notes_val = soap.get("complaints") or soap.get("plan")
+            plan_val = soap.get("plan")
+            advice = [plan_val] if isinstance(plan_val, str) and plan_val.strip() else (plan_val if isinstance(plan_val, list) else [])
+            raw_actions = soap.get("recommended_tasks") or []
+            action_items = [str(a) for a in raw_actions] if isinstance(raw_actions, list) else []
+            notes_val = soap.get("complaints") or (plan_val if isinstance(plan_val, str) else None)
+            rev = reviews_by_session.get(s.id)
+            my_review_schema = (
+                SessionReviewSummarySchema(
+                    id=str(rev.id),
+                    session_id=str(rev.session_id),
+                    rating=float(rev.rating),
+                    highlight_label=rev.highlight_label,
+                    review_text=rev.review_text,
+                    is_anonymous=rev.is_anonymous,
+                    created_at=rev.created_at.isoformat() if rev.created_at else "",
+                )
+                if rev
+                else None
+            )
             results.append(
                 CareSessionResponse(
                     id=str(s.id),
@@ -658,15 +777,22 @@ class CareService:
                     session_datetime=s.scheduled_start_time.isoformat(),
                     status=s.status,
                     type="onlineVideo",
-                    meeting_url=f"/video_call?channelId={s.id}&counselorName={s.counselor.full_name}" if s.status != "completed" else None,
+                    meeting_url=(
+                        f"/video_call?channelId={s.id}&counselorName={s.counselor.full_name}"
+                        if s.status in (ConsultationSessionStatus.SCHEDULED.value, ConsultationSessionStatus.LIVE.value)
+                        else None
+                    ),
                     duration_minutes=s.duration_minutes,
-                    session_number=1,
+                    session_number=session_number_map.get(s.id, 1),
                     advice_list=advice,
                     action_items=action_items,
                     diagnosis_summary=soap.get("assessment"),
                     session_summary=soap.get("subjective"),
                     notes=notes_val,
-                    share_ai_chat_history=True,
+                    share_ai_chat_history=bool(soap.get("share_ai_chat_history", False)),
+                    is_extended=bool(soap.get("is_extended")) or s.duration_minutes >= 60,
+                    has_review=rev is not None,
+                    my_review=my_review_schema,
                 )
             )
         return results

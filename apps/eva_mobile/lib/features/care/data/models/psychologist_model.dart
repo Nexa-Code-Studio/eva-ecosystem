@@ -26,6 +26,18 @@ class PsychologistModel extends PsychologistEntity {
     super.practitionerType = PractitionerType.professional,
     super.hasPsychologistCertificate = true,
     super.isVolunteerRole = false,
+    super.levelTier,
+    super.levelName,
+    super.levelBadgeIcon,
+    super.strVerified = false,
+    super.sipVerified = false,
+    super.education,
+    super.availabilityStatus = CounselorAvailabilityStatus.availableToday,
+    super.nextAvailableSlot,
+    super.nextAvailableDate,
+    super.remainingSlotsToday = 0,
+    super.hasSlotsTomorrow = false,
+    super.nextSlotTomorrow,
   });
 
   factory PsychologistModel.fromJson(Map<String, dynamic> json) {
@@ -83,6 +95,12 @@ class PsychologistModel extends PsychologistEntity {
     PatientStatsEntity parsedStats = const PatientStatsEntity();
     if (json['patient_stats'] is Map<String, dynamic>) {
       parsedStats = PatientStatsEntity.fromJson(json['patient_stats'] as Map<String, dynamic>);
+    } else if (json['total_completed_sessions'] != null) {
+      final totalCompleted = (json['total_completed_sessions'] as num?)?.toInt() ?? 0;
+      parsedStats = PatientStatsEntity(
+        totalPatientsTreated: totalCompleted,
+        totalSessionsCompleted: totalCompleted,
+      );
     }
 
     final parsedName =
@@ -99,7 +117,7 @@ class PsychologistModel extends PsychologistEntity {
         '';
     final parsedRating = (json['rating'] as num?)?.toDouble() ??
         (json['average_rating'] as num?)?.toDouble() ??
-        5.0;
+        0.0;
     final parsedReviewCount = (json['review_count'] as num?)?.toInt() ??
         (json['rating_count'] as num?)?.toInt() ??
         0;
@@ -111,7 +129,23 @@ class PsychologistModel extends PsychologistEntity {
     final parsedCoins = (json['effective_session_price'] as num?)?.toInt() ??
         (json['coins_per_session'] as num?)?.toInt() ??
         (json['fee_per_session'] as num?)?.toInt() ??
-        50;
+        0;
+
+    final rawCertifications = (json['certifications'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        <String>[];
+    if (rawCertifications.isEmpty) {
+      if (json['str_number'] != null && json['str_number'].toString().isNotEmpty) {
+        rawCertifications.add('STR: ${json['str_number']}');
+      }
+      if (json['sip_number'] != null && json['sip_number'].toString().isNotEmpty) {
+        rawCertifications.add('SIP/SIPP: ${json['sip_number']}');
+      }
+      if (json['education'] != null && json['education'].toString().isNotEmpty) {
+        rawCertifications.add(json['education'].toString());
+      }
+    }
 
     return PsychologistModel(
       id: json['id']?.toString() ?? '',
@@ -136,10 +170,7 @@ class PsychologistModel extends PsychologistEntity {
       reviewTags: parsedReviewTags,
       testimonials: parsedTestimonials,
       patientStats: parsedStats,
-      certifications: (json['certifications'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          const [],
+      certifications: rawCertifications,
       certificateItems: (json['certificate_items'] as List<dynamic>?)
               ?.map((e) => CertificateItem.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -153,6 +184,24 @@ class PsychologistModel extends PsychologistEntity {
       practitionerType: parsedType,
       hasPsychologistCertificate: hasCert,
       isVolunteerRole: isVol,
+      levelTier: (json['level_tier'] as num?)?.toInt(),
+      levelName: json['level_name'] as String?,
+      levelBadgeIcon: json['level_badge_icon'] as String?,
+      strVerified: json['str_verified'] as bool? ?? false,
+      sipVerified: json['sip_verified'] as bool? ?? false,
+      education: json['education'] as String?,
+      availabilityStatus: CounselorAvailabilityStatusX.fromApiValue(
+        json['availability_status'] as String?,
+        fallbackOnline: (json['available_online'] as bool?) ??
+            (json['is_online'] as bool?) ??
+            true,
+      ),
+      nextAvailableSlot: json['next_available_slot'] as String?,
+      nextAvailableDate: json['next_available_date'] as String?,
+      remainingSlotsToday:
+          (json['remaining_slots_today'] as num?)?.toInt() ?? 0,
+      hasSlotsTomorrow: json['has_slots_tomorrow'] as bool? ?? false,
+      nextSlotTomorrow: json['next_slot_tomorrow'] as String?,
     );
   }
 
@@ -183,6 +232,18 @@ class PsychologistModel extends PsychologistEntity {
       'practitioner_type': practitionerType.name,
       'has_psychologist_certificate': hasPsychologistCertificate,
       'is_volunteer': isVolunteer,
+      if (levelTier != null) 'level_tier': levelTier,
+      if (levelName != null) 'level_name': levelName,
+      if (levelBadgeIcon != null) 'level_badge_icon': levelBadgeIcon,
+      'str_verified': strVerified,
+      'sip_verified': sipVerified,
+      if (education != null) 'education': education,
+      'availability_status': availabilityStatus.apiValue,
+      if (nextAvailableSlot != null) 'next_available_slot': nextAvailableSlot,
+      if (nextAvailableDate != null) 'next_available_date': nextAvailableDate,
+      'remaining_slots_today': remainingSlotsToday,
+      'has_slots_tomorrow': hasSlotsTomorrow,
+      if (nextSlotTomorrow != null) 'next_slot_tomorrow': nextSlotTomorrow,
     };
   }
 }

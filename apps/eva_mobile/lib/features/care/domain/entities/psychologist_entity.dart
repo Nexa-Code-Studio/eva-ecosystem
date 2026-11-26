@@ -11,6 +11,48 @@ enum ReviewSentiment {
   negative,
 }
 
+enum CounselorAvailabilityStatus {
+  availableNow,
+  availableToday,
+  availableTomorrow,
+  unavailable,
+}
+
+extension CounselorAvailabilityStatusX on CounselorAvailabilityStatus {
+  String get apiValue {
+    switch (this) {
+      case CounselorAvailabilityStatus.availableNow:
+        return 'available_now';
+      case CounselorAvailabilityStatus.availableToday:
+        return 'available_today';
+      case CounselorAvailabilityStatus.availableTomorrow:
+        return 'available_tomorrow';
+      case CounselorAvailabilityStatus.unavailable:
+        return 'unavailable';
+    }
+  }
+
+  static CounselorAvailabilityStatus fromApiValue(
+    String? raw, {
+    bool fallbackOnline = true,
+  }) {
+    switch (raw?.trim().toLowerCase()) {
+      case 'available_now':
+        return CounselorAvailabilityStatus.availableNow;
+      case 'available_today':
+        return CounselorAvailabilityStatus.availableToday;
+      case 'available_tomorrow':
+        return CounselorAvailabilityStatus.availableTomorrow;
+      case 'unavailable':
+        return CounselorAvailabilityStatus.unavailable;
+      default:
+        return fallbackOnline
+            ? CounselorAvailabilityStatus.availableToday
+            : CounselorAvailabilityStatus.unavailable;
+    }
+  }
+}
+
 @immutable
 class PatientReviewTag {
   final String label;
@@ -106,27 +148,40 @@ class PatientStatsEntity {
   final String recoveryDescription;
 
   const PatientStatsEntity({
-    this.totalPatientsTreated = 180,
-    this.totalSessionsCompleted = 320,
-    this.satisfactionRate = 98.0,
-    this.positiveReviewRate = 96.0,
-    this.recoveryRate = 93.0,
-    this.avgRecoverySessions = 3.6,
-    this.recoveryDescription = 'Melaporkan perbaikan emosi & penurunan kecemasan',
+    this.totalPatientsTreated = 0,
+    this.totalSessionsCompleted = 0,
+    this.satisfactionRate = 0.0,
+    this.positiveReviewRate = 0.0,
+    this.recoveryRate = 0.0,
+    this.avgRecoverySessions = 0.0,
+    this.recoveryDescription = '',
   });
 
-  double get negativeReviewRate => (100.0 - positiveReviewRate).clamp(0.0, 100.0);
+  bool get hasData =>
+      totalPatientsTreated > 0 ||
+      totalSessionsCompleted > 0 ||
+      satisfactionRate > 0;
+
+  double get negativeReviewRate =>
+      positiveReviewRate > 0 ? (100.0 - positiveReviewRate).clamp(0.0, 100.0) : 0.0;
 
   factory PatientStatsEntity.fromJson(Map<String, dynamic> json) {
+    final totalSessions = (json['total_sessions_completed'] as num?)?.toInt() ??
+        (json['total_sessions'] as num?)?.toInt() ??
+        0;
+    final satisfaction = (json['satisfaction_rate'] as num?)?.toDouble() ??
+        (json['satisfaction_percentage'] as num?)?.toDouble() ??
+        0.0;
     return PatientStatsEntity(
-      totalPatientsTreated: (json['total_patients_treated'] as num?)?.toInt() ?? 180,
-      totalSessionsCompleted: (json['total_sessions_completed'] as num?)?.toInt() ?? 320,
-      satisfactionRate: (json['satisfaction_rate'] as num?)?.toDouble() ?? 98.0,
-      positiveReviewRate: (json['positive_review_rate'] as num?)?.toDouble() ?? 96.0,
-      recoveryRate: (json['recovery_rate'] as num?)?.toDouble() ?? 93.0,
-      avgRecoverySessions: (json['avg_recovery_sessions'] as num?)?.toDouble() ?? 3.6,
-      recoveryDescription: json['recovery_description'] as String? ??
-          'Melaporkan perbaikan emosi & penurunan kecemasan',
+      totalPatientsTreated: (json['total_patients_treated'] as num?)?.toInt() ??
+          totalSessions,
+      totalSessionsCompleted: totalSessions,
+      satisfactionRate: satisfaction,
+      positiveReviewRate: (json['positive_review_rate'] as num?)?.toDouble() ??
+          satisfaction,
+      recoveryRate: (json['recovery_rate'] as num?)?.toDouble() ?? 0.0,
+      avgRecoverySessions: (json['avg_recovery_sessions'] as num?)?.toDouble() ?? 0.0,
+      recoveryDescription: json['recovery_description'] as String? ?? '',
     );
   }
 
@@ -190,6 +245,18 @@ class PsychologistEntity {
   final PractitionerType practitionerType;
   final bool hasPsychologistCertificate;
   final bool isVolunteerRole;
+  final int? levelTier;
+  final String? levelName;
+  final String? levelBadgeIcon;
+  final bool strVerified;
+  final bool sipVerified;
+  final String? education;
+  final CounselorAvailabilityStatus availabilityStatus;
+  final String? nextAvailableSlot;
+  final String? nextAvailableDate;
+  final int remainingSlotsToday;
+  final bool hasSlotsTomorrow;
+  final String? nextSlotTomorrow;
 
   const PsychologistEntity({
     required this.id,
@@ -216,6 +283,18 @@ class PsychologistEntity {
     this.practitionerType = PractitionerType.professional,
     this.hasPsychologistCertificate = true,
     this.isVolunteerRole = false,
+    this.levelTier,
+    this.levelName,
+    this.levelBadgeIcon,
+    this.strVerified = false,
+    this.sipVerified = false,
+    this.education,
+    this.availabilityStatus = CounselorAvailabilityStatus.availableToday,
+    this.nextAvailableSlot,
+    this.nextAvailableDate,
+    this.remainingSlotsToday = 0,
+    this.hasSlotsTomorrow = false,
+    this.nextSlotTomorrow,
   });
 
   /// Effective certifications falling back to registration credentials if empty
@@ -310,6 +389,12 @@ class PsychologistEntity {
       return 'Profesional';
     }
   }
+
+  bool get isAvailableNow =>
+      availabilityStatus == CounselorAvailabilityStatus.availableNow;
+  bool get isAvailableToday =>
+      availabilityStatus == CounselorAvailabilityStatus.availableNow ||
+      availabilityStatus == CounselorAvailabilityStatus.availableToday;
 
   bool get isPsychiatrist =>
       title.toLowerCase().contains('sp.kj') ||
