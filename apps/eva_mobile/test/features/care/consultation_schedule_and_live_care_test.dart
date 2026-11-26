@@ -14,6 +14,7 @@ import 'package:eva_mobile/features/care/presentation/providers/care_provider.da
 import 'package:eva_mobile/features/care/presentation/screens/consultation_rating_screen.dart';
 import 'package:eva_mobile/features/care/presentation/screens/consultation_schedule_screen.dart';
 import 'package:eva_mobile/features/care/presentation/screens/psychologist_detail_screen.dart';
+import 'package:eva_mobile/features/care/presentation/widgets/booking_consultation_sheet.dart';
 import 'package:eva_mobile/features/care/presentation/widgets/consultation_result_bottom_sheet.dart';
 import 'package:eva_mobile/features/care/presentation/widgets/psychologist_card.dart';
 import 'package:eva_mobile/features/care/presentation/widgets/psychologist_certificate_carousel.dart';
@@ -27,6 +28,7 @@ class _ConfigurableCareRepository implements CareRepository {
   List<ConsultationSessionEntity> sessions = const [];
   List<PatientReviewItem> reviews = const [];
   PsychologistEntity? detail;
+  DateTime? lastTimelineDate;
 
   @override
   Future<List<ConsultationSessionEntity>> getConsultationSessions() async {
@@ -90,15 +92,17 @@ class _ConfigurableCareRepository implements CareRepository {
   Future<CounselorTimelineEntity> getCounselorTimeline({
     required String counselorId,
     required DateTime date,
-  }) async =>
-      CounselorTimelineEntity(
-        counselorId: counselorId,
-        date: date,
-        operatingHours: const OperatingHoursEntity(
-          start: TimeOfDay(hour: 8, minute: 0),
-          end: TimeOfDay(hour: 17, minute: 0),
-        ),
-      );
+  }) async {
+    lastTimelineDate = date;
+    return CounselorTimelineEntity(
+      counselorId: counselorId,
+      date: date,
+      operatingHours: const OperatingHoursEntity(
+        start: TimeOfDay(hour: 8, minute: 0),
+        end: TimeOfDay(hour: 17, minute: 0),
+      ),
+    );
+  }
 
   @override
   Future<ConsultationSessionEntity> bookConsultation({
@@ -280,5 +284,38 @@ void main() {
 
     expect(repo.submitReviewCalls, 1);
     expect(repo.lastSubmittedSessionId, 'sess-rate-1');
+  });
+
+  testWidgets('BookingConsultationSheet uses date picker defaulting to today without fixed day chips',
+      (tester) async {
+    final repo = _ConfigurableCareRepository()..detail = liveCounselor;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [careRepositoryProvider.overrideWithValue(repo)],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: BookingConsultationSheet(psychologist: liveCounselor),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pilih Tanggal'), findsOneWidget);
+    expect(find.textContaining('Hari Ini •'), findsOneWidget);
+    expect(find.text('Besok'), findsNothing);
+    expect(find.text('Lusa'), findsNothing);
+    expect(find.text('3 Hari Lagi'), findsNothing);
+    expect(repo.lastTimelineDate, today);
+
+    await tester.tap(find.byKey(const Key('booking_date_picker_field')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DatePickerDialog), findsOneWidget);
+    await tester.tap(find.text('Batal'));
+    await tester.pumpAndSettle();
   });
 }

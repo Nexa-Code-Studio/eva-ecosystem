@@ -32,12 +32,86 @@ class BookingConsultationSheet extends ConsumerStatefulWidget {
 }
 
 class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSheet> {
-  int _selectedDayOffset = 1; // 1 = Besok, 2 = Lusa, 3 = 3 Hari Lagi
+  late DateTime _selectedDate;
   int _sessionCount = 1; // 1 sesi = 30m, 2 sesi = 60m, dst.
-  TimeOfDay _selectedStartTime = const TimeOfDay(hour: 9, minute: 0);
+  late TimeOfDay _selectedStartTime;
   final TextEditingController _notesController = TextEditingController();
   bool _shareAiChatHistory = false;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _selectedDate = DateTime(now.year, now.month, now.day);
+    _selectedStartTime = _defaultStartTimeForToday(now);
+  }
+
+  TimeOfDay _defaultStartTimeForToday(DateTime now) {
+    final totalNowMin = now.hour * 60 + now.minute;
+    // Bulatkan ke kelipatan 30 menit berikutnya jika sudah lewat jam 09:00
+    final nextSlotMin = ((totalNowMin + 29) ~/ 30) * 30;
+    final clampedMin = nextSlotMin < 9 * 60 ? 9 * 60 : nextSlotMin;
+    if (clampedMin >= 23 * 60 + 30) {
+      return const TimeOfDay(hour: 9, minute: 0);
+    }
+    return TimeOfDay(hour: clampedMin ~/ 60, minute: clampedMin % 60);
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  String _formatIndonesianDate(DateTime date) {
+    const dayNames = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    const monthNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+    ];
+    final dayName = dayNames[(date.weekday - 1).clamp(0, 6)];
+    final monthName = monthNames[(date.month - 1).clamp(0, 11)];
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final formatted = '$dayName, ${date.day} $monthName ${date.year}';
+    return _isSameDay(date, today) ? 'Hari Ini • $formatted' : formatted;
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate.isBefore(today) ? today : _selectedDate,
+      firstDate: today,
+      lastDate: today.add(const Duration(days: 90)),
+      helpText: 'Pilih Tanggal Konsultasi',
+      cancelText: 'Batal',
+      confirmText: 'Pilih',
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = DateTime(picked.year, picked.month, picked.day);
+      });
+    }
+  }
+
+  CollisionResult _evaluateWithCurrentTime(CollisionResult baseCollision) {
+    if (baseCollision.hasClash) return baseCollision;
+    final now = DateTime.now();
+    final selectedDateTime = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _selectedStartTime.hour,
+      _selectedStartTime.minute,
+    );
+    if (selectedDateTime.isBefore(now)) {
+      return const CollisionResult(
+        hasClash: true,
+        reason: 'Jam yang dipilih sudah terlewat. Pilih jam lebih akhir atau ganti tanggal.',
+      );
+    }
+    return baseCollision;
+  }
 
   @override
   void dispose() {
@@ -112,11 +186,10 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
 
     setState(() => _isLoading = true);
 
-    final now = DateTime.now();
     final finalDateTime = DateTime(
-      now.year,
-      now.month,
-      now.day + _selectedDayOffset,
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
       _selectedStartTime.hour,
       _selectedStartTime.minute,
     );
@@ -249,10 +322,8 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final targetDate = DateTime(now.year, now.month, now.day + _selectedDayOffset);
     final timelineAsync = ref.watch(counselorTimelineProvider(
-      (counselorId: widget.psychologist.id, date: targetDate),
+      (counselorId: widget.psychologist.id, date: _selectedDate),
     ));
 
     return Container(
@@ -364,7 +435,7 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
 
             // Tanggal Sesi
             Text(
-              'Pilih Hari',
+              'Pilih Tanggal',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
@@ -372,14 +443,47 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
               ),
             ),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                _buildDayChip('Besok', 1),
-                const SizedBox(width: 8),
-                _buildDayChip('Lusa', 2),
-                const SizedBox(width: 8),
-                _buildDayChip('3 Hari Lagi', 3),
-              ],
+            InkWell(
+              key: const Key('booking_date_picker_field'),
+              onTap: _pickDate,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_today_rounded,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _formatIndonesianDate(_selectedDate),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'Ubah',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 18),
 
@@ -404,7 +508,9 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
             timelineAsync.when(
               data: (timeline) {
                 final durationMin = _sessionCount * 30;
-                final collision = timeline.evaluateSelection(_selectedStartTime, durationMin);
+                final collision = _evaluateWithCurrentTime(
+                  timeline.evaluateSelection(_selectedStartTime, durationMin),
+                );
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -770,30 +876,6 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
                   fontWeight: FontWeight.w700,
                 ),
               ),
-      ),
-    );
-  }
-
-  Widget _buildDayChip(String label, int offset) {
-    final isSelected = _selectedDayOffset == offset;
-
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (_) => setState(() => _selectedDayOffset = offset),
-      selectedColor: AppColors.primary,
-      checkmarkColor: Colors.white,
-      backgroundColor: const Color(0xFFF1F5F9),
-      labelStyle: GoogleFonts.plusJakartaSans(
-        fontSize: 12,
-        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-        color: isSelected ? Colors.white : AppColors.textPrimary,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(
-          color: isSelected ? AppColors.primary : Colors.transparent,
-        ),
       ),
     );
   }
