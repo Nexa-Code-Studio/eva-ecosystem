@@ -120,6 +120,17 @@ async def update_my_schedule_config(
     return await service.update_schedule_config(user.id, payload)
 
 
+@router.get("/me/timeline", response_model=CounselorTimelineResponse)
+async def get_my_counselor_timeline(
+    date: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    tz_offset_minutes: int = Query(default=420, ge=-720, le=840),
+    user: User = Depends(get_current_user),
+    service: SchedulingService = Depends(get_scheduling_service),
+) -> CounselorTimelineResponse:
+    """Get authenticated counselor daily timeline including breaks and booked patient details."""
+    return await service.get_my_counselor_timeline(user.id, date, tz_offset_minutes=tz_offset_minutes)
+
+
 @router.get("/me/level-metrics", response_model=CounselorLevelMetricsResponse)
 async def get_my_level_metrics(
     user: User = Depends(get_current_user),

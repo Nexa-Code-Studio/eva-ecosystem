@@ -9,6 +9,8 @@ import '../../../auth/domain/entities/psychologist_user_entity.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../finances/presentation/providers/finance_provider.dart';
 import '../../../patients/presentation/providers/patient_provider.dart';
+import '../../../profile/domain/entities/counselor_schedule_config_entity.dart';
+import '../../../profile/presentation/providers/counselor_level_metrics_provider.dart';
 import '../../../profile/presentation/screens/counselor_schedule_settings_screen.dart';
 import '../providers/counselor_nav_provider.dart';
 import '../providers/counselor_notification_provider.dart';
@@ -73,6 +75,78 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
     _selectedCalendarIndex = now.weekday - 1;
   }
 
+  String _formatIsoDate(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  String _shortMonthLabel(int month) {
+    const shortMonths = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+    ];
+    return shortMonths[(month - 1).clamp(0, 11)];
+  }
+
+  int _parseTimeToMinutes(String raw, {int fallback = 0}) {
+    final parts = raw.split(':');
+    if (parts.length != 2) return fallback;
+    final h = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    if (h == null || m == null) return fallback;
+    return h * 60 + m;
+  }
+
+  String _formatBookingStatus(String status) {
+    switch (status.toLowerCase()) {
+      case 'scheduled':
+      case 'confirmed':
+      case 'upcoming':
+        return 'Terjadwal';
+      case 'live':
+      case 'in_progress':
+        return 'Berlangsung';
+      case 'pending_payment':
+      case 'pending':
+        return 'Menunggu';
+      case 'completed':
+        return 'Selesai';
+      case 'cancelled':
+        return 'Dibatalkan';
+      case 'expired':
+        return 'Kedaluwarsa';
+      default:
+        return status;
+    }
+  }
+
+  Future<void> _openScheduleSettings() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const CounselorScheduleSettingsScreen(),
+      ),
+    );
+    if (!mounted) return;
+    ref.invalidate(counselorDailyTimelineProvider);
+    ref.invalidate(counselorScheduleConfigProvider);
+    await _checkPersistedSchedule();
+  }
+
+  bool _isWeekdayActive(PsychologistUserEntity? user, DateTime date, int weekdayIndex) {
+    final schedule = user?.scheduleConfig;
+    if (schedule == null || schedule.isEmpty) {
+      return weekdayIndex < 5;
+    }
+    final key = weekdayKeyFromDate(date);
+    final rawDay = schedule[key];
+    if (rawDay is Map) {
+      return rawDay['is_active'] != false;
+    }
+    return weekdayIndex < 5;
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
@@ -80,11 +154,24 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
     final patientsAsync = ref.watch(patientsListProvider);
     final patients = patientsAsync.value ?? [];
 
-    final selectedDayData = _calendarDays[_selectedCalendarIndex];
-    final isSelectedDayToday =
-        _selectedCalendarIndex == (DateTime.now().weekday - 1);
+    for (int i = 0; i < _calendarDays.length; i++) {
+      final date = _calendarDays[i]['fullDate'] as DateTime;
+      _calendarDays[i]['isOffDay'] = !_isWeekdayActive(user, date, i);
+    }
 
-    // Dynamically derive today's sessions from real patient data
+    final selectedDayData = _calendarDays[_selectedCalendarIndex];
+    final selectedDate = selectedDayData['fullDate'] as DateTime;
+    final selectedDateIso = _formatIsoDate(selectedDate);
+    final now = DateTime.now();
+    final isSelectedDayToday = selectedDate.year == now.year &&
+        selectedDate.month == now.month &&
+        selectedDate.day == now.day;
+
+    final timelineAsync =
+        ref.watch(counselorDailyTimelineProvider(selectedDateIso));
+    final timeline = timelineAsync.value;
+
+    // Dynamically derive fallback today's sessions from patient list
     final List<Map<String, dynamic>> realTodaySessions = [];
     for (final p in patients) {
       if (p.upcomingSchedule != null) {
@@ -96,7 +183,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                   : 'Terjadwal Hari Ini'),
           'patientName': '${p.name} (${p.age} Thn)',
           'chiefComplaint': p.chiefComplaint,
-          'status': '', // Hapus text 'siap dimulai live' agar rapi dan tidak penuh
+          'status': '',
           'isLive': true,
           'patientId': p.id,
           'sessionId': p.upcomingSchedule!.sessionId,
@@ -114,15 +201,46 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
       }
     }
 
-    final todayWeekdayIndex = DateTime.now().weekday - 1;
+    final todayWeekdayIndex = now.weekday - 1;
     if (todayWeekdayIndex >= 0 && todayWeekdayIndex < _calendarDays.length) {
-      _calendarDays[todayWeekdayIndex]['hasSession'] = realTodaySessions.isNotEmpty;
+      _calendarDays[todayWeekdayIndex]['hasSession'] =
+          realTodaySessions.isNotEmpty ||
+              (isSelectedDayToday && (timeline?.bookedSessions.isNotEmpty ?? false));
     }
 
-    final selectedSessions = isSelectedDayToday && realTodaySessions.isNotEmpty
-        ? realTodaySessions
-        : (selectedDayData['sessions'] as List<dynamic>? ?? []);
-    final isSelectedDayOff = selectedDayData['isOffDay'] == true;
+    final List<Map<String, dynamic>> selectedSessions;
+    if (timeline != null) {
+      selectedSessions = timeline.bookedSessions
+          .map((b) => {
+                'time': '${b.start} - ${b.end}',
+                'patientName': b.patientName,
+                'chiefComplaint':
+                    (b.complaints != null && b.complaints!.trim().isNotEmpty)
+                        ? b.complaints!.trim()
+                        : 'Sesi Konseling (${b.durationMinutes} Menit)',
+                'status': _formatBookingStatus(b.status),
+                'isLive': b.status == 'live' ||
+                    b.status == 'in_progress' ||
+                    (isSelectedDayToday &&
+                        (b.status == 'scheduled' || b.status == 'confirmed')),
+                'isHighRisk': false,
+                'patientId': b.patientId,
+                'sessionId': b.sessionId,
+              })
+          .toList();
+      selectedDayData['hasSession'] = selectedSessions.isNotEmpty;
+    } else if (isSelectedDayToday && realTodaySessions.isNotEmpty) {
+      selectedSessions = realTodaySessions;
+    } else {
+      selectedSessions =
+          (selectedDayData['sessions'] as List<dynamic>? ?? [])
+              .cast<Map<String, dynamic>>();
+    }
+
+    final isSelectedDayOnline = timeline?.isOnline ?? (user?.isOnline ?? true);
+    final isSelectedDayActive =
+        timeline?.isActive ?? (selectedDayData['isOffDay'] != true);
+    final isSelectedDayOff = !isSelectedDayOnline || !isSelectedDayActive;
 
     // Unread notifications count
     final unreadNotifs = ref.watch(unreadNotificationsCountProvider);
@@ -153,7 +271,14 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
           onRefresh: () async {
             ref.invalidate(patientsListProvider);
             ref.invalidate(financialSummaryProvider);
-            await ref.read(patientsListProvider.future);
+            ref.invalidate(counselorScheduleConfigProvider);
+            ref.invalidate(counselorDailyTimelineProvider(selectedDateIso));
+            await Future.wait([
+              ref.read(patientsListProvider.future),
+              ref
+                  .read(counselorDailyTimelineProvider(selectedDateIso).future)
+                  .catchError((_) => CounselorDailyTimelineEntity.empty(selectedDateIso)),
+            ]);
           },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -363,33 +488,54 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                     Container(
                       width: 8,
                       height: 8,
-                      decoration: const BoxDecoration(
-                        color: AppColors.verifiedGreen,
+                      decoration: BoxDecoration(
+                        color: (isSelectedDayOnline && isSelectedDayActive)
+                            ? AppColors.verifiedGreen
+                            : AppColors.highRiskRed,
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                        'Aktif • Istirahat ${user?.breakStartTime ?? '12:00'}-${user?.breakEndTime ?? '13:00'}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      child: Builder(
+                        builder: (context) {
+                          final breakRanges = timeline != null
+                              ? timeline.blockedRanges
+                                  .where((r) => r.type == 'break')
+                                  .map((r) => '${r.start}-${r.end}')
+                                  .toList()
+                              : (user?.todayBreaks
+                                      .map((b) =>
+                                          '${b['start'] ?? '12:00'}-${b['end'] ?? '13:00'}')
+                                      .toList() ??
+                                  const <String>[]);
+                          final String statusText;
+                          if (!isSelectedDayOnline) {
+                            statusText = 'Mode Cuti • Pemesanan Ditutup';
+                          } else if (!isSelectedDayActive) {
+                            statusText = 'Hari Libur Praktik (Offline)';
+                          } else if (breakRanges.isEmpty) {
+                            statusText = 'Aktif • Tanpa Jam Istirahat';
+                          } else {
+                            statusText =
+                                'Aktif • Istirahat ${breakRanges.join(', ')}';
+                          }
+                          return Text(
+                            statusText,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(width: 8),
                     InkWell(
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const CounselorScheduleSettingsScreen(),
-                          ),
-                        );
-                      },
+                      onTap: _openScheduleSettings,
                       child: const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                         child: Text(
@@ -406,7 +552,12 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              _buildDailyTimelineProgressBar(user),
+              _buildDailyTimelineProgressBar(
+                user: user,
+                timeline: timeline,
+                timelineAsync: timelineAsync,
+                selectedDateIso: selectedDateIso,
+              ),
               const SizedBox(height: 16),
 
               // 3. UPCOMING TELECONSULTATION HERO CARD (Hidden if no session scheduled today)
@@ -655,13 +806,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                                   'Atur Jadwal Sekarang',
                                   style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                                 ),
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => const CounselorScheduleSettingsScreen(),
-                                    ),
-                                  );
-                                },
+                                onPressed: _openScheduleSettings,
                               ),
                             ),
                           ],
@@ -739,13 +884,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                                   'Kelola Jam Praktik',
                                   style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
                                 ),
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => const CounselorScheduleSettingsScreen(),
-                                    ),
-                                  );
-                                },
+                                onPressed: _openScheduleSettings,
                               ),
                             ),
                           ],
@@ -910,11 +1049,15 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Sesi ${selectedDayData['day']}, ${selectedDayData['date']} Nov',
+                          'Sesi ${selectedDayData['day']}, ${selectedDayData['date']} ${_shortMonthLabel(selectedDate.month)}',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                         Text(
-                          isSelectedDayOff ? 'Libur Praktik' : '${selectedSessions.length} Agenda',
+                          !isSelectedDayOnline
+                              ? 'Mode Cuti'
+                              : (isSelectedDayOff
+                                  ? 'Libur Praktik'
+                                  : '${selectedSessions.length} Booking'),
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: isSelectedDayOff ? FontWeight.bold : FontWeight.normal,
@@ -924,8 +1067,55 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                       ],
                     ),
                     const SizedBox(height: 10),
+                    if (timelineAsync.isLoading && timeline == null) ...[
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Memuat jadwal & daftar booking...',
+                              style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else if (timelineAsync.hasError && timeline == null) ...[
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.highRiskBg,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline_rounded, size: 16, color: AppColors.highRiskRed),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Text(
+                                'Gagal memuat jadwal dari server.',
+                                style: TextStyle(fontSize: 11, color: AppColors.textPrimary),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => ref.invalidate(
+                                counselorDailyTimelineProvider(selectedDateIso),
+                              ),
+                              child: const Text('Coba Lagi', style: TextStyle(fontSize: 11)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     if (isSelectedDayOff) ...[
-                      // TAMPILAN JADWAL LIBUR (OFFLINE)
+                      // TAMPILAN JADWAL LIBUR / CUTI (OFFLINE)
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
@@ -933,20 +1123,22 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: AppColors.highRiskRed.withValues(alpha: 0.2)),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(Icons.event_busy_rounded, color: AppColors.highRiskRed, size: 24),
-                            SizedBox(width: 12),
+                            const Icon(Icons.event_busy_rounded, color: AppColors.highRiskRed, size: 24),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Hari Libur Praktik (Offline)',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.highRiskRed),
+                                    !isSelectedDayOnline
+                                        ? 'Mode Cuti Sementara Aktif (Offline)'
+                                        : 'Hari Libur Praktik (Offline)',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.highRiskRed),
                                   ),
-                                  SizedBox(height: 2),
-                                  Text(
+                                  const SizedBox(height: 2),
+                                  const Text(
                                     'Semua slot konsultasi ditutup pada hari ini. Pasien tidak dapat melakukan reservasi baru.',
                                     style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
                                   ),
@@ -1448,9 +1640,76 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
   );
 }
 
-  Widget _buildDailyTimelineProgressBar(PsychologistUserEntity? user) {
-    final breakStart = user?.breakStartTime ?? '12:00';
-    final breakEnd = user?.breakEndTime ?? '13:00';
+  Widget _buildDailyTimelineProgressBar({
+    required PsychologistUserEntity? user,
+    required CounselorDailyTimelineEntity? timeline,
+    required AsyncValue<CounselorDailyTimelineEntity> timelineAsync,
+    required String selectedDateIso,
+  }) {
+    final opHours = user?.todayScheduleConfig?['operating_hours'];
+    final fallbackStart =
+        opHours is Map ? (opHours['start'] as String? ?? '08:00') : '08:00';
+    final fallbackEnd =
+        opHours is Map ? (opHours['end'] as String? ?? '17:00') : '17:00';
+    final opStart = timeline?.operatingStart ?? fallbackStart;
+    final opEnd = timeline?.operatingEnd ?? fallbackEnd;
+    final isActive = timeline?.isActive ?? user?.isTodayPracticeActive ?? true;
+    final isOnline = timeline?.isOnline ?? user?.isOnline ?? true;
+
+    final startMinutes = _parseTimeToMinutes(opStart, fallback: 8 * 60);
+    final endMinutes = _parseTimeToMinutes(opEnd, fallback: 17 * 60);
+
+    final breakRanges = timeline != null
+        ? timeline.blockedRanges.where((r) => r.type == 'break').toList()
+        : (user?.todayBreaks ?? const <Map<String, String>>[])
+            .map((b) => CounselorBlockedRangeEntity(
+                  start: b['start'] ?? '12:00',
+                  end: b['end'] ?? '13:00',
+                  type: 'break',
+                  label: b['label'] ?? 'Istirahat',
+                ))
+            .toList();
+    final bookedRanges = timeline != null
+        ? timeline.blockedRanges.where((r) => r.type == 'booked').toList()
+        : const <CounselorBlockedRangeEntity>[];
+
+    final segments = <Map<String, dynamic>>[];
+    if (isOnline && isActive && endMinutes > startMinutes) {
+      final blocks = <Map<String, dynamic>>[
+        ...breakRanges.map((b) => {
+              'start': _parseTimeToMinutes(b.start, fallback: startMinutes),
+              'end': _parseTimeToMinutes(b.end, fallback: startMinutes),
+              'type': 'break',
+            }),
+        ...bookedRanges.map((b) => {
+              'start': _parseTimeToMinutes(b.start, fallback: startMinutes),
+              'end': _parseTimeToMinutes(b.end, fallback: startMinutes),
+              'type': 'booked',
+            }),
+      ]..sort((a, b) => (a['start'] as int).compareTo(b['start'] as int));
+
+      int cursor = startMinutes;
+      for (final block in blocks) {
+        final bStart = (block['start'] as int).clamp(startMinutes, endMinutes);
+        final bEnd = (block['end'] as int).clamp(startMinutes, endMinutes);
+        if (bStart > cursor) {
+          segments.add({'flex': bStart - cursor, 'type': 'available'});
+        }
+        if (bEnd > bStart && bEnd > cursor) {
+          final effectiveStart = bStart > cursor ? bStart : cursor;
+          segments.add({'flex': bEnd - effectiveStart, 'type': block['type']});
+          cursor = bEnd;
+        }
+      }
+      if (cursor < endMinutes) {
+        segments.add({'flex': endMinutes - cursor, 'type': 'available'});
+      }
+    }
+
+    final breakLabel = breakRanges.isEmpty
+        ? 'Tanpa Istirahat'
+        : breakRanges.map((b) => '${b.start}-${b.end}').join(', ');
+    final bookedCount = timeline?.bookedSessions.length ?? 0;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -1485,12 +1744,22 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryContainer,
+                  color: (isOnline && isActive)
+                      ? AppColors.primaryContainer
+                      : AppColors.highRiskBg,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text(
-                  '09:00 - 17:00 WIB',
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary),
+                child: Text(
+                  !isOnline
+                      ? 'Cuti (Offline)'
+                      : (!isActive ? 'Libur Praktik' : '$opStart - $opEnd WIB'),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: (isOnline && isActive)
+                        ? AppColors.primary
+                        : AppColors.highRiskRed,
+                  ),
                 ),
               ),
             ],
@@ -1500,41 +1769,29 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
             borderRadius: BorderRadius.circular(8),
             child: SizedBox(
               height: 14,
-              child: Row(
-                children: [
-                  // Selesai (1 session completed earlier)
-                  Expanded(
-                    flex: 2,
-                    child: Container(
-                      color: const Color(0xFF10B981),
+              child: (!isOnline || !isActive || segments.isEmpty)
+                  ? Container(
+                      color: (!isOnline || !isActive)
+                          ? AppColors.highRiskRed.withValues(alpha: 0.35)
+                          : const Color(0xFFE2E8F0),
+                    )
+                  : Row(
+                      children: [
+                        for (int i = 0; i < segments.length; i++) ...[
+                          if (i > 0) const SizedBox(width: 2),
+                          Expanded(
+                            flex: (segments[i]['flex'] as int).clamp(1, 1440),
+                            child: Container(
+                              color: segments[i]['type'] == 'booked'
+                                  ? const Color(0xFF2563EB)
+                                  : (segments[i]['type'] == 'break'
+                                      ? const Color(0xFFF59E0B)
+                                      : const Color(0xFF10B981).withValues(alpha: 0.72)),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 2),
-                  // Terjadwal Live / Upcoming
-                  Expanded(
-                    flex: 2,
-                    child: Container(
-                      color: const Color(0xFF2563EB),
-                    ),
-                  ),
-                  const SizedBox(width: 2),
-                  // Jam Istirahat Terjadwal
-                  Expanded(
-                    flex: 2,
-                    child: Container(
-                      color: const Color(0xFFF59E0B),
-                    ),
-                  ),
-                  const SizedBox(width: 2),
-                  // Slot Tersedia (Available)
-                  Expanded(
-                    flex: 6,
-                    child: Container(
-                      color: const Color(0xFFE2E8F0),
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
           const SizedBox(height: 10),
@@ -1543,12 +1800,23 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
             spacing: 12,
             runSpacing: 6,
             children: [
-              _buildLegendDot(const Color(0xFF10B981), 'Selesai'),
-              _buildLegendDot(const Color(0xFF2563EB), 'Terjadwal'),
-              _buildLegendDot(const Color(0xFFF59E0B), 'Istirahat ($breakStart-$breakEnd)'),
-              _buildLegendDot(const Color(0xFF94A3B8), 'Tersedia'),
+              _buildLegendDot(const Color(0xFF2563EB), 'Terbooking ($bookedCount)'),
+              _buildLegendDot(const Color(0xFFF59E0B), 'Istirahat ($breakLabel)'),
+              _buildLegendDot(const Color(0xFF10B981), 'Tersedia'),
             ],
           ),
+          if (timelineAsync.hasError && timeline == null) ...[
+            const SizedBox(height: 6),
+            GestureDetector(
+              onTap: () => ref.invalidate(
+                counselorDailyTimelineProvider(selectedDateIso),
+              ),
+              child: const Text(
+                'Gagal menyinkronkan timeline. Ketuk untuk coba lagi.',
+                style: TextStyle(fontSize: 10, color: AppColors.highRiskRed),
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -1,12 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/config/app_config.dart';
+import '../../data/datasources/counselor_profile_mock_data_source.dart';
 import '../../data/datasources/counselor_profile_remote_data_source.dart';
 import '../../data/repositories/counselor_profile_repository.dart';
 import '../../domain/entities/counselor_level_metrics_entity.dart';
 import '../../domain/entities/counselor_review_entity.dart';
+import '../../domain/entities/counselor_schedule_config_entity.dart';
+
+final _sharedMockCounselorProfileDataSource = CounselorProfileMockDataSource();
 
 final counselorProfileDataSourceProvider =
     Provider<ICounselorProfileDataSource>((ref) {
-  // Live server remote connection directly without mock data
+  if (AppConfig.useMockData) {
+    return _sharedMockCounselorProfileDataSource;
+  }
   return CounselorProfileRemoteDataSource();
 });
 
@@ -54,4 +61,17 @@ final counselorReviewsProvider = FutureProvider.autoDispose
     .family<CounselorReviewsListEntity, String?>((ref, counselorId) async {
   final repo = ref.watch(counselorProfileRepositoryProvider);
   return await repo.getReviews(counselorId: counselorId);
+});
+
+final counselorScheduleConfigProvider =
+    FutureProvider.autoDispose<CounselorScheduleConfigEntity>((ref) async {
+  final repo = ref.watch(counselorProfileRepositoryProvider);
+  return await repo.getScheduleConfig();
+});
+
+final counselorDailyTimelineProvider = FutureProvider.autoDispose
+    .family<CounselorDailyTimelineEntity, String>((ref, dateIso) async {
+  final repo = ref.watch(counselorProfileRepositoryProvider);
+  final parsedDate = DateTime.tryParse(dateIso) ?? DateTime.now();
+  return await repo.getMyDailyTimeline(parsedDate);
 });

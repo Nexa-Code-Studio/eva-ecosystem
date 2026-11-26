@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import case, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.security import hash_password
 from app.models.counselor import PlatformPricingConfig, PsychologistProfile
@@ -638,9 +639,11 @@ class CounselorService:
             )
 
         serialized_config = {
-            day: item.model_dump() for day, item in payload.schedule_config.items()
+            day.strip().lower(): item.model_dump()
+            for day, item in payload.schedule_config.items()
         }
-        profile.schedule_config = serialized_config
+        profile.schedule_config = dict(serialized_config)
+        flag_modified(profile, "schedule_config")
         if payload.buffer_time_minutes is not None:
             profile.buffer_time_minutes = payload.buffer_time_minutes
 

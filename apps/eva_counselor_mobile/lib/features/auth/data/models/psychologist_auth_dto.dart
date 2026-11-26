@@ -157,6 +157,8 @@ class PsychologistProfileResponseDto {
   final String bankName;
   final String bankAccountNumber;
   final String bankAccountHolder;
+  final Map<String, dynamic> scheduleConfig;
+  final int bufferTimeMinutes;
 
   String? get strDocFileName => strDocUrl;
   String? get sipDocFileName => sipDocUrl;
@@ -212,6 +214,8 @@ class PsychologistProfileResponseDto {
     this.bankName = '',
     this.bankAccountNumber = '',
     this.bankAccountHolder = '',
+    this.scheduleConfig = const {},
+    this.bufferTimeMinutes = 10,
   })  : strDocUrl = strDocUrl ?? strDocFileName,
         sipDocUrl = sipDocUrl ?? sipDocFileName;
 
@@ -280,6 +284,10 @@ class PsychologistProfileResponseDto {
       bankName: json['bank_name']?.toString() ?? '',
       bankAccountNumber: json['bank_account_number']?.toString() ?? '',
       bankAccountHolder: json['bank_account_holder']?.toString() ?? '',
+      scheduleConfig: (json['schedule_config'] is Map<String, dynamic>)
+          ? Map<String, dynamic>.from(json['schedule_config'] as Map<String, dynamic>)
+          : const {},
+      bufferTimeMinutes: (json['buffer_time_minutes'] as num?)?.toInt() ?? 10,
     );
   }
 
@@ -334,6 +342,8 @@ class PsychologistProfileResponseDto {
         'bank_name': bankName,
         'bank_account_number': bankAccountNumber,
         'bank_account_holder': bankAccountHolder,
+        'schedule_config': scheduleConfig,
+        'buffer_time_minutes': bufferTimeMinutes,
       };
 
   PsychologistProfileResponseDto copyWith({
@@ -379,6 +389,8 @@ class PsychologistProfileResponseDto {
     String? bankName,
     String? bankAccountNumber,
     String? bankAccountHolder,
+    Map<String, dynamic>? scheduleConfig,
+    int? bufferTimeMinutes,
   }) {
     return PsychologistProfileResponseDto(
       id: id ?? this.id,
@@ -429,6 +441,8 @@ class PsychologistProfileResponseDto {
       bankName: bankName ?? this.bankName,
       bankAccountNumber: bankAccountNumber ?? this.bankAccountNumber,
       bankAccountHolder: bankAccountHolder ?? this.bankAccountHolder,
+      scheduleConfig: scheduleConfig ?? this.scheduleConfig,
+      bufferTimeMinutes: bufferTimeMinutes ?? this.bufferTimeMinutes,
     );
   }
 
@@ -465,6 +479,28 @@ class PsychologistProfileResponseDto {
       default:
         roleEnum = CounselorRole.professionalIndependent;
         break;
+    }
+
+    const weekdayKeys = [
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+      'sunday',
+    ];
+    final todayKey = weekdayKeys[(DateTime.now().weekday - 1).clamp(0, 6)];
+    final todayCfg = scheduleConfig[todayKey];
+    String derivedBreakStart = '12:00';
+    String derivedBreakEnd = '13:00';
+    if (todayCfg is Map<String, dynamic>) {
+      final breaks = todayCfg['breaks'] as List<dynamic>? ?? const [];
+      if (breaks.isNotEmpty && breaks.first is Map<String, dynamic>) {
+        final firstBreak = breaks.first as Map<String, dynamic>;
+        derivedBreakStart = firstBreak['start']?.toString() ?? derivedBreakStart;
+        derivedBreakEnd = firstBreak['end']?.toString() ?? derivedBreakEnd;
+      }
     }
 
     return PsychologistUserEntity(
@@ -515,7 +551,13 @@ class PsychologistProfileResponseDto {
       bankName: bankName,
       bankAccountNumber: bankAccountNumber,
       bankAccountHolder: bankAccountHolder,
-      isScheduleConfigured: isOnlinePracticeEnabled || (offlineScheduleDays.isNotEmpty),
+      breakStartTime: derivedBreakStart,
+      breakEndTime: derivedBreakEnd,
+      scheduleConfig: scheduleConfig,
+      bufferTimeMinutes: bufferTimeMinutes,
+      isScheduleConfigured: isOnlinePracticeEnabled ||
+          offlineScheduleDays.isNotEmpty ||
+          scheduleConfig.isNotEmpty,
     );
   }
 }
