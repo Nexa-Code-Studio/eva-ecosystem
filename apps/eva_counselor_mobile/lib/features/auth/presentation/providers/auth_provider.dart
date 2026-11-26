@@ -241,6 +241,59 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
     return newCount;
   }
 
+  Future<void> applyScheduleConfig({
+    required Map<String, dynamic> scheduleConfig,
+    required int bufferTimeMinutes,
+    required bool isOnline,
+  }) async {
+    final current = state.value;
+    if (current == null) return;
+
+    const weekdayKeys = [
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+      'sunday',
+    ];
+    final todayKey = weekdayKeys[(DateTime.now().weekday - 1).clamp(0, 6)];
+    final todayCfg = scheduleConfig[todayKey];
+    String breakStart = current.breakStartTime;
+    String breakEnd = current.breakEndTime;
+    if (todayCfg is Map<String, dynamic>) {
+      final breaks = todayCfg['breaks'] as List<dynamic>? ?? const [];
+      if (breaks.isNotEmpty && breaks.first is Map<String, dynamic>) {
+        final first = breaks.first as Map<String, dynamic>;
+        breakStart = first['start']?.toString() ?? breakStart;
+        breakEnd = first['end']?.toString() ?? breakEnd;
+      } else {
+        breakStart = '';
+        breakEnd = '';
+      }
+    }
+
+    final shouldUpdateOnline = current.isOnline != isOnline;
+    state = AsyncValue.data(current.copyWith(
+      scheduleConfig: Map<String, dynamic>.from(scheduleConfig),
+      bufferTimeMinutes: bufferTimeMinutes,
+      isOnline: isOnline,
+      isOnlinePracticeEnabled: true,
+      isScheduleConfigured: true,
+      breakStartTime: breakStart,
+      breakEndTime: breakEnd,
+    ));
+
+    if (shouldUpdateOnline) {
+      try {
+        await _repository.setOnlineAvailability(isOnline);
+      } catch (_) {
+        // Keep optimistic state if availability toggle network call fails
+      }
+    }
+  }
+
   void updateSessionSettings({
     required int sessionDurationMinutes,
     required int coinsPerSession,

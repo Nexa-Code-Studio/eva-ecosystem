@@ -149,13 +149,28 @@ class TimeRangeItem(BaseModel):
     end: str
 
 
+class CounselorTimelineBookedSessionItem(BaseModel):
+    session_id: str
+    session_code: str
+    patient_id: str
+    patient_name: str
+    start: str
+    end: str
+    duration_minutes: int
+    status: str
+    complaints: str | None = None
+
+
 class CounselorTimelineResponse(BaseModel):
     counselor_id: str
     date: str
+    is_active: bool = True
+    is_online: bool = True
     operating_hours: OperatingHoursItem
     buffer_time_minutes: int
     blocked_ranges: list[BlockedRangeItem] = []
     available_windows: list[TimeRangeItem] = []
+    booked_sessions: list[CounselorTimelineBookedSessionItem] = []
 
 
 class NextLevelTargetResponse(BaseModel):

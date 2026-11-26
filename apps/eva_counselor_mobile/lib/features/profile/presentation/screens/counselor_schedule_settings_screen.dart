@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/config/app_config.dart';
-import '../../../../core/network/api_client.dart';
-import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/storage/schedule_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/top_toast.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../domain/entities/counselor_schedule_config_entity.dart';
+import '../providers/counselor_level_metrics_provider.dart';
 import '../widgets/counselor_duration_buffer_modal.dart';
 
 class DayBreakItemModel {
@@ -89,6 +88,8 @@ class _CounselorScheduleSettingsScreenState
   static const int _sessionDuration = 30; // Durasi Paten Eva: 30 Menit
   late int _bufferTime;
   bool _isVacationMode = false;
+  bool _isLoadingRemote = false;
+  String? _loadErrorMessage;
   bool _isSaving = false;
 
   @override
@@ -181,6 +182,94 @@ class _CounselorScheduleSettingsScreenState
         breaks: [],
       ),
     ];
+
+    _applyAuthDefaults();
+    Future.microtask(_loadRemoteScheduleConfig);
+  }
+
+  void _applyAuthDefaults() {
+    final user = ref.read(authStateProvider).value;
+    if (user == null) return;
+    _isVacationMode = !user.isOnline;
+    _bufferTime = user.bufferTimeMinutes;
+    final rawSchedule = user.scheduleConfig;
+    if (rawSchedule.isNotEmpty) {
+      final parsed = CounselorScheduleConfigEntity.fromJson({
+        'counselor_id': user.id,
+        'buffer_time_minutes': user.bufferTimeMinutes,
+        'schedule_config': rawSchedule,
+      });
+      _applyScheduleEntity(parsed);
+    }
+  }
+
+  void _applyScheduleEntity(CounselorScheduleConfigEntity config) {
+    _bufferTime = config.bufferTimeMinutes;
+    for (int i = 0; i < _dayKeys.length; i++) {
+      final dayEntity = config.days[_dayKeys[i]];
+      if (dayEntity == null) continue;
+      _days[i] = DayConfigModel(
+        isActive: dayEntity.isActive,
+        openTime: parseScheduleTimeOfDay(dayEntity.startTime),
+        closeTime: parseScheduleTimeOfDay(
+          dayEntity.endTime,
+          fallback: const TimeOfDay(hour: 17, minute: 0),
+        ),
+        breaks: dayEntity.breaks
+            .map(
+              (b) => DayBreakItemModel(
+                start: parseScheduleTimeOfDay(
+                  b.start,
+                  fallback: const TimeOfDay(hour: 12, minute: 0),
+                ),
+                end: parseScheduleTimeOfDay(
+                  b.end,
+                  fallback: const TimeOfDay(hour: 13, minute: 0),
+                ),
+                label: b.label,
+              ),
+            )
+            .toList(),
+      );
+    }
+  }
+
+  Future<void> _loadRemoteScheduleConfig() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingRemote = true;
+      _loadErrorMessage = null;
+    });
+
+    try {
+      final config =
+          await ref.read(counselorProfileRepositoryProvider).getScheduleConfig();
+      if (!mounted) return;
+      final user = ref.read(authStateProvider).value;
+      setState(() {
+        _applyScheduleEntity(config);
+        if (user != null) {
+          _isVacationMode = !user.isOnline;
+        }
+        _isLoadingRemote = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingRemote = false;
+        _loadErrorMessage = _extractErrorMessage(e);
+      });
+    }
+  }
+
+  int _toMinutes(TimeOfDay t) => t.hour * 60 + t.minute;
+
+  String _extractErrorMessage(Object error) {
+    final raw = error.toString().replaceFirst('Exception: ', '').trim();
+    if (raw.isEmpty) {
+      return 'Terjadi kesalahan saat menyinkronkan jadwal dengan server.';
+    }
+    return raw;
   }
 
   String _formatTime(TimeOfDay t) {
@@ -207,7 +296,34 @@ class _CounselorScheduleSettingsScreenState
     });
   }
 
+  String? _validateDays() {
+    for (int i = 0; i < _days.length; i++) {
+      final day = _days[i];
+      if (!day.isActive) continue;
+      if (_toMinutes(day.openTime) >= _toMinutes(day.closeTime)) {
+        return 'Jam tutup (${_formatTime(day.closeTime)}) harus lebih akhir dari jam buka (${_formatTime(day.openTime)}) pada hari ${_dayLabels[i]}.';
+      }
+      for (final br in day.breaks) {
+        if (_toMinutes(br.start) >= _toMinutes(br.end)) {
+          return 'Jam selesai istirahat (${_formatTime(br.end)}) harus lebih akhir dari jam mulai (${_formatTime(br.start)}) pada hari ${_dayLabels[i]}.';
+        }
+      }
+    }
+    return null;
+  }
+
   Future<void> _handleSave() async {
+    final validationError = _validateDays();
+    if (validationError != null) {
+      TopToast.show(
+        context,
+        title: 'Pengaturan Jam Tidak Valid',
+        message: validationError,
+        type: ToastType.error,
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     final scheduleConfigMap = <String, dynamic>{};
@@ -216,45 +332,52 @@ class _CounselorScheduleSettingsScreenState
     }
 
     try {
-      if (!AppConfig.useMockData) {
-        await ApiClient().put(
-          ApiEndpoints.scheduleConfig,
-          body: {
-            'schedule_config': scheduleConfigMap,
-            'buffer_time_minutes': _bufferTime,
-          },
-        );
+      final repo = ref.read(counselorProfileRepositoryProvider);
+      final savedConfig = await repo.updateScheduleConfig(
+        scheduleConfig: scheduleConfigMap,
+        bufferTimeMinutes: _bufferTime,
+      );
+
+      final previousIsOnline = ref.read(authStateProvider).value?.isOnline ?? true;
+      final desiredIsOnline = !_isVacationMode;
+      if (previousIsOnline != desiredIsOnline) {
+        await ref
+            .read(authStateProvider.notifier)
+            .updateAvailability(desiredIsOnline);
       }
+
+      await ref.read(authStateProvider.notifier).applyScheduleConfig(
+            scheduleConfig: savedConfig.toScheduleConfigMap(),
+            bufferTimeMinutes: savedConfig.bufferTimeMinutes,
+            isOnline: desiredIsOnline,
+          );
+
+      ref.invalidate(counselorScheduleConfigProvider);
+      ref.invalidate(counselorDailyTimelineProvider);
+      await ScheduleStorage.markConfigured();
     } catch (e) {
-      debugPrint('Failed to save schedule_config remotely: $e');
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      TopToast.show(
+        context,
+        title: 'Gagal Menyimpan Jadwal',
+        message: _extractErrorMessage(e),
+        type: ToastType.error,
+      );
+      return;
     }
-
-    ScheduleStorage.markConfigured();
-
-    final curBreaks = _days[_selectedDayIndex].breaks;
-    final bStart = curBreaks.isNotEmpty ? _formatTime(curBreaks.first.start) : '12:00';
-    final bEnd = curBreaks.isNotEmpty ? _formatTime(curBreaks.first.end) : '13:00';
-
-    ref.read(authStateProvider.notifier).updateSessionSettings(
-          sessionDurationMinutes: _sessionDuration,
-          coinsPerSession: 0,
-          breakStartTime: bStart,
-          breakEndTime: bEnd,
-        );
-
-    ref.read(authStateProvider.notifier).updateAvailability(!_isVacationMode);
 
     if (!mounted) return;
     setState(() => _isSaving = false);
 
     TopToast.show(
       context,
-      title: 'Jadwal Praktik Berhasil Disimpan! 📅',
+      title: 'Jadwal Praktik Berhasil Disimpan!',
       message:
           'Pengaturan multi-istirahat dan jam operasional harian berhasil diperbarui di server.',
       type: ToastType.success,
     );
-    Navigator.pop(context);
+    Navigator.pop(context, true);
   }
 
   Widget _buildSectionTitle(String title, IconData icon) {
@@ -308,6 +431,56 @@ class _CounselorScheduleSettingsScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (_isLoadingRemote) ...[
+                const ClipRRect(
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                  child: LinearProgressIndicator(minHeight: 3),
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (_loadErrorMessage != null) ...[
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.highRiskBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.highRiskRed.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.cloud_off_rounded,
+                        color: AppColors.highRiskRed,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Gagal memuat jadwal dari server: $_loadErrorMessage',
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _isLoadingRemote ? null : _loadRemoteScheduleConfig,
+                        child: const Text(
+                          'Muat Ulang',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               // 1. INFO STANDAR TELEKONSELING
               Container(
                 width: double.infinity,
