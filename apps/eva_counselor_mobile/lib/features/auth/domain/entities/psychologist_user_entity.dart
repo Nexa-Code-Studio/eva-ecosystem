@@ -72,6 +72,10 @@ class PsychologistUserEntity {
   final String bankAccountNumber;
   final String bankAccountHolder;
 
+  // Weekly schedule config synced from backend
+  final Map<String, dynamic> scheduleConfig;
+  final int bufferTimeMinutes;
+
   const PsychologistUserEntity({
     required this.id,
     required this.fullName,
@@ -125,7 +129,60 @@ class PsychologistUserEntity {
     this.bankAccountNumber = '',
     this.bankAccountHolder = '',
     this.isScheduleConfigured = false,
+    this.scheduleConfig = const {},
+    this.bufferTimeMinutes = 10,
   });
+
+  static const List<String> _weekdayKeys = [
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+    'sunday',
+  ];
+
+  String get todayWeekdayKey => _weekdayKeys[(DateTime.now().weekday - 1).clamp(0, 6)];
+
+  Map<String, dynamic>? get todayScheduleConfig {
+    final raw = scheduleConfig[todayWeekdayKey];
+    return raw is Map<String, dynamic> ? raw : null;
+  }
+
+  bool get isTodayPracticeActive {
+    final day = todayScheduleConfig;
+    if (day == null) return true;
+    return day['is_active'] as bool? ?? true;
+  }
+
+  String get todayOperatingHoursLabel {
+    final day = todayScheduleConfig;
+    if (day == null) return '08:00 - 17:00 WIB';
+    if (!(day['is_active'] as bool? ?? true)) return 'Libur';
+    final op = day['operating_hours'] as Map<String, dynamic>? ?? const {};
+    final start = op['start']?.toString() ?? '08:00';
+    final end = op['end']?.toString() ?? '17:00';
+    return '$start - $end WIB';
+  }
+
+  List<Map<String, String>> get todayBreaks {
+    final day = todayScheduleConfig;
+    if (day == null) {
+      return [
+        {'start': breakStartTime, 'end': breakEndTime, 'label': 'Istirahat'},
+      ];
+    }
+    final rawBreaks = day['breaks'] as List<dynamic>? ?? const [];
+    return rawBreaks
+        .whereType<Map<String, dynamic>>()
+        .map((b) => {
+              'start': b['start']?.toString() ?? '12:00',
+              'end': b['end']?.toString() ?? '13:00',
+              'label': b['label']?.toString() ?? 'Istirahat',
+            })
+        .toList();
+  }
 
   String get effectiveGoogleDriveEmail =>
       (googleDriveEmail != null && googleDriveEmail!.isNotEmpty)
@@ -198,6 +255,8 @@ class PsychologistUserEntity {
     String? bankAccountNumber,
     String? bankAccountHolder,
     bool? isScheduleConfigured,
+    Map<String, dynamic>? scheduleConfig,
+    int? bufferTimeMinutes,
   }) {
     return PsychologistUserEntity(
       id: id ?? this.id,
@@ -260,6 +319,8 @@ class PsychologistUserEntity {
       bankAccountNumber: bankAccountNumber ?? this.bankAccountNumber,
       bankAccountHolder: bankAccountHolder ?? this.bankAccountHolder,
       isScheduleConfigured: isScheduleConfigured ?? this.isScheduleConfigured,
+      scheduleConfig: scheduleConfig ?? this.scheduleConfig,
+      bufferTimeMinutes: bufferTimeMinutes ?? this.bufferTimeMinutes,
     );
   }
 }

@@ -9,6 +9,8 @@ class ApiEndpoints {
   static const String availability = '/counselors/me/availability';
   static const String bankDetails = '/counselors/me/bank-details';
   static const String scheduleConfig = '/counselors/me/schedule-config';
+  static String myTimeline(String date, {int? tzOffsetMinutes}) =>
+      '/counselors/me/timeline?date=$date${tzOffsetMinutes != null ? '&tz_offset_minutes=$tzOffsetMinutes' : ''}';
   static String counselorTimeline(String id, String date) =>
       '/counselors/$id/timeline?date=$date';
   static String patientTriggers(String id) => '/patients/$id/clinical-triggers';

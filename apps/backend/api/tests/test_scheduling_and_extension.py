@@ -232,5 +232,141 @@ class TestPatientConsentAndSoapNotes(unittest.TestCase):
         self.assertIn("sleep hygiene", soap.plan)
 
 
+class TestCounselorScheduleSyncAndTimelinePrivacy(unittest.IsolatedAsyncioTestCase):
+    async def test_get_counselor_timeline_preserves_explicit_empty_breaks(self):
+        counselor_id = uuid.uuid4()
+        target_date = "2026-11-20"  # Friday
+        profile = PsychologistProfile(
+            id=counselor_id,
+            user_id=uuid.uuid4(),
+            full_name="Dr. Schedule Tester",
+            specializations=[],
+            is_online=True,
+            buffer_time_minutes=15,
+            schedule_config={
+                "friday": {
+                    "is_active": True,
+                    "operating_hours": {"start": "10:00", "end": "16:00"},
+                    "breaks": [],
+                }
+            },
+        )
+
+        class _FakeResult:
+            def __init__(self, scalar_val=None, scalars_list=None):
+                self._scalar_val = scalar_val
+                self._scalars_list = scalars_list or []
+
+            def scalar_one_or_none(self):
+                return self._scalar_val
+
+            def scalars(self):
+                return self
+
+            def all(self):
+                return self._scalars_list
+
+        class _FakeDb:
+            def __init__(self):
+                self.calls = 0
+
+            async def execute(self, stmt):
+                self.calls += 1
+                if self.calls == 1:
+                    return _FakeResult(scalar_val=profile)
+                return _FakeResult(scalars_list=[])
+
+        timeline = await SchedulingService(_FakeDb()).get_counselor_timeline(
+            counselor_id, target_date, tz_offset_minutes=0
+        )
+        self.assertEqual(timeline.operating_hours.start, "10:00")
+        self.assertEqual(timeline.operating_hours.end, "16:00")
+        self.assertTrue(timeline.is_active)
+        self.assertTrue(timeline.is_online)
+        self.assertEqual(timeline.blocked_ranges, [])
+        self.assertEqual(timeline.booked_sessions, [])
+
+    async def test_my_timeline_includes_booked_patient_details_while_public_hides_them(self):
+        from app.models.user import User
+
+        counselor_id = uuid.uuid4()
+        counselor_user_id = uuid.uuid4()
+        patient_id = uuid.uuid4()
+        session_id = uuid.uuid4()
+        target_date = "2026-11-23"  # Monday
+
+        profile = PsychologistProfile(
+            id=counselor_id,
+            user_id=counselor_user_id,
+            full_name="Dr. Maya Putri",
+            specializations=[],
+            is_online=True,
+            buffer_time_minutes=10,
+            schedule_config={
+                "monday": {
+                    "is_active": True,
+                    "operating_hours": {"start": "09:00", "end": "17:00"},
+                    "breaks": [{"start": "12:00", "end": "13:00", "label": "Istirahat Siang"}],
+                }
+            },
+        )
+        patient_user = User(
+            id=patient_id,
+            email="rina@example.com",
+            display_name="Rina Kartika",
+            is_verified=True,
+        )
+        session = ConsultationSession(
+            id=session_id,
+            session_code="EVA-BOOK-001",
+            counselor_id=counselor_id,
+            patient_id=patient_id,
+            scheduled_start_time=datetime(2026, 11, 23, 9, 0, tzinfo=UTC),
+            scheduled_end_time=datetime(2026, 11, 23, 9, 30, tzinfo=UTC),
+            duration_minutes=30,
+            status=ConsultationSessionStatus.SCHEDULED,
+            soap_notes={"subjective": "Susah tidur seminggu terakhir"},
+            total_price=Decimal("100000"),
+            platform_fee=Decimal("20000"),
+            counselor_earning=Decimal("80000"),
+        )
+        session.patient = patient_user
+
+        class _FakeResult:
+            def __init__(self, scalar_val=None, scalars_list=None):
+                self._scalar_val = scalar_val
+                self._scalars_list = scalars_list or []
+
+            def scalar_one_or_none(self):
+                return self._scalar_val
+
+            def scalars(self):
+                return self
+
+            def all(self):
+                return self._scalars_list
+
+        class _FakeDb:
+            async def execute(self, stmt):
+                if "consultation_sessions" in str(stmt):
+                    return _FakeResult(scalars_list=[session])
+                return _FakeResult(scalar_val=profile)
+
+        my_timeline = await SchedulingService(_FakeDb()).get_my_counselor_timeline(
+            counselor_user_id, target_date, tz_offset_minutes=0
+        )
+        self.assertEqual(len(my_timeline.booked_sessions), 1)
+        self.assertEqual(my_timeline.booked_sessions[0].patient_name, "Rina Kartika")
+        self.assertEqual(my_timeline.booked_sessions[0].start, "09:00")
+        self.assertEqual(my_timeline.booked_sessions[0].end, "09:30")
+        self.assertEqual(my_timeline.booked_sessions[0].complaints, "Susah tidur seminggu terakhir")
+
+        public_timeline = await SchedulingService(_FakeDb()).get_counselor_timeline(
+            counselor_id, target_date, tz_offset_minutes=0
+        )
+        self.assertEqual(public_timeline.booked_sessions, [])
+        self.assertTrue(any(r.type == "booked" and r.start == "09:00" for r in public_timeline.blocked_ranges))
+
+
 if __name__ == "__main__":
     unittest.main()

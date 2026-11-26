@@ -212,6 +212,13 @@ class _TestAuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEn
   }) {}
 
   @override
+  Future<void> applyScheduleConfig({
+    required Map<String, dynamic> scheduleConfig,
+    required int bufferTimeMinutes,
+    required bool isOnline,
+  }) async {}
+
+  @override
   void upgradeToProfessional({
     required String strNumber,
     required String association,
