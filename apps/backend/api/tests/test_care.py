@@ -329,7 +329,9 @@ async def test_care_sessions_and_public_reviews_live_integration(consultation_fi
         assert reviews[0]["highlight_label"] == "Sangat Terstruktur"
 
         # 6. GET /counselors returns real-time availability summary & supports filters/sort
-        directory_res = await client.get("/api/v1/counselors?sort_by=rating")
+        directory_res = await client.get(
+            "/api/v1/counselors?limit=100&sort_by=rating&search=Sarah%20Video%20Test"
+        )
         assert directory_res.status_code == 200
         directory_items = directory_res.json()
         assert any(item["id"] == counselor_id for item in directory_items)

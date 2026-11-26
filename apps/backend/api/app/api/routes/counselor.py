@@ -124,10 +124,7 @@ async def update_my_schedule_config(
 async def list_verified_counselors(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
-    availability: str | None = Query(
-        default=None,
-        pattern=r"^(all|available_now|available_today|available_tomorrow)$",
-    ),
+    availability: str | None = Query(default=None, pattern=r"^(all|available_now|available_today|available_tomorrow)$"),
     level_tier: int | None = Query(default=None, ge=1, le=99),
     sort_by: str | None = Query(default=None, pattern=r"^(default|rating|experience)$"),
     search: str | None = Query(default=None),
@@ -135,15 +132,7 @@ async def list_verified_counselors(
     service: CounselorService = Depends(get_counselor_service),
 ) -> list[PsychologistPublicResponse]:
     """Public directory of active, verified psychologists with real-time availability, level, and rating filters."""
-    return await service.list_verified_counselors(
-        limit=limit,
-        offset=offset,
-        availability=availability,
-        level_tier=level_tier,
-        sort_by=sort_by,
-        search=search,
-        tz_offset_minutes=tz_offset_minutes,
-    )
+    return await service.list_verified_counselors(limit=limit, offset=offset, availability=availability, level_tier=level_tier, sort_by=sort_by, search=search, tz_offset_minutes=tz_offset_minutes)
 
 
 @router.get("/levels", response_model=list[PsychologistLevelResponse])
