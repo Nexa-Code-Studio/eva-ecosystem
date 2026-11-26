@@ -124,6 +124,29 @@ services:
     networks:
       - eva_network
 
+  emotion_service:
+    profiles: ["emotion"]
+    build:
+      context: .
+      dockerfile: apps/backend/emotion_service/Dockerfile
+    container_name: eva_emotion_service
+    ports:
+      - "8890:8890"
+    environment:
+      - APP_ENV=development
+      - PORT=8890
+      - EMOTION_ENGINE_BACKEND=${EMOTION_ENGINE_BACKEND:-mock}
+      - EMOTION_SERVICE_AUTH_MODE=${EMOTION_SERVICE_AUTH_MODE:-none}
+      - ORT_INTRA_OP_THREADS=2
+      - ORT_INTER_OP_THREADS=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8890/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - eva_network
+
 networks:
   eva_network:
     driver: bridge

@@ -15,6 +15,7 @@ async def websocket_call_endpoint(
     session_id: str,
     token: str | None = None,
     voice_mode: str | None = None,
+    privacy_mode: str | None = None,
 ) -> None:
     """Bi-directional WebSocket endpoint for AI Phone Call sessions."""
     await call_session_manager.handle_connection(
@@ -22,4 +23,5 @@ async def websocket_call_endpoint(
         session_id=session_id,
         token=token,
         voice_mode=voice_mode,
+        privacy_mode=privacy_mode,
     )
