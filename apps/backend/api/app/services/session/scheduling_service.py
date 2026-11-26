@@ -285,20 +285,17 @@ class SchedulingService:
             session_id=session.id,
         )
 
-        # 6. Record Initial Counselor Earning Transaction
+        # 6. Record Initial Counselor Earning Transaction (held in pending_clearing until completion)
         transaction = CounselorTransaction(
             counselor_id=counselor.id,
             session_id=session.id,
             transaction_type=TransactionType.EARNING.value,
-            status=TransactionStatus.COMPLETED.value,
+            status=TransactionStatus.PENDING.value,
             amount=counselor_share,
             description=f"Honorarium telekonsultasi {duration_minutes} menit ({session_count} sesi: {session_code})",
             reference_number=f"TX-{uuid.uuid4().hex[:10].upper()}",
         )
         self.db.add(transaction)
-
-        # Update counselor balance
-        counselor.wallet_balance += counselor_share
 
         await self.db.commit()
         await self.db.refresh(session)
@@ -530,24 +527,17 @@ class SchedulingService:
             session_id=session.id,
         )
 
-        # Record extension transaction
+        # Record extension transaction (held in pending_clearing until session completion)
         tx = CounselorTransaction(
             counselor_id=session.counselor_id,
             session_id=session.id,
             transaction_type=TransactionType.EARNING.value,
-            status=TransactionStatus.COMPLETED.value,
+            status=TransactionStatus.PENDING.value,
             amount=ext_counselor,
             description=f"Honorarium perpanjangan sesi +30 menit (Sesi: {session.session_code})",
             reference_number=f"TX-EXT-{uuid.uuid4().hex[:10].upper()}",
         )
         self.db.add(tx)
-
-        # Update counselor balance
-        counselor_query = select(PsychologistProfile).where(PsychologistProfile.id == session.counselor_id)
-        counselor_res = await self.db.execute(counselor_query)
-        counselor = counselor_res.scalar_one_or_none()
-        if counselor:
-            counselor.wallet_balance += ext_counselor
 
         await self.db.commit()
         await self.db.refresh(session)
@@ -657,6 +647,8 @@ class SchedulingService:
         await self.db.commit()
         await self.db.refresh(session)
 
+        await self.release_pending_session_earnings(session.id)
+
         try:
             from app.services.certificate import CertificateService
             from app.services.level import LevelService
@@ -667,6 +659,127 @@ class SchedulingService:
             pass
 
         return self._to_session_response(session)
+
+    async def release_pending_session_earnings(self, session_id: uuid.UUID) -> Decimal:
+        """Atomically release pending clearing honorarium to counselor available wallet_balance once."""
+        tx_res = await self.db.execute(
+            select(CounselorTransaction)
+            .where(
+                CounselorTransaction.session_id == session_id,
+                CounselorTransaction.transaction_type == TransactionType.EARNING.value,
+                CounselorTransaction.status == TransactionStatus.PENDING.value,
+            )
+            .with_for_update()
+        )
+        pending_txs = tx_res.scalars().all()
+        if not pending_txs:
+            return Decimal("0.00")
+
+        counselor_id = pending_txs[0].counselor_id
+        c_res = await self.db.execute(
+            select(PsychologistProfile).where(PsychologistProfile.id == counselor_id).with_for_update()
+        )
+        counselor = c_res.scalar_one_or_none()
+        if not counselor:
+            return Decimal("0.00")
+
+        released = Decimal("0.00")
+        for tx in pending_txs:
+            tx.status = TransactionStatus.COMPLETED.value
+            released += tx.amount
+
+        counselor.wallet_balance += released
+        await self.db.commit()
+        return released
+
+    async def cancel_session_and_refund(
+        self,
+        session_id: uuid.UUID,
+        *,
+        reason: str | None = None,
+    ) -> int:
+        """Atomically cancel an uncompleted session, void pending earnings, and refund patient coins once."""
+        sess_res = await self.db.execute(
+            select(ConsultationSession).where(ConsultationSession.id == session_id).with_for_update()
+        )
+        session = sess_res.scalar_one_or_none()
+        if not session:
+            return 0
+        if session.status == ConsultationSessionStatus.COMPLETED.value:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Sesi yang sudah selesai tidak dapat dibatalkan.",
+            )
+
+        session.status = ConsultationSessionStatus.CANCELLED.value
+        if reason and not session.cancellation_reason:
+            session.cancellation_reason = reason
+
+        # Void pending counselor earnings so uncompleted sessions never become withdrawable
+        earn_res = await self.db.execute(
+            select(CounselorTransaction)
+            .where(
+                CounselorTransaction.session_id == session_id,
+                CounselorTransaction.transaction_type == TransactionType.EARNING.value,
+                CounselorTransaction.status == TransactionStatus.PENDING.value,
+            )
+            .with_for_update()
+        )
+        for etx in earn_res.scalars().all():
+            etx.status = TransactionStatus.FAILED.value
+
+        # Check if a refund coin ledger entry already exists for this session (idempotent)
+        existing_refund = await self.db.execute(
+            select(CoinTransaction.id).where(
+                CoinTransaction.reference_session_id == session_id,
+                CoinTransaction.transaction_type == CoinTransactionType.REFUND.value,
+            )
+        )
+        if existing_refund.scalar_one_or_none() is not None:
+            await self.db.commit()
+            return 0
+
+        debit_res = await self.db.execute(
+            select(CoinTransaction).where(
+                CoinTransaction.reference_session_id == session_id,
+                CoinTransaction.transaction_type.in_(
+                    [CoinTransactionType.BOOKING_DEBIT.value, CoinTransactionType.EXTENSION_DEBIT.value]
+                ),
+            )
+        )
+        debit_txs = debit_res.scalars().all()
+        total_refund_coins = sum(abs(int(d.coins_delta)) for d in debit_txs if d.coins_delta < 0)
+        if total_refund_coins <= 0:
+            await self.db.commit()
+            return 0
+
+        patient_res = await self.db.execute(
+            select(User).where(User.id == session.patient_id).with_for_update()
+        )
+        patient = patient_res.scalar_one_or_none()
+        if patient is None:
+            await self.db.commit()
+            return 0
+
+        now_utc = datetime.now(UTC)
+        patient.coin_balance += total_refund_coins
+        self.db.add(
+            CoinTransaction(
+                invoice_code=f"EVA-REFSES-{now_utc.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}",
+                user_id=patient.id,
+                transaction_type=CoinTransactionType.REFUND.value,
+                coins_delta=total_refund_coins,
+                balance_after=patient.coin_balance,
+                amount_idr=0,
+                payment_method="EVA Wallet",
+                package_name=f"Refund Pembatalan Sesi ({session.session_code})",
+                status=TransactionStatus.COMPLETED.value,
+                reference_session_id=session.id,
+                completed_at=now_utc,
+            )
+        )
+        await self.db.commit()
+        return total_refund_coins
 
     async def get_patient_clinical_notes(
         self,

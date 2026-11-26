@@ -5,15 +5,16 @@ import 'package:http/http.dart' as http;
 import 'package:eva_mobile/config/app_config.dart';
 import 'package:eva_mobile/core/routes/app_router.dart';
 
-/// Custom Exception for API Errors
+/// Custom Exception for API Errors supporting C1 error envelope ({detail: {code, message}}).
 class ApiException implements Exception {
   final String message;
   final int? statusCode;
+  final String? errorCode;
 
-  ApiException(this.message, {this.statusCode});
+  ApiException(this.message, {this.statusCode, this.errorCode});
 
   @override
-  String toString() => 'ApiException: $message (StatusCode: $statusCode)';
+  String toString() => 'ApiException: $message (StatusCode: $statusCode, Code: $errorCode)';
 }
 
 /// Generic HTTP Client abstraction for Remote DataSources with Transparent Silent Token Refresh
@@ -24,7 +25,7 @@ class ApiClient {
   ApiClient({http.Client? client}) : _client = client ?? http.Client();
 
   Duration get _effectiveTimeout =>
-      AppConfig.useHybridFallback ? AppConfig.hybridTimeout : const Duration(seconds: 10);
+      AppConfig.useHybridFallback ? AppConfig.hybridTimeout : const Duration(seconds: 12);
 
   /// Single-flight refresh mechanism to avoid multiple concurrent refresh calls
   Future<bool> _performSingleFlightRefresh() async {
@@ -47,9 +48,11 @@ class ApiClient {
   /// Execute an HTTP request with automatic 401 refresh & retry
   Future<http.Response> _executeWithRefreshRetry(
     Future<http.Response> Function(Map<String, String> headers) requestCall,
-    String path,
-  ) async {
-    final headers = await AppConfig.getAuthHeaders();
+    String path, {
+    Map<String, String>? extraHeaders,
+  }) async {
+    final baseHeaders = await AppConfig.getAuthHeaders();
+    final headers = <String, String>{...baseHeaders, ...?extraHeaders};
     final response = await requestCall(headers).timeout(_effectiveTimeout);
 
     final isAuthEndpoint = path.contains('/auth/login') ||
@@ -61,7 +64,8 @@ class ApiClient {
       final refreshed = await _performSingleFlightRefresh();
       if (refreshed) {
         debugPrint('✅ [AUTH INTERCEPTOR] Token berhasil diperbarui. Mengulang request $path...');
-        final retryHeaders = await AppConfig.getAuthHeaders();
+        final retryBase = await AppConfig.getAuthHeaders();
+        final retryHeaders = <String, String>{...retryBase, ...?extraHeaders};
         return await requestCall(retryHeaders).timeout(_effectiveTimeout);
       } else {
         debugPrint('❌ [AUTH INTERCEPTOR] Refresh token gagal atau kedaluwarsa. Membersihkan sesi...');
@@ -88,7 +92,31 @@ class ApiClient {
     }
   }
 
-  Future<dynamic> post(String path, {Map<String, dynamic>? body}) async {
+  Future<Uint8List> getBytes(String path, {Map<String, String>? extraHeaders}) async {
+    try {
+      final cleanPath = path.startsWith('/') ? path : '/$path';
+      final uri = Uri.parse('${AppConfig.baseUrl}$cleanPath');
+      final response = await _executeWithRefreshRetry(
+        (headers) => _client.get(uri, headers: headers),
+        cleanPath,
+        extraHeaders: extraHeaders,
+      );
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return response.bodyBytes;
+      }
+      _processResponse(response);
+      throw ApiException('Empty binary response', statusCode: response.statusCode);
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Failed to fetch binary asset: $e');
+    }
+  }
+
+  Future<dynamic> post(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, String>? extraHeaders,
+  }) async {
     try {
       final cleanPath = path.startsWith('/') ? path : '/$path';
       final uri = Uri.parse('${AppConfig.baseUrl}$cleanPath');
@@ -99,6 +127,7 @@ class ApiClient {
           body: body != null ? jsonEncode(body) : null,
         ),
         cleanPath,
+        extraHeaders: extraHeaders,
       );
       return _processResponse(response);
     } catch (e) {
@@ -107,7 +136,11 @@ class ApiClient {
     }
   }
 
-  Future<dynamic> put(String path, {Map<String, dynamic>? body}) async {
+  Future<dynamic> put(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, String>? extraHeaders,
+  }) async {
     try {
       final cleanPath = path.startsWith('/') ? path : '/$path';
       final uri = Uri.parse('${AppConfig.baseUrl}$cleanPath');
@@ -118,6 +151,7 @@ class ApiClient {
           body: body != null ? jsonEncode(body) : null,
         ),
         cleanPath,
+        extraHeaders: extraHeaders,
       );
       return _processResponse(response);
     } catch (e) {
@@ -145,10 +179,41 @@ class ApiClient {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) return null;
       return jsonDecode(response.body);
-    } else {
-      final body = response.body.isNotEmpty ? jsonDecode(response.body) : {};
-      final message = body['detail'] ?? body['message'] ?? 'HTTP Error ${response.statusCode}';
-      throw ApiException(message.toString(), statusCode: response.statusCode);
     }
+
+    dynamic decoded;
+    try {
+      decoded = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+    } catch (_) {
+      decoded = {};
+    }
+
+    String? errorCode;
+    String message = 'HTTP Error ${response.statusCode}';
+
+    if (decoded is Map<String, dynamic>) {
+      final detail = decoded['detail'];
+      if (detail is Map<String, dynamic>) {
+        errorCode = detail['code']?.toString();
+        message = detail['message']?.toString() ?? message;
+      } else if (detail is List && detail.isNotEmpty) {
+        final first = detail.first;
+        if (first is Map<String, dynamic>) {
+          message = first['msg']?.toString() ?? message;
+        } else {
+          message = first.toString();
+        }
+      } else if (detail != null) {
+        message = detail.toString();
+      } else if (decoded['message'] != null) {
+        message = decoded['message'].toString();
+      }
+    }
+
+    throw ApiException(
+      message,
+      statusCode: response.statusCode,
+      errorCode: errorCode,
+    );
   }
 }

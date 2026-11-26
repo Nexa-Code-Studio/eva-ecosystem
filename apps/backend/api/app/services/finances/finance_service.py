@@ -8,9 +8,11 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.crypto import mask_account_number
+from app.core.payment_errors import raise_contract_error
 from app.models.counselor import ConsultationSession, CounselorTransaction, PsychologistProfile
 from app.models.enums import TransactionStatus, TransactionType
-from app.models.user import User
+from app.models.payment import CounselorWithdrawal
 from app.schemas.finances.requests import PayoutRequest
 from app.schemas.finances.responses import (
     FinancialSummaryResponse,
@@ -73,8 +75,10 @@ class FinanceService:
         return FinancialSummaryResponse(
             available_balance=int(profile.wallet_balance),
             pending_clearing_balance=pending_clearing,
+            locked_withdrawal_balance=int(profile.locked_withdrawal_balance),
             total_earnings_this_month=total_earnings,
             total_withdrawn=total_withdrawn,
+            currency="IDR",
         )
 
     async def get_transactions(self, user_id: uuid.UUID) -> list[TransactionResponse]:
@@ -100,17 +104,35 @@ class FinanceService:
         trx_res = await self.db.execute(trx_stmt)
         transactions = trx_res.scalars().all()
 
+        withdrawals_stmt = select(CounselorWithdrawal).where(
+            CounselorWithdrawal.counselor_id == profile.id
+        )
+        withdrawals = (await self.db.execute(withdrawals_stmt)).scalars().all()
+        withdrawal_by_tx = {
+            w.counselor_transaction_id: w for w in withdrawals if w.counselor_transaction_id is not None
+        }
+
         results: list[TransactionResponse] = []
         for t in transactions:
             is_withdrawal = t.transaction_type == TransactionType.WITHDRAWAL.value
+            linked_withdrawal = withdrawal_by_tx.get(t.id)
             if is_withdrawal:
-                patient_name = f"Penarikan Dana ({profile.bank_name or 'BCA'} ****{profile.bank_account_number[-4:] if profile.bank_account_number and len(profile.bank_account_number) >= 4 else '8192'})"
+                snap = (linked_withdrawal.bank_snapshot_json or {}) if linked_withdrawal else {}
+                snap_bank = snap.get("bank_name") or profile.bank_name or "Bank"
+                snap_masked = snap.get("account_number_masked") or mask_account_number(
+                    profile.bank_account_number or ""
+                )
+                patient_name = f"Penarikan Dana ({snap_bank} {snap_masked})"
                 session_type = "Transfer Bank Pencairan Honorarium"
                 amount = int(t.amount)
-                admin_fee = 0
-                net_earnings = int(t.amount)
-                status_str = "payout_requested" if t.status == TransactionStatus.PENDING.value else t.status
-                bank_info = f"{profile.bank_name or 'BCA'} • Rekening Terverifikasi • {profile.bank_account_number or '1234567890'}"
+                admin_fee = int(linked_withdrawal.fee_idr) if linked_withdrawal else 0
+                net_earnings = int(linked_withdrawal.net_amount_idr) if linked_withdrawal else (amount - admin_fee)
+                payout_status = linked_withdrawal.status if linked_withdrawal else (
+                    "payout_requested" if t.status == TransactionStatus.PENDING.value else t.status
+                )
+                status_str = payout_status
+                bank_info = f"{snap_bank} • Rekening Terverifikasi • {snap_masked}"
+                ref_id = linked_withdrawal.reference_id if linked_withdrawal else t.reference_number
             else:
                 patient_user = t.session.patient if t.session and t.session.patient else None
                 patient_name = patient_user.email.split("@")[0].capitalize() if patient_user else "Pasien"
@@ -119,11 +141,13 @@ class FinanceService:
                 amount = int(Decimal(str(net_earnings)) * Decimal("1.25"))
                 admin_fee = amount - net_earnings
                 status_str = t.status
+                payout_status = None
                 bank_info = None
+                ref_id = t.reference_number
 
             results.append(
                 TransactionResponse(
-                    id=t.reference_number or str(t.id),
+                    id=ref_id or str(t.id),
                     patient_name=patient_name,
                     session_type=session_type,
                     date=t.created_at.isoformat() if t.created_at else datetime.now(UTC).isoformat(),
@@ -132,54 +156,18 @@ class FinanceService:
                     net_earnings=net_earnings,
                     status=status_str,
                     bank_account_info=bank_info,
+                    transaction_type=t.transaction_type,
+                    payout_status=payout_status,
+                    reference_id=ref_id,
                 )
             )
 
         return results
 
     async def request_payout(self, user_id: uuid.UUID, payload: PayoutRequest) -> PayoutResponse:
-        """Submit a payout / withdrawal request, debiting the counselor's wallet balance."""
-        stmt = select(PsychologistProfile).where(PsychologistProfile.user_id == user_id)
-        res = await self.db.execute(stmt)
-        profile = res.scalar_one_or_none()
-
-        if not profile:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Profil psikolog tidak ditemukan",
-            )
-
-        withdraw_amount = Decimal(str(payload.amount))
-        if profile.wallet_balance < withdraw_amount:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Saldo honorarium tidak mencukupi untuk melakukan penarikan.",
-            )
-
-        # Debit counselor wallet balance
-        profile.wallet_balance -= withdraw_amount
-
-        # Generate unique transaction reference
-        ref_no = f"TRX-{datetime.now(UTC).year}-{uuid.uuid4().hex[:8].upper()}"
-
-        transaction = CounselorTransaction(
-            counselor_id=profile.id,
-            transaction_type=TransactionType.WITHDRAWAL.value,
-            status=TransactionStatus.PENDING.value,
-            amount=withdraw_amount,
-            description=f"Pencairan honorarium ke {payload.bank_name} {payload.account_number} a.n. {payload.account_holder or profile.bank_account_holder or profile.full_name}",
-            reference_number=ref_no,
-        )
-        self.db.add(transaction)
-        await self.db.commit()
-        await self.db.refresh(transaction)
-
-        logger.info(
-            f"Payout requested for counselor {profile.id}: {withdraw_amount} IDR (Ref: {ref_no})"
-        )
-
-        return PayoutResponse(
-            success=True,
-            transaction_id=ref_no,
-            message="Permintaan penarikan dana honorarium berhasil diajukan.",
+        """Legacy direct payout disabled; enforce quote + idempotent /finances/payouts workflow."""
+        raise_contract_error(
+            status.HTTP_400_BAD_REQUEST,
+            "USE_QUOTED_PAYOUT",
+            "Endpoint penarikan langsung dinonaktifkan. Gunakan POST /finances/payouts/quote lalu POST /finances/payouts.",
         )
