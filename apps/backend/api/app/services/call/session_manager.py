@@ -28,6 +28,11 @@ from app.services.call.emotion_coordinator import CallEmotionCoordinator, call_e
 from app.services.call.persistence import CallPersistenceService
 from app.services.call.stream_buffer import audio_buffer_service
 from app.services.call.stt_coordinator import CallSTTCoordinator, call_stt_coordinator
+from app.services.call.synthesis_service import (
+    CallSynthesisService,
+    aggregate_turn_scores,
+    scores_to_ui_breakdown,
+)
 from app.services.call.turn_aggregator import TurnAggregator
 from app.services.dass import DASSService
 from app.services.diary import DiaryGeneratorService
@@ -111,6 +116,9 @@ class CallSession:
         self.thesis_metrics_log: list[dict[str, Any]] = []
         self.latest_orchestration_turn: OrchestratedTurnResult | None = None
         self.dass_scores: dict[str, int] | None = None
+        self.structured_persisted_context: list[dict[str, Any]] = []
+        self.context_acknowledged: bool = False
+        self.turn_score_history: list[dict[str, float]] = []
 
     def cancel_active_ai_task(self) -> None:
         if self._current_ai_task and not self._current_ai_task.done():
@@ -151,6 +159,7 @@ class CallSessionManager:
     ) -> None:
         self._active_sessions: dict[str, CallSession] = {}
         self.orchestrator = AIOrchestrator()
+        self.synthesis_service = CallSynthesisService()
         self.emotion_coordinator: CallEmotionCoordinator = emotion_coordinator or call_emotion_coordinator
         self.stt_coordinator: CallSTTCoordinator = stt_coordinator or call_stt_coordinator
         self.emotion_coordinator.set_snapshot_callback(self._on_emotion_snapshot_updated)
@@ -258,7 +267,9 @@ class CallSessionManager:
             await websocket.send_json({
                 "type": "call_connected",
                 "session_id": session_id,
+                "protocol_version": 1,
                 "privacy_mode_active": session.privacy_mode or "legacy",
+                "context_supported": True,
                 "message": "Connected to Eva AI Phone Service",
             })
 
@@ -546,8 +557,157 @@ class CallSessionManager:
         elif event_type == "user_interrupted":
             logger.info(f"⚡ [LEGACY USER INTERRUPTED] Session {session.session_id}")
             await self._handle_assistant_interrupt(session, {"assistant_turn_id": session.assistant_turn_id})
+        elif event_type == "client_context_v1":
+            await self._handle_client_context(session, payload)
+        elif event_type == "session_finalize_v1":
+            await self._handle_session_finalize(session, payload)
+        elif event_type == "session_artifacts_ack_v1":
+            await self._handle_session_artifacts_ack(session, payload)
         elif event_type == "ping":
             await session.websocket.send_json({"type": "pong"})
+
+    async def _handle_client_context(self, session: CallSession, payload: dict[str, Any]) -> None:
+        """Handle incoming bounded selective long-term memory context from mobile client."""
+        request_id = str(payload.get("context_request_id") or uuid.uuid4())
+        items = payload.get("items") or []
+        if not isinstance(items, list):
+            items = []
+
+        if session.privacy_mode == "incognito":
+            logger.info(
+                f"🕶️ [CONTEXT REJECTED] Session {session.session_id}: Incognito mode active."
+            )
+            await self._safe_send_json(
+                session,
+                {
+                    "type": "context_ack_v1",
+                    "context_request_id": request_id,
+                    "accepted_count": 0,
+                    "rejected_count": len(items),
+                    "rejection_reasons": ["incognito_mode_active"] if items else [],
+                },
+            )
+            return
+
+        allowed_categories = {
+            "psychological_complaint",
+            "emotional_trigger",
+            "coping_strategy",
+            "professional_diagnosis",
+            "social_support",
+            "interaction_preference",
+        }
+
+        valid_items: list[dict[str, Any]] = []
+        rejection_reasons: list[str] = []
+
+        for idx, item in enumerate(items):
+            if idx >= 5:
+                rejection_reasons.append(f"item_{idx}_dropped_max_limit_exceeded")
+                continue
+            if not isinstance(item, dict):
+                rejection_reasons.append(f"item_{idx}_invalid_shape")
+                continue
+
+            category = item.get("category")
+            text = str(item.get("text", "")).strip()
+
+            if category not in allowed_categories:
+                rejection_reasons.append(f"item_{idx}_invalid_category_{category}")
+                continue
+            if not text:
+                rejection_reasons.append(f"item_{idx}_empty_text")
+                continue
+            if len(text) > 500:
+                rejection_reasons.append(f"item_{idx}_text_too_long")
+                continue
+
+            valid_items.append({
+                "id": str(item.get("id", f"mem_{idx}")),
+                "category": category,
+                "text": text,
+                "status": str(item.get("status", "active")),
+            })
+
+        session.structured_persisted_context = valid_items
+        session.context_acknowledged = True
+        logger.info(
+            f"📥 [CONTEXT ACKNOWLEDGED] Session {session.session_id}: "
+            f"accepted={len(valid_items)} rejected={len(items) - len(valid_items)}"
+        )
+        await self._safe_send_json(
+            session,
+            {
+                "type": "context_ack_v1",
+                "context_request_id": request_id,
+                "accepted_count": len(valid_items),
+                "rejected_count": len(items) - len(valid_items),
+                "rejection_reasons": rejection_reasons,
+            },
+        )
+
+    async def _handle_session_finalize(self, session: CallSession, payload: dict[str, Any]) -> None:
+        """Synthesize post-session artifacts in-memory without PostgreSQL writes and emit session_artifacts_v1."""
+        request_id = str(payload.get("request_id") or uuid.uuid4())
+        duration_sec = payload.get("duration_seconds")
+        include_candidates = bool(payload.get("request_memory_candidates", True))
+        logger.info(
+            f"🏁 [SESSION FINALIZE] Session {session.session_id}: request_id={request_id}, duration={duration_sec}s"
+        )
+
+        await self.stt_coordinator.pause_session(session.session_id, reason="session_finalize")
+
+        aggregated_emotions: list[dict[str, Any]] | None = None
+        if settings.EMOTION_STREAMING_ENABLED:
+            artifact = await self.emotion_coordinator.drain_and_build_artifact(
+                session.session_id,
+                user_turn_id=session.aggregator.user_turn_id,
+            )
+            if isinstance(artifact.get("scores"), dict) and artifact["scores"]:
+                aggregated_emotions = scores_to_ui_breakdown(artifact["scores"])
+
+        if not aggregated_emotions and session.turn_score_history:
+            aggregated_emotions = aggregate_turn_scores(session.turn_score_history)
+
+        synthesized = await self.synthesis_service.synthesize_session(
+            session_id=session.session_id,
+            turns=session.conversation_history,
+            aggregated_emotions=aggregated_emotions,
+            include_dass=True,
+            include_memory_candidates=include_candidates,
+        )
+
+        await self._safe_send_json(
+            session,
+            {
+                "type": "session_artifacts_v1",
+                "request_id": request_id,
+                "session_summary": synthesized.session_summary,
+                "journal_delta": synthesized.journal_delta.model_dump(),
+                "dass_assessment": (
+                    synthesized.dass_assessment.model_dump()
+                    if synthesized.dass_assessment is not None
+                    else None
+                ),
+                "memory_candidates": [c.model_dump() for c in synthesized.memory_candidates],
+            },
+        )
+
+    async def _handle_session_artifacts_ack(self, session: CallSession, payload: dict[str, Any]) -> None:
+        """Confirm local encrypted commit and signal clean session closure."""
+        request_id = str(payload.get("request_id") or uuid.uuid4())
+        ack_status = payload.get("status", "committed_locally")
+        logger.info(
+            f"✅ [SESSION ARTIFACTS ACK] Session {session.session_id}: request_id={request_id}, status={ack_status}"
+        )
+        await self._safe_send_json(
+            session,
+            {
+                "type": "session_finalized_v1",
+                "request_id": request_id,
+                "status": "closed",
+            },
+        )
 
     async def _safe_send_json(self, session: CallSession, data: dict[str, Any]) -> bool:
         try:
@@ -1024,6 +1184,8 @@ class CallSessionManager:
                 current_turn_id=user_turn_id,
             )
             session.latest_emotion_snapshot = temporal_snapshot
+            if temporal_snapshot.scores:
+                session.turn_score_history.append(dict(temporal_snapshot.scores))
             precomputed_emotion = self.emotion_coordinator.snapshot_to_detection_result(temporal_snapshot)
 
             # Notify mobile client with truthful temporal emotion state (no fabricated scores)
@@ -1061,6 +1223,8 @@ class CallSessionManager:
                     final_transcript, audio_bytes=turn_audio_bytes
                 )
                 scores = {item["name"]: float(item["percent"]) for item in analysis_result.get("emotions_breakdown", [])}
+                if scores:
+                    session.turn_score_history.append(scores)
                 precomputed_emotion = EmotionDetectionResult(
                     primary_emotion=analysis_result.get("primary_emotion", "neutral"),
                     confidence=float(analysis_result.get("confidence", 0.5)),
@@ -1069,6 +1233,19 @@ class CallSessionManager:
                     scores=scores,
                     model_used=analysis_result.get("model_name", "text-lexicon-heuristic"),
                     latency_ms=float(analysis_result.get("latency_ms", 0.0)),
+                )
+                await self._safe_send_json(
+                    session,
+                    {
+                        "type": "emotion_result",
+                        "status": "ready",
+                        "source": analysis_result.get("source", "text_heuristic"),
+                        "primary_emotion": precomputed_emotion.primary_emotion,
+                        "secondary_emotion": precomputed_emotion.secondary_emotion,
+                        "confidence": precomputed_emotion.confidence,
+                        "scores": scores,
+                        "emotions_breakdown": scores_to_ui_breakdown(scores),
+                    },
                 )
             except Exception as emo_err:
                 logger.warning(f"⚠️ [EMOTION DETECTION EXCEPTION] Session {session.session_id}: {emo_err}")
@@ -1230,6 +1407,11 @@ class CallSessionManager:
                 dass_scores=session.dass_scores,
                 user_name=session.user_name,
                 precomputed_emotion=precomputed_emotion,
+                structured_persisted_context=(
+                    session.structured_persisted_context
+                    if session.privacy_mode != "incognito"
+                    else None
+                ),
                 temporal_emotion=temporal_emotion,
                 allow_sync_audio_fallback=(not settings.EMOTION_STREAMING_ENABLED),
             )

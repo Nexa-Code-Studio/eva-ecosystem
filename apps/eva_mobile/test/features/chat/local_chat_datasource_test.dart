@@ -101,5 +101,75 @@ void main() {
       expect(tokens.length, 1);
       expect(tokens.first, 'Ringkasan refleksi cepat sesi suara.');
     });
+
+    test('Maps multi-turn conversation_turns and emotions_breakdown_json', () async {
+      final testDbPath = '${tempDir.path}/chat_turns_test.db';
+      final db = await localDb.open(
+        localAccountKey: 'test_chat_user',
+        customPath: testDbPath,
+      );
+
+      await diaryDataSource.saveSessionArtifacts(
+        sessionId: 'sess_turns_1',
+        sessionSummary: 'Diskusi terstruktur mengenai manajemen stres kerja.',
+        journalDelta: {
+          'title': 'Manajemen Stres Kerja',
+          'mood_tag': 'Tenang',
+          'mood_emoji': '😌',
+          'emotions_breakdown': [
+            {'label': 'Tenang', 'emoji': '😌', 'percent': 0.65, 'color': '#4ECDC4'},
+            {'label': 'Cemas', 'emoji': '😰', 'percent': 0.35, 'color': '#6C63FF'},
+          ],
+        },
+      );
+
+      final nowIso = DateTime.now().toIso8601String();
+      await db.insert('conversation_turns', {
+        'id': 'turn_1_user',
+        'session_id': 'sess_turns_1',
+        'turn_id': 1,
+        'role': 'user',
+        'local_account_key': 'test_chat_user',
+        'transcript': 'Halo EVA, kerjaan hari ini padat banget.',
+        'created_at': nowIso,
+      });
+      await db.insert('conversation_turns', {
+        'id': 'turn_1_assistant',
+        'session_id': 'sess_turns_1',
+        'turn_id': 1,
+        'role': 'assistant',
+        'local_account_key': 'test_chat_user',
+        'transcript': 'Kedengarannya cukup melelahkan ya. Bagian mana yang paling terasa berat?',
+        'created_at': nowIso,
+      });
+      await db.insert('conversation_turns', {
+        'id': 'turn_2_user',
+        'session_id': 'sess_turns_1',
+        'turn_id': 2,
+        'role': 'user',
+        'local_account_key': 'test_chat_user',
+        'transcript': 'Deadline presentasi besok pagi.',
+        'created_at': nowIso,
+      });
+      await db.insert('conversation_turns', {
+        'id': 'turn_2_assistant',
+        'session_id': 'sess_turns_1',
+        'turn_id': 2,
+        'role': 'assistant',
+        'local_account_key': 'test_chat_user',
+        'transcript': 'Mari kita pecah langkah persiapannya pelan-pelan.',
+        'created_at': nowIso,
+      });
+
+      final conv = await chatDataSource.getConversationById('sess_turns_1');
+      expect(conv, isNotNull);
+      expect(conv!.messages.length, 4);
+      expect(conv.messages[0].isUser, isTrue);
+      expect(conv.messages[0].text, 'Halo EVA, kerjaan hari ini padat banget.');
+      expect(conv.messages[1].isUser, isFalse);
+      expect(conv.messages[3].isUser, isFalse);
+      expect(conv.emotionsBreakdown.length, 2);
+      expect(conv.emotionsBreakdown.first['label'], 'Tenang');
+    });
   });
 }

@@ -21,6 +21,183 @@ class DiaryGeneratorService:
     """Service to aggregate today's conversation transcripts and invoke DeepSeek LLM to generate a structured DiaryEntry."""
 
     @staticmethod
+    async def synthesize_session_artifacts(
+        conversation_turns: list[LLMMessage],
+        aggregated_emotions: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        """Synthesize session summary, journal delta, and memory candidates in-memory without DB writes."""
+        dialogue_turns = [
+            f"{m.role.upper()}: {m.content}"
+            for m in conversation_turns
+            if m.role in ("user", "assistant") and m.content and m.content.strip()
+        ]
+        if not dialogue_turns:
+            return {
+                "session_summary": "Sesi panggilan berlangsung singkat tanpa percakapan.",
+                "journal_delta": {
+                    "title": "Sesi Singkat EVA",
+                    "summary": "Sesi panggilan berlangsung singkat.",
+                    "content": "Sesi panggilan suara berlangsung singkat.",
+                    "mood_tag": "Netral & Tenang 😌",
+                    "mood_emoji": "😌",
+                    "emotional_level": 3,
+                    "ai_insight": "Belum ada percakapan mendalam yang tercatat pada sesi ini.",
+                    "emotional_reflection": "Luangkan waktu kapan saja saat kamu siap bercerita bersama EVA.",
+                    "important_events": ["Sesi Panggilan EVA"],
+                    "emotions_breakdown": aggregated_emotions or [],
+                },
+                "memory_candidates": [],
+            }
+
+        transcript_text = "\n".join(dialogue_turns)
+        allowed_categories = (
+            "psychological_complaint, emotional_trigger, coping_strategy, "
+            "professional_diagnosis, social_support, interaction_preference"
+        )
+        system_prompt = LLMMessage(
+            role="system",
+            content=(
+                "Anda adalah sistem analis kesehatan mental & konseling psikologi EVA AI. "
+                "Tugas Anda adalah menganalisis transkrip percakapan sesi konseling suara berikut, "
+                "lalu menghasilkan output JSON VALID HANYA TANPA MARKDOWN (tanpa ```json atau teks pembuka/penutup).\n\n"
+                "ATURAN MEMORY CANDIDATES:\n"
+                "- Ekstrak HANYA fakta yang secara eksplisit dinyatakan oleh pengguna (user_reported).\n"
+                "- DILARANG membuat diagnosis sendiri atau berspekulasi.\n"
+                f"- Kategori resmi: {allowed_categories}.\n\n"
+                "ATURAN EMOTIONS BREAKDOWN:\n"
+                "- Gunakan tepat kunci 'name' dari 7 emosi berikut: happy, netral, fear, sadness, surprise, anger, disgusted.\n"
+                "- Nilai 'percent' adalah float 0.00-1.00 yang mencerminkan distribusi emosi nyata transkrip dan totalnya 1.00.\n\n"
+                "Format JSON yang HARUS dihasilkan secara presisi:\n"
+                "{\n"
+                '  "session_summary": "<Ringkasan empatik 2-3 kalimat mengenai esensi percakapan sesi tanpa menyalin dialog mentah>",\n'
+                '  "journal_delta": {\n'
+                '    "title": "<Judul Jurnal 4-8 Kata Bahasa Indonesia>",\n'
+                '    "summary": "<Ringkasan emosi & topik utama 2-3 kalimat>",\n'
+                '    "content": "<Refleksi terstruktur isi percakapan>",\n'
+                '    "mood_tag": "<PILIH: Bahagia & Senang 😃 | Netral & Tenang 😌 | Cemas & Takut 😰 | Sedih 😢 | Terkejut 😲 | Marah 😡 | Jijik 🤢>",\n'
+                '    "mood_emoji": "<Emoji 1 karakter: 😃 | 😌 | 😰 | 😢 | 😲 | 😡 | 🤢>",\n'
+                '    "emotional_level": <integer 1 sampai 5>,\n'
+                '    "ai_insight": "<1-2 kalimat wawasan psikologis AI>",\n'
+                '    "emotional_reflection": "<1-2 kalimat refleksi pemberdayaan>",\n'
+                '    "important_events": ["<Poin penting 1>", "<Poin penting 2>"],\n'
+                '    "emotions_breakdown": [\n'
+                '      {"name": "netral", "label": "Netral & Tenang", "emoji": "😌", "percent": <float>, "color": "#4ECDC4"},\n'
+                '      {"name": "happy", "label": "Bahagia & Lega", "emoji": "😃", "percent": <float>, "color": "#FFE6A7"}\n'
+                "    ]\n"
+                "  },\n"
+                '  "memory_candidates": [\n'
+                "    {\n"
+                '      "candidate_id": "<string unik ID>",\n'
+                f'      "category": "<salah satu dari: {allowed_categories}>",\n'
+                '      "fact_text": "<pernyataan fakta ringkas>",\n'
+                '      "source_type": "user_reported",\n'
+                '      "source_excerpt": "<kutipan kalimat pengguna>",\n'
+                '      "source_verification": "unverified",\n'
+                '      "should_require_confirmation": true\n'
+                "    }\n"
+                "  ]\n"
+                "}"
+            ),
+        )
+        user_prompt = LLMMessage(
+            role="user",
+            content=f"Analisislah transkrip percakapan berikut dan buat ringkasan 2-3 kalimat non-verbatim:\n\n{transcript_text}",
+        )
+
+        valid_category_set = {
+            "psychological_complaint",
+            "emotional_trigger",
+            "coping_strategy",
+            "professional_diagnosis",
+            "social_support",
+            "interaction_preference",
+        }
+
+        try:
+            llm_provider = LLMFactory.get_provider()
+            full_response_list = []
+            async for token in llm_provider.stream_response([system_prompt, user_prompt]):
+                full_response_list.append(token)
+
+            raw_output = "".join(full_response_list).strip()
+            if raw_output.startswith("```"):
+                parts = raw_output.split("```")
+                if len(parts) >= 2:
+                    raw_output = parts[1]
+                    if raw_output.startswith("json"):
+                        raw_output = raw_output[4:]
+            raw_output = raw_output.strip()
+
+            parsed = json.loads(raw_output)
+            delta = parsed.get("journal_delta") if isinstance(parsed.get("journal_delta"), dict) else {}
+            session_summary = str(parsed.get("session_summary") or delta.get("summary") or "").strip()
+            if not session_summary:
+                session_summary = "Sesi percakapan bersama EVA telah disintesis."
+
+            resolved_emotions = (
+                aggregated_emotions
+                if aggregated_emotions
+                else (delta.get("emotions_breakdown") if isinstance(delta.get("emotions_breakdown"), list) else [])
+            )
+
+            normalized_delta = {
+                "title": delta.get("title") or "Refleksi Sesi Suara EVA",
+                "summary": delta.get("summary") or session_summary,
+                "content": delta.get("content") or session_summary,
+                "mood_tag": delta.get("mood_tag") or "Netral & Tenang 😌",
+                "mood_emoji": delta.get("mood_emoji") or "😌",
+                "emotional_level": int(delta.get("emotional_level") or 3),
+                "ai_insight": delta.get("ai_insight") or session_summary,
+                "emotional_reflection": delta.get("emotional_reflection") or "Meluangkan waktu untuk bercerita membantu menjaga kesadaran emosional.",
+                "important_events": delta.get("important_events") if isinstance(delta.get("important_events"), list) else ["Sesi Panggilan Suara EVA"],
+                "emotions_breakdown": resolved_emotions,
+            }
+
+            raw_candidates = parsed.get("memory_candidates") if isinstance(parsed.get("memory_candidates"), list) else []
+            clean_candidates = []
+            for idx, cand in enumerate(raw_candidates):
+                if not isinstance(cand, dict):
+                    continue
+                cat = str(cand.get("category") or "").strip()
+                fact = str(cand.get("fact_text") or "").strip()
+                if cat in valid_category_set and fact:
+                    clean_candidates.append({
+                        "candidate_id": str(cand.get("candidate_id") or f"cand_{uuid.uuid4().hex[:8]}_{idx}"),
+                        "category": cat,
+                        "fact_text": fact,
+                        "source_type": "user_reported",
+                        "source_excerpt": cand.get("source_excerpt"),
+                        "source_verification": "unverified",
+                        "should_require_confirmation": True,
+                    })
+
+            return {
+                "session_summary": session_summary,
+                "journal_delta": normalized_delta,
+                "memory_candidates": clean_candidates,
+            }
+        except Exception as e:
+            logger.warning(f"⚠️ [SYNTHESIZE ARTIFACTS EXCEPTION]: {e}")
+            user_msg_sample = next((m.content for m in conversation_turns if m.role == "user" and m.content), "sesi bersama EVA")
+            fallback_summary = f"Pengguna berbagi cerita bersama EVA mengenai {user_msg_sample[:80]}."
+            return {
+                "session_summary": fallback_summary,
+                "journal_delta": {
+                    "title": "Refleksi Sesi Percakapan EVA",
+                    "summary": fallback_summary,
+                    "content": fallback_summary,
+                    "mood_tag": "Netral & Tenang 😌",
+                    "mood_emoji": "😌",
+                    "emotional_level": 3,
+                    "ai_insight": fallback_summary,
+                    "emotional_reflection": "Mengekspresikan perasaan adalah langkah positif dalam merawat kesehatan mental.",
+                    "important_events": ["Sesi Percakapan EVA"],
+                    "emotions_breakdown": aggregated_emotions or [],
+                },
+                "memory_candidates": [],
+            }
+
+    @staticmethod
     async def generate_today_diary(user_id: uuid.UUID, db: AsyncSession) -> DiaryEntry | None:
         today_date = get_wib_today()
 

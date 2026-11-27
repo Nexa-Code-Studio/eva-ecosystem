@@ -69,8 +69,22 @@ class DiaryEmotionDistributionCard extends StatelessWidget {
         GlassCard(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
-          child: Column(
-            children: activeEmotions.map((emo) {
+          child: activeEmotions.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text(
+                      'Belum ada data analisis emosi untuk sesi ini.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                )
+              : Column(
+                  children: activeEmotions.map((emo) {
               final double pct =
                   ((emo['percent'] as num?)?.toDouble() ?? 0.0).clamp(0.0, 1.0);
               final int pctInt = (pct * 100).round();

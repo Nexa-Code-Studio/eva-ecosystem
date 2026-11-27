@@ -28,6 +28,11 @@ from app.services.call.stream_buffer import (
     analyze_audio_placeholder,
     audio_buffer_service,
 )
+from app.services.call.synthesis_service import (
+    CallSynthesisService,
+    aggregate_turn_scores,
+    scores_to_ui_breakdown,
+)
 from app.services.call.temporal_emotion_aggregator import SessionTemporalEmotionAggregator
 from app.services.call.turn_aggregator import (
     TurnAggregator,
@@ -59,6 +64,9 @@ __all__ = [
     "call_stt_coordinator",
     "shutdown_stt_coordinator",
     "CallPersistenceService",
+    "CallSynthesisService",
+    "aggregate_turn_scores",
+    "scores_to_ui_breakdown",
     "AudioStreamBufferService",
     "SessionAudioBuffer",
     "audio_buffer_service",

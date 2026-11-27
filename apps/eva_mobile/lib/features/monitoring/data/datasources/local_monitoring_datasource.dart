@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import '../../../../core/storage/encrypted_local_database.dart';
 import '../models/monitoring_data_model.dart';
@@ -28,6 +29,47 @@ class LocalMonitoringDataSource implements MonitoringDataSource {
   static const int _idxSurprise = 4;
   static const int _idxAnger = 5;
   static const int _idxDisgusted = 6;
+
+  int _mapEmotionLabelToIndex(String label) {
+    final lower = label.toLowerCase();
+    if (lower.contains('bahagia') ||
+        lower.contains('senang') ||
+        lower.contains('puas') ||
+        lower.contains('happy') ||
+        lower.contains('joy')) {
+      return _idxHappy;
+    }
+    if (lower.contains('cemas') ||
+        lower.contains('takut') ||
+        lower.contains('gelisah') ||
+        lower.contains('fear') ||
+        lower.contains('anxi')) {
+      return _idxFear;
+    }
+    if (lower.contains('sedih') ||
+        lower.contains('murung') ||
+        lower.contains('depresi') ||
+        lower.contains('sad')) {
+      return _idxSadness;
+    }
+    if (lower.contains('terkejut') ||
+        lower.contains('kaget') ||
+        lower.contains('surprise')) {
+      return _idxSurprise;
+    }
+    if (lower.contains('marah') ||
+        lower.contains('kesal') ||
+        lower.contains('anger') ||
+        lower.contains('angry')) {
+      return _idxAnger;
+    }
+    if (lower.contains('jijik') ||
+        lower.contains('muak') ||
+        lower.contains('disgust')) {
+      return _idxDisgusted;
+    }
+    return _idxNetral;
+  }
 
   int _mapMoodTagToEmotionIndex(String moodTag) {
     final lower = moodTag.toLowerCase();
@@ -77,26 +119,77 @@ class LocalMonitoringDataSource implements MonitoringDataSource {
         return MonitoringDataModel.empty(periodKey);
       }
 
-    // Tally emotions from on-device entries
+    // Tally emotions from on-device entries (prefer persisted 7-emotion JSON breakdown)
     int happyCount = 0;
     int netralCount = 0;
     int fearCount = 0;
     int sadnessCount = 0;
     int angerCount = 0;
+    final List<double> emotionTotals = List<double>.filled(7, 0.0);
 
     for (final row in rows) {
-      final tag = (row['mood_tag'] as String?) ?? '';
-      final idx = _mapMoodTagToEmotionIndex(tag);
-      if (idx == _idxHappy) {
-        happyCount++;
-      } else if (idx == _idxNetral) {
-        netralCount++;
-      } else if (idx == _idxFear) {
-        fearCount++;
-      } else if (idx == _idxSadness) {
-        sadnessCount++;
-      } else if (idx == _idxAnger) {
-        angerCount++;
+      final breakdownRaw = row['emotions_breakdown_json'] as String?;
+      bool parsedBreakdown = false;
+      if (breakdownRaw != null && breakdownRaw.trim().isNotEmpty) {
+        try {
+          final decoded = jsonDecode(breakdownRaw);
+          if (decoded is List && decoded.isNotEmpty) {
+            final rowVector = List<double>.filled(7, 0.0);
+            for (final item in decoded) {
+              if (item is! Map) continue;
+              final label =
+                  (item['label'] ?? item['emotion'] ?? '').toString();
+              final val =
+                  ((item['percent'] ?? item['score']) as num?)?.toDouble() ??
+                      0.0;
+              if (val <= 0) continue;
+              final idx = _mapEmotionLabelToIndex(label);
+              rowVector[idx] += val;
+            }
+            final rowSum = rowVector.fold<double>(0.0, (a, b) => a + b);
+            if (rowSum > 0) {
+              parsedBreakdown = true;
+              int domIdx = _idxNetral;
+              double domVal = -1.0;
+              for (int idx = 0; idx < 7; idx++) {
+                final norm = rowVector[idx] / rowSum;
+                emotionTotals[idx] += norm;
+                if (norm > domVal) {
+                  domVal = norm;
+                  domIdx = idx;
+                }
+              }
+              if (domIdx == _idxHappy) {
+                happyCount++;
+              } else if (domIdx == _idxNetral) {
+                netralCount++;
+              } else if (domIdx == _idxFear) {
+                fearCount++;
+              } else if (domIdx == _idxSadness) {
+                sadnessCount++;
+              } else if (domIdx == _idxAnger) {
+                angerCount++;
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      if (!parsedBreakdown) {
+        final tag = (row['mood_tag'] as String?) ?? '';
+        final idx = _mapMoodTagToEmotionIndex(tag);
+        emotionTotals[idx] += 1.0;
+        if (idx == _idxHappy) {
+          happyCount++;
+        } else if (idx == _idxNetral) {
+          netralCount++;
+        } else if (idx == _idxFear) {
+          fearCount++;
+        } else if (idx == _idxSadness) {
+          sadnessCount++;
+        } else if (idx == _idxAnger) {
+          angerCount++;
+        }
       }
     }
 
@@ -142,21 +235,13 @@ class LocalMonitoringDataSource implements MonitoringDataSource {
       _ => const ['06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
     };
 
-    // Build chart rows with actual ratios
-    final chartData = List.generate(xLabels.length, (i) {
-      double h = (happyCount / totalEntries) * 0.4;
-      double n = (netralCount / totalEntries) * 0.4 + 0.2;
-      double f = fearRatio * 0.3;
-      double s = depressionRatio * 0.1;
-      final sum = h + n + f + s;
-      if (sum > 0) {
-        h /= sum;
-        n /= sum;
-        f /= sum;
-        s /= sum;
-      }
-      return [h, n, f, s, 0.0, 0.0, 0.0];
-    });
+    // Normalize 7-emotion vector across stored sessions
+    final vectorSum = emotionTotals.fold<double>(0.0, (a, b) => a + b);
+    final baseVector = vectorSum > 0
+        ? emotionTotals.map((v) => v / vectorSum).toList()
+        : List<double>.filled(7, 0.0);
+    final chartData =
+        List.generate(xLabels.length, (_) => List<double>.from(baseVector));
 
     final int emotionalLevel = (happyCount + netralCount) >= (fearCount + sadnessCount + angerCount)
         ? (happyCount > netralCount ? 5 : 4)

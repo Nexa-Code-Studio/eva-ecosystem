@@ -1,12 +1,25 @@
 import logging
 
-from fastapi import APIRouter, WebSocket
+from fastapi import APIRouter, Depends, WebSocket
 
-from app.services.call import call_session_manager
+from app.api.dependencies import get_call_synthesis_service, get_current_user
+from app.models.user import User
+from app.schemas.call import CallSynthesizeRequest, CallSynthesizeResponse
+from app.services.call import CallSynthesisService, call_session_manager
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/call", tags=["Call"])
+
+
+@router.post("/synthesize", response_model=CallSynthesizeResponse)
+async def synthesize_call_session(
+    payload: CallSynthesizeRequest,
+    _user: User = Depends(get_current_user),
+    service: CallSynthesisService = Depends(get_call_synthesis_service),
+) -> CallSynthesizeResponse:
+    """Stateless post-session AI synthesis for local-first clients (zero DB persistence)."""
+    return await service.synthesize_from_request(payload)
 
 
 @router.websocket("/ws/{session_id}")

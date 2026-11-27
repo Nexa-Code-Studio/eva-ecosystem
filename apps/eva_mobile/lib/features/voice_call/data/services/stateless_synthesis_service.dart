@@ -86,26 +86,46 @@ class StatelessSynthesisService {
       final db = await _getDb();
       final rows = await db.query(
         'session_summaries',
-        columns: ['synthesis_status'],
+        columns: ['synthesis_status', 'summary'],
         where: 'local_account_key = ? AND client_session_id = ?',
         whereArgs: [_accountKey, sessionId],
         limit: 1,
       );
       if (rows.isEmpty) return false;
       final status = rows.first['synthesis_status'] as String? ?? 'completed';
-      return status == 'completed';
+      final summary = (rows.first['summary'] as String? ?? '').trim();
+      if (status != 'completed' || summary.isEmpty) return false;
+      if (summary.startsWith('User:') || summary.startsWith('EVA:')) return false;
+      return true;
     } catch (_) {
       return false;
     }
   }
 
-  /// Mark a session's initial pending status in SQLCipher
+  /// Mark a session's pending status in SQLCipher without overwriting existing journal_id or emotions.
   Future<void> markSessionPending({
     required String sessionId,
-    required String initialSummary,
+    String initialSummary = '',
   }) async {
     try {
       final db = await _getDb();
+      final existing = await db.query(
+        'session_summaries',
+        columns: ['id'],
+        where: 'local_account_key = ? AND client_session_id = ?',
+        whereArgs: [_accountKey, sessionId],
+        limit: 1,
+      );
+      if (existing.isNotEmpty) {
+        await db.update(
+          'session_summaries',
+          {'synthesis_status': 'pending_synthesis'},
+          where: 'local_account_key = ? AND client_session_id = ?',
+          whereArgs: [_accountKey, sessionId],
+        );
+        return;
+      }
+
       final nowIso = DateTime.now().toIso8601String();
       await db.insert(
         'session_summaries',
@@ -117,7 +137,7 @@ class StatelessSynthesisService {
           'synthesis_status': 'pending_synthesis',
           'created_at': nowIso,
         },
-        conflictAlgorithm: ConflictAlgorithm.replace,
+        conflictAlgorithm: ConflictAlgorithm.ignore,
       );
     } catch (e) {
       debugPrint('⚠️ [MARK SESSION PENDING ERROR]: $e');

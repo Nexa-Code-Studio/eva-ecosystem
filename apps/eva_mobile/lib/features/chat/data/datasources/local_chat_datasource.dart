@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import '../../../../core/storage/encrypted_local_database.dart';
 import '../models/chat_message_model.dart';
@@ -6,7 +7,7 @@ import '../models/conversation_model.dart';
 import 'chat_datasource.dart';
 
 /// Local encrypted data source for conversation sessions backed by SQLCipher.
-/// Reads voice call session summaries and journal associations from on-device storage.
+/// Reads voice call session summaries, conversation_turns, and emotions_breakdown from on-device storage.
 class LocalChatDataSource implements ChatDataSource {
   final EncryptedLocalDatabase _localDb;
   final String _defaultAccountKey;
@@ -43,23 +44,125 @@ class LocalChatDataSource implements ChatDataSource {
     }
   }
 
+  List<Map<String, dynamic>> _parseEmotionsBreakdown(dynamic rawJson) {
+    if (rawJson is! String || rawJson.trim().isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(rawJson);
+      if (decoded is List) {
+        return decoded
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      }
+    } catch (_) {}
+    return const [];
+  }
+
+  String _computeDuration(List<Map<String, dynamic>> turnRows) {
+    if (turnRows.length < 2) return '00:00';
+    try {
+      final start = DateTime.parse(turnRows.first['created_at'].toString());
+      final end = DateTime.parse(turnRows.last['created_at'].toString());
+      final secs = end.difference(start).inSeconds.clamp(0, 86400);
+      final mm = (secs ~/ 60).toString().padLeft(2, '0');
+      final ss = (secs % 60).toString().padLeft(2, '0');
+      return '$mm:$ss';
+    } catch (_) {
+      return '00:00';
+    }
+  }
+
+  Future<ConversationModel> _mapRowToConversation(
+    Database db,
+    Map<String, dynamic> row,
+  ) async {
+    final sessionId = (row['client_session_id'] as String?) ?? (row['session_id'] as String);
+    final createdAt = (row['created_at'] as String?) ?? '';
+    final entryDate = (row['entry_date_local'] as String?) ?? _formatDate(createdAt);
+    final timeStr = _formatTime(createdAt);
+    final rawSummary = (row['summary'] as String?) ?? '';
+    final synthesisStatus = (row['synthesis_status'] as String?) ?? 'completed';
+    final isRawTranscript = rawSummary.trim().startsWith('User:') || rawSummary.trim().startsWith('EVA:');
+    final summary = (synthesisStatus == 'completed' && !isRawTranscript) ? rawSummary : '';
+
+    final title = (row['journal_title'] as String?) ?? 'Sesi Panggilan Suara EVA';
+    final moodTag = (row['mood_tag'] as String?) ?? 'Tenang & Nyaman';
+    final moodEmoji = (row['mood_emoji'] as String?) ?? '😌';
+
+    var emotionsBreakdown = _parseEmotionsBreakdown(row['session_emotions_json']);
+    if (emotionsBreakdown.isEmpty) {
+      emotionsBreakdown = _parseEmotionsBreakdown(row['journal_emotions_json']);
+    }
+
+    final turnRows = await db.query(
+      'conversation_turns',
+      where: 'session_id = ? AND local_account_key = ?',
+      whereArgs: [sessionId, _accountKey],
+      orderBy: 'turn_id ASC, created_at ASC',
+    );
+
+    final List<ChatMessageModel> messages;
+    if (turnRows.isNotEmpty) {
+      messages = turnRows.map((t) {
+        final role = (t['role'] as String?) ?? 'user';
+        final isUser = role == 'user';
+        return ChatMessageModel(
+          id: (t['id'] as String?) ?? 'turn_${t['turn_id']}_$role',
+          conversationId: sessionId,
+          isUser: isUser,
+          text: (t['transcript'] as String?) ?? '',
+          time: _formatTime((t['created_at'] as String?) ?? createdAt),
+        );
+      }).toList();
+    } else if (summary.isNotEmpty) {
+      messages = [
+        ChatMessageModel(
+          id: 'msg_summary_$sessionId',
+          conversationId: sessionId,
+          isUser: false,
+          text: summary,
+          time: timeStr,
+          emotionTag: moodTag,
+          emotionEmoji: moodEmoji,
+        ),
+      ];
+    } else {
+      messages = const [];
+    }
+
+    return ConversationModel(
+      id: sessionId,
+      title: title,
+      date: entryDate,
+      lastSessionTime: timeStr,
+      duration: _computeDuration(turnRows),
+      moodTag: moodTag,
+      moodEmoji: moodEmoji,
+      summary: summary,
+      messages: messages,
+      emotionsBreakdown: emotionsBreakdown,
+    );
+  }
+
   @override
   Future<List<ConversationModel>> getConversations() async {
     final db = await _getDb();
 
-    // Query session_summaries joined with journal_entries for emotion/title metadata
     final rows = await db.rawQuery(
       '''
       SELECT 
         s.id AS session_id,
         s.client_session_id AS client_session_id,
         s.summary AS summary,
+        s.synthesis_status AS synthesis_status,
+        s.emotions_breakdown_json AS session_emotions_json,
         s.created_at AS created_at,
         j.id AS journal_id,
         j.title AS journal_title,
         j.mood_tag AS mood_tag,
         j.mood_emoji AS mood_emoji,
-        j.entry_date_local AS entry_date_local
+        j.entry_date_local AS entry_date_local,
+        j.emotions_breakdown_json AS journal_emotions_json
       FROM session_summaries s
       LEFT JOIN journal_entries j ON s.journal_id = j.id
       WHERE s.local_account_key = ?
@@ -79,38 +182,7 @@ class LocalChatDataSource implements ChatDataSource {
       if (seenSessionIds.contains(sessionId)) continue;
       seenSessionIds.add(sessionId);
 
-      final createdAt = (row['created_at'] as String?) ?? '';
-      final entryDate = (row['entry_date_local'] as String?) ?? _formatDate(createdAt);
-      final timeStr = _formatTime(createdAt);
-      final summary = (row['summary'] as String?) ?? '';
-      final title = (row['journal_title'] as String?) ?? 'Sesi Panggilan Suara EVA';
-      final moodTag = (row['mood_tag'] as String?) ?? 'Tenang & Nyaman';
-      final moodEmoji = (row['mood_emoji'] as String?) ?? '😌';
-
-      conversations.add(
-        ConversationModel(
-          id: sessionId,
-          title: title,
-          date: entryDate,
-          lastSessionTime: timeStr,
-          moodTag: moodTag,
-          moodEmoji: moodEmoji,
-          summary: summary,
-          messages: summary.isNotEmpty
-              ? [
-                  ChatMessageModel(
-                    id: 'msg_summary_$sessionId',
-                    conversationId: sessionId,
-                    isUser: false,
-                    text: summary,
-                    time: timeStr,
-                    emotionTag: moodTag,
-                    emotionEmoji: moodEmoji,
-                  ),
-                ]
-              : const [],
-        ),
-      );
+      conversations.add(await _mapRowToConversation(db, row));
     }
 
     return conversations;
@@ -125,12 +197,15 @@ class LocalChatDataSource implements ChatDataSource {
         s.id AS session_id,
         s.client_session_id AS client_session_id,
         s.summary AS summary,
+        s.synthesis_status AS synthesis_status,
+        s.emotions_breakdown_json AS session_emotions_json,
         s.created_at AS created_at,
         j.id AS journal_id,
         j.title AS journal_title,
         j.mood_tag AS mood_tag,
         j.mood_emoji AS mood_emoji,
-        j.entry_date_local AS entry_date_local
+        j.entry_date_local AS entry_date_local,
+        j.emotions_breakdown_json AS journal_emotions_json
       FROM session_summaries s
       LEFT JOIN journal_entries j ON s.journal_id = j.id
       WHERE (s.client_session_id = ? OR s.id = ?) AND s.local_account_key = ?
@@ -140,38 +215,7 @@ class LocalChatDataSource implements ChatDataSource {
     );
 
     if (rows.isEmpty) return null;
-    final row = rows.first;
-    final createdAt = (row['created_at'] as String?) ?? '';
-    final entryDate = (row['entry_date_local'] as String?) ?? _formatDate(createdAt);
-    final timeStr = _formatTime(createdAt);
-    final summary = (row['summary'] as String?) ?? '';
-    final title = (row['journal_title'] as String?) ?? 'Sesi Panggilan Suara EVA';
-    final moodTag = (row['mood_tag'] as String?) ?? 'Tenang & Nyaman';
-    final moodEmoji = (row['mood_emoji'] as String?) ?? '😌';
-    final sessionId = (row['client_session_id'] as String?) ?? (row['session_id'] as String);
-
-    return ConversationModel(
-      id: sessionId,
-      title: title,
-      date: entryDate,
-      lastSessionTime: timeStr,
-      moodTag: moodTag,
-      moodEmoji: moodEmoji,
-      summary: summary,
-      messages: summary.isNotEmpty
-          ? [
-              ChatMessageModel(
-                id: 'msg_summary_$sessionId',
-                conversationId: sessionId,
-                isUser: false,
-                text: summary,
-                time: timeStr,
-                emotionTag: moodTag,
-                emotionEmoji: moodEmoji,
-              ),
-            ]
-          : const [],
-    );
+    return _mapRowToConversation(db, rows.first);
   }
 
   @override

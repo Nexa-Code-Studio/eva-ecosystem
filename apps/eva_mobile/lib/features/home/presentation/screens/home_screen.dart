@@ -39,7 +39,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver {
   String _userName = 'Sahabat EVA';
-  String _userEmail = 'samsul@gmail.com';
+  String _userEmail = '';
   int _todayConversationsCount = 0;
 
   String get _userInitials {
@@ -72,76 +72,12 @@ class HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObser
       'Keselamatan dan ketenanganmu adalah prioritas paling berharga. Silakan hubungi bantuan darurat bila beban terasa terlalu berat.';
   Map<String, dynamic>? _todayActivity;
 
-  static final List<Map<String, dynamic>> _defaultRecommendations = [
-    {
-      'id': '1',
-      'title': 'Latihan Pernapasan 4-7-8',
-      'category': 'Mindfulness',
-      'targetCondition': 'stress',
-      'duration': '3 menit',
-      'difficulty': 'Pemula',
-      'description':
-          'Tarik napas dalam 4 detik, tahan 7 detik, lalu hembuskan perlahan 8 detik untuk meredakan ketegangan sistem saraf.',
-      'instructions': [
-        'Duduk dengan nyaman dan punggung tegak.',
-        'Tarik napas perlahan melalui hidung selama 4 detik.',
-        'Tahan napasmu selama 7 detik.',
-        'Hembuskan napas secara perlahan melalui mulut selama 8 detik.',
-        'Ulangi siklus ini sebanyak 4 kali putaran.',
-      ],
-      'rationale':
-          'Mengaktifkan respons relaksasi parasimpatik untuk menurunkan detak jantung dan meredakan ketegangan.',
-      'isCompleted': false,
-    },
-    {
-      'id': '2',
-      'title': 'Teknik Grounding 5-4-3-2-1',
-      'category': 'CBT',
-      'targetCondition': 'anxiety',
-      'duration': '5 menit',
-      'difficulty': 'Pemula',
-      'description':
-          'Sadarilah 5 hal yang kamu lihat, 4 hal yang kamu sentuh, 3 suara di sekitarmu, 2 aroma, dan 1 rasa untuk kembali ke saat ini.',
-      'instructions': [
-        'Sebutkan 5 hal yang bisa kamu lihat di sekitarmu.',
-        'Sentuh dan rasakan 4 benda yang ada di dekatmu.',
-        'Dengarkan secara saksama 3 suara berbeda di ruangan ini.',
-        'Identifikasi 2 aroma yang tercium olehmu saat ini.',
-        'Fokuskan lidahmu pada 1 rasa yang masih tertinggal di mulutmu.',
-      ],
-      'rationale':
-          'Mengalihkan fokus otak dari lingkaran kecemasan ke persepsi sensorik nyata saat ini.',
-      'isCompleted': false,
-    },
-    {
-      'id': '3',
-      'title': 'Catatan Syukur Harian',
-      'category': 'Refleksi',
-      'targetCondition': 'depression',
-      'duration': '3 menit',
-      'difficulty': 'Pemula',
-      'description':
-          'Tuliskan satu hal sederhana yang memberimu kehangatan atau kenyamanan hari ini.',
-      'instructions': [
-        'Tarik napas dalam sejenak dan pejamkan matamu perlahan.',
-        'Ingat satu momen kecil yang membuatmu merasa hangat atau tersenyum hari ini.',
-        'Tuliskan secara spesifik apa momen itu dan mengapa itu berarti bagimu.',
-      ],
-      'rationale':
-          'Melatih otak mengenali afek positif dan memutus kecenderungan bias negatif.',
-      'isCompleted': false,
-    },
-  ];
-
-  late List<Map<String, dynamic>> _recommendations;
+  List<Map<String, dynamic>> _recommendations = [];
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _recommendations = List<Map<String, dynamic>>.from(
-      _defaultRecommendations.map((item) => Map<String, dynamic>.from(item)),
-    );
     _loadHomeScreenData();
   }
 
@@ -181,6 +117,17 @@ class HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObser
     }
 
     try {
+      final recFuture = ref
+          .read(recommendationRepositoryProvider)
+          .getTodayRecommendation()
+          .catchError((_) => <String, dynamic>{})
+          .then((recData) {
+        if (!mounted) return recData;
+        _applyTodayRecommendation(recData);
+        if (mounted) setState(() {});
+        return recData;
+      });
+
       final results = await Future.wait([
         // 0: Profile
         ref.read(authRepositoryProvider).getCurrentUser().catchError((_) => null),
@@ -188,8 +135,8 @@ class HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObser
         ref.read(chatRepositoryProvider).getConversations().catchError((_) => <ConversationEntity>[]),
         // 2: Today diary & emotions
         ref.read(diaryRepositoryProvider).getTodayDiary().catchError((_) => null),
-        // 3: Tailored recommendation for today
-        ref.read(recommendationRepositoryProvider).getTodayRecommendation().catchError((_) => <String, dynamic>{}),
+        // 3: Tailored recommendation for today (also updates state immediately when resolved)
+        recFuture,
         // 4: Today DASS-21 assessment
         ref.read(dassRepositoryProvider).getTodayAssessment().then<DASSAssessmentEntity?>((a) => a).catchError((_) => null),
       ]);
@@ -226,70 +173,11 @@ class HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObser
         }
       }
 
-      // Handle Today Tailored Recommendation
-      final recData = results[3] as Map<String, dynamic>? ?? {};
-      if (recData['todayActivity'] != null) {
-        _targetCondition = recData['targetCondition']?.toString() ?? 'general';
-        _conditionLabel =
-            recData['conditionLabel']?.toString() ?? 'Fokus: Relaksasi & Perawatan Diri';
-        _conditionReason = recData['conditionReason']?.toString() ?? '';
-        _severityLevel = recData['severityLevel']?.toString() ?? 'Normal';
-        _isCrisis = recData['isCrisis'] == true;
-        if (recData['crisisHotline'] != null) {
-          _crisisHotline = recData['crisisHotline'].toString();
-        }
-        if (recData['crisisGuidance'] != null) {
-          _crisisGuidance = recData['crisisGuidance'].toString();
-        }
-
-        final act = recData['todayActivity'] as Map<String, dynamic>;
+      // Sync completion state with DailyProgressLocalService if todayActivity is completed
+      final act = _todayActivity;
+      if (act != null && act['isCompleted'] == true) {
         final actId = act['id']?.toString() ?? '';
-        final bool isActDone = act['isCompleted'] == true ||
-            _localProgress.isActivityCompleted(actId);
-
-        final actMap = {
-          'id': actId,
-          'title': act['title']?.toString() ?? 'Latihan Relaksasi',
-          'category': act['category']?.toString() ?? 'Self-Care',
-          'targetCondition':
-              act['targetCondition']?.toString() ?? _targetCondition,
-          'duration': act['duration']?.toString() ?? '5 menit',
-          'difficulty': act['difficulty']?.toString() ?? 'Pemula',
-          'description': act['description']?.toString() ?? '',
-          'instructions': act['instructions'] is List
-              ? List<String>.from(
-                  act['instructions'].map((e) => e.toString()))
-              : <String>[],
-          'rationale': act['rationale']?.toString() ?? '',
-          'iconName': act['iconName']?.toString() ?? 'spa',
-          'isCompleted': isActDone,
-        };
-
-        _todayActivity = actMap;
-
-        final List<Map<String, dynamic>> combined = [actMap];
-        if (recData['alternatives'] is List) {
-          for (var item in recData['alternatives']) {
-            final altId = item['id']?.toString() ?? '';
-            combined.add({
-              'id': altId,
-              'title': item['title']?.toString() ?? 'Rekomendasi',
-              'category': item['category']?.toString() ?? 'Self-Care',
-              'targetCondition':
-                  item['targetCondition']?.toString() ?? _targetCondition,
-              'duration': item['duration']?.toString() ?? '5 menit',
-              'difficulty': item['difficulty']?.toString() ?? 'Pemula',
-              'description': item['description']?.toString() ?? '',
-              'instructions': <String>[],
-              'rationale': '',
-              'isCompleted': item['isCompleted'] == true ||
-                  _localProgress.isActivityCompleted(altId),
-            });
-          }
-        }
-        _recommendations = combined;
-
-        if (isActDone && !_localProgress.isActivityCompleted(actId)) {
+        if (actId.isNotEmpty && !_localProgress.isActivityCompleted(actId)) {
           _localProgress =
               await DailyProgressLocalService.recordActivityCompletion(
             actId,
@@ -313,24 +201,85 @@ class HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObser
     if (mounted) setState(() {});
   }
 
+  void _applyTodayRecommendation(Map<String, dynamic> recData) {
+    if (recData['todayActivity'] == null) return;
+
+    _targetCondition = recData['targetCondition']?.toString() ?? 'general';
+    _conditionLabel =
+        recData['conditionLabel']?.toString() ?? 'Fokus: Relaksasi & Perawatan Diri';
+    _conditionReason = recData['conditionReason']?.toString() ?? '';
+    _severityLevel = recData['severityLevel']?.toString() ?? 'Normal';
+    _isCrisis = recData['isCrisis'] == true;
+    if (recData['crisisHotline'] != null) {
+      _crisisHotline = recData['crisisHotline'].toString();
+    }
+    if (recData['crisisGuidance'] != null) {
+      _crisisGuidance = recData['crisisGuidance'].toString();
+    }
+
+    final act = recData['todayActivity'] as Map<String, dynamic>;
+    final actId = act['id']?.toString() ?? '';
+    final bool isActDone = act['isCompleted'] == true ||
+        _localProgress.isActivityCompleted(actId);
+
+    final actMap = {
+      'id': actId,
+      'title': act['title']?.toString() ?? 'Latihan Relaksasi',
+      'category': act['category']?.toString() ?? 'Self-Care',
+      'targetCondition': act['targetCondition']?.toString() ?? _targetCondition,
+      'duration': act['duration']?.toString() ?? '5 menit',
+      'difficulty': act['difficulty']?.toString() ?? 'Pemula',
+      'description': act['description']?.toString() ?? '',
+      'instructions': act['instructions'] is List
+          ? List<String>.from(act['instructions'].map((e) => e.toString()))
+          : <String>[],
+      'rationale': act['rationale']?.toString() ?? '',
+      'iconName': act['iconName']?.toString() ?? 'spa',
+      'isCompleted': isActDone,
+    };
+
+    _todayActivity = actMap;
+
+    final List<Map<String, dynamic>> combined = [
+      Map<String, dynamic>.from(actMap),
+    ];
+    if (recData['alternatives'] is List) {
+      for (var item in recData['alternatives']) {
+        final altId = item['id']?.toString() ?? '';
+        combined.add({
+          'id': altId,
+          'title': item['title']?.toString() ?? 'Rekomendasi',
+          'category': item['category']?.toString() ?? 'Self-Care',
+          'targetCondition':
+              item['targetCondition']?.toString() ?? _targetCondition,
+          'duration': item['duration']?.toString() ?? '5 menit',
+          'difficulty': item['difficulty']?.toString() ?? 'Pemula',
+          'description': item['description']?.toString() ?? '',
+          'instructions': <String>[],
+          'rationale': '',
+          'isCompleted': item['isCompleted'] == true ||
+              _localProgress.isActivityCompleted(altId),
+        });
+      }
+    }
+    _recommendations = combined;
+  }
+
   Future<void> _toggleRecommendationComplete(String id) async {
-    bool currentStatus = false;
     final idx = _recommendations.indexWhere((r) => r['id'] == id);
-    if (idx != -1) {
-      currentStatus = _recommendations[idx]['isCompleted'] == true;
-      setState(() {
-        _recommendations[idx]['isCompleted'] = !currentStatus;
-      });
-    }
+    final bool wasCompleted = (_todayActivity != null && _todayActivity!['id'] == id)
+        ? (_todayActivity!['isCompleted'] == true)
+        : (idx != -1 && _recommendations[idx]['isCompleted'] == true);
+    final bool newStatus = !wasCompleted;
 
-    if (_todayActivity != null && _todayActivity!['id'] == id) {
-      currentStatus = _todayActivity!['isCompleted'] == true;
-      setState(() {
-        _todayActivity!['isCompleted'] = !currentStatus;
-      });
-    }
-
-    final newStatus = !currentStatus;
+    setState(() {
+      if (idx != -1) {
+        _recommendations[idx]['isCompleted'] = newStatus;
+      }
+      if (_todayActivity != null && _todayActivity!['id'] == id) {
+        _todayActivity!['isCompleted'] = newStatus;
+      }
+    });
 
     final updatedProgress =
         await DailyProgressLocalService.recordActivityCompletion(
@@ -611,17 +560,21 @@ class HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObser
   }
 
   Widget _buildLatestRecommendationSection() {
-    final Map<String, dynamic> activeRec = (_todayActivity != null &&
+    final Map<String, dynamic>? activeRec = (_todayActivity != null &&
             _todayActivity!["isCompleted"] != true)
-        ? _todayActivity!
+        ? _todayActivity
         : (_recommendations.isNotEmpty
             ? _recommendations.firstWhere(
                 (r) => r["isCompleted"] != true,
                 orElse: () => _todayActivity ?? _recommendations.first,
               )
-            : _defaultRecommendations.first);
+            : _todayActivity);
 
-    final id = activeRec["id"]?.toString() ?? "1";
+    if (activeRec == null) {
+      return const SizedBox.shrink();
+    }
+
+    final id = activeRec["id"]?.toString() ?? "";
     final isDone = activeRec["isCompleted"] == true ||
         _localProgress.isActivityCompleted(id);
 
