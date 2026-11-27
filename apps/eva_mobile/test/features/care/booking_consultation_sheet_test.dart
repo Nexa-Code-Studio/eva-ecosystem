@@ -71,7 +71,11 @@ void main() {
     expect(find.text('Amanda Zahra, M.Psi.'), findsOneWidget);
     expect(find.text('Telekonsultasi Video Call Online • Durasi 30 Menit / Sesi'), findsOneWidget);
     expect(find.text('Tatap Muka'), findsNothing);
-    expect(find.text('Pilih Hari'), findsOneWidget);
+    expect(find.text('Pilih Tanggal'), findsOneWidget);
+    expect(find.byKey(const Key('booking_date_picker_field')), findsOneWidget);
+    expect(find.text('Besok'), findsNothing);
+    expect(find.text('Lusa'), findsNothing);
+    expect(find.text('3 Hari Lagi'), findsNothing);
     expect(find.text('Durasi Pemesanan Sesi'), findsOneWidget);
     expect(find.text('Ketersediaan & Jam Mulai'), findsOneWidget);
 
