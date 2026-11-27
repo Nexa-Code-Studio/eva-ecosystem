@@ -135,13 +135,21 @@ async def test_remote_http_provider_rejects_malformed_or_missing_classes():
         await provider.close()
 
 
-def test_emotion_factory_dev_fallback_and_prod_fail_fast(monkeypatch):
+def test_emotion_factory_fail_fast_no_silent_mock(monkeypatch):
     EmotionFactory._instances.clear()
     monkeypatch.setattr(settings, "APP_ENV", "development")
     monkeypatch.setattr(settings, "EMOTION_PROVIDER", "remote_http")
     monkeypatch.setattr(settings, "EMOTION_SERVICE_URL", "")
-    dev_provider = EmotionFactory.get_provider(force_new=True)
-    assert isinstance(dev_provider, MockEmotionProvider)
+    with pytest.raises(RuntimeError, match="EMOTION_SERVICE_URL must be configured"):
+        EmotionFactory.get_provider(force_new=True)
+
+    monkeypatch.setattr(settings, "EMOTION_PROVIDER", "mock")
+    with pytest.raises(RuntimeError, match="EMOTION_PROVIDER='mock' is disabled"):
+        EmotionFactory.get_provider(force_new=True)
+
+    monkeypatch.setattr(settings, "EMOTION_PROVIDER", "invalid_backend")
+    with pytest.raises(RuntimeError, match="Unsupported EMOTION_PROVIDER"):
+        EmotionFactory.get_provider(force_new=True)
 
     # Production must fail-fast if auth_mode='none'
     monkeypatch.setattr(settings, "APP_ENV", "production")

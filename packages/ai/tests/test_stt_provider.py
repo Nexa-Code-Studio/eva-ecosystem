@@ -40,7 +40,7 @@ class _FakeWebSocket:
         self._incoming.put_nowait(None)
 
 
-def test_stt_factory_key_resolution_and_dev_fallback(monkeypatch):
+def test_stt_factory_key_resolution_and_fail_fast(monkeypatch):
     STTFactory.reset()
     monkeypatch.setattr(settings, "APP_ENV", "development")
     monkeypatch.setattr(settings, "STT_PROVIDER", "elevenlabs")
@@ -48,10 +48,21 @@ def test_stt_factory_key_resolution_and_dev_fallback(monkeypatch):
     monkeypatch.setattr(settings, "ELEVENLABS_API_KEYS", "your-tts-key-1")
     monkeypatch.setattr(settings, "TTS_API_KEY", "")
 
-    fallback = STTFactory.get_provider(force_new=True)
-    assert isinstance(fallback, MockSTTProvider)
+    with pytest.raises(RuntimeError, match="No valid ElevenLabs API key"):
+        STTFactory.get_provider(force_new=True)
+
+    # Unknown provider (e.g., whisper) must fail fast instead of silently falling back to mock
+    monkeypatch.setattr(settings, "STT_PROVIDER", "whisper")
+    with pytest.raises(RuntimeError, match="Unsupported STT_PROVIDER 'whisper'"):
+        STTFactory.get_provider(force_new=True)
+
+    # Configured STT_PROVIDER='mock' in settings is disabled
+    monkeypatch.setattr(settings, "STT_PROVIDER", "mock")
+    with pytest.raises(RuntimeError, match="STT_PROVIDER='mock' is disabled"):
+        STTFactory.get_provider(force_new=True)
 
     # Reuse ELEVENLABS_API_KEYS when ELEVENLABS_STT_API_KEY is empty
+    monkeypatch.setattr(settings, "STT_PROVIDER", "elevenlabs")
     monkeypatch.setattr(settings, "ELEVENLABS_API_KEYS", "el_shared_key_1,el_shared_key_2")
     shared_provider = STTFactory.get_provider(force_new=True)
     assert isinstance(shared_provider, ElevenLabsRealtimeSTTProvider)

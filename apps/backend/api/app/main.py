@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
 import logging
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from packages.ai.factories import EmotionFactory, LLMFactory, STTFactory, TTSFactory
 from shared.config import settings
 
 from app.api.dependencies import shutdown_webrtc_signaling_manager
@@ -49,9 +51,30 @@ from app.core.logging import setup_logging
 logger = logging.getLogger(__name__)
 
 
+def _validate_ai_providers_startup() -> None:
+    """Fail fast at server startup if any AI provider configuration or key is invalid."""
+    if os.getenv("PYTEST_CURRENT_TEST"):
+        return
+    stt = STTFactory.get_provider()
+    llm = LLMFactory.get_provider()
+    tts = TTSFactory.get_provider()
+    emotion_name = "disabled"
+    if settings.EMOTION_STREAMING_ENABLED:
+        emotion = EmotionFactory.get_provider()
+        emotion_name = emotion.__class__.__name__
+    logger.info(
+        "[AI PREFLIGHT OK] STT=%s LLM=%s TTS=%s Emotion=%s",
+        stt.__class__.__name__,
+        llm.__class__.__name__,
+        tts.__class__.__name__,
+        emotion_name,
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
+    _validate_ai_providers_startup()
     if settings.APP_ENV == "development":
         try:
             from app.db.seed import seed_master_data
