@@ -220,5 +220,13 @@
     "updated_at": 1795728480,
     "evidence_summary": "Evidence accepted: PR and test verification documented.",
     "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/152"
+  },
+  "157": {
+    "issue": 157,
+    "branch": "refactor/157-ws-audio-fanout-elevenlabs-stt",
+    "state": "In Review",
+    "updated_at": 1795751612,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/160"
   }
 }

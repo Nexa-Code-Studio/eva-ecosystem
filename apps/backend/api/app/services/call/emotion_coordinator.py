@@ -42,8 +42,10 @@ class CallEmotionCoordinator:
     def __init__(
         self,
         provider_getter: Callable[[], BaseEmotionProvider] | None = None,
+        on_snapshot_updated: Callable[[str, TemporalEmotionSnapshot], None] | None = None,
     ) -> None:
         self._provider_getter = provider_getter or EmotionFactory.get_provider
+        self._on_snapshot_updated = on_snapshot_updated
         self._sessions: dict[str, _SessionEmotionContext] = {}
         self.dispatcher = BoundedEmotionDispatcher(
             provider_getter=self._provider_getter,
@@ -231,6 +233,12 @@ class CallEmotionCoordinator:
         await self.dispatcher.shutdown()
         await EmotionFactory.close_all()
 
+    def set_snapshot_callback(
+        self,
+        callback: Callable[[str, TemporalEmotionSnapshot], None] | None,
+    ) -> None:
+        self._on_snapshot_updated = callback
+
     def _is_session_active(self, session_id: str, generation_token: str) -> bool:
         ctx = self._sessions.get(session_id)
         return ctx is not None and ctx.generation_token == generation_token
@@ -244,6 +252,12 @@ class CallEmotionCoordinator:
             generation_token=segment.generation_token,
             prediction=prediction,
         )
+        if self._on_snapshot_updated is not None:
+            try:
+                snapshot = ctx.aggregator.build_snapshot(current_turn_id=segment.user_turn_id)
+                self._on_snapshot_updated(segment.session_id, snapshot)
+            except Exception as err:
+                logger.debug("Emotion snapshot callback skipped: %s", type(err).__name__)
 
     def _handle_segment_failure(self, segment: AudioSegment, reason: str) -> None:
         ctx = self._sessions.get(segment.session_id)

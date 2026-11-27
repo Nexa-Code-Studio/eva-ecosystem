@@ -1,4 +1,3 @@
-import '../../domain/entities/audio_pipeline_mode.dart';
 import '../../domain/entities/call_state.dart';
 
 class AiCallViewState {
@@ -27,7 +26,6 @@ class AiCallViewState {
   final String? detectedEmotion;
   final double? detectedEmotionConfidence;
   final List<Map<String, dynamic>> activeEmotionsBreakdown;
-  final AudioPipelineDiagnosticSnapshot? audioDiagnostics;
   final int? remainingSecondsInCycle;
   final int currentBilledMinute;
   final int coinsPerMinute;
@@ -61,7 +59,6 @@ class AiCallViewState {
     this.detectedEmotion,
     this.detectedEmotionConfidence,
     this.activeEmotionsBreakdown = const [],
-    this.audioDiagnostics,
     this.remainingSecondsInCycle,
     this.currentBilledMinute = 0,
     this.coinsPerMinute = 1,
@@ -96,7 +93,6 @@ class AiCallViewState {
     String? detectedEmotion,
     double? detectedEmotionConfidence,
     List<Map<String, dynamic>>? activeEmotionsBreakdown,
-    AudioPipelineDiagnosticSnapshot? audioDiagnostics,
     int? remainingSecondsInCycle,
     int? currentBilledMinute,
     int? coinsPerMinute,
@@ -134,7 +130,6 @@ class AiCallViewState {
       detectedEmotion: detectedEmotion ?? this.detectedEmotion,
       detectedEmotionConfidence: detectedEmotionConfidence ?? this.detectedEmotionConfidence,
       activeEmotionsBreakdown: activeEmotionsBreakdown ?? this.activeEmotionsBreakdown,
-      audioDiagnostics: audioDiagnostics ?? this.audioDiagnostics,
       remainingSecondsInCycle: clearRemainingSeconds
           ? null
           : (remainingSecondsInCycle ?? this.remainingSecondsInCycle),

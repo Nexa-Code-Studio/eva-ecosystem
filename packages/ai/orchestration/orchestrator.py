@@ -462,7 +462,10 @@ class AIOrchestrator:
         dan mengembalikan OrchestratedTurnResult yang siap di-stream.
         """
         start_t = time.perf_counter()
-        logger.info(f"🚀 [ORCHESTRATOR TURN START] User text: \"{user_text}\" | User Name: {user_name or 'None'}")
+        if settings.APP_ENV.lower() == "production":
+            logger.info(f"🚀 [ORCHESTRATOR TURN START] User text: <redacted len={len(user_text)}>")
+        else:
+            logger.info(f"🚀 [ORCHESTRATOR TURN START] User text: \"{user_text}\" | User Name: {user_name or 'None'}")
 
         # 1. Deteksi Emosi (Temporal Snapshot, Precomputed, Voice Audio, atau Teks Fallback eksplisit)
         if temporal_emotion is not None:

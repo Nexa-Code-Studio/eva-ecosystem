@@ -24,11 +24,6 @@ NC="\033[0m"
 RAW_MODE="${1:-}"
 TARGET_ENV="${ENV:-${TARGET:-local}}"
 FALLBACK_HYBRID="${FALLBACK_HYBRID:-false}"
-FORCE_AUDIO_PIPELINE_MODE="${FORCE_AUDIO_PIPELINE_MODE:-}"
-EXTRA_PIPELINE_ARGS=()
-if [ -n "${FORCE_AUDIO_PIPELINE_MODE}" ]; then
-    EXTRA_PIPELINE_ARGS+=(--dart-define=FORCE_AUDIO_PIPELINE_MODE="${FORCE_AUDIO_PIPELINE_MODE}")
-fi
 
 case "${RAW_MODE}" in
     usb-cloud)
@@ -240,7 +235,6 @@ if [ "${MODE}" = "usb" ]; then
             --dart-define=USE_LOCAL_API=false \
             --dart-define=USE_HYBRID_FALLBACK="${FALLBACK_HYBRID}" \
             --dart-define=HYBRID="${FALLBACK_HYBRID}" \
-            ${EXTRA_PIPELINE_ARGS[@]+"${EXTRA_PIPELINE_ARGS[@]}"} \
             "$@"
     else
         exec "${FLUTTER_BIN}" run -d "${TARGET_DEVICE}" \
@@ -251,7 +245,6 @@ if [ "${MODE}" = "usb" ]; then
             --dart-define=API_BASE_URL="http://127.0.0.1:${PORT}/api/v1" \
             --dart-define=USE_HYBRID_FALLBACK="${FALLBACK_HYBRID}" \
             --dart-define=HYBRID="${FALLBACK_HYBRID}" \
-            ${EXTRA_PIPELINE_ARGS[@]+"${EXTRA_PIPELINE_ARGS[@]}"} \
             "$@"
     fi
 
@@ -312,7 +305,6 @@ elif [ "${MODE}" = "emu" ]; then
             --dart-define=USE_LOCAL_API=false \
             --dart-define=USE_HYBRID_FALLBACK="${FALLBACK_HYBRID}" \
             --dart-define=HYBRID="${FALLBACK_HYBRID}" \
-            ${EXTRA_PIPELINE_ARGS[@]+"${EXTRA_PIPELINE_ARGS[@]}"} \
             "$@"
     else
         exec "${FLUTTER_BIN}" run -d "${TARGET_DEVICE}" \
@@ -324,7 +316,6 @@ elif [ "${MODE}" = "emu" ]; then
             --dart-define=API_BASE_URL="http://10.0.2.2:${PORT}/api/v1" \
             --dart-define=USE_HYBRID_FALLBACK="${FALLBACK_HYBRID}" \
             --dart-define=HYBRID="${FALLBACK_HYBRID}" \
-            ${EXTRA_PIPELINE_ARGS[@]+"${EXTRA_PIPELINE_ARGS[@]}"} \
             "$@"
     fi
 

@@ -1,342 +1,240 @@
 package com.example.eva_mobile.audio
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.media.AudioFormat
-import android.media.AudioManager
 import android.media.AudioRecord
-import android.media.AudioRecordingConfiguration
 import android.media.MediaRecorder
-import android.os.Build
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.sqrt
 
 /**
- * Hardware AudioRecord implementation of PcmFrameSource.
- * Prefers VOICE_RECOGNITION and falls back to MIC if HAL initialization fails.
- * Monitors AudioRecordingConfiguration.isClientSilenced() on Android 10+ (API 29+).
+ * Thread-safe bounded egress queue with drop-oldest backpressure policy so
+ * the AudioRecord reader thread never stalls on platform-channel delivery.
  */
-class AndroidAudioRecordSource(
-    private val context: Context,
-    private val sampleRate: Int = AudioCaptureEngine.SAMPLE_RATE,
-    private val chunkSizeBytes: Int = AudioCaptureEngine.CHUNK_SIZE_BYTES
-) : PcmFrameSource {
-
-    companion object {
-        private const val TAG = "AndroidAudioRecordSrc"
+internal class BoundedPcmQueue(private val capacity: Int) {
+    init {
+        require(capacity > 0) { "Queue capacity must be > 0" }
     }
 
-    private var audioRecord: AudioRecord? = null
-    private var recordingCallback: AudioManager.AudioRecordingCallback? = null
+    private val queue = LinkedBlockingQueue<ByteArray>(capacity)
+    private val droppedCount = AtomicLong(0)
 
-    override val audioSessionId: Int
-        get() = audioRecord?.audioSessionId ?: AudioManager.ERROR
-
-    @SuppressLint("MissingPermission")
-    override fun start(): Boolean {
-        val minBufferSize = AudioRecord.getMinBufferSize(
-            sampleRate,
-            AudioCaptureEngine.CHANNEL_CONFIG,
-            AudioCaptureEngine.AUDIO_FORMAT
-        )
-        if (minBufferSize == AudioRecord.ERROR || minBufferSize == AudioRecord.ERROR_BAD_VALUE) {
-            Log.e(TAG, "Invalid AudioRecord parameters: minBufferSize=$minBufferSize")
-            return false
-        }
-
-        val bufferSize = maxOf(minBufferSize * 2, chunkSizeBytes * 2)
-        val candidateSources = intArrayOf(
-            MediaRecorder.AudioSource.VOICE_RECOGNITION,
-            MediaRecorder.AudioSource.MIC
-        )
-
-        for (source in candidateSources) {
-            var candidate: AudioRecord? = null
-            try {
-                candidate = AudioRecord(
-                    source,
-                    sampleRate,
-                    AudioCaptureEngine.CHANNEL_CONFIG,
-                    AudioCaptureEngine.AUDIO_FORMAT,
-                    bufferSize
-                )
-                if (candidate.state == AudioRecord.STATE_INITIALIZED) {
-                    candidate.startRecording()
-                    audioRecord = candidate
-                    Log.i(TAG, "AudioRecord initialized with source=$source, sessionId=${candidate.audioSessionId}")
-                    return true
-                }
-                candidate.release()
-            } catch (e: Exception) {
-                Log.w(TAG, "AudioRecord init failed for source=$source: ${e.message}")
-                try {
-                    candidate?.release()
-                } catch (_: Exception) {
-                }
+    fun offerDropOldest(frame: ByteArray) {
+        while (!queue.offer(frame)) {
+            if (queue.poll() != null) {
+                droppedCount.incrementAndGet()
             }
         }
-        return false
     }
 
-    override fun read(buffer: ByteArray, offset: Int, size: Int): Int {
-        return audioRecord?.read(buffer, offset, size) ?: AudioRecord.ERROR_INVALID_OPERATION
+    fun poll(timeoutMs: Long): ByteArray? = queue.poll(timeoutMs, TimeUnit.MILLISECONDS)
+
+    fun clear() {
+        queue.clear()
     }
 
-    override fun stop() {
-        try {
-            audioRecord?.let { rec ->
-                if (rec.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
-                    rec.stop()
-                }
-            }
-        } catch (e: Exception) {
-            Log.d(TAG, "AudioRecord stop error: ${e.message}")
-        }
-    }
+    fun size(): Int = queue.size
 
-    override fun release() {
-        unregisterSilenceCallback()
-        try {
-            audioRecord?.release()
-        } catch (e: Exception) {
-            Log.d(TAG, "AudioRecord release error: ${e.message}")
-        } finally {
-            audioRecord = null
-        }
-    }
+    fun droppedFrames(): Long = droppedCount.get()
+}
 
-    override fun registerSilenceCallback(callback: (Boolean) -> Unit) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
-        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
-        val sessionId = audioSessionId
-        if (sessionId == AudioManager.ERROR) return
+/**
+ * Pure PCM16 little-endian signal level helper normalized to [0.0, 1.0].
+ */
+internal object PcmSignalMetrics {
+    fun computeNormalizedRms(buffer: ByteArray, bytesRead: Int): Double {
+        val sampleCount = bytesRead / 2
+        if (sampleCount <= 0) return 0.0
 
-        unregisterSilenceCallback()
-        val cb = object : AudioManager.AudioRecordingCallback() {
-            override fun onRecordingConfigChanged(configs: MutableList<AudioRecordingConfiguration>?) {
-                val matched = configs?.firstOrNull { it.clientAudioSessionId == sessionId }
-                if (matched != null) {
-                    callback(matched.isClientSilenced)
-                }
-            }
+        var sumSquares = 0.0
+        val limit = sampleCount * 2
+        var i = 0
+        while (i < limit) {
+            val lo = buffer[i].toInt() and 0xFF
+            val hi = buffer[i + 1].toInt() shl 8
+            val sample = (lo or hi).toShort().toDouble()
+            sumSquares += sample * sample
+            i += 2
         }
-        recordingCallback = cb
-        try {
-            audioManager.registerAudioRecordingCallback(cb, Handler(Looper.getMainLooper()))
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to register AudioRecordingCallback: ${e.message}")
-            recordingCallback = null
-        }
-    }
-
-    override fun unregisterSilenceCallback() {
-        val cb = recordingCallback ?: return
-        recordingCallback = null
-        try {
-            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-            audioManager?.unregisterAudioRecordingCallback(cb)
-        } catch (e: Exception) {
-            Log.d(TAG, "Failed to unregister AudioRecordingCallback: ${e.message}")
-        }
+        val rms = sqrt(sumSquares / sampleCount)
+        return (rms / 32767.0).coerceIn(0.0, 1.0)
     }
 }
 
 /**
- * Single Microphone Capture Engine.
- * Exclusively owns a single PcmFrameSource (AudioRecord) at 16kHz 16-bit mono PCM,
- * stamps session/generation/sequence/timestamp metadata, and pushes frames non-blockingly
- * into AudioFanOutPipeline. Enforces a synchronous thread-join & AudioRecord.release() barrier on stop.
+ * Single-owner raw PCM 16kHz 16-bit mono audio capture engine.
+ * Captures 4800-byte (150ms) frames uniformly on physical Android devices and emulators,
+ * queues chunks through a single bounded egress queue, and computes normalized RMS levels.
  */
-class AudioCaptureEngine(
-    private val frameSourceFactory: PcmFrameSourceFactory,
-    private val clockMs: () -> Long = { System.currentTimeMillis() },
-    private val logSink: AudioLogSink = AudioLogSink.NO_OP
-) {
+class AudioCaptureEngine {
+
     companion object {
         private const val TAG = "AudioCaptureEngine"
         const val SAMPLE_RATE = 16000
         const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
         const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
-        // 150ms buffer at 16kHz 16-bit mono: 16000 * 2 bytes/sample * 0.150s = 4800 bytes
+        // 150ms at 16kHz 16-bit mono: 16000 * 2 bytes/sample * 0.150s = 4800 bytes
         const val CHUNK_SIZE_BYTES = 4800
-
-        fun computeNormalizedRms(buffer: ByteArray, bytesRead: Int): Double {
-            val samples = bytesRead / 2
-            if (samples <= 0) return 0.0
-            var sum = 0.0
-            var i = 0
-            while (i + 1 < bytesRead) {
-                val sample = (buffer[i].toInt() and 0xFF) or (buffer[i + 1].toInt() shl 8)
-                val shortVal = sample.toShort().toDouble()
-                sum += shortVal * shortVal
-                i += 2
-            }
-            val rms = sqrt(sum / samples)
-            return (rms / 32767.0).coerceIn(0.0, 1.0)
-        }
+        const val EGRESS_QUEUE_CAPACITY = 24
     }
 
-    interface CaptureCallbacks {
-        fun onFrameCaptured(frame: AudioFrame)
+    interface AudioCaptureListener {
+        fun onAudioChunk(bytes: ByteArray)
         fun onSoundLevel(level: Double)
-        fun onClientSilencedChanged(silenced: Boolean)
-        fun onCaptureError(message: String)
+        fun onError(message: String)
     }
 
-    private var activeSource: PcmFrameSource? = null
+    private var audioRecord: AudioRecord? = null
     private var captureThread: Thread? = null
-    private val capturing = AtomicBoolean(false)
-    private val muted = AtomicBoolean(false)
-    private val activeSessionId = AtomicLong(0)
-    private val activeGenerationId = AtomicLong(0)
-    private val sequenceCounter = AtomicLong(0)
+    private var egressThread: Thread? = null
+    private val isCapturing = AtomicBoolean(false)
+    private val isMuted = AtomicBoolean(false)
+    private val egressQueue = BoundedPcmQueue(EGRESS_QUEUE_CAPACITY)
 
     @Volatile
-    private var activeCallbacks: CaptureCallbacks? = null
-
-    fun isCapturing(): Boolean = capturing.get()
-    fun isMuted(): Boolean = muted.get()
-
-    fun updateGeneration(sessionId: Long, generationId: Long) {
-        activeSessionId.set(sessionId)
-        activeGenerationId.set(generationId)
-    }
-
-    fun setMuted(isMuted: Boolean) {
-        muted.set(isMuted)
-        if (isMuted) {
-            activeCallbacks?.onSoundLevel(0.0)
-        }
-    }
+    private var activeListener: AudioCaptureListener? = null
 
     @Synchronized
-    fun startCapture(
-        sessionId: Long,
-        generationId: Long,
-        callbacks: CaptureCallbacks
-    ): Boolean {
-        activeSessionId.set(sessionId)
-        activeGenerationId.set(generationId)
-        activeCallbacks = callbacks
+    @SuppressLint("MissingPermission")
+    fun startCapture(listener: AudioCaptureListener?): Boolean {
+        activeListener = listener
 
-        if (capturing.get()) {
-            logSink.log("I", TAG, "Capture already running; updated session=$sessionId gen=$generationId")
+        if (isCapturing.get()) {
             return true
         }
 
-        sequenceCounter.set(0)
-        val source = frameSourceFactory.create(SAMPLE_RATE, CHUNK_SIZE_BYTES)
-        if (source == null || !source.start()) {
-            source?.release()
-            val err = "AudioRecord failed to initialize"
-            logSink.log("E", TAG, err)
-            callbacks.onCaptureError(err)
+        val minBufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT)
+        if (minBufferSize == AudioRecord.ERROR || minBufferSize == AudioRecord.ERROR_BAD_VALUE) {
+            listener?.onError("Invalid AudioRecord parameters: minBufferSize=$minBufferSize")
             return false
         }
 
-        activeSource = source
-        source.registerSilenceCallback { silenced ->
-            activeCallbacks?.onClientSilencedChanged(silenced)
-        }
+        val bufferSize = maxOf(minBufferSize * 2, CHUNK_SIZE_BYTES * 2)
 
-        capturing.set(true)
-        captureThread = Thread({
-            val buffer = ByteArray(CHUNK_SIZE_BYTES)
-            logSink.log("I", TAG, "Capture loop started (16kHz 16-bit mono, chunk=${CHUNK_SIZE_BYTES}B)")
+        try {
+            val record = AudioRecord(
+                MediaRecorder.AudioSource.MIC,
+                SAMPLE_RATE,
+                CHANNEL_CONFIG,
+                AUDIO_FORMAT,
+                bufferSize
+            )
 
-            while (capturing.get()) {
-                val bytesRead = try {
-                    source.read(buffer, 0, buffer.size)
-                } catch (e: Exception) {
-                    if (capturing.get()) {
-                        logSink.log("W", TAG, "Source read exception: ${e.message}")
-                    }
-                    -1
-                }
-
-                if (!capturing.get()) break
-
-                if (bytesRead > 0) {
-                    if (muted.get()) {
-                        activeCallbacks?.onSoundLevel(0.0)
-                        continue
-                    }
-
-                    val chunkCopy = buffer.copyOf(bytesRead)
-                    val rms = computeNormalizedRms(chunkCopy, bytesRead)
-                    val seq = sequenceCounter.incrementAndGet()
-                    val frame = AudioFrame(
-                        sessionId = activeSessionId.get(),
-                        generationId = activeGenerationId.get(),
-                        sequence = seq,
-                        timestampMs = clockMs(),
-                        pcmBytes = chunkCopy,
-                        rmsLevel = rms
-                    )
-                    activeCallbacks?.onSoundLevel(rms)
-                    activeCallbacks?.onFrameCaptured(frame)
-                } else if (bytesRead < 0) {
-                    logSink.log("W", TAG, "PcmFrameSource read returned error=$bytesRead")
-                    if (capturing.get()) {
-                        activeCallbacks?.onCaptureError("audio_read_error_$bytesRead")
-                    }
-                    break
-                }
+            if (record.state != AudioRecord.STATE_INITIALIZED) {
+                record.release()
+                val err = "AudioRecord failed to initialize (state=${record.state})"
+                Log.e(TAG, err)
+                listener?.onError(err)
+                return false
             }
-            logSink.log("I", TAG, "Capture loop finished")
-        }, "EvaSingleAudioCaptureThread").apply {
-            start()
-        }
 
-        return true
+            egressQueue.clear()
+            audioRecord = record
+            record.startRecording()
+            isCapturing.set(true)
+
+            egressThread = Thread({
+                while (isCapturing.get()) {
+                    try {
+                        val frame = egressQueue.poll(150) ?: continue
+                        if (!isMuted.get() && isCapturing.get()) {
+                            activeListener?.onAudioChunk(frame)
+                        }
+                    } catch (_: InterruptedException) {
+                        break
+                    }
+                }
+            }, "EvaPcmEgressThread").apply {
+                isDaemon = true
+                start()
+            }
+
+            captureThread = Thread({
+                val buffer = ByteArray(CHUNK_SIZE_BYTES)
+                Log.i(TAG, "Audio capture started (16kHz 16-bit mono, chunk=${CHUNK_SIZE_BYTES}B)")
+
+                while (isCapturing.get()) {
+                    val bytesRead = record.read(buffer, 0, buffer.size)
+                    if (bytesRead > 0 && isCapturing.get()) {
+                        if (isMuted.get()) {
+                            activeListener?.onSoundLevel(0.0)
+                            continue
+                        }
+                        val normalizedLevel = PcmSignalMetrics.computeNormalizedRms(buffer, bytesRead)
+                        activeListener?.onSoundLevel(normalizedLevel)
+                        egressQueue.offerDropOldest(buffer.copyOf(bytesRead))
+                    } else if (bytesRead < 0) {
+                        Log.w(TAG, "AudioRecord.read() error code: $bytesRead")
+                    }
+                }
+
+                Log.i(TAG, "Audio capture loop exited (droppedFrames=${egressQueue.droppedFrames()})")
+            }, "EvaPcmCaptureThread").apply {
+                isDaemon = true
+                start()
+            }
+
+            return true
+        } catch (e: Exception) {
+            val err = "Audio capture initialization error: ${e.message}"
+            Log.e(TAG, err, e)
+            listener?.onError(err)
+            stopCapture()
+            return false
+        }
     }
 
-    /**
-     * Synchronous Mic-Release Barrier:
-     * Stops the source first (unblocking AudioRecord.read), joins the capture thread,
-     * and releases the underlying AudioRecord before returning.
-     */
     @Synchronized
-    fun stopCapture(joinTimeoutMs: Long = 1000L): Boolean {
-        val wasCapturing = capturing.getAndSet(false)
-        val source = activeSource
-        activeSource = null
-        activeCallbacks = null
-
-        try {
-            source?.stop()
-        } catch (e: Exception) {
-            logSink.log("W", TAG, "Error stopping PcmFrameSource: ${e.message}")
+    fun stopCapture() {
+        if (!isCapturing.getAndSet(false)) {
+            egressQueue.clear()
+            return
         }
 
-        val thread = captureThread
-        captureThread = null
-        var joined = true
-        if (thread != null) {
-            thread.interrupt()
-            if (Thread.currentThread() !== thread) {
-                try {
-                    thread.join(joinTimeoutMs)
-                    if (thread.isAlive) joined = false
-                } catch (_: InterruptedException) {
-                    joined = false
+        activeListener = null
+        egressQueue.clear()
+
+        try {
+            egressThread?.interrupt()
+            egressThread = null
+        } catch (e: Exception) {
+            Log.w(TAG, "Error stopping egress thread: ${e.message}")
+        }
+
+        try {
+            captureThread?.interrupt()
+            captureThread = null
+        } catch (e: Exception) {
+            Log.w(TAG, "Error stopping capture thread: ${e.message}")
+        }
+
+        try {
+            audioRecord?.apply {
+                if (recordingState == AudioRecord.RECORDSTATE_RECORDING) {
+                    stop()
                 }
+                release()
             }
-        }
-
-        try {
-            source?.release()
+            audioRecord = null
         } catch (e: Exception) {
-            logSink.log("W", TAG, "Error releasing PcmFrameSource: ${e.message}")
+            Log.w(TAG, "Error releasing AudioRecord: ${e.message}")
         }
 
-        if (wasCapturing) {
-            logSink.log("I", TAG, "Audio capture stopped & released (joined=$joined)")
-        }
-        return joined
+        Log.i(TAG, "Audio capture stopped and released")
     }
+
+    fun setMuted(muted: Boolean) {
+        isMuted.set(muted)
+        if (muted) {
+            egressQueue.clear()
+        }
+    }
+
+    fun isMuted(): Boolean = isMuted.get()
+
+    fun isCapturing(): Boolean = isCapturing.get()
 }
