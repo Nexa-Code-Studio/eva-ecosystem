@@ -313,7 +313,8 @@ class CoinTopupService:
         """Sandbox/dev-only helper to simulate successful QRIS settlement during QA testing."""
         app_env = str(getattr(self._settings, "APP_ENV", settings.APP_ENV)).strip().lower()
         is_prod = bool(getattr(self._settings, "MIDTRANS_IS_PRODUCTION", True))
-        if is_prod or app_env == "production":
+        sim_enabled = bool(getattr(self._settings, "MIDTRANS_SANDBOX_SIMULATION_ENABLED", False))
+        if is_prod or (app_env == "production" and not sim_enabled):
             raise_contract_error(
                 status.HTTP_403_FORBIDDEN,
                 "SANDBOX_ONLY",

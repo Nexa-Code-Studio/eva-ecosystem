@@ -20,6 +20,8 @@ services:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@eva_postgres:5432/eva_ai?ssl=disable
       - REDIS_URL=redis://redis:6379/0
       - QDRANT_URL=http://qdrant:6333
+      - MIDTRANS_IS_PRODUCTION=${MIDTRANS_IS_PRODUCTION:-false}
+      - MIDTRANS_SANDBOX_SIMULATION_ENABLED=${MIDTRANS_SANDBOX_SIMULATION_ENABLED:-true}
     depends_on:
       postgres:
         condition: service_healthy
@@ -75,6 +77,8 @@ services:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@eva_postgres:5432/eva_ai?ssl=disable
       - REDIS_URL=redis://redis:6379/0
       - QDRANT_URL=http://qdrant:6333
+      - MIDTRANS_IS_PRODUCTION=${MIDTRANS_IS_PRODUCTION:-false}
+      - MIDTRANS_SANDBOX_SIMULATION_ENABLED=${MIDTRANS_SANDBOX_SIMULATION_ENABLED:-true}
     depends_on:
       redis:
         condition: service_healthy

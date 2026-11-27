@@ -87,6 +87,7 @@ class BaseConfig(BaseSettings):
     MIDTRANS_CLIENT_KEY: str = ""
     MIDTRANS_QRIS_ACQUIRER: str = "gopay"
     MIDTRANS_PAYMENT_ENABLED: bool = False
+    MIDTRANS_SANDBOX_SIMULATION_ENABLED: bool = False
 
     # Midtrans BI-SNAP Optional Credentials
     MIDTRANS_BISNAP_CLIENT_ID: str = ""
@@ -156,6 +157,7 @@ class BaseConfig(BaseSettings):
         for bool_env_key in (
             "MIDTRANS_IS_PRODUCTION",
             "MIDTRANS_PAYMENT_ENABLED",
+            "MIDTRANS_SANDBOX_SIMULATION_ENABLED",
             "MIDTRANS_PAYOUT_ENABLED",
             "MIDTRANS_PAYOUT_AUTO_APPROVE",
             "STT_ALLOW_INCOGNITO_CLOUD_AUDIO",
