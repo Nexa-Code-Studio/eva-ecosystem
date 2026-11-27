@@ -24,6 +24,10 @@ class AiCallController extends StateNotifier<AiCallViewState> {
   final LocalDiaryDataSource? _diaryDataSource;
   final StatelessSynthesisService? _synthesisService;
   final VoidCallback? _onArtifactsCommitted;
+  final bool _isMockBillingMode;
+  final Future<void> Function(int balance)? _onCoinBalanceSynced;
+  final Future<bool> Function(int coins)? _onMockSpendCoins;
+  final int Function()? _readCurrentCoinBalance;
 
   AiCallController({
     required SpeechRecognitionService speechService,
@@ -34,6 +38,10 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     LocalDiaryDataSource? diaryDataSource,
     StatelessSynthesisService? synthesisService,
     VoidCallback? onArtifactsCommitted,
+    bool isMockBillingMode = false,
+    Future<void> Function(int balance)? onCoinBalanceSynced,
+    Future<bool> Function(int coins)? onMockSpendCoins,
+    int Function()? readCurrentCoinBalance,
   })  : _singleAudioService = singleAudioService ??
             SingleAudioCaptureService(fallbackSpeechService: speechService),
         _audioPlaybackService = audioPlaybackService,
@@ -42,6 +50,10 @@ class AiCallController extends StateNotifier<AiCallViewState> {
         _diaryDataSource = diaryDataSource,
         _synthesisService = synthesisService,
         _onArtifactsCommitted = onArtifactsCommitted,
+        _isMockBillingMode = isMockBillingMode,
+        _onCoinBalanceSynced = onCoinBalanceSynced,
+        _onMockSpendCoins = onMockSpendCoins,
+        _readCurrentCoinBalance = readCurrentCoinBalance,
         super(const AiCallViewState());
 
   StreamSubscription? _audioChunkSubscription;
@@ -59,8 +71,12 @@ class AiCallController extends StateNotifier<AiCallViewState> {
   Timer? _restartTimer;
   Timer? _thinkingWatchdogTimer;
   Timer? _finalizeWatchdogTimer;
+  Timer? _billingGraceTimer;
   bool _isDisposed = false;
+  bool _isMockCycleRenewing = false;
   int _restartAttempts = 0;
+
+  bool get isCallEnded => state.callState == CallState.ended;
 
   Future<void> startCall({String? customCallId, String? voiceMode}) async {
     final callId = customCallId ?? 'call_${DateTime.now().millisecondsSinceEpoch}';
@@ -75,6 +91,9 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       } catch (_) {}
     }
 
+    _billingGraceTimer?.cancel();
+    _isMockCycleRenewing = false;
+
     state = state.copyWith(
       callId: callId,
       voiceMode: effectiveVoiceMode,
@@ -85,9 +104,33 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       currentTranscript: '',
       aiTranscript: '',
       callDurationSeconds: 0,
+      currentBilledMinute: 0,
+      coinsPerMinute: CallConfig.aiCallCoinsPerMinute,
+      isLowBalanceWarning: false,
+      clearRemainingSeconds: true,
+      clearBillingEnd: true,
       clearError: true,
       clearCrisis: true,
     );
+
+    if (_isMockBillingMode) {
+      final spent = await (_onMockSpendCoins?.call(CallConfig.aiCallCoinsPerMinute) ??
+          Future.value(true));
+      if (_isDisposed || !mounted) return;
+      if (!spent) {
+        state = state.copyWith(
+          callState: CallState.ended,
+          isBillingEnded: true,
+          billingEndReason: 'call.billing_insufficient',
+          errorMessage: 'Saldo koin tidak mencukupi untuk memulai telepon AI.',
+        );
+        return;
+      }
+      state = state.copyWith(
+        currentBilledMinute: 1,
+        remainingSecondsInCycle: CallConfig.aiCallIntervalSeconds,
+      );
+    }
 
     _initSubscriptions();
 
@@ -100,16 +143,77 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     await _wsClient.connect(callId);
     _wsClient.sendStartCall(voiceMode: effectiveVoiceMode);
 
-    // 3. Start Duration Timer
+    // 3. Start Duration & Billing Countdown Timer
     _durationTimer?.cancel();
     _durationTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!_isDisposed && state.callState != CallState.ended) {
-        state = state.copyWith(callDurationSeconds: state.callDurationSeconds + 1);
-      }
+      unawaited(_onDurationTick());
     });
 
     // 4. Initial transition to LISTENING
     await enterListening();
+  }
+
+  Future<void> _onDurationTick() async {
+    if (_isDisposed || !mounted || state.callState == CallState.ended) return;
+
+    final nextDuration = state.callDurationSeconds + 1;
+    final currentRem = state.remainingSecondsInCycle;
+    final int? nextRem =
+        (currentRem != null && currentRem > 0) ? currentRem - 1 : currentRem;
+
+    if (_isMockBillingMode && !state.isBillingEnded && nextRem != null) {
+      if (nextRem == CallConfig.aiCallWarningSeconds) {
+        final currentBalance = _readCurrentCoinBalance?.call() ?? 0;
+        final willExpire = currentBalance < state.coinsPerMinute;
+        state = state.copyWith(
+          callDurationSeconds: nextDuration,
+          remainingSecondsInCycle: nextRem,
+          isLowBalanceWarning: willExpire,
+        );
+        return;
+      }
+      if (nextRem <= 0) {
+        state = state.copyWith(
+          callDurationSeconds: nextDuration,
+          remainingSecondsInCycle: 0,
+        );
+        await _handleMockCycleRenewal();
+        return;
+      }
+    }
+
+    state = state.copyWith(
+      callDurationSeconds: nextDuration,
+      remainingSecondsInCycle: nextRem,
+    );
+  }
+
+  Future<void> _handleMockCycleRenewal() async {
+    if (_isMockCycleRenewing || _isDisposed || !mounted || state.isBillingEnded) {
+      return;
+    }
+    _isMockCycleRenewing = true;
+    try {
+      final ok = await (_onMockSpendCoins?.call(state.coinsPerMinute) ??
+          Future.value(true));
+      if (_isDisposed || !mounted || state.callState == CallState.ended) return;
+      if (ok) {
+        state = state.copyWith(
+          currentBilledMinute: state.currentBilledMinute + 1,
+          remainingSecondsInCycle: CallConfig.aiCallIntervalSeconds,
+          isLowBalanceWarning: false,
+        );
+      } else {
+        await _handleBillingExhausted(
+          graceSeconds: CallConfig.aiCallGraceSeconds,
+          isCrisis: state.isCrisisSession,
+          reason: 'insufficient_coins',
+          triggerLocalFinalize: true,
+        );
+      }
+    } finally {
+      _isMockCycleRenewing = false;
+    }
   }
 
   void _initSubscriptions() {
@@ -292,9 +396,91 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       _wsClient.disconnect();
     } else if (type == 'call_started') {
       final confirmedMode = event['voice_mode'] as String?;
-      if (confirmedMode != null && confirmedMode.isNotEmpty) {
-        state = state.copyWith(voiceMode: confirmedMode);
+      final billing = event['billing'] is Map
+          ? Map<String, dynamic>.from(event['billing'] as Map)
+          : null;
+      final remainingBalance = (billing?['remaining_balance'] as num?)?.toInt();
+      if (remainingBalance != null) {
+        unawaited(_onCoinBalanceSynced?.call(remainingBalance) ?? Future.value());
       }
+      state = state.copyWith(
+        voiceMode: (confirmedMode != null && confirmedMode.isNotEmpty)
+            ? confirmedMode
+            : state.voiceMode,
+        coinsPerMinute:
+            (billing?['coins_per_minute'] as num?)?.toInt() ?? state.coinsPerMinute,
+        currentBilledMinute:
+            (billing?['current_minute'] as num?)?.toInt() ??
+                (state.currentBilledMinute > 0 ? state.currentBilledMinute : 1),
+        remainingSecondsInCycle:
+            (billing?['seconds_until_next_charge'] as num?)?.toInt() ??
+                (billing?['interval_seconds'] as num?)?.toInt() ??
+                state.remainingSecondsInCycle ??
+                CallConfig.aiCallIntervalSeconds,
+        isLowBalanceWarning: false,
+      );
+    } else if (type == 'call.billing_warning') {
+      final willExpire = event['will_expire_if_zero'] as bool? ?? false;
+      final secRem = (event['seconds_remaining'] as num?)?.toInt();
+      final coinBal = (event['coin_balance'] as num?)?.toInt();
+      if (coinBal != null) {
+        unawaited(_onCoinBalanceSynced?.call(coinBal) ?? Future.value());
+      }
+      state = state.copyWith(
+        isLowBalanceWarning: willExpire,
+        remainingSecondsInCycle: secRem ?? state.remainingSecondsInCycle,
+      );
+    } else if (type == 'call.billing_charged') {
+      final currentMinute = (event['current_minute'] as num?)?.toInt();
+      final secNext = (event['seconds_until_next_charge'] as num?)?.toInt() ??
+          CallConfig.aiCallIntervalSeconds;
+      final remainingBalance = (event['remaining_balance'] as num?)?.toInt();
+      if (remainingBalance != null) {
+        unawaited(_onCoinBalanceSynced?.call(remainingBalance) ?? Future.value());
+      }
+      state = state.copyWith(
+        currentBilledMinute: currentMinute ?? (state.currentBilledMinute + 1),
+        remainingSecondsInCycle: secNext,
+        isLowBalanceWarning: false,
+      );
+    } else if (type == 'call.billing_exhausted') {
+      final graceS = (event['grace_seconds'] as num?)?.toInt() ??
+          CallConfig.aiCallGraceSeconds;
+      final isCrisis = (event['is_crisis'] as bool?) ?? state.isCrisisSession;
+      final coinBal = (event['coin_balance'] as num?)?.toInt();
+      if (coinBal != null) {
+        unawaited(_onCoinBalanceSynced?.call(coinBal) ?? Future.value());
+      }
+      unawaited(
+        _handleBillingExhausted(
+          graceSeconds: graceS,
+          isCrisis: isCrisis,
+          reason: event['reason'] as String? ?? 'insufficient_coins',
+          triggerLocalFinalize: false,
+        ),
+      );
+    } else if (type == 'call.ended_by_billing') {
+      _billingGraceTimer?.cancel();
+      unawaited(endCall());
+    } else if (type == 'call.billing_insufficient' || type == 'call.auth_error') {
+      final coinBal = (event['coin_balance'] as num?)?.toInt();
+      if (coinBal != null) {
+        unawaited(_onCoinBalanceSynced?.call(coinBal) ?? Future.value());
+      }
+      _durationTimer?.cancel();
+      _restartTimer?.cancel();
+      _thinkingWatchdogTimer?.cancel();
+      _billingGraceTimer?.cancel();
+      unawaited(_singleAudioService.stopListening());
+      unawaited(_audioPlaybackService.stop());
+      _wsClient.disconnect();
+      state = state.copyWith(
+        callState: CallState.ended,
+        isBillingEnded: true,
+        billingEndReason: type,
+        errorMessage: event['message'] as String? ??
+            'Tidak dapat memulai panggilan telepon AI.',
+      );
     } else if (type == 'turn.keep_open') {
       final restart = event['restart_stt'] as bool? ?? false;
       final waitMs = (event['wait_ms'] as num?)?.toInt() ?? CallConfig.sttRestartDelayMs;
@@ -431,6 +617,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
 
   /// Invariant: LISTENING -> STT ON, AI audio OFF
   Future<void> enterListening() async {
+    if (state.isBillingEnded) return;
     _restartTimer?.cancel();
     _thinkingWatchdogTimer?.cancel();
 
@@ -525,6 +712,13 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     await Future.delayed(const Duration(milliseconds: CallConfig.playbackToListeningGuardMs));
 
     if (!_isDisposed && state.callState == CallState.aiSpeaking) {
+      if (state.isBillingEnded) {
+        if (_isMockBillingMode) {
+          _billingGraceTimer?.cancel();
+          await endCall();
+        }
+        return;
+      }
       // Ensure userTurnId advances to at least finishedTurnId + 1 without duplicate double increment
       if (state.userTurnId <= finishedTurnId) {
         state = state.copyWith(userTurnId: finishedTurnId + 1);
@@ -535,6 +729,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
 
   /// Auto-restart STT on turn.keep_open if Android recognizer paused
   void handleKeepOpen(bool restartStt, int waitMs) {
+    if (state.isBillingEnded) return;
     if (state.callState != CallState.listening) return;
     if (!restartStt) return;
 
@@ -593,7 +788,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
 
   /// Manual force-commit button in LISTENING state ("Selesai Bicara")
   Future<void> forceCommit() async {
-    if (state.callState != CallState.listening) return;
+    if (state.isBillingEnded || state.callState != CallState.listening) return;
 
     debugPrint('👆 [FORCE COMMIT] Turn: ${state.userTurnId}');
     _wsClient.sendForceCommit(
@@ -799,6 +994,41 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     }
   }
 
+  Future<void> _handleBillingExhausted({
+    required int graceSeconds,
+    required bool isCrisis,
+    required String reason,
+    required bool triggerLocalFinalize,
+  }) async {
+    if (_isDisposed || !mounted) return;
+    _restartTimer?.cancel();
+    await _singleAudioService.stopListening();
+
+    state = state.copyWith(
+      isBillingEnded: true,
+      isLowBalanceWarning: false,
+      remainingSecondsInCycle: 0,
+      billingEndReason: reason,
+    );
+
+    if (!triggerLocalFinalize) return;
+
+    final isAiBusy = state.callState == CallState.aiSpeaking ||
+        state.callState == CallState.thinking;
+    if (!isAiBusy) {
+      await endCall();
+      return;
+    }
+
+    _billingGraceTimer?.cancel();
+    final timeoutSeconds = isCrisis ? 20 : graceSeconds;
+    _billingGraceTimer = Timer(Duration(seconds: timeoutSeconds), () async {
+      if (!_isDisposed && mounted && state.callState != CallState.ended) {
+        await endCall();
+      }
+    });
+  }
+
   /// End Call & Disconnect (with post-session artifact finalization)
   Future<void> endCall() async {
     if (_isDisposed || !mounted) return;
@@ -812,6 +1042,8 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     _restartTimer?.cancel();
     _thinkingWatchdogTimer?.cancel();
     _finalizeWatchdogTimer?.cancel();
+    _billingGraceTimer?.cancel();
+    _billingGraceTimer?.cancel();
 
     // 1. Immediately transition to ended state
     state = state.copyWith(
@@ -900,6 +1132,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     _restartTimer?.cancel();
     _thinkingWatchdogTimer?.cancel();
     _finalizeWatchdogTimer?.cancel();
+    _billingGraceTimer?.cancel();
     if (mounted && state.isFinalizing) {
       _commitLocalFallbackArtifacts();
     }

@@ -1,10 +1,36 @@
 import json
+from unittest.mock import AsyncMock, patch
+import uuid
+
 import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services.call.billing_service import AuthenticatedCallUser, CallChargeResult
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def _mock_call_billing():
+    mock_user = AuthenticatedCallUser(
+        user_id=uuid.uuid4(),
+        display_name="Hybrid Test User",
+        coin_balance=10,
+    )
+    mock_charge = CallChargeResult(
+        success=True,
+        coin_balance=9,
+        coins_debited=1,
+        minute_index=1,
+        invoice_code="EVA-CALL-HYBRID-001",
+    )
+    with (
+        patch("app.services.call.session_manager.CallBillingService.resolve_authenticated_user", new=AsyncMock(return_value=mock_user)),
+        patch("app.services.call.session_manager.CallBillingService.charge_call_minute", new=AsyncMock(return_value=mock_charge)),
+        patch("app.services.call.session_manager.CallBillingService.get_user_coin_balance", new=AsyncMock(return_value=9)),
+    ):
+        yield
 
 
 def test_hybrid_websocket_fast_commit():

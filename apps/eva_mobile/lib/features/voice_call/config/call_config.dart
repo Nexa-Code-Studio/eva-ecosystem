@@ -19,4 +19,10 @@ class CallConfig {
   static const bool autoRestartStt = true;
   static const bool manualBargeInEnabled = true;
   static const bool hybridConversationEnabled = true;
+
+  // AI Phone Call Billing defaults (authoritative values synced from server on call_started)
+  static const int aiCallCoinsPerMinute = 1;
+  static const int aiCallIntervalSeconds = 60;
+  static const int aiCallWarningSeconds = 15;
+  static const int aiCallGraceSeconds = 5;
 }

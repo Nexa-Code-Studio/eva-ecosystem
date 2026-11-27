@@ -4,6 +4,11 @@ from app.services.call.audio_segmenter import (
     SessionAudioSegmenter,
     analyze_pcm16_speech_activity,
 )
+from app.services.call.billing_service import (
+    AuthenticatedCallUser,
+    CallBillingService,
+    CallChargeResult,
+)
 from app.services.call.emotion_coordinator import (
     CallEmotionCoordinator,
     call_emotion_coordinator,
@@ -34,6 +39,9 @@ __all__ = [
     "SegmentExclusionEvent",
     "SessionAudioSegmenter",
     "analyze_pcm16_speech_activity",
+    "AuthenticatedCallUser",
+    "CallBillingService",
+    "CallChargeResult",
     "BoundedEmotionDispatcher",
     "SessionTemporalEmotionAggregator",
     "CallEmotionCoordinator",

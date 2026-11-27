@@ -10,6 +10,7 @@ import 'package:eva_mobile/features/voice_call/presentation/widgets/morphing_voi
 import 'package:eva_mobile/services/daily_progress_local_service.dart';
 import 'package:eva_mobile/theme/app_colors.dart';
 import 'package:eva_mobile/widgets/app_back_button.dart';
+import 'package:eva_mobile/widgets/app_snack_bar.dart';
 import 'package:eva_mobile/widgets/custom_button.dart';
 import 'package:eva_mobile/widgets/glass_card.dart';
 import 'package:eva_mobile/features/emergency/presentation/screens/support_emergency_screen.dart';
@@ -27,17 +28,20 @@ class VoiceCallScreen extends ConsumerStatefulWidget {
 class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
     with TickerProviderStateMixin {
   late final AnimationController _aiRippleController;
+  late final AiCallController _callController;
+  bool _hasHandledAutoExit = false;
 
   @override
   void initState() {
     super.initState();
+    _callController = ref.read(aiCallControllerProvider.notifier);
     _aiRippleController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 3500),
     )..repeat();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(aiCallControllerProvider.notifier).startCall();
+      _callController.startCall();
     });
   }
 
@@ -45,9 +49,8 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
   void dispose() {
     _aiRippleController.dispose();
     // Guarantee that if user exited screen, call session and mic audio are stopped
-    final state = ref.read(aiCallControllerProvider);
-    if (state.callState != CallState.ended) {
-      ref.read(aiCallControllerProvider.notifier).endCall();
+    if (_callController.mounted && !_callController.isCallEnded) {
+      _callController.endCall();
     }
     super.dispose();
   }
@@ -764,6 +767,28 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
     final state = ref.watch(aiCallControllerProvider);
     final controller = ref.read(aiCallControllerProvider.notifier);
 
+    ref.listen<AiCallViewState>(aiCallControllerProvider, (prev, next) {
+      if (_hasHandledAutoExit || !mounted) return;
+      if (next.callState == CallState.ended && next.isBillingEnded) {
+        _hasHandledAutoExit = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          if (next.billingEndReason == 'call.billing_insufficient' ||
+              next.billingEndReason == 'call.auth_error') {
+            AppSnackBar.show(
+              context,
+              message:
+                  next.errorMessage ?? 'Saldo koin tidak mencukupi untuk telepon AI.',
+              variant: SnackBarVariant.danger,
+            );
+            Navigator.of(context).maybePop();
+          } else {
+            _handleExitCall(next);
+          }
+        });
+      }
+    });
+
     if (!_aiRippleController.isAnimating) {
       _aiRippleController.repeat();
     }
@@ -802,14 +827,49 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
                       ),
                     Expanded(
                       child: Center(
-                        child: Text(
-                          _formatDuration(state.callDurationSeconds),
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white70,
-                            letterSpacing: 0.5,
-                          ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _formatDuration(state.callDurationSeconds),
+                              style: GoogleFonts.inter(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white70,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            if (state.remainingSecondsInCycle != null) ...[
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: state.isLowBalanceWarning || state.isBillingEnded
+                                      ? const Color(0xFFF59E0B).withValues(alpha: 0.22)
+                                      : Colors.white.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: state.isLowBalanceWarning || state.isBillingEnded
+                                        ? const Color(0xFFFBBF24)
+                                        : Colors.white24,
+                                  ),
+                                ),
+                                child: Text(
+                                  'Menit ${state.currentBilledMinute > 0 ? state.currentBilledMinute : 1} • Sisa ${_formatDuration(state.remainingSecondsInCycle!)} • ${state.coinsPerMinute} Koin/mnt',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: state.isLowBalanceWarning || state.isBillingEnded
+                                        ? const Color(0xFFFDE68A)
+                                        : Colors.white70,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ),
@@ -869,6 +929,52 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
 
 
               const Spacer(),
+
+              if (state.isLowBalanceWarning || state.isBillingEnded)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24.0, 0, 24.0, 14.0),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: state.isBillingEnded
+                          ? const Color(0xFFEF4444).withValues(alpha: 0.2)
+                          : const Color(0xFFF59E0B).withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: state.isBillingEnded
+                            ? const Color(0xFFF87171)
+                            : const Color(0xFFFBBF24),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          state.isBillingEnded
+                              ? Icons.timer_off_rounded
+                              : Icons.warning_amber_rounded,
+                          size: 18,
+                          color: state.isBillingEnded
+                              ? const Color(0xFFFCA5A5)
+                              : const Color(0xFFFDE68A),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            state.isBillingEnded
+                                ? 'Saldo koin habis. Menyelesaikan respons EVA & menyimpan ringkasan sesi...'
+                                : 'Saldo koin habis. Panggilan berakhir dalam ${state.remainingSecondsInCycle ?? 0} detik.',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
               // INTERACTIVE ACTION CONTROLS
               // 1. In LISTENING: "Selesai Bicara" (Manual Force Commit)

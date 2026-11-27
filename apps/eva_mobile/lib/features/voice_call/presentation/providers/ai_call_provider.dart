@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../chat/presentation/providers/chat_provider.dart';
+import '../../../coin/presentation/providers/coin_provider.dart';
 import '../../../dass/presentation/providers/dass_provider.dart';
 import '../../../diary/presentation/providers/diary_provider.dart';
 import '../../../memory/presentation/providers/memory_provider.dart';
@@ -71,6 +72,7 @@ final aiCallControllerProvider =
   final memoryRepo = ref.watch(memoryRepositoryProvider);
   final diarySource = ref.watch(localDiaryDataSourceProvider);
   final synthesisService = ref.watch(statelessSynthesisServiceProvider);
+  final isMockBillingMode = ref.watch(coinUseMockModeProvider);
 
   return AiCallController(
     speechService: speech,
@@ -80,6 +82,12 @@ final aiCallControllerProvider =
     memoryRepository: memoryRepo,
     diaryDataSource: diarySource,
     synthesisService: synthesisService,
+    isMockBillingMode: isMockBillingMode,
+    onCoinBalanceSynced: (balance) =>
+        ref.read(coinBalanceProvider.notifier).setBalance(balance),
+    onMockSpendCoins: (coins) =>
+        ref.read(coinBalanceProvider.notifier).spendCoins(coins),
+    readCurrentCoinBalance: () => ref.read(coinBalanceProvider),
     onArtifactsCommitted: () {
       ref.invalidate(diaryEntriesProvider);
       ref.invalidate(conversationsProvider);

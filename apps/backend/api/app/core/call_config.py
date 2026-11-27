@@ -24,5 +24,11 @@ class CallTurnConfig:
     auto_restart_stt: bool = os.getenv("CALL_AUTO_RESTART_STT", "true").lower() == "true"
     max_restarts_per_turn: int = int(os.getenv("CALL_MAX_RESTARTS_PER_TURN", "10"))
 
+    # AI Phone Call Billing (EVA Coin auto-debit per interval)
+    ai_call_coins_per_minute: int = int(os.getenv("AI_CALL_COINS_PER_MINUTE", "1"))
+    ai_call_interval_seconds: int = int(os.getenv("AI_CALL_INTERVAL_SECONDS", "60"))
+    ai_call_warning_seconds: int = int(os.getenv("AI_CALL_WARNING_SECONDS", "15"))
+    ai_call_grace_seconds: int = int(os.getenv("AI_CALL_GRACE_SECONDS", "5"))
+
 
 call_config = CallTurnConfig()

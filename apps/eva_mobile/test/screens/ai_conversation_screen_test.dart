@@ -1,15 +1,18 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:eva_mobile/config/app_config.dart';
 import 'package:eva_mobile/features/chat/data/datasources/mock_chat_datasource.dart';
 import 'package:eva_mobile/features/chat/data/repositories/chat_repository_impl.dart';
 import 'package:eva_mobile/features/chat/domain/entities/conversation_entity.dart';
 import 'package:eva_mobile/features/chat/domain/repositories/chat_repository.dart';
 import 'package:eva_mobile/features/chat/presentation/providers/chat_provider.dart';
 import 'package:eva_mobile/features/chat/presentation/screens/ai_conversation_screen.dart';
+import 'package:eva_mobile/features/coin/presentation/providers/coin_provider.dart';
 import 'package:eva_mobile/features/tutorial/domain/entities/tutorial_step.dart';
 import 'package:eva_mobile/features/tutorial/presentation/providers/tutorial_provider.dart';
 import 'package:eva_mobile/features/tutorial/presentation/widgets/interactive_spotlight_overlay.dart';
@@ -32,7 +35,18 @@ void main() {
   setUp(() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
+    AppConfig.useMockData = false;
     SharedPreferences.setMockInitialValues({});
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('flutter.baseflow.com/permissions/methods'),
+      (call) async {
+        if (call.method == 'requestPermissions') {
+          return <int, int>{7: 1};
+        }
+        return 1;
+      },
+    );
   });
 
   testWidgets('AiConversationScreen header does not contain MODE SUARA AI label', (tester) async {
@@ -117,6 +131,8 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    AppConfig.useMockData = true;
+    addTearDown(() => AppConfig.useMockData = false);
 
     await tester.pumpWidget(
       const ProviderScope(
@@ -126,7 +142,7 @@ void main() {
       ),
     );
 
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
     // Verify title exists
     expect(find.text('Sesi Suara EVA'), findsOneWidget);
@@ -185,6 +201,107 @@ void main() {
     expect(container.read(tutorialNotifierProvider).currentStep, TutorialStep.voiceStart);
     expect(find.text('Mulai Sesi Suara'), findsWidgets);
     expect(find.text('SESI SUARA'), findsOneWidget);
+  });
+
+  testWidgets('tapping coin badge navigates to /coin_purchase', (tester) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    AppConfig.useMockData = true;
+    addTearDown(() => AppConfig.useMockData = false);
+    SharedPreferences.setMockInitialValues({'user_coin_balance': 5});
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          routes: {
+            '/coin_purchase': (_) => const Scaffold(body: Text('Coin Purchase Page')),
+          },
+          home: const AiConversationScreen(),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+
+    await tester.tap(find.byIcon(Icons.monetization_on_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Coin Purchase Page'), findsOneWidget);
+  });
+
+  testWidgets('Mulai Sesi Suara shows insufficient coin sheet when balance is 0', (tester) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    AppConfig.useMockData = true;
+    addTearDown(() => AppConfig.useMockData = false);
+    SharedPreferences.setMockInitialValues({'user_coin_balance': 0});
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          coinBalanceProvider.overrideWith(
+            (ref) => CoinBalanceNotifier(isMockMode: true)..setBalance(0),
+          ),
+        ],
+        child: MaterialApp(
+          routes: {
+            '/coin_purchase': (_) => const Scaffold(body: Text('Coin Purchase Page')),
+          },
+          home: const AiConversationScreen(),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+
+    await tester.tap(find.text('Mulai Sesi Suara'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Saldo Koin Tidak Cukup'), findsOneWidget);
+    await tester.tap(find.text('Isi Koin Sekarang'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Coin Purchase Page'), findsOneWidget);
+  });
+
+  testWidgets('Mulai Sesi Suara shows 1-coin confirmation sheet when balance >= 1', (tester) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    AppConfig.useMockData = true;
+    addTearDown(() => AppConfig.useMockData = false);
+    SharedPreferences.setMockInitialValues({'user_coin_balance': 5});
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          coinBalanceProvider.overrideWith(
+            (ref) => CoinBalanceNotifier(isMockMode: true)..setBalance(5),
+          ),
+        ],
+        child: MaterialApp(
+          routes: {
+            '/voice_call': (_) => const Scaffold(body: Text('Voice Call Destination')),
+          },
+          home: const AiConversationScreen(),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+
+    await tester.tap(find.text('Mulai Sesi Suara'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mulai Telepon AI EVA?'), findsOneWidget);
+    expect(find.text('5 Koin'), findsOneWidget);
+
+    await tester.tap(find.text('Mulai Telepon (1 Koin/mnt)'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Voice Call Destination'), findsOneWidget);
   });
 }
 

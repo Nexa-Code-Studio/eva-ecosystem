@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'package:eva_mobile/features/chat/presentation/widgets/animated_session_card.dart';
 import 'package:eva_mobile/features/chat/presentation/widgets/session_list_skeleton.dart';
@@ -8,8 +9,11 @@ import 'package:eva_mobile/features/coin/presentation/providers/coin_provider.da
 import 'package:eva_mobile/features/tutorial/domain/entities/tutorial_step.dart';
 import 'package:eva_mobile/features/tutorial/presentation/providers/tutorial_provider.dart';
 import 'package:eva_mobile/features/tutorial/presentation/widgets/interactive_spotlight_overlay.dart';
+import 'package:eva_mobile/features/voice_call/config/call_config.dart';
+import 'package:eva_mobile/features/voice_call/presentation/widgets/ai_call_billing_sheet.dart';
 import 'package:eva_mobile/theme/app_colors.dart';
 import 'package:eva_mobile/widgets/app_back_button.dart';
+import 'package:eva_mobile/widgets/app_snack_bar.dart';
 import 'package:eva_mobile/widgets/custom_button.dart';
 import 'package:eva_mobile/widgets/glass_card.dart';
 import 'package:eva_mobile/widgets/staggered_entrance.dart';
@@ -102,6 +106,31 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
     return (tag: 'netral (60%)', emoji: '😐');
   }
 
+  Future<void> _openCoinPurchase() async {
+    await Navigator.pushNamed(context, '/coin_purchase');
+    if (mounted) {
+      await ref.read(coinBalanceProvider.notifier).refresh();
+    }
+  }
+
+  Future<bool> _ensureMicPermissionGranted() async {
+    try {
+      final status = await Permission.microphone.request();
+      if (status.isGranted) return true;
+      if (mounted) {
+        AppSnackBar.show(
+          context,
+          message: 'Izin mikrofon dibutuhkan sebelum memulai telepon AI.',
+          variant: SnackBarVariant.danger,
+        );
+      }
+      return false;
+    } catch (_) {
+      // Allow test/unsupported desktop runners without permission_handler channel to proceed.
+      return true;
+    }
+  }
+
   Future<void> _handleStartVoiceSession() async {
     final tutorialState = ref.read(tutorialNotifierProvider);
     if (tutorialState.isActive &&
@@ -110,8 +139,36 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
           .read(tutorialNotifierProvider.notifier)
           .onTargetTapped(TutorialStep.voiceStart);
     }
+
+    await ref.read(coinBalanceProvider.notifier).refresh();
+    if (!mounted) return;
+
+    final currentCoins = ref.read(coinBalanceProvider);
+    const requiredCoins = CallConfig.aiCallCoinsPerMinute;
+
+    if (currentCoins < requiredCoins) {
+      await showAiCallInsufficientCoinSheet(
+        context,
+        coinBalance: currentCoins,
+        requiredCoins: requiredCoins,
+        onTopUp: _openCoinPurchase,
+      );
+      return;
+    }
+
+    final confirmed = await showAiCallStartConfirmSheet(
+      context,
+      coinBalance: currentCoins,
+      coinsPerMinute: requiredCoins,
+    );
+    if (!confirmed || !mounted) return;
+
+    final micGranted = await _ensureMicPermissionGranted();
+    if (!micGranted || !mounted) return;
+
     await Navigator.pushNamed(context, '/voice_call');
     if (mounted) {
+      await ref.read(coinBalanceProvider.notifier).refresh();
       _fetchConversations(isRefresh: true);
     }
   }
@@ -131,7 +188,7 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
                 .onTargetTapped(TutorialStep.voiceCoins);
             return;
           }
-          // TODO: Navigasi ke page pembayaran setelah page pembayaran selesai dibangun
+          _openCoinPurchase();
         },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

@@ -28,6 +28,12 @@ class AiCallViewState {
   final double? detectedEmotionConfidence;
   final List<Map<String, dynamic>> activeEmotionsBreakdown;
   final AudioPipelineDiagnosticSnapshot? audioDiagnostics;
+  final int? remainingSecondsInCycle;
+  final int currentBilledMinute;
+  final int coinsPerMinute;
+  final bool isLowBalanceWarning;
+  final bool isBillingEnded;
+  final String? billingEndReason;
 
   const AiCallViewState({
     this.callState = CallState.idle,
@@ -56,6 +62,12 @@ class AiCallViewState {
     this.detectedEmotionConfidence,
     this.activeEmotionsBreakdown = const [],
     this.audioDiagnostics,
+    this.remainingSecondsInCycle,
+    this.currentBilledMinute = 0,
+    this.coinsPerMinute = 1,
+    this.isLowBalanceWarning = false,
+    this.isBillingEnded = false,
+    this.billingEndReason,
   });
 
   AiCallViewState copyWith({
@@ -85,8 +97,16 @@ class AiCallViewState {
     double? detectedEmotionConfidence,
     List<Map<String, dynamic>>? activeEmotionsBreakdown,
     AudioPipelineDiagnosticSnapshot? audioDiagnostics,
+    int? remainingSecondsInCycle,
+    int? currentBilledMinute,
+    int? coinsPerMinute,
+    bool? isLowBalanceWarning,
+    bool? isBillingEnded,
+    String? billingEndReason,
     bool clearCrisis = false,
     bool clearError = false,
+    bool clearRemainingSeconds = false,
+    bool clearBillingEnd = false,
   }) {
     return AiCallViewState(
       callState: callState ?? this.callState,
@@ -115,6 +135,14 @@ class AiCallViewState {
       detectedEmotionConfidence: detectedEmotionConfidence ?? this.detectedEmotionConfidence,
       activeEmotionsBreakdown: activeEmotionsBreakdown ?? this.activeEmotionsBreakdown,
       audioDiagnostics: audioDiagnostics ?? this.audioDiagnostics,
+      remainingSecondsInCycle: clearRemainingSeconds
+          ? null
+          : (remainingSecondsInCycle ?? this.remainingSecondsInCycle),
+      currentBilledMinute: currentBilledMinute ?? this.currentBilledMinute,
+      coinsPerMinute: coinsPerMinute ?? this.coinsPerMinute,
+      isLowBalanceWarning: isLowBalanceWarning ?? this.isLowBalanceWarning,
+      isBillingEnded: clearBillingEnd ? false : (isBillingEnded ?? this.isBillingEnded),
+      billingEndReason: clearBillingEnd ? null : (billingEndReason ?? this.billingEndReason),
     );
   }
 }
