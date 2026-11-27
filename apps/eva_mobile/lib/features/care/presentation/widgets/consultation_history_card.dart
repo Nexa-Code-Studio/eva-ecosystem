@@ -37,7 +37,7 @@ class ConsultationHistoryCard extends StatelessWidget {
         color: isUpcoming ? const Color(0xFFF0FDF4) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isUpcoming ? const Color(0xFFBBF7D0) : const Color(0xFFE2E8F0),
+          color: isUpcoming ? const Color(0xFFBBF7D0) : AppColors.borderSoft,
           width: 1,
         ),
       ),
@@ -50,7 +50,7 @@ class ConsultationHistoryCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: isUpcoming ? AppColors.successContainer : const Color(0xFFF1F5F9),
+                  color: isUpcoming ? AppColors.successContainer : AppColors.surfaceHigh,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(
@@ -59,15 +59,15 @@ class ConsultationHistoryCard extends StatelessWidget {
                     Icon(
                       isUpcoming ? Icons.event_available : Icons.history,
                       size: 13,
-                      color: isUpcoming ? AppColors.successDark : const Color(0xFF475569),
+                      color: isUpcoming ? AppColors.successDark : AppColors.textSecondary,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       isUpcoming ? 'SESI MENDATANG' : 'SELESAI',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 10.5,
                         fontWeight: FontWeight.w800,
-                        color: isUpcoming ? AppColors.successDark : const Color(0xFF475569),
+                        color: isUpcoming ? AppColors.successDark : AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -76,7 +76,7 @@ class ConsultationHistoryCard extends StatelessWidget {
               const Spacer(),
               Text(
                 _formatDateTime(session.sessionDateTime),
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textSecondary,
@@ -100,7 +100,7 @@ class ConsultationHistoryCard extends StatelessWidget {
                   children: [
                     Text(
                       session.psychologist.name,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
@@ -110,7 +110,7 @@ class ConsultationHistoryCard extends StatelessWidget {
                     ),
                     Text(
                       'Sesi Konseling Video Call',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 11.5,
                         color: AppColors.textSecondary,
                       ),
@@ -126,10 +126,10 @@ class ConsultationHistoryCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: isUpcoming ? Colors.white : const Color(0xFFF8FAFC),
+                color: isUpcoming ? Colors.white : AppColors.surfaceLow,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: isUpcoming ? AppColors.successContainer : const Color(0xFFE2E8F0),
+                  color: isUpcoming ? AppColors.successContainer : AppColors.borderSoft,
                 ),
               ),
               child: Row(
@@ -140,7 +140,7 @@ class ConsultationHistoryCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       session.notes!,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 11.5,
                         color: AppColors.textPrimary,
                         height: 1.35,
@@ -170,7 +170,7 @@ class ConsultationHistoryCard extends StatelessWidget {
                 icon: const Icon(Icons.video_call, size: 18),
                 label: Text(
                   'Masuk Ruang Sesi',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
                   ),
@@ -191,7 +191,7 @@ class ConsultationHistoryCard extends StatelessWidget {
                 icon: const Icon(Icons.refresh, size: 15),
                 label: Text(
                   'Konsultasi Lanjutan',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),

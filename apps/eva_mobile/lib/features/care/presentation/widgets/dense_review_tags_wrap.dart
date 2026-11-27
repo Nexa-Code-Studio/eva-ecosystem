@@ -38,7 +38,7 @@ class DenseReviewTagsWrap extends StatelessWidget {
         }
 
         final textScaler = MediaQuery.textScalerOf(context);
-        final textStyle = GoogleFonts.plusJakartaSans(
+        final textStyle = GoogleFonts.inter(
           fontSize: fontSize,
           fontWeight: FontWeight.w600,
         );
@@ -152,7 +152,7 @@ class DenseReviewTagsWrap extends StatelessWidget {
                             tag.label,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.inter(
                               fontSize: fontSize,
                               fontWeight: FontWeight.w600,
                               color: textColor,

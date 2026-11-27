@@ -14,6 +14,7 @@ import 'package:eva_mobile/features/emergency/presentation/screens/emergency_con
 import 'package:eva_mobile/features/emergency/presentation/screens/support_emergency_screen.dart';
 import 'package:eva_mobile/features/care/domain/entities/psychologist_entity.dart';
 import 'package:eva_mobile/features/care/domain/entities/consultation_session_entity.dart';
+import 'package:eva_mobile/features/care/presentation/screens/booking_consultation_screen.dart';
 import 'package:eva_mobile/features/care/presentation/screens/psychologist_detail_screen.dart';
 import 'package:eva_mobile/features/care/presentation/screens/consultation_schedule_screen.dart';
 import 'package:eva_mobile/features/care/presentation/screens/consultation_history_screen.dart';
@@ -23,6 +24,15 @@ import 'package:eva_mobile/features/care/presentation/screens/consultation_ratin
 import 'package:eva_mobile/features/care/presentation/screens/psychologist_video_call_screen.dart';
 import 'package:eva_mobile/features/coin/presentation/screens/coin_purchase_screen.dart';
 import 'package:eva_mobile/features/coin/presentation/screens/coin_topup_history_screen.dart';
+import 'package:eva_mobile/features/coping/catalog/coping_catalog_page.dart';
+import 'package:eva_mobile/features/coping/catalog/coping_exercise_registry.dart';
+import 'package:eva_mobile/features/coping/exercises/breathing/breathing.dart';
+import 'package:eva_mobile/features/coping/exercises/gratitude_journal/gratitude_journal.dart';
+import 'package:eva_mobile/features/coping/exercises/grounding_54321/grounding_54321.dart';
+import 'package:eva_mobile/features/coping/exercises/mindful_walk/mindful_walk.dart';
+import 'package:eva_mobile/features/coping/exercises/notice_and_name/notice_and_name.dart';
+import 'package:eva_mobile/features/coping/exercises/stop_think_go/stop_think_go.dart';
+import 'package:eva_mobile/features/coping/shared/presentation/coping_guidance_sheet.dart';
 import 'package:eva_mobile/features/home/presentation/screens/main_shell_screen.dart';
 import 'package:eva_mobile/features/monitoring/presentation/screens/monitoring_screen.dart';
 import 'package:eva_mobile/features/care/presentation/screens/care_screen.dart';
@@ -33,11 +43,15 @@ import 'app_route_transitions.dart';
 
 /// Centralized route generator applying custom transitions to all Eva Mobile pages.
 class AppRouter {
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
 
   /// Safely redirect to /login when a session expires or refresh token fails
   static void forceLogoutToLogin() {
-    navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
+    navigatorKey.currentState?.pushNamedAndRemoveUntil(
+      '/login',
+      (route) => false,
+    );
   }
 
   static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
@@ -141,6 +155,34 @@ class AppRouter {
           page: const RecommendationScreen(),
           settings: settings,
         );
+      case '/coping':
+        return AppRouteTransitions.horizontalDetailRoute(
+          page: const CopingCatalogPage(),
+          settings: settings,
+        );
+      case BreathingExerciseModule.routeName:
+      case '/breathing':
+        final forceVisualOnly = args?['forceVisualOnly'] == true;
+        final timelineAsset = args?['timelineAsset'] as String?;
+        return AppRouteTransitions.modalSlideUpRoute(
+          page: BreathingExperiencePage(
+            forceVisualOnly: forceVisualOnly,
+            timelineAsset: timelineAsset,
+          ),
+          settings: settings,
+        );
+      case Grounding54321Exercise.routeName:
+      case GratitudeJournalExercise.routeName:
+      case NoticeAndNameExercise.routeName:
+      case StopThinkGoExercise.routeName:
+      case MindfulWalkExercise.routeName:
+        final exercise = CopingExerciseRegistry.all.firstWhere(
+          (item) => item.routeName == name,
+        );
+        return AppRouteTransitions.horizontalDetailRoute(
+          page: CopingStepExercisePage(exercise: exercise),
+          settings: settings,
+        );
       case '/terms_disclaimer':
         return AppRouteTransitions.horizontalDetailRoute(
           page: const TermsDisclaimerScreen(),
@@ -158,6 +200,17 @@ class AppRouter {
           page: const CoinTopupHistoryScreen(),
           settings: settings,
         );
+      case '/care/booking':
+      case '/booking_consultation':
+        final psychologist = args?['psychologist'] as PsychologistEntity?;
+        if (psychologist != null) {
+          return AppRouteTransitions.horizontalDetailRoute(
+            page: BookingConsultationScreen(psychologist: psychologist),
+            settings: settings,
+          );
+        }
+        return null;
+
       case '/psychologist_detail':
       case '/care/psychologist_detail':
         final psychologist = args?['psychologist'] as PsychologistEntity?;
@@ -188,7 +241,8 @@ class AppRouter {
       case '/care/session_logs':
       case '/consultation_session_logs':
         final psychologist = args?['psychologist'] as PsychologistEntity?;
-        final sessions = args?['sessions'] as List<ConsultationSessionEntity>? ?? [];
+        final sessions =
+            args?['sessions'] as List<ConsultationSessionEntity>? ?? [];
         if (psychologist != null) {
           return AppRouteTransitions.horizontalDetailRoute(
             page: ConsultationSessionLogsScreen(
@@ -203,7 +257,8 @@ class AppRouter {
       case '/care/rating':
       case '/consultation_rating':
         final psychologist = args?['psychologist'] as PsychologistEntity?;
-        final initialRating = args?['initialRating'] as PsychologistRatingReview?;
+        final initialRating =
+            args?['initialRating'] as PsychologistRatingReview?;
         if (psychologist != null) {
           return AppRouteTransitions.horizontalDetailRoute(
             page: ConsultationRatingScreen(

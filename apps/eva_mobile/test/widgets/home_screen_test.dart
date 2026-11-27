@@ -164,10 +164,10 @@ void main() {
     await tester.tap(avatarFinder.first);
     await tester.pumpAndSettle();
 
-    // Verify modal dropdown items from Gambar 2
-    expect(find.text('User Profile'), findsOneWidget);
+    // Verify modal dropdown items
+    expect(find.text('Profil Pengguna'), findsOneWidget);
     expect(find.text('Kontak Darurat'), findsOneWidget);
-    expect(find.text('Settings'), findsOneWidget);
+    expect(find.text('Pengaturan'), findsOneWidget);
     expect(find.text('Keluar Akun'), findsOneWidget);
   });
 }

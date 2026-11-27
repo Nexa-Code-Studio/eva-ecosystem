@@ -34,28 +34,77 @@ class LocalDASSDataSource implements DASSDataSource {
   }
 
   static const List<Map<String, dynamic>> _officialItems = [
-    {'item_id': 1, 'scale': 'stress', 'question_text': 'Saya merasa sulit untuk beristirahat atau menenangkan diri'},
-    {'item_id': 2, 'scale': 'anxiety', 'question_text': 'Saya menyadari mulut saya terasa kering'},
-    {'item_id': 3, 'scale': 'depression', 'question_text': 'Saya sama sekali tidak dapat merasakan perasaan positif'},
-    {'item_id': 4, 'scale': 'anxiety', 'question_text': 'Saya mengalami kesulitan bernapas (misal napas cepat tanpa aktivitas fisik)'},
-    {'item_id': 5, 'scale': 'depression', 'question_text': 'Saya merasa sulit berinisiatif untuk melakukan sesuatu'},
-    {'item_id': 6, 'scale': 'stress', 'question_text': 'Saya cenderung bereaksi berlebihan terhadap suatu situasi'},
-    {'item_id': 7, 'scale': 'anxiety', 'question_text': 'Saya mengalami gemetar (misalnya pada kedua tangan)'},
-    {'item_id': 8, 'scale': 'stress', 'question_text': 'Saya merasa menghabiskan banyak energi karena terlalu cemas/gugup'},
-    {'item_id': 9, 'scale': 'anxiety', 'question_text': 'Saya khawatir terhadap situasi di mana saya mungkin panik atau mempermalukan diri'},
-    {'item_id': 10, 'scale': 'depression', 'question_text': 'Saya merasa tidak ada lagi hal baik yang bisa saya harapkan di masa depan'},
-    {'item_id': 11, 'scale': 'stress', 'question_text': 'Saya mendapati diri saya mudah gelisah atau resah'},
-    {'item_id': 12, 'scale': 'stress', 'question_text': 'Saya merasa sulit untuk rileks atau bersantai'},
-    {'item_id': 13, 'scale': 'depression', 'question_text': 'Saya merasa sedih, murung, dan tertekan'},
-    {'item_id': 14, 'scale': 'stress', 'question_text': 'Saya tidak sabar menghadapi hal yang menghambat apa yang sedang saya lakukan'},
-    {'item_id': 15, 'scale': 'anxiety', 'question_text': 'Saya merasa hampir panik'},
-    {'item_id': 16, 'scale': 'depression', 'question_text': 'Saya merasa tidak mampu antusias terhadap hal apa pun'},
-    {'item_id': 17, 'scale': 'depression', 'question_text': 'Saya merasa bahwa diri saya tidak berharga'},
-    {'item_id': 18, 'scale': 'stress', 'question_text': 'Saya merasa mudah tersinggung atau sensitif'},
-    {'item_id': 19, 'scale': 'anxiety', 'question_text': 'Saya menyadari detak jantung saya berdegup kencang tanpa alasan fisik'},
-    {'item_id': 20, 'scale': 'anxiety', 'question_text': 'Saya merasa takut tanpa alasan yang jelas'},
-    {'item_id': 21, 'scale': 'depression', 'question_text': 'Saya merasa bahwa hidup ini tidak berarti'},
+    {'item_id': 1, 'scale': 'stress', 'question_text': 'Saya merasa bahwa diri saya menjadi marah karena hal-hal sepele.'},
+    {'item_id': 2, 'scale': 'anxiety', 'question_text': 'Saya merasa bibir saya sering kering.'},
+    {'item_id': 3, 'scale': 'depression', 'question_text': 'Saya sama sekali tidak dapat merasakan perasaan positif.'},
+    {'item_id': 4, 'scale': 'anxiety', 'question_text': 'Saya mengalami kesulitan bernafas (misalnya : seringkali terengah-engah atau tidak dapat bernafas padahal tidak melakukan aktivitas fisik sebelumnya).'},
+    {'item_id': 5, 'scale': 'depression', 'question_text': 'Saya sepertinya tidak kuat lagi untuk melakukan suatu kegiatan.'},
+    {'item_id': 6, 'scale': 'stress', 'question_text': 'Saya cenderung bereaksi berlebihan terhadap suatu situasi.'},
+    {'item_id': 7, 'scale': 'anxiety', 'question_text': "Saya merasa goyah (misalnya : kaki terasa mau 'copot')."},
+    {'item_id': 8, 'scale': 'stress', 'question_text': 'Saya merasa sulit untuk bersantai.'},
+    {'item_id': 9, 'scale': 'anxiety', 'question_text': 'Saya menemukan diri saya berada dalam situasi yang membuat saya merasa sangat cemas dan saya akan merasa sangat lega jika semua ini berakhir.'},
+    {'item_id': 10, 'scale': 'depression', 'question_text': 'Saya merasa tidak ada hal yang dapat diharapkan di masa depan.'},
+    {'item_id': 11, 'scale': 'stress', 'question_text': 'Saya menemukan diri saya mudah merasa kesal.'},
+    {'item_id': 12, 'scale': 'stress', 'question_text': 'Saya merasa telah menghabiskan banyak energi untuk merasa cemas.'},
+    {'item_id': 13, 'scale': 'depression', 'question_text': 'Saya merasa sedih dan tertekan.'},
+    {'item_id': 14, 'scale': 'stress', 'question_text': 'Saya menemukan diri saya menjadi tidak sabar ketika mengalami penundaan (misalnya : kemacetan lalu lintas, menunggu sesuatu).'},
+    {'item_id': 15, 'scale': 'anxiety', 'question_text': 'Saya merasa lemas seperti mau pingsan.'},
+    {'item_id': 16, 'scale': 'depression', 'question_text': 'Saya merasa saya kehilangan minat akan segala hal.'},
+    {'item_id': 17, 'scale': 'depression', 'question_text': 'Saya merasa bahwa saya tidak berharga sebagai seorang manusia.'},
+    {'item_id': 18, 'scale': 'stress', 'question_text': 'Saya merasa bahwa saya mudah tersinggung.'},
+    {'item_id': 19, 'scale': 'anxiety', 'question_text': 'Saya berkeringat secara berlebihan (misalnya : tangan berkeringat), padahal temperatur tidak panas atau tidak melakukan aktivitas fisik sebelumnya.'},
+    {'item_id': 20, 'scale': 'anxiety', 'question_text': 'Saya merasa takut tanpa alasan yang jelas.'},
+    {'item_id': 21, 'scale': 'depression', 'question_text': 'Saya merasa bahwa hidup tidak bermanfaat.'},
   ];
+
+  /// Merges stored or partial item payloads onto the canonical 21 DASS-21 items
+  /// so question texts, subscale keys, and existing AI citations are never lost.
+  static List<DASSItemModel> _mergeWithOfficialItems(List<dynamic> rawItems) {
+    final byId = <int, Map<String, dynamic>>{};
+    for (final raw in rawItems) {
+      if (raw is Map) {
+        final mapped = Map<String, dynamic>.from(raw);
+        final id = mapped['item_id'] is int
+            ? mapped['item_id'] as int
+            : int.tryParse(mapped['item_id']?.toString() ?? '');
+        if (id != null) {
+          byId[id] = mapped;
+        }
+      }
+    }
+
+    return _officialItems.map((spec) {
+      final itemId = spec['item_id'] as int;
+      final existing = byId[itemId];
+      if (existing == null) {
+        return DASSItemModel(
+          itemId: itemId,
+          scale: spec['scale'] as String,
+          questionText: spec['question_text'] as String,
+          score: 0,
+          evidence: null,
+          reason: null,
+          confidence: 0.0,
+          isUserEdited: false,
+        );
+      }
+
+      return DASSItemModel(
+        itemId: itemId,
+        scale: spec['scale'] as String,
+        questionText: spec['question_text'] as String,
+        score: existing['score'] is int
+            ? existing['score'] as int
+            : int.tryParse(existing['score']?.toString() ?? '0') ?? 0,
+        evidence: existing['evidence']?.toString(),
+        reason: existing['reason']?.toString(),
+        confidence: (existing['confidence'] is num)
+            ? (existing['confidence'] as num).toDouble()
+            : double.tryParse(existing['confidence']?.toString() ?? '0.0') ?? 0.0,
+        isUserEdited: existing['is_user_edited'] == true,
+      );
+    }).toList();
+  }
 
   static DASSAssessmentModel buildDefaultModel({String? date, String? userId}) {
     final d = date ?? DateTime.now().toIso8601String().substring(0, 10);
@@ -171,20 +220,39 @@ class LocalDASSDataSource implements DASSDataSource {
       itemsDecoded = jsonDecode(itemsRaw) as List<dynamic>;
     } catch (_) {}
 
-    final items = itemsDecoded
-        .map((it) => DASSItemModel.fromJson(it as Map<String, dynamic>))
-        .toList();
+    final hasCorruptedItems = itemsDecoded.any(
+      (it) =>
+          it is! Map ||
+          it['scale'] == null ||
+          (it['question_text']?.toString().trim().isEmpty ?? true),
+    );
+    final items = _mergeWithOfficialItems(itemsDecoded);
+    final subscales = hasCorruptedItems
+        ? calculateSubscales(items.map((it) => it.toJson()).toList())
+        : null;
 
     return DASSAssessmentModel(
       id: row['id'] as String?,
       userId: _accountKey,
       assessedDate: row['assessment_date'] as String? ?? today,
-      depressionScore: (row['depression_score'] as int?) ?? 0,
-      anxietyScore: (row['anxiety_score'] as int?) ?? 0,
-      stressScore: (row['stress_score'] as int?) ?? 0,
-      depressionSeverity: row['depression_category'] as String? ?? 'Normal',
-      anxietySeverity: row['anxiety_category'] as String? ?? 'Normal',
-      stressSeverity: row['stress_category'] as String? ?? 'Normal',
+      depressionScore: subscales != null
+          ? subscales['depression_score'] as int
+          : (row['depression_score'] as int?) ?? 0,
+      anxietyScore: subscales != null
+          ? subscales['anxiety_score'] as int
+          : (row['anxiety_score'] as int?) ?? 0,
+      stressScore: subscales != null
+          ? subscales['stress_score'] as int
+          : (row['stress_score'] as int?) ?? 0,
+      depressionSeverity: subscales != null
+          ? subscales['depression_severity'] as String
+          : row['depression_category'] as String? ?? 'Normal',
+      anxietySeverity: subscales != null
+          ? subscales['anxiety_severity'] as String
+          : row['anxiety_category'] as String? ?? 'Normal',
+      stressSeverity: subscales != null
+          ? subscales['stress_severity'] as String
+          : row['stress_category'] as String? ?? 'Normal',
       verifiedByUser: (row['is_user_verified'] as int? ?? 0) == 1,
       status: ((row['is_user_verified'] as int? ?? 0) == 1) ? 'verified' : 'auto_extracted',
       items: items,
@@ -195,9 +263,62 @@ class LocalDASSDataSource implements DASSDataSource {
   Future<DASSAssessmentModel> updateAssessment(List<Map<String, dynamic>> items) async {
     final db = await _getDb();
     final today = _formatTodayWib();
-    final subscales = calculateSubscales(items);
     final nowIso = DateTime.now().toIso8601String();
-    final itemsJson = jsonEncode(items);
+
+    final existingRows = await db.query(
+      'local_dass_assessments',
+      where: 'local_account_key = ? AND assessment_date = ?',
+      whereArgs: [_accountKey, today],
+      limit: 1,
+    );
+
+    List<dynamic> existingDecoded = const [];
+    if (existingRows.isNotEmpty) {
+      final raw = existingRows.first['items_json'] as String? ?? '[]';
+      try {
+        existingDecoded = jsonDecode(raw) as List<dynamic>;
+      } catch (_) {}
+    }
+
+    final baseItems = _mergeWithOfficialItems(existingDecoded);
+    final updatesById = <int, Map<String, dynamic>>{};
+    for (final raw in items) {
+      final id = raw['item_id'] is int
+          ? raw['item_id'] as int
+          : int.tryParse(raw['item_id']?.toString() ?? '');
+      if (id != null) {
+        updatesById[id] = raw;
+      }
+    }
+
+    final mergedItems = baseItems.map((base) {
+      final up = updatesById[base.itemId];
+      if (up == null) return base;
+
+      final newScore = up['score'] is int
+          ? up['score'] as int
+          : int.tryParse(up['score']?.toString() ?? '') ?? base.score;
+      final scoreChanged = newScore != base.score;
+
+      return DASSItemModel(
+        itemId: base.itemId,
+        scale: base.scale,
+        questionText: base.questionText,
+        score: newScore.clamp(0, 3),
+        evidence: up.containsKey('evidence') ? up['evidence']?.toString() : base.evidence,
+        reason: up.containsKey('reason') ? up['reason']?.toString() : base.reason,
+        confidence: up.containsKey('confidence') && up['confidence'] is num
+            ? (up['confidence'] as num).toDouble()
+            : base.confidence,
+        isUserEdited: up.containsKey('is_user_edited')
+            ? up['is_user_edited'] == true
+            : (base.isUserEdited || scoreChanged),
+      );
+    }).toList();
+
+    final mergedMaps = mergedItems.map((it) => it.toJson()).toList();
+    final subscales = calculateSubscales(mergedMaps);
+    final itemsJson = jsonEncode(mergedMaps);
 
     final id = 'dass_${_accountKey}_$today';
     await db.insert(
@@ -220,7 +341,6 @@ class LocalDASSDataSource implements DASSDataSource {
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
 
-    final parsedItems = items.map((it) => DASSItemModel.fromJson(it)).toList();
     return DASSAssessmentModel(
       id: id,
       userId: _accountKey,
@@ -233,7 +353,7 @@ class LocalDASSDataSource implements DASSDataSource {
       stressSeverity: subscales['stress_severity'] as String,
       verifiedByUser: true,
       status: 'verified',
-      items: parsedItems,
+      items: mergedItems,
     );
   }
 
@@ -246,13 +366,22 @@ class LocalDASSDataSource implements DASSDataSource {
     final nowIso = DateTime.now().toIso8601String();
 
     final rawItems = dassAssessmentPayload['items'] as List<dynamic>? ?? [];
-    final itemsJson = jsonEncode(rawItems);
-    final stressScore = (dassAssessmentPayload['stress_score'] as num?)?.toInt() ?? 0;
-    final anxietyScore = (dassAssessmentPayload['anxiety_score'] as num?)?.toInt() ?? 0;
-    final depressionScore = (dassAssessmentPayload['depression_score'] as num?)?.toInt() ?? 0;
-    final stressCat = dassAssessmentPayload['stress_category']?.toString() ?? 'Normal';
-    final anxietyCat = dassAssessmentPayload['anxiety_category']?.toString() ?? 'Normal';
-    final depCat = dassAssessmentPayload['depression_category']?.toString() ?? 'Normal';
+    final mergedItems = _mergeWithOfficialItems(rawItems);
+    final mergedMaps = mergedItems.map((it) => it.toJson()).toList();
+    final itemsJson = jsonEncode(mergedMaps);
+    final subscales = calculateSubscales(mergedMaps);
+    final stressScore = (dassAssessmentPayload['stress_score'] as num?)?.toInt() ??
+        subscales['stress_score'] as int;
+    final anxietyScore = (dassAssessmentPayload['anxiety_score'] as num?)?.toInt() ??
+        subscales['anxiety_score'] as int;
+    final depressionScore = (dassAssessmentPayload['depression_score'] as num?)?.toInt() ??
+        subscales['depression_score'] as int;
+    final stressCat = dassAssessmentPayload['stress_category']?.toString() ??
+        subscales['stress_severity'] as String;
+    final anxietyCat = dassAssessmentPayload['anxiety_category']?.toString() ??
+        subscales['anxiety_severity'] as String;
+    final depCat = dassAssessmentPayload['depression_category']?.toString() ??
+        subscales['depression_severity'] as String;
 
     final id = 'dass_${_accountKey}_$today';
     await db.insert(

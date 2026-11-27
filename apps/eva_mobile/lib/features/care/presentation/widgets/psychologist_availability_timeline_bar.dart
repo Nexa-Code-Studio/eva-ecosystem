@@ -10,6 +10,9 @@ class PsychologistAvailabilityTimelineBar extends StatelessWidget {
   final ValueChanged<TimeOfDay> onTimeSelected;
   final CollisionResult collision;
 
+  /// Optional override for current time cutoff (defaults to TimeOfDay.now() when timeline.date is today).
+  final TimeOfDay? minSelectableTime;
+
   const PsychologistAvailabilityTimelineBar({
     super.key,
     required this.timeline,
@@ -17,36 +20,107 @@ class PsychologistAvailabilityTimelineBar extends StatelessWidget {
     required this.durationMinutes,
     required this.onTimeSelected,
     required this.collision,
+    this.minSelectableTime,
   });
+
+  static const Color _availableBarColor = Color(0xFFD1FAE5);
+  static const Color _unavailableBarColor = Color(0xFF8886A4);
+
+  int _effectiveMinStartMinutes() {
+    final opHours = timeline.operatingHours;
+    if (minSelectableTime != null) {
+      final minMin = minSelectableTime!.hour * 60 + minSelectableTime!.minute;
+      return minMin.clamp(opHours.startMinutes, opHours.endMinutes);
+    }
+
+    final now = DateTime.now();
+    final isToday = timeline.date.year == now.year &&
+        timeline.date.month == now.month &&
+        timeline.date.day == now.day;
+    if (!isToday) return opHours.startMinutes;
+
+    final minBooking = DateTime(now.year, now.month, now.day, now.hour, now.minute)
+        .add(const Duration(minutes: 2));
+    if (minBooking.year != now.year ||
+        minBooking.month != now.month ||
+        minBooking.day != now.day) {
+      return opHours.endMinutes;
+    }
+
+    final minMin = minBooking.hour * 60 + minBooking.minute;
+    return minMin.clamp(opHours.startMinutes, opHours.endMinutes);
+  }
+
+  /// Merges past hours and all blocked ranges into contiguous unavailable intervals
+  /// so adjacent or overlapping blocks render as a single seamless bar segment.
+  List<({int start, int end})> _mergedUnavailableIntervals(
+    OperatingHoursEntity opHours,
+    int effectiveMinStart,
+  ) {
+    final intervals = <({int start, int end})>[];
+
+    if (effectiveMinStart > opHours.startMinutes) {
+      intervals.add((start: opHours.startMinutes, end: effectiveMinStart));
+    }
+
+    for (final blocked in timeline.blockedRanges) {
+      final s = blocked.startMinutes.clamp(opHours.startMinutes, opHours.endMinutes);
+      final e = blocked.endMinutes.clamp(opHours.startMinutes, opHours.endMinutes);
+      if (e > s) {
+        intervals.add((start: s, end: e));
+      }
+    }
+
+    if (intervals.isEmpty) return const [];
+
+    intervals.sort((a, b) => a.start.compareTo(b.start));
+
+    final merged = <({int start, int end})>[intervals.first];
+    for (int i = 1; i < intervals.length; i++) {
+      final current = intervals[i];
+      final last = merged.last;
+      if (current.start <= last.end) {
+        merged[merged.length - 1] = (
+          start: last.start,
+          end: current.end > last.end ? current.end : last.end,
+        );
+      } else {
+        merged.add(current);
+      }
+    }
+    return merged;
+  }
 
   void _handleTapOrDrag(double localX, double totalWidth) {
     if (totalWidth <= 0) return;
-    final totalSpan = timeline.operatingHours.totalSpanMinutes;
+    final opHours = timeline.operatingHours;
+    final totalSpan = opHours.totalSpanMinutes;
     if (totalSpan <= 0) return;
 
-    final fraction = (localX / totalWidth).clamp(0.0, 1.0);
-    final rawMinutes = timeline.operatingHours.startMinutes + (fraction * totalSpan).round();
-
+    final effectiveMinStart = _effectiveMinStartMinutes();
     final maxStartMinutes =
-        (timeline.operatingHours.endMinutes - durationMinutes)
-            .clamp(timeline.operatingHours.startMinutes, timeline.operatingHours.endMinutes);
-    final selectedMinutes = rawMinutes.clamp(
-      timeline.operatingHours.startMinutes,
-      maxStartMinutes,
-    );
+        (opHours.endMinutes - durationMinutes).clamp(opHours.startMinutes, opHours.endMinutes);
 
-    final selected = TimeOfDay(
-      hour: selectedMinutes ~/ 60,
-      minute: selectedMinutes % 60,
-    );
+    // Seluruh jam operasional hari ini telah lewat atau tidak cukup untuk durasi sesi.
+    if (effectiveMinStart > maxStartMinutes) return;
 
-    onTimeSelected(selected);
+    final fraction = (localX / totalWidth).clamp(0.0, 1.0);
+    final rawMinutes = opHours.startMinutes + (fraction * totalSpan).round();
+    final selectedMinutes = rawMinutes.clamp(effectiveMinStart, maxStartMinutes);
+
+    onTimeSelected(
+      TimeOfDay(
+        hour: selectedMinutes ~/ 60,
+        minute: selectedMinutes % 60,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final opHours = timeline.operatingHours;
     final totalSpan = opHours.totalSpanMinutes;
+    final effectiveMinStart = _effectiveMinStartMinutes();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,7 +135,7 @@ class PsychologistAvailabilityTimelineBar extends StatelessWidget {
                 const SizedBox(width: 4),
                 Text(
                   'Buka: ${opHours.startFormatted}',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textSecondary,
@@ -73,7 +147,7 @@ class PsychologistAvailabilityTimelineBar extends StatelessWidget {
               children: [
                 Text(
                   'Tutup: ${opHours.endFormatted}',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textSecondary,
@@ -92,6 +166,9 @@ class PsychologistAvailabilityTimelineBar extends StatelessWidget {
           builder: (context, constraints) {
             final width = constraints.maxWidth;
             final ratio = totalSpan > 0 ? width / totalSpan : 0.0;
+
+            final unavailableIntervals =
+                _mergedUnavailableIntervals(opHours, effectiveMinStart);
 
             // Kalkulasi posisi seleksi pengguna
             double? selLeft;
@@ -119,44 +196,32 @@ class PsychologistAvailabilityTimelineBar extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Timeline Bar Box
+                  // Timeline Bar Box (44px touch target)
                   Container(
-                    height: 36,
+                    height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withValues(alpha: 0.18), // Available green background
+                      color: _availableBarColor,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(color: AppColors.borderSubtle),
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(9),
                       child: Stack(
                         children: [
-                          // Base green subtle pattern
                           Positioned.fill(
-                            child: Container(color: const Color(0xFF10B981).withValues(alpha: 0.15)),
+                            child: Container(color: _availableBarColor),
                           ),
 
-                          // Render Blocked Ranges (Break, Booked, Buffer)
-                          ...timeline.blockedRanges.map((blocked) {
-                            final bStart = blocked.startMinutes - opHours.startMinutes;
-                            final bSpan = blocked.endMinutes - blocked.startMinutes;
-                            if (bSpan <= 0) return const SizedBox.shrink();
-
-                            final left = (bStart * ratio).clamp(0.0, width);
-                            final segW = (bSpan * ratio).clamp(0.0, width - left);
-
-                            Color segColor;
-                            switch (blocked.type) {
-                              case BlockedRangeType.breakTime:
-                                segColor = const Color(0xFFF59E0B); // Amber / Orange
-                                break;
-                              case BlockedRangeType.booked:
-                                segColor = const Color(0xFFEF4444); // Red
-                                break;
-                              case BlockedRangeType.buffer:
-                                segColor = const Color(0xFF94A3B8); // Slate
-                                break;
-                            }
+                          // Merged past hours & blocked ranges rendered seamlessly as one block
+                          ...unavailableIntervals.map((interval) {
+                            final left =
+                                ((interval.start - opHours.startMinutes) * ratio)
+                                    .clamp(0.0, width);
+                            final right =
+                                ((interval.end - opHours.startMinutes) * ratio)
+                                    .clamp(0.0, width);
+                            final segW = (right - left).clamp(0.0, width - left);
+                            if (segW <= 0) return const SizedBox.shrink();
 
                             return Positioned(
                               left: left,
@@ -164,15 +229,8 @@ class PsychologistAvailabilityTimelineBar extends StatelessWidget {
                               top: 0,
                               bottom: 0,
                               child: Container(
-                                decoration: BoxDecoration(
-                                  color: segColor.withValues(alpha: 0.88),
-                                  border: Border.symmetric(
-                                    vertical: BorderSide(
-                                      color: Colors.white.withValues(alpha: 0.5),
-                                      width: 0.5,
-                                    ),
-                                  ),
-                                ),
+                                key: const Key('timeline_unavailable_segment'),
+                                color: _unavailableBarColor,
                               ),
                             );
                           }),
@@ -187,17 +245,9 @@ class PsychologistAvailabilityTimelineBar extends StatelessWidget {
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: collision.hasClash
-                                      ? const Color(0xFFDC2626) // Vivid red error
-                                      : AppColors.primary, // Brand blue
+                                      ? AppColors.error
+                                      : AppColors.primary,
                                   borderRadius: BorderRadius.circular(6),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: (collision.hasClash ? Colors.red : AppColors.primary)
-                                          .withValues(alpha: 0.4),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 1),
-                                    ),
-                                  ],
                                   border: Border.all(
                                     color: Colors.white,
                                     width: 1.5,
@@ -217,16 +267,16 @@ class PsychologistAvailabilityTimelineBar extends StatelessWidget {
                     ),
                   ),
 
-                  // Pill Info Pilihan Waktu
+                  // Info Pilihan Waktu
                   if (selRangeText != null) ...[
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
                         Expanded(
                           child: Text(
                             'Pilihan: $selRangeText ($durationMinutes Menit)',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12,
+                            style: GoogleFonts.inter(
+                              fontSize: 12.5,
                               fontWeight: FontWeight.w700,
                               color: collision.hasClash ? AppColors.error : AppColors.primary,
                             ),
@@ -236,11 +286,10 @@ class PsychologistAvailabilityTimelineBar extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Geser / tap untuk ubah',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 10.5,
+                          'Geser atau ketuk bar',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
                             color: AppColors.textSecondary,
-                            fontStyle: FontStyle.italic,
                           ),
                         ),
                       ],
@@ -252,27 +301,27 @@ class PsychologistAvailabilityTimelineBar extends StatelessWidget {
           },
         ),
 
-        // Collision Warning Banner (Jika Menabrak Slot Lain / Istirahat)
+        // Collision Warning Banner
         if (collision.hasClash && collision.reason != null) ...[
           const SizedBox(height: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: AppColors.error.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              color: AppColors.errorContainer,
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(color: AppColors.error.withValues(alpha: 0.35)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.warning_amber_rounded, size: 16, color: AppColors.error),
+                const Icon(Icons.warning_amber_rounded, size: 16, color: AppColors.errorDark),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     collision.reason!,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11.5,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.error,
+                      color: AppColors.errorDark,
                     ),
                   ),
                 ),
@@ -283,16 +332,13 @@ class PsychologistAvailabilityTimelineBar extends StatelessWidget {
 
         const SizedBox(height: 10),
 
-        // Color Legends
+        // Simplified Color Legends: Tersedia & Tidak Tersedia only
         Wrap(
-          spacing: 12,
+          spacing: 16,
           runSpacing: 6,
           children: [
-            _buildLegendItem('Tersedia', const Color(0xFF10B981)),
-            _buildLegendItem('Istirahat', const Color(0xFFF59E0B)),
-            _buildLegendItem('Terisi', const Color(0xFFEF4444)),
-            _buildLegendItem('Jeda Sesi', const Color(0xFF94A3B8)),
-            _buildLegendItem('Pilihan Anda', AppColors.primary),
+            _buildLegendItem('Tersedia', AppColors.successDark),
+            _buildLegendItem('Tidak Tersedia', _unavailableBarColor),
           ],
         ),
       ],
@@ -304,19 +350,19 @@ class PsychologistAvailabilityTimelineBar extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 10,
-          height: 10,
+          width: 12,
+          height: 12,
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(2.5),
+            borderRadius: BorderRadius.circular(3),
           ),
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: 6),
         Text(
           label,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 10.5,
-            fontWeight: FontWeight.w500,
+          style: GoogleFonts.inter(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
             color: AppColors.textSecondary,
           ),
         ),

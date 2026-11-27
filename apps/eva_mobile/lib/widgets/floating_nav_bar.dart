@@ -22,12 +22,6 @@ class FloatingNavBar extends StatelessWidget {
     this.careTabKey,
   });
 
-  /// Map page currentIndex (0..3) to 5-slot layout column index:
-  /// Slot 0: Home (index 0)
-  /// Slot 1: Diary (index 1)
-  /// Slot 2: Placeholder for Center FAB
-  /// Slot 3: Monitoring / Tren (index 2)
-  /// Slot 4: Profile (index 3)
   int _getSlotForIndex(int index) {
     switch (index) {
       case 0:
@@ -60,12 +54,12 @@ class FloatingNavBar extends StatelessWidget {
             boxShadow: [
               BoxShadow(
                 color: AppColors.primary.withValues(alpha: 0.12),
-                blurRadius: 25,
+                blurRadius: 24,
                 spreadRadius: 0,
                 offset: const Offset(0, 8),
               ),
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withValues(alpha: 0.04),
                 blurRadius: 10,
                 spreadRadius: 0,
                 offset: const Offset(0, 2),
@@ -75,12 +69,9 @@ class FloatingNavBar extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.95),
+              color: Colors.white.withValues(alpha: 0.96),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.8),
-                width: 1.5,
-              ),
+              border: Border.all(color: AppColors.borderSoft, width: 1.2),
             ),
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -92,7 +83,6 @@ class FloatingNavBar extends StatelessWidget {
 
                 return Stack(
                   children: [
-                    // Animated Sliding Pill Indicator
                     AnimatedPositioned(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeOutCubic,
@@ -107,13 +97,10 @@ class FloatingNavBar extends StatelessWidget {
                         ),
                       ),
                     ),
-
-                    // Navigation Icons & Labels Row
                     Positioned.fill(
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // Slot 0: Beranda (Home)
                           Expanded(
                             flex: 1,
                             child: _buildSideNavItem(
@@ -123,8 +110,6 @@ class FloatingNavBar extends StatelessWidget {
                               label: 'Beranda',
                             ),
                           ),
-
-                          // Slot 1: Jurnal (Diary)
                           Expanded(
                             key: journalTabKey,
                             flex: 1,
@@ -135,14 +120,7 @@ class FloatingNavBar extends StatelessWidget {
                               label: 'Jurnal',
                             ),
                           ),
-
-                          // Slot 2: Placeholder Space for Center FAB
-                          const Expanded(
-                            flex: 1,
-                            child: SizedBox(),
-                          ),
-
-                          // Slot 3: Tren (Monitoring)
+                          const Expanded(flex: 1, child: SizedBox()),
                           Expanded(
                             key: trenTabKey,
                             flex: 1,
@@ -153,8 +131,6 @@ class FloatingNavBar extends StatelessWidget {
                               label: 'Tren',
                             ),
                           ),
-
-                          // Slot 4: Layanan (Care & Komunitas)
                           Expanded(
                             key: careTabKey,
                             flex: 1,
@@ -175,45 +151,47 @@ class FloatingNavBar extends StatelessWidget {
           ),
         ),
 
-        // Central Floating Circular Chat Action Button (100% Mathematically Centered)
+        // Central Voice Session Action Button
         Positioned(
           bottom: 30,
-          child: GestureDetector(
-            key: centerButtonKey,
-            onTap: onCenterTap ?? () {
-              Navigator.pushNamed(context, '/chat');
-            },
-            child: Container(
-              width: 58,
-              height: 58,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFF6C63FF),
-                    Color(0xFF5358CB),
-                    Color(0xFF3B3E99),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF5358CB).withValues(alpha: 0.45),
-                    blurRadius: 20,
-                    spreadRadius: 2,
-                    offset: const Offset(0, 6),
+          child: Semantics(
+            button: true,
+            label: 'Mulai sesi suara EVA',
+            child: Tooltip(
+              message: 'Sesi Suara EVA',
+              child: GestureDetector(
+                key: centerButtonKey,
+                onTap:
+                    onCenterTap ??
+                    () {
+                      Navigator.pushNamed(context, '/chat');
+                    },
+                child: Container(
+                  width: 58,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [AppColors.primaryLight, AppColors.primary],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.35),
+                        blurRadius: 18,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                    border: Border.all(color: Colors.white, width: 3.0),
                   ),
-                ],
-                border: Border.all(
-                  color: Colors.white,
-                  width: 3.0,
+                  child: const Icon(
+                    Icons.auto_awesome,
+                    color: Colors.white,
+                    size: 25,
+                  ),
                 ),
-              ),
-              child: const Icon(
-                Icons.auto_awesome,
-                color: Colors.white,
-                size: 25,
               ),
             ),
           ),
@@ -229,46 +207,53 @@ class FloatingNavBar extends StatelessWidget {
     required String label,
   }) {
     final isSelected = currentIndex == index;
+    final activeColor = AppColors.primary;
+    final inactiveColor = AppColors.textSecondary;
 
-    return GestureDetector(
-      onTap: () => onTap(index),
-      behavior: HitTestBehavior.opaque,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TweenAnimationBuilder<Color?>(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOutCubic,
-              tween: ColorTween(
-                begin: isSelected ? AppColors.textLight : AppColors.primary,
-                end: isSelected ? AppColors.primary : AppColors.textLight,
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: label,
+      child: GestureDetector(
+        onTap: () => onTap(index),
+        behavior: HitTestBehavior.opaque,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TweenAnimationBuilder<Color?>(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutCubic,
+                tween: ColorTween(
+                  begin: isSelected ? inactiveColor : activeColor,
+                  end: isSelected ? activeColor : inactiveColor,
+                ),
+                builder: (context, color, child) {
+                  return Icon(
+                    isSelected ? iconSelected : iconUnselected,
+                    size: 22,
+                    color: color,
+                  );
+                },
               ),
-              builder: (context, color, child) {
-                return Icon(
-                  isSelected ? iconSelected : iconUnselected,
-                  size: 22,
-                  color: color,
-                );
-              },
-            ),
-            const SizedBox(height: 3),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOutCubic,
-              style: GoogleFonts.inter(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? AppColors.primary : AppColors.textLight,
+              const SizedBox(height: 3),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutCubic,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? activeColor : inactiveColor,
+                ),
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

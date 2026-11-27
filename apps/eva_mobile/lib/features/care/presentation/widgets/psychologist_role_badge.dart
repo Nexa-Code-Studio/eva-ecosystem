@@ -37,7 +37,7 @@ class PsychologistRoleBadge extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: AppColors.borderSubtle,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -55,7 +55,7 @@ class PsychologistRoleBadge extends StatelessWidget {
                     children: [
                       Text(
                         psychologist.badgeHeaderTitle,
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.inter(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textPrimary,
@@ -69,13 +69,13 @@ class PsychologistRoleBadge extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+            const Divider(height: 1, color: AppColors.surfaceHigh),
             const SizedBox(height: 14),
 
             // Layer Explanations
             Text(
               'Tingkat Kualifikasi & Kredensial',
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
@@ -90,7 +90,7 @@ class PsychologistRoleBadge extends StatelessWidget {
                 description: psychologist.hasPsychologistCertificate
                     ? 'Aktif memberikan sesi curhat & pendampingan sebaya bebas biaya (Gratis) untuk masyarakat.'
                     : 'Relawan terlatih di bidang Psychological First Aid (PFA) & konseling sebaya. Bebas biaya / Gratis.',
-                bgColor: const Color(0xFF0EA5E9),
+                bgColor: AppColors.tertiaryDark,
               ),
               const SizedBox(height: 10),
             ],
@@ -118,7 +118,7 @@ class PsychologistRoleBadge extends StatelessWidget {
                 ),
                 child: Text(
                   'Mengerti',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
@@ -150,7 +150,7 @@ class PsychologistRoleBadge extends StatelessWidget {
           ),
           child: Text(
             number,
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 10,
               fontWeight: FontWeight.w800,
               color: Colors.white,
@@ -164,7 +164,7 @@ class PsychologistRoleBadge extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
@@ -173,7 +173,7 @@ class PsychologistRoleBadge extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 description,
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 11,
                   color: AppColors.textSecondary,
                   height: 1.35,
@@ -195,7 +195,7 @@ class PsychologistRoleBadge extends StatelessWidget {
             width: 28,
             height: 28,
             decoration: const BoxDecoration(
-              color: Color(0xFF0EA5E9),
+              color: AppColors.tertiaryDark,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
@@ -251,15 +251,15 @@ class PsychologistRoleBadge extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
+              color: AppColors.surfaceHigh,
               borderRadius: BorderRadius.circular(5),
             ),
             child: Text(
               'Relawan',
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF64748B),
+                color: AppColors.textSecondary,
               ),
             ),
           ),
@@ -272,7 +272,7 @@ class PsychologistRoleBadge extends StatelessWidget {
             ),
             child: Text(
               'Profesional',
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 color: const Color(0xFF3730A3),
@@ -291,9 +291,9 @@ class PsychologistRoleBadge extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
+          color: AppColors.surfaceLow,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: AppColors.borderSoft),
         ),
         child: Row(
           children: [
@@ -308,10 +308,10 @@ class PsychologistRoleBadge extends StatelessWidget {
                       Expanded(
                         child: Text(
                           psychologist.badgeHeaderTitle,
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 12.5,
                             fontWeight: FontWeight.w800,
-                            color: const Color(0xFF1E293B),
+                            color: AppColors.textPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -321,7 +321,7 @@ class PsychologistRoleBadge extends StatelessWidget {
                         const Icon(
                           Icons.info_outline_rounded,
                           size: 13,
-                          color: Color(0xFF94A3B8),
+                          color: AppColors.textSecondary,
                         ),
                     ],
                   ),

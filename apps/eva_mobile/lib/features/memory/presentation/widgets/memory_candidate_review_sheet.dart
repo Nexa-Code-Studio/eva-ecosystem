@@ -140,9 +140,9 @@ class _MemoryCandidateReviewSheetState extends State<MemoryCandidateReviewSheet>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: AppColors.surfaceLow,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: AppColors.borderSoft),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

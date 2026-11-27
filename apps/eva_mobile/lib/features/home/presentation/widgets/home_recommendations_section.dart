@@ -139,15 +139,15 @@ class HomeRecommendationsSection extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             gradient: const LinearGradient(
               colors: [
-                Color(0xFF4F46E5),
-                Color(0xFF6366F1),
+                AppColors.primary,
+                AppColors.primaryLight,
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF4F46E5).withValues(alpha: 0.22),
+                color: AppColors.primary.withValues(alpha: 0.22),
                 blurRadius: 16,
                 offset: const Offset(0, 6),
               ),
@@ -260,7 +260,7 @@ class HomeRecommendationsSection extends StatelessWidget {
                               const Icon(
                                 Icons.play_circle_filled,
                                 size: 18,
-                                color: Color(0xFF4F46E5),
+                                color: AppColors.primary,
                               ),
                               const SizedBox(width: 6),
                               Flexible(
@@ -271,7 +271,7 @@ class HomeRecommendationsSection extends StatelessWidget {
                                   style: GoogleFonts.inter(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
-                                    color: const Color(0xFF4F46E5),
+                                    color: AppColors.primary,
                                   ),
                                 ),
                               ),
@@ -286,7 +286,7 @@ class HomeRecommendationsSection extends StatelessWidget {
                         if (isDone) {
                           AppSnackBar.showPrimary(
                             context,
-                            'Kamu sudah menyelesaikan latihan ini hari ini! Kerja bagus, istirahatlah sejenak dan lanjutkan kembali besok 🌿',
+                            'Kamu sudah menyelesaikan latihan ini hari ini! Kerja bagus, istirahatlah sejenak dan lanjutkan kembali besok.',
                             icon: Icons.info_outline,
                           );
                           return;
@@ -297,12 +297,12 @@ class HomeRecommendationsSection extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
                           color: isDone
-                              ? const Color(0xFF10B981)
+                              ? AppColors.success
                               : Colors.white.withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isDone
-                                ? const Color(0xFF10B981)
+                                ? AppColors.success
                                 : Colors.white.withValues(alpha: 0.35),
                           ),
                         ),

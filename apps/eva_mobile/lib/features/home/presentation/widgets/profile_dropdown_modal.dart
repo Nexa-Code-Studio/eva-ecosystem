@@ -58,7 +58,7 @@ class ProfileDropdownModal extends ConsumerWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: const Color(0xFFE2E8F0),
+          color: AppColors.borderSoft,
           width: 1,
         ),
         boxShadow: [
@@ -88,12 +88,12 @@ class ProfileDropdownModal extends ConsumerWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF8B93FF), Color(0xFF5358CB)],
+                    colors: [AppColors.primaryLight, AppColors.primary],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   border: Border.all(
-                    color: const Color(0xFFE0E7FF),
+                    color: AppColors.primaryContainer,
                     width: 2,
                   ),
                 ),
@@ -125,7 +125,7 @@ class ProfileDropdownModal extends ConsumerWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      userEmail.isNotEmpty ? userEmail : 'samsul@gmail.com',
+                      userEmail.isNotEmpty ? userEmail : 'Email belum diatur',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.inter(
@@ -153,8 +153,8 @@ class ProfileDropdownModal extends ConsumerWidget {
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [
-                      Color(0xFF5358CB), // AppColors.primary
-                      Color(0xFF8B93FF), // AppColors.primaryLight
+                      AppColors.primary,
+                      AppColors.primaryLight,
                     ],
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
@@ -162,7 +162,7 @@ class ProfileDropdownModal extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF5358CB).withValues(alpha: 0.28),
+                      color: AppColors.primary.withValues(alpha: 0.28),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -228,7 +228,7 @@ class ProfileDropdownModal extends ConsumerWidget {
                           const Icon(
                             Icons.add_circle_outline_rounded,
                             size: 13,
-                            color: Color(0xFF5358CB),
+                            color: AppColors.primary,
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -236,7 +236,7 @@ class ProfileDropdownModal extends ConsumerWidget {
                             style: GoogleFonts.inter(
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
-                              color: const Color(0xFF5358CB),
+                              color: AppColors.primary,
                             ),
                           ),
                         ],
@@ -256,10 +256,10 @@ class ProfileDropdownModal extends ConsumerWidget {
 
           const SizedBox(height: 12),
 
-          // 3. Menu Item: User Profile
+          // 3. Menu Item: Profil Pengguna
           _buildMenuItem(
             icon: Icons.person_outline_rounded,
-            title: 'User Profile',
+            title: 'Profil Pengguna',
             onTap: onProfileTap,
           ),
 
@@ -273,7 +273,7 @@ class ProfileDropdownModal extends ConsumerWidget {
           // 5. Menu Item: Pengaturan
           _buildMenuItem(
             icon: Icons.settings_outlined,
-            title: 'Settings',
+            title: 'Pengaturan',
             onTap: onSettingsTap,
           ),
 
@@ -281,7 +281,7 @@ class ProfileDropdownModal extends ConsumerWidget {
           const Divider(
             height: 16,
             thickness: 1,
-            color: Color(0xFFF1F5F9),
+            color: AppColors.borderSoft,
           ),
           const SizedBox(height: 4),
 
@@ -292,10 +292,10 @@ class ProfileDropdownModal extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFFFEF2F2),
+                color: AppColors.errorContainer,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: const Color(0xFFFEE2E2),
+                  color: AppColors.error.withValues(alpha: 0.25),
                   width: 1,
                 ),
               ),
@@ -304,7 +304,7 @@ class ProfileDropdownModal extends ConsumerWidget {
                   const Icon(
                     Icons.logout_rounded,
                     size: 18,
-                    color: Color(0xFFEF4444),
+                    color: AppColors.error,
                   ),
                   const SizedBox(width: 10),
                   Text(
@@ -312,7 +312,7 @@ class ProfileDropdownModal extends ConsumerWidget {
                     style: GoogleFonts.inter(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFFEF4444),
+                      color: AppColors.error,
                     ),
                   ),
                 ],
@@ -339,7 +339,7 @@ class ProfileDropdownModal extends ConsumerWidget {
             Icon(
               icon,
               size: 20,
-              color: const Color(0xFF64748B),
+              color: AppColors.textSecondary,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -355,7 +355,7 @@ class ProfileDropdownModal extends ConsumerWidget {
             const Icon(
               Icons.arrow_forward_ios_rounded,
               size: 12,
-              color: Color(0xFFCBD5E1),
+              color: AppColors.borderSubtle,
             ),
           ],
         ),

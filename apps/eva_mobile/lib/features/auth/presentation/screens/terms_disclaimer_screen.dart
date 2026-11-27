@@ -103,7 +103,7 @@ class TermsDisclaimerScreen extends StatelessWidget {
                       // Section 1: Prinsip Etika Layanan
                       _buildSectionCard(
                         icon: Icons.favorite_border_rounded,
-                        iconColor: const Color(0xFF6C5CE7),
+                        iconColor: AppColors.primary,
                         title: '1. Prinsip Etika Konseling AI',
                         content: [
                           'Non-Judgmental Space: Eva AI dirancang untuk menyediakan ruang refleksi emosional yang aman tanpa penilaian moral atau preskriptif.',
@@ -116,7 +116,7 @@ class TermsDisclaimerScreen extends StatelessWidget {
                       // Section 2: Batasan Wewenang Medis (Medical Disclaimer)
                       _buildSectionCard(
                         icon: Icons.health_and_safety_outlined,
-                        iconColor: const Color(0xFFD32F2F),
+                        iconColor: AppColors.error,
                         title: '2. Batasan Wewenang Medis (Medical Disclaimer)',
                         content: [
                           'Bukan Tenaga Medis Berlisensi: Eva AI adalah sistem pendukung berbasis kecerdasan buatan, BUKAN psikolog klinis, psikiater, atau fasilitas kesehatan manusia.',
@@ -124,14 +124,14 @@ class TermsDisclaimerScreen extends StatelessWidget {
                           'Tanpa Resep Obat: Eva AI TIDAK BERWEWENANG mengeluarakan atau menyarankan resep obat-obatan psikiatri/medikal.',
                           'Pengganti Terapi Nyata: Layanan ini tidak dimaksudkan untuk menggantikan sesi terapi langsung dengan profesional kesehatan mental berlisensi.',
                         ],
-                        highlightColor: const Color(0xFFFFF5F5),
+                        highlightColor: AppColors.errorContainer.withValues(alpha: 0.35),
                       ),
                       const SizedBox(height: 16),
 
                       // Section 3: Protokol Keselamatan & Penanganan Krisis
                       _buildSectionCard(
                         icon: Icons.shield_outlined,
-                        iconColor: const Color(0xFFE67E22),
+                        iconColor: AppColors.warningDark,
                         title: '3. Protokol Keselamatan Emosional & Krisis',
                         content: [
                           'Multi-layered Safety Gate: Sistem memindai pesan secara real-time untuk mendeteksi indikasi risiko krisis emosional atau kecenderungan mencederai diri (Self-Harm / Suicidal Ideation).',
@@ -144,7 +144,7 @@ class TermsDisclaimerScreen extends StatelessWidget {
                       // Section 4: Kebijakan Privasi & Etika Penggunaan
                       _buildSectionCard(
                         icon: Icons.lock_outline_rounded,
-                        iconColor: const Color(0xFF00B894),
+                        iconColor: AppColors.tertiaryDark,
                         title: '4. Kerahasiaan Data & Etika Penggunaan',
                         content: [
                           'Kerahasiaan Percakapan: Data sesi percakapan dan jurnal Anda dilindungi dan tidak dijual atau dibagikan kepada pihak ketiga non-medis tanpa persetujuan Anda.',
@@ -185,7 +185,8 @@ class TermsDisclaimerScreen extends StatelessWidget {
     required List<String> content,
     Color? highlightColor,
   }) {
-    return GlassCard(
+    return GlassCard.surface(
+      backgroundColor: highlightColor ?? AppColors.surface,
       padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -207,7 +208,7 @@ class TermsDisclaimerScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+          const Divider(height: 1, color: AppColors.borderSoft),
           const SizedBox(height: 12),
           ...content.map(
             (item) => Padding(

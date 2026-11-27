@@ -256,13 +256,17 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
+                    color: AppColors.surfaceLow,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: AppColors.borderSoft),
                   ),
                   child: Row(
                     children: [
-                      const Text('🌿', style: TextStyle(fontSize: 16)),
+                      const Icon(
+                        Icons.spa_outlined,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -270,7 +274,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
                           style: GoogleFonts.inter(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
-                            color: const Color(0xFF475569),
+                            color: AppColors.textSecondary,
                             height: 1.35,
                           ),
                         ),

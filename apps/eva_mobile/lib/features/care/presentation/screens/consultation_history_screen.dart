@@ -104,7 +104,7 @@ class _ConsultationHistoryScreenState
                       children: [
                         Text(
                           'Riwayat Bicara & Konseling',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
                             color: AppColors.textPrimary,
@@ -112,7 +112,7 @@ class _ConsultationHistoryScreenState
                         ),
                         Text(
                           'Daftar psikolog yang pernah disewa & catatan saran per sesi',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 12,
                             color: AppColors.textSecondary,
                           ),
@@ -131,7 +131,7 @@ class _ConsultationHistoryScreenState
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(color: AppColors.borderSoft),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.02),
@@ -147,16 +147,16 @@ class _ConsultationHistoryScreenState
                       _searchQuery = val.trim().toLowerCase();
                     });
                   },
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 13.5,
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.w600,
                   ),
                   decoration: InputDecoration(
                     hintText: 'Cari nama psikolog atau relawan...',
-                    hintStyle: GoogleFonts.plusJakartaSans(
+                    hintStyle: GoogleFonts.inter(
                       fontSize: 13,
-                      color: AppColors.textLight,
+                      color: AppColors.textSecondary,
                     ),
                     prefixIcon: const Icon(
                       Icons.search_rounded,
@@ -196,10 +196,10 @@ class _ConsultationHistoryScreenState
                       children: [
                         Text(
                           'PSIKOLOG & RELAWAN',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.textLight,
+                            color: AppColors.textSecondary,
                             letterSpacing: 0.8,
                           ),
                         ),
@@ -211,7 +211,7 @@ class _ConsultationHistoryScreenState
                           ),
                           child: Text(
                             '${filteredPsychologists.length}',
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.inter(
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
                               color: AppColors.primary,
@@ -251,19 +251,19 @@ class _ConsultationHistoryScreenState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.borderSoft),
       ),
       child: Column(
         children: [
           const Icon(
             Icons.search_off_rounded,
             size: 42,
-            color: Color(0xFF94A3B8),
+            color: AppColors.textSecondary,
           ),
           const SizedBox(height: 12),
           Text(
             'Tidak Ditemukan',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 14,
               fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,
@@ -273,7 +273,7 @@ class _ConsultationHistoryScreenState
           Text(
             'Tidak ada psikolog atau relawan dengan nama "$_searchQuery"',
             textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 12,
               color: AppColors.textSecondary,
             ),
@@ -288,7 +288,7 @@ class _ConsultationHistoryScreenState
             },
             child: Text(
               'Reset Pencarian',
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 color: AppColors.primary,
@@ -318,7 +318,7 @@ class _ConsultationHistoryScreenState
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: AppColors.borderSoft),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.02),
@@ -343,7 +343,7 @@ class _ConsultationHistoryScreenState
                     children: [
                       Text(
                         psychologist.name,
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.inter(
                           fontSize: 14.5,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textPrimary,
@@ -352,7 +352,7 @@ class _ConsultationHistoryScreenState
                       const SizedBox(height: 2),
                       Text(
                         psychologist.title,
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.inter(
                           fontSize: 11.5,
                           color: AppColors.textSecondary,
                         ),
@@ -371,7 +371,7 @@ class _ConsultationHistoryScreenState
                             ),
                             child: Text(
                               '${sessions.length} Sesi Terlaksana',
-                              style: GoogleFonts.plusJakartaSans(
+                              style: GoogleFonts.inter(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.primary,
@@ -382,9 +382,9 @@ class _ConsultationHistoryScreenState
                           if (latestSession != null)
                             Text(
                               'Terakhir: ${_formatDate(latestSession.sessionDateTime).split(',')[0]}',
-                              style: GoogleFonts.plusJakartaSans(
+                              style: GoogleFonts.inter(
                                 fontSize: 10.5,
-                                color: AppColors.textLight,
+                                color: AppColors.textSecondary,
                               ),
                             ),
                         ],
@@ -395,7 +395,7 @@ class _ConsultationHistoryScreenState
                 const Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 14,
-                  color: Color(0xFF94A3B8),
+                  color: AppColors.textSecondary,
                 ),
               ],
             ),
@@ -422,7 +422,7 @@ class _ConsultationHistoryScreenState
                   Expanded(
                     child: Text(
                       'Saran Terakhir: "$latestAdvice"',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFF15803D),
@@ -445,7 +445,7 @@ class _ConsultationHistoryScreenState
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.textPrimary,
-                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      side: const BorderSide(color: AppColors.borderSubtle),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -463,7 +463,7 @@ class _ConsultationHistoryScreenState
                     },
                     child: Text(
                       'Profil Konselor',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
                       ),
@@ -495,7 +495,7 @@ class _ConsultationHistoryScreenState
                         const SizedBox(width: 6),
                         Text(
                           'Lihat Log & Saran Sesi',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w800,
                           ),
@@ -519,26 +519,26 @@ class _ConsultationHistoryScreenState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.borderSoft),
       ),
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(
-              color: Color(0xFFF1F5F9),
+              color: AppColors.surfaceHigh,
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.forum_outlined,
               size: 40,
-              color: Color(0xFF94A3B8),
+              color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 14),
           Text(
             'Belum Ada Riwayat Sesi',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 15,
               fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,
@@ -548,7 +548,7 @@ class _ConsultationHistoryScreenState
           Text(
             'Setelah kamu menyelesaikan sesi konsultasi video call dengan psikolog atau relawan, catatan saran dan evaluasi klinis per sesi akan otomatis tercatat di sini.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 12,
               color: AppColors.textSecondary,
               height: 1.4,
@@ -568,7 +568,7 @@ class _ConsultationHistoryScreenState
             onPressed: () => Navigator.pop(context),
             child: Text(
               'Cari Psikolog Sekarang',
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
               ),

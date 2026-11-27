@@ -344,7 +344,7 @@ class _EmergencyContactsScreenState extends ConsumerState<EmergencyContactsScree
                       // Info Banner Card
                       StaggeredEntrance(
                         index: 1,
-                        child: GlassCard(
+                        child: GlassCard.surface(
                           width: double.infinity,
                           padding: const EdgeInsets.all(18),
                           child: Row(
@@ -352,12 +352,12 @@ class _EmergencyContactsScreenState extends ConsumerState<EmergencyContactsScree
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFFDCDD),
+                                  color: AppColors.errorContainer,
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: const Icon(
                                   Icons.shield_outlined,
-                                  color: Color(0xFFD32F2F),
+                                  color: AppColors.error,
                                   size: 24,
                                 ),
                               ),
@@ -371,7 +371,7 @@ class _EmergencyContactsScreenState extends ConsumerState<EmergencyContactsScree
                                       style: GoogleFonts.inter(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w700,
-                                        color: AppColors.textLight,
+                                        color: AppColors.textSecondary,
                                         letterSpacing: 0.8,
                                       ),
                                     ),
@@ -401,7 +401,7 @@ class _EmergencyContactsScreenState extends ConsumerState<EmergencyContactsScree
                           style: GoogleFonts.inter(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.textLight,
+                            color: AppColors.textSecondary,
                             letterSpacing: 0.8,
                           ),
                         ),
@@ -459,7 +459,7 @@ class _EmergencyContactsScreenState extends ConsumerState<EmergencyContactsScree
                                           padding: const EdgeInsets.symmetric(vertical: 40.0),
                                           child: Column(
                                             children: [
-                                              const Icon(Icons.contacts_outlined, size: 48, color: AppColors.textLight),
+                                              const Icon(Icons.contacts_outlined, size: 48, color: AppColors.textSecondary),
                                               const SizedBox(height: 12),
                                               Text(
                                                 'Belum ada kontak darurat',
@@ -481,7 +481,7 @@ class _EmergencyContactsScreenState extends ConsumerState<EmergencyContactsScree
                                     itemBuilder: (context, index) {
                                       final contact = _contacts[index];
                                       final bool isPrimary = contact['isPrimary'] == true;
-                                      return GlassCard(
+                                      return GlassCard.surface(
                                         width: double.infinity,
                                         padding: const EdgeInsets.all(18),
                                         child: Column(
@@ -659,8 +659,8 @@ class _EmergencyContactsScreenState extends ConsumerState<EmergencyContactsScree
                               number: '08113855472',
                               displayNumber: '0811-3855-472',
                               icon: Icons.phone_in_talk_outlined,
-                              accentColor: const Color(0xFF00CEC9),
-                              badgeBg: const Color(0xFFD7F3FF),
+                              accentColor: AppColors.tertiaryDark,
+                              badgeBg: AppColors.tertiaryContainer,
                             ),
                             const SizedBox(height: 10),
                             _buildOfficialHotlineCard(
@@ -669,8 +669,8 @@ class _EmergencyContactsScreenState extends ConsumerState<EmergencyContactsScree
                               number: '112',
                               displayNumber: '112',
                               icon: Icons.emergency_outlined,
-                              accentColor: const Color(0xFFD32F2F),
-                              badgeBg: const Color(0xFFFFDCDD),
+                              accentColor: AppColors.error,
+                              badgeBg: AppColors.errorContainer,
                             ),
                             const SizedBox(height: 10),
                             _buildOfficialHotlineCard(
@@ -679,8 +679,8 @@ class _EmergencyContactsScreenState extends ConsumerState<EmergencyContactsScree
                               number: '1500567',
                               displayNumber: '1500-567',
                               icon: Icons.info_outline,
-                              accentColor: const Color(0xFF0984E3),
-                              badgeBg: const Color(0xFFDFE6E9),
+                              accentColor: AppColors.primary,
+                              badgeBg: AppColors.primaryContainer,
                             ),
                           ],
                         ),
@@ -724,7 +724,7 @@ class _EmergencyContactsScreenState extends ConsumerState<EmergencyContactsScree
     required Color accentColor,
     required Color badgeBg,
   }) {
-    return GlassCard(
+    return GlassCard.surface(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(

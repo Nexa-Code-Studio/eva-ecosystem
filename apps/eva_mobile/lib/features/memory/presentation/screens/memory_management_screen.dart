@@ -85,19 +85,19 @@ class _MemoryManagementScreenState extends ConsumerState<MemoryManagementScreen>
     final memoryState = ref.watch(memoryNotifierProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: const Center(child: AppBackButton()),
         title: Text(
-          'Memori Personal Eva',
-          style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+          'Memori Personal EVA',
+          style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
         ),
         actions: [
           IconButton(
             tooltip: 'Bersihkan Semua',
-            icon: const Icon(Icons.delete_sweep_outlined, color: Color(0xFFD32F2F)),
+            icon: const Icon(Icons.delete_sweep_outlined, color: AppColors.error),
             onPressed: _showClearAllDialog,
           ),
         ],
@@ -169,7 +169,7 @@ class _MemoryManagementScreenState extends ConsumerState<MemoryManagementScreen>
                     final item = filtered[idx];
                     final isActive = item.status == MemoryStatus.active;
 
-                    return GlassCard(
+                    return GlassCard.surface(
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -199,19 +199,19 @@ class _MemoryManagementScreenState extends ConsumerState<MemoryManagementScreen>
                                     style: GoogleFonts.inter(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
-                                      color: isActive ? const Color(0xFF16A34A) : AppColors.textSecondary,
+                                      color: isActive ? AppColors.successDark : AppColors.textSecondary,
                                     ),
                                   ),
                                   const SizedBox(width: 4),
                                   Switch(
                                     value: isActive,
-                                    activeThumbColor: const Color(0xFF16A34A),
+                                    activeThumbColor: AppColors.successDark,
                                     onChanged: (_) {
                                       ref.read(memoryNotifierProvider.notifier).toggleStatus(item);
                                     },
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.delete_outline, color: Color(0xFFD32F2F), size: 20),
+                                    icon: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
                                     onPressed: () => _showDeleteDialog(item),
                                   ),
                                 ],
@@ -221,7 +221,7 @@ class _MemoryManagementScreenState extends ConsumerState<MemoryManagementScreen>
                           const SizedBox(height: 8),
                           Text(
                             item.factText,
-                            style: GoogleFonts.inter(fontSize: 14, height: 1.4, color: const Color(0xFF1E293B)),
+                            style: GoogleFonts.inter(fontSize: 14, height: 1.4, color: AppColors.textPrimary),
                           ),
                           const SizedBox(height: 10),
                           Row(
@@ -273,7 +273,7 @@ class _MemoryManagementScreenState extends ConsumerState<MemoryManagementScreen>
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: BorderSide(
-            color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
+            color: isSelected ? AppColors.primary : AppColors.borderSoft,
           ),
         ),
       ),

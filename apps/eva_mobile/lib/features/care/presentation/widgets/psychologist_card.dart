@@ -80,7 +80,7 @@ class PsychologistCard extends StatelessWidget {
                         const SizedBox(height: 5),
                         Text(
                           psychologist.name,
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 14.5,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary,
@@ -91,7 +91,7 @@ class PsychologistCard extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           psychologist.title,
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 11.5,
                             color: AppColors.textSecondary,
                           ),
@@ -101,11 +101,11 @@ class PsychologistCard extends StatelessWidget {
                         const SizedBox(height: 6),
                         Row(
                           children: [
-                            const Icon(Icons.star_rounded, size: 15, color: Color(0xFFF59E0B)),
+                            const Icon(Icons.star_rounded, size: 15, color: AppColors.warningDark),
                             const SizedBox(width: 3),
                             Text(
                               '${psychologist.rating.toStringAsFixed(1)} (${psychologist.reviewCount})',
-                              style: GoogleFonts.plusJakartaSans(
+                              style: GoogleFonts.inter(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.textPrimary,
@@ -117,7 +117,7 @@ class PsychologistCard extends StatelessWidget {
                                 '• ${psychologist.experienceYears} Thn Pengalaman',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.plusJakartaSans(
+                                style: GoogleFonts.inter(
                                   fontSize: 11,
                                   color: AppColors.textSecondary,
                                 ),
@@ -141,7 +141,7 @@ class PsychologistCard extends StatelessWidget {
                 const SizedBox(height: 12),
               ],
 
-              const Divider(height: 1, color: Color(0xFFF1F5F9)),
+              const Divider(height: 1, color: AppColors.surfaceHigh),
               const SizedBox(height: 12),
 
               // Pricing & Booking Action
@@ -156,7 +156,7 @@ class PsychologistCard extends StatelessWidget {
                           'Biaya Sesi (${psychologist.durationMinutes} mnt)',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 10.5,
                             color: AppColors.textSecondary,
                           ),
@@ -183,7 +183,7 @@ class PsychologistCard extends StatelessWidget {
                               psychologist.coinsPerSession > 0
                                   ? '${psychologist.coinsPerSession} Koin'
                                   : 'Gratis',
-                              style: GoogleFonts.plusJakartaSans(
+                              style: GoogleFonts.inter(
                                 fontSize: 15.5,
                                 fontWeight: FontWeight.w800,
                                 color: psychologist.coinsPerSession > 0
@@ -194,7 +194,7 @@ class PsychologistCard extends StatelessWidget {
                             if (psychologist.coinsPerSession > 0)
                               Text(
                                 ' / sesi',
-                                style: GoogleFonts.plusJakartaSans(
+                                style: GoogleFonts.inter(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
                                   color: AppColors.textSecondary,
@@ -219,7 +219,7 @@ class PsychologistCard extends StatelessWidget {
                     ),
                     child: Text(
                       'Jadwalkan',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
                       ),
@@ -270,7 +270,7 @@ class _AvatarLevelBadge extends StatelessWidget {
           const SizedBox(width: 2),
           Text(
             'Lv.$tier',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 9,
               fontWeight: FontWeight.w800,
               color: palette.accent,
@@ -307,13 +307,13 @@ class _AvatarLevelBadge extends StatelessWidget {
 
   static ({Color bg, Color accent}) _tierPalette(int tier) {
     if (tier >= 4) {
-      return (bg: const Color(0xFFF3E8FF), accent: const Color(0xFF7C3AED));
+      return (bg: AppColors.primaryContainer, accent: AppColors.primary);
     } else if (tier == 3) {
-      return (bg: const Color(0xFFFEF3C7), accent: const Color(0xFFB45309));
+      return (bg: AppColors.warningContainer, accent: AppColors.warningDark);
     } else if (tier == 2) {
-      return (bg: const Color(0xFFE0E7FF), accent: const Color(0xFF4338CA));
+      return (bg: AppColors.secondary.withValues(alpha: 0.45), accent: AppColors.onPrimaryContainer);
     }
-    return (bg: const Color(0xFFCCFBF1), accent: const Color(0xFF0F766E));
+    return (bg: AppColors.tertiaryContainer, accent: AppColors.tertiaryDark);
   }
 }
 
@@ -385,9 +385,9 @@ class _AvailabilityTagsRow extends StatelessWidget {
             ),
             if (psychologist.remainingSlotsToday > 0)
               _TagPill(
-                bgColor: const Color(0xFFF8FAFC),
-                borderColor: const Color(0xFFE2E8F0),
-                textColor: const Color(0xFF475569),
+                bgColor: AppColors.surfaceLow,
+                borderColor: AppColors.borderSoft,
+                textColor: AppColors.textSecondary,
                 label: '${psychologist.remainingSlotsToday} Slot Tersisa',
               ),
           ],
@@ -415,9 +415,9 @@ class _AvailabilityTagsRow extends StatelessWidget {
           runSpacing: 4,
           children: [
             _TagPill(
-              bgColor: Color(0xFFF1F5F9),
-              borderColor: Color(0xFFCBD5E1),
-              textColor: Color(0xFF475569),
+              bgColor: AppColors.surfaceHigh,
+              borderColor: AppColors.borderSubtle,
+              textColor: AppColors.textSecondary,
               icon: Icons.event_busy_rounded,
               label: 'Jadwal Penuh',
             ),
@@ -472,7 +472,7 @@ class _TagPill extends StatelessWidget {
           ],
           Text(
             label,
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: textColor,

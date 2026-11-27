@@ -150,7 +150,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
 
       // Verify Session Summary bottom sheet appears
-      expect(find.text('Sesi Suara Selesai 🍃'), findsOneWidget);
+      expect(find.text('Sesi Suara Selesai'), findsOneWidget);
       expect(find.text('Lihat Detail Jurnal Refleksi'), findsOneWidget);
 
       // Tap "Lihat Detail Jurnal Refleksi"

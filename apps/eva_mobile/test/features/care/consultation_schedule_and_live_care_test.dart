@@ -14,7 +14,7 @@ import 'package:eva_mobile/features/care/presentation/providers/care_provider.da
 import 'package:eva_mobile/features/care/presentation/screens/consultation_rating_screen.dart';
 import 'package:eva_mobile/features/care/presentation/screens/consultation_schedule_screen.dart';
 import 'package:eva_mobile/features/care/presentation/screens/psychologist_detail_screen.dart';
-import 'package:eva_mobile/features/care/presentation/widgets/booking_consultation_sheet.dart';
+import 'package:eva_mobile/features/care/presentation/screens/booking_consultation_screen.dart';
 import 'package:eva_mobile/features/care/presentation/widgets/consultation_result_bottom_sheet.dart';
 import 'package:eva_mobile/features/care/presentation/widgets/psychologist_card.dart';
 import 'package:eva_mobile/features/care/presentation/widgets/psychologist_certificate_carousel.dart';
@@ -286,7 +286,7 @@ void main() {
     expect(repo.lastSubmittedSessionId, 'sess-rate-1');
   });
 
-  testWidgets('BookingConsultationSheet uses date picker defaulting to today without fixed day chips',
+  testWidgets('BookingConsultationScreen uses date picker defaulting to today without fixed day chips',
       (tester) async {
     final repo = _ConfigurableCareRepository()..detail = liveCounselor;
     final now = DateTime.now();
@@ -296,9 +296,7 @@ void main() {
       ProviderScope(
         overrides: [careRepositoryProvider.overrideWithValue(repo)],
         child: const MaterialApp(
-          home: Scaffold(
-            body: BookingConsultationSheet(psychologist: liveCounselor),
-          ),
+          home: BookingConsultationScreen(psychologist: liveCounselor),
         ),
       ),
     );

@@ -14,7 +14,7 @@ import 'package:eva_mobile/features/care/domain/repositories/video_call_reposito
 import 'package:eva_mobile/features/care/presentation/controllers/video_call_controller.dart';
 import 'package:eva_mobile/features/care/presentation/providers/video_call_provider.dart';
 import 'package:eva_mobile/features/care/presentation/screens/psychologist_video_call_screen.dart';
-import 'package:eva_mobile/features/care/presentation/widgets/booking_consultation_sheet.dart';
+import 'package:eva_mobile/features/care/presentation/screens/booking_consultation_screen.dart';
 import 'package:eva_mobile/features/coin/presentation/providers/coin_provider.dart';
 
 import '../../test_helpers/mock_image_http.dart';
@@ -187,7 +187,7 @@ void main() {
   });
 
   testWidgets(
-      'Busy extension: shows friendly sheet and opens BookingConsultationSheet on Schedule Next',
+      'Busy extension: shows friendly sheet and opens BookingConsultationScreen on Schedule Next',
       (tester) async {
     tester.view.physicalSize = const Size(800, 1600);
     tester.view.devicePixelRatio = 1.0;
@@ -256,6 +256,6 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 
-    expect(find.byType(BookingConsultationSheet), findsOneWidget);
+    expect(find.byType(BookingConsultationScreen), findsOneWidget);
   });
 }

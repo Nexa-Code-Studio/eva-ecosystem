@@ -16,7 +16,7 @@ import '../../domain/entities/video_call_state_entity.dart';
 import '../controllers/video_call_controller.dart';
 import '../providers/care_provider.dart';
 import '../providers/video_call_provider.dart';
-import '../widgets/booking_consultation_sheet.dart';
+import 'booking_consultation_screen.dart';
 import '../widgets/consultation_result_bottom_sheet.dart';
 import '../widgets/in_call_extension_sheet.dart';
 
@@ -110,7 +110,7 @@ class _PsychologistVideoCallScreenState
               const SizedBox(width: 10),
               Text(
                 'Akhiri Sesi Konsultasi?',
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textPrimary,
@@ -120,7 +120,7 @@ class _PsychologistVideoCallScreenState
           ),
           content: Text(
             'Sesi akan diselesaikan dan catatan rangkuman beserta saran psikolog akan otomatis tersimpan di Riwayat Bicara.',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 12.5,
               color: AppColors.textSecondary,
               height: 1.45,
@@ -131,7 +131,7 @@ class _PsychologistVideoCallScreenState
               onPressed: () => Navigator.pop(dialogCtx),
               child: Text(
                 'Lanjutkan Sesi',
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textSecondary,
@@ -153,7 +153,7 @@ class _PsychologistVideoCallScreenState
               },
               child: Text(
                 'Ya, Selesaikan',
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
@@ -239,7 +239,7 @@ class _PsychologistVideoCallScreenState
       builder: (_) => InCallExtensionBusySheet(
         availability: availability,
         onScheduleNext: () {
-          BookingConsultationSheet.show(context, widget.session.psychologist);
+          BookingConsultationScreen.open(context, widget.session.psychologist);
         },
       ),
     );
@@ -365,7 +365,7 @@ class _PsychologistVideoCallScreenState
                 const SizedBox(height: 16),
                 Text(
                   'Kualitas Video Konsultasi',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
@@ -374,7 +374,7 @@ class _PsychologistVideoCallScreenState
                 const SizedBox(height: 6),
                 Text(
                   'Pilih preset kualitas video sesuai kondisi bandwidth jaringan Anda.',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 12,
                     color: AppColors.textSecondary,
                   ),
@@ -431,10 +431,10 @@ class _PsychologistVideoCallScreenState
       decoration: BoxDecoration(
         color: isSelected
             ? AppColors.primaryContainer.withValues(alpha: 0.4)
-            : const Color(0xFFF8FAFC),
+            : AppColors.surfaceLow,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
+          color: isSelected ? AppColors.primary : AppColors.borderSoft,
           width: isSelected ? 1.5 : 1,
         ),
       ),
@@ -444,7 +444,7 @@ class _PsychologistVideoCallScreenState
           onTap: onSelect,
           title: Text(
             title,
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 13.5,
               fontWeight: FontWeight.w700,
               color: isSelected ? AppColors.primary : AppColors.textPrimary,
@@ -452,7 +452,7 @@ class _PsychologistVideoCallScreenState
           ),
           subtitle: Text(
             subtitle,
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 11,
               color: AppColors.textSecondary,
             ),
@@ -510,7 +510,7 @@ class _PsychologistVideoCallScreenState
                         const SizedBox(width: 8),
                         Text(
                           'Catatan Pribadi Sesi',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
                             color: AppColors.textPrimary,
@@ -525,14 +525,14 @@ class _PsychologistVideoCallScreenState
                   ],
                 ),
               ),
-              const Divider(height: 1, color: Color(0xFFE2E8F0)),
+              const Divider(height: 1, color: AppColors.borderSoft),
               Expanded(
                 child: _sessionNotes.isEmpty
                     ? Center(
                         child: Text(
                           'Belum ada catatan. Tulis poin penting dari psikolog di sini.',
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 12,
                             color: AppColors.textSecondary,
                           ),
@@ -547,17 +547,17 @@ class _PsychologistVideoCallScreenState
                             margin: const EdgeInsets.only(bottom: 10),
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
+                              color: AppColors.surfaceLow,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                  color: const Color(0xFFE2E8F0)),
+                                  color: AppColors.borderSoft),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   note['text'] ?? '',
-                                  style: GoogleFonts.plusJakartaSans(
+                                  style: GoogleFonts.inter(
                                     fontSize: 13,
                                     color: AppColors.textPrimary,
                                   ),
@@ -565,9 +565,9 @@ class _PsychologistVideoCallScreenState
                                 const SizedBox(height: 4),
                                 Text(
                                   note['time'] ?? '',
-                                  style: GoogleFonts.plusJakartaSans(
+                                  style: GoogleFonts.inter(
                                     fontSize: 10,
-                                    color: AppColors.textLight,
+                                    color: AppColors.textSecondary,
                                   ),
                                 ),
                               ],
@@ -583,15 +583,15 @@ class _PsychologistVideoCallScreenState
                     Expanded(
                       child: TextField(
                         controller: _notesController,
-                        style: GoogleFonts.plusJakartaSans(fontSize: 13),
+                        style: GoogleFonts.inter(fontSize: 13),
                         decoration: InputDecoration(
                           hintText: 'Tulis catatan konsultasi...',
-                          hintStyle: GoogleFonts.plusJakartaSans(
+                          hintStyle: GoogleFonts.inter(
                             fontSize: 12,
-                            color: AppColors.textLight,
+                            color: AppColors.textSecondary,
                           ),
                           filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
+                          fillColor: AppColors.surfaceLow,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14,
                             vertical: 10,
@@ -599,7 +599,7 @@ class _PsychologistVideoCallScreenState
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide:
-                                const BorderSide(color: Color(0xFFE2E8F0)),
+                                const BorderSide(color: AppColors.borderSoft),
                           ),
                         ),
                       ),
@@ -636,7 +636,7 @@ class _PsychologistVideoCallScreenState
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A).withValues(alpha: 0.95),
+        color: const Color(0xFF141633).withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white24),
       ),
@@ -647,12 +647,12 @@ class _PsychologistVideoCallScreenState
           Container(
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(
-              color: Color(0xFF1E293B),
+              color: Color(0xFF1E224F),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.videocam_off_rounded,
-              color: Color(0xFFF59E0B),
+              color: Color(0xFFFBBF24),
               size: 36,
             ),
           ),
@@ -660,7 +660,7 @@ class _PsychologistVideoCallScreenState
           Text(
             'Izin Kamera & Mikrofon Diperlukan',
             textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 16,
               fontWeight: FontWeight.w800,
               color: Colors.white,
@@ -670,7 +670,7 @@ class _PsychologistVideoCallScreenState
           Text(
             'Untuk memulai sesi tatap muka online dengan psikolog, izinkan akses kamera dan mikrofon perangkat Anda, atau lanjutkan dalam mode Audio-Only.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 12.5,
               color: Colors.white70,
               height: 1.45,
@@ -694,7 +694,7 @@ class _PsychologistVideoCallScreenState
                   },
                   child: Text(
                     'Audio-Only Saja',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.inter(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
@@ -717,7 +717,7 @@ class _PsychologistVideoCallScreenState
                   },
                   child: Text(
                     'Buka Pengaturan',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.inter(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
@@ -757,7 +757,7 @@ class _PsychologistVideoCallScreenState
                   child: SafeNetworkAvatar(
                     imageUrl: session.psychologist.avatarUrl,
                     radius: 54,
-                    backgroundColor: const Color(0xFF1E293B),
+                    backgroundColor: const Color(0xFF1E224F),
                     iconColor: Colors.white,
                     iconSize: 48,
                   ),
@@ -769,7 +769,7 @@ class _PsychologistVideoCallScreenState
           Text(
             session.psychologist.name,
             textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 18,
               fontWeight: FontWeight.w800,
               color: Colors.white,
@@ -779,7 +779,7 @@ class _PsychologistVideoCallScreenState
           Text(
             session.psychologist.title,
             textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 12.5,
               color: Colors.white70,
             ),
@@ -814,7 +814,7 @@ class _PsychologistVideoCallScreenState
                 const SizedBox(width: 10),
                 Text(
                   'Menunggu psikolog bergabung ke ruangan...',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -827,7 +827,7 @@ class _PsychologistVideoCallScreenState
           Text(
             'Sesi akan otomatis terhubung begitu psikolog siap.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 11.5,
               color: Colors.white54,
             ),
@@ -878,7 +878,7 @@ class _PsychologistVideoCallScreenState
         const SizedBox(width: 5),
         Text(
           statusText,
-          style: GoogleFonts.plusJakartaSans(
+          style: GoogleFonts.inter(
             fontSize: 11,
             fontWeight: FontWeight.w600,
             color: Colors.white70,
@@ -924,7 +924,7 @@ class _PsychologistVideoCallScreenState
         callState.qualityPreset != VideoQualityPreset.audioOnly;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: const Color(0xFF141633),
       body: SafeArea(
         child: Stack(
           children: [
@@ -998,7 +998,7 @@ class _PsychologistVideoCallScreenState
                         child: Text(
                           callState.counselorStatusMessage ??
                               'Gangguan jaringan. Sedang mencoba menghubungkan ulang...',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -1020,7 +1020,7 @@ class _PsychologistVideoCallScreenState
                         },
                         child: Text(
                           'Hubungkan Ulang',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
                           ),
@@ -1045,7 +1045,7 @@ class _PsychologistVideoCallScreenState
                         SafeNetworkAvatar(
                           imageUrl: psychologist.avatarUrl,
                           radius: 18,
-                          backgroundColor: const Color(0xFF334155),
+                          backgroundColor: const Color(0xFF2D3263),
                           iconColor: Colors.white,
                           iconSize: 18,
                         ),
@@ -1057,7 +1057,7 @@ class _PsychologistVideoCallScreenState
                             children: [
                               Text(
                                 psychologist.name,
-                                style: GoogleFonts.plusJakartaSans(
+                                style: GoogleFonts.inter(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w800,
                                   color: Colors.white,
@@ -1100,7 +1100,7 @@ class _PsychologistVideoCallScreenState
                                         VideoQualityPreset.sd480p
                                     ? '480p'
                                     : '720p'),
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.inter(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               color: Colors.white,
@@ -1131,7 +1131,7 @@ class _PsychologistVideoCallScreenState
                         const SizedBox(width: 6),
                         Text(
                           _formatTimer(callState.callDurationSeconds),
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
@@ -1152,7 +1152,7 @@ class _PsychologistVideoCallScreenState
                             ),
                             child: Text(
                               '${callState.maxDurationSeconds ~/ 60}m',
-                              style: GoogleFonts.plusJakartaSans(
+                              style: GoogleFonts.inter(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w800,
                                 color: Colors.white,
@@ -1189,7 +1189,7 @@ class _PsychologistVideoCallScreenState
                     width: 104,
                     height: 148,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
+                      color: const Color(0xFF1E224F),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: Colors.white.withValues(alpha: 0.4),
@@ -1209,7 +1209,7 @@ class _PsychologistVideoCallScreenState
                       children: [
                         if (callState.isCameraOff)
                           Container(
-                            color: const Color(0xFF0F172A),
+                            color: const Color(0xFF141633),
                             child: Center(
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
@@ -1222,7 +1222,7 @@ class _PsychologistVideoCallScreenState
                                   const SizedBox(height: 4),
                                   Text(
                                     'Kamera Mati',
-                                    style: GoogleFonts.plusJakartaSans(
+                                    style: GoogleFonts.inter(
                                       fontSize: 9,
                                       color: Colors.white54,
                                     ),
@@ -1240,7 +1240,7 @@ class _PsychologistVideoCallScreenState
                           )
                         else
                           Container(
-                            color: const Color(0xFF334155),
+                            color: const Color(0xFF2D3263),
                             child: const Center(
                               child: Icon(Icons.person,
                                   size: 28, color: Colors.white),
@@ -1293,7 +1293,7 @@ class _PsychologistVideoCallScreenState
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A).withValues(alpha: 0.85),
+                  color: const Color(0xFF141633).withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(color: Colors.white12),
                 ),
@@ -1309,8 +1309,8 @@ class _PsychologistVideoCallScreenState
                             ? Icons.mic_off_rounded
                             : Icons.mic_rounded,
                         backgroundColor: callState.isMicMuted
-                            ? const Color(0xFFDC2626)
-                            : const Color(0xFF334155),
+                            ? AppColors.error
+                            : const Color(0xFF2D3263),
                         iconColor: Colors.white,
                         onTap: controller.toggleMic,
                       ),
@@ -1325,8 +1325,8 @@ class _PsychologistVideoCallScreenState
                             ? Icons.videocam_off_rounded
                             : Icons.videocam_rounded,
                         backgroundColor: callState.isCameraOff
-                            ? const Color(0xFFDC2626)
-                            : const Color(0xFF334155),
+                            ? AppColors.error
+                            : const Color(0xFF2D3263),
                         iconColor: Colors.white,
                         onTap: controller.toggleCamera,
                       ),
@@ -1342,7 +1342,7 @@ class _PsychologistVideoCallScreenState
                             : Icons.volume_down_rounded,
                         backgroundColor: callState.isSpeakerOn
                             ? AppColors.primary
-                            : const Color(0xFF334155),
+                            : const Color(0xFF2D3263),
                         iconColor: Colors.white,
                         onTap: controller.toggleSpeaker,
                       ),
@@ -1354,7 +1354,7 @@ class _PsychologistVideoCallScreenState
                       button: true,
                       child: _buildControlButton(
                         icon: Icons.edit_note_rounded,
-                        backgroundColor: const Color(0xFF334155),
+                        backgroundColor: const Color(0xFF2D3263),
                         iconColor: Colors.white,
                         onTap: _openNotesSheet,
                       ),
@@ -1404,7 +1404,7 @@ class _PsychologistVideoCallScreenState
 
   Widget _buildBackdropAvatar(String avatarUrl) {
     const fallback = ColoredBox(
-      color: Color(0xFF1E293B),
+      color: Color(0xFF1E224F),
       child: Icon(
         Icons.person_rounded,
         size: 100,

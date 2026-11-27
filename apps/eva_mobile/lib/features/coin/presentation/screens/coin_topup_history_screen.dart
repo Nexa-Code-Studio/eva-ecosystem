@@ -37,10 +37,16 @@ class CoinTopupHistoryScreen extends ConsumerWidget {
     }
   }
 
-  Color _statusColor(CoinTopupStatus status) {
-    if (status == CoinTopupStatus.paid) return const Color(0xFF10B981);
-    if (status.isActivePending) return const Color(0xFFF59E0B);
-    return AppColors.error;
+  Color _statusTextColor(CoinTopupStatus status) {
+    if (status == CoinTopupStatus.paid) return AppColors.successDark;
+    if (status.isActivePending) return AppColors.warningDark;
+    return AppColors.errorDark;
+  }
+
+  Color _statusBgColor(CoinTopupStatus status) {
+    if (status == CoinTopupStatus.paid) return AppColors.successContainer;
+    if (status.isActivePending) return AppColors.warningContainer;
+    return AppColors.errorContainer;
   }
 
   @override
@@ -63,7 +69,7 @@ class CoinTopupHistoryScreen extends ConsumerWidget {
                       'Riwayat Pembelian Koin',
                       style: GoogleFonts.inter(
                         fontSize: 18,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
                       ),
                     ),
@@ -73,7 +79,7 @@ class CoinTopupHistoryScreen extends ConsumerWidget {
             ),
             Expanded(
               child: historyAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
                 error: (err, _) => Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
@@ -103,6 +109,7 @@ class CoinTopupHistoryScreen extends ConsumerWidget {
                     );
                   }
                   return RefreshIndicator(
+                    color: AppColors.primary,
                     onRefresh: () => ref.refresh(topupHistoryProvider.future),
                     child: ListView.separated(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -110,9 +117,11 @@ class CoinTopupHistoryScreen extends ConsumerWidget {
                       separatorBuilder: (_, _) => const SizedBox(height: 10),
                       itemBuilder: (ctx, i) {
                         final order = orders[i];
-                        final badgeColor = _statusColor(order.status);
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(18),
+                        final badgeTextColor = _statusTextColor(order.status);
+                        final badgeBgColor = _statusBgColor(order.status);
+                        return GlassCard.surface(
+                          borderRadius: 18,
+                          padding: const EdgeInsets.all(14),
                           onTap: () async {
                             await ref.read(topupFlowProvider.notifier).openOrder(order);
                             if (!ctx.mounted) return;
@@ -121,64 +130,61 @@ class CoinTopupHistoryScreen extends ConsumerWidget {
                               MaterialPageRoute(builder: (_) => const QrisPaymentScreen()),
                             );
                           },
-                          child: GlassCard(
-                            padding: const EdgeInsets.all(14),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        order.package.name,
-                                        style: GoogleFonts.inter(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.textPrimary,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        '${order.orderId} • ${order.totalCoins} Koin',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 11.5,
-                                          color: AppColors.textSecondary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      order.formattedAmountIdr,
+                                      order.package.name,
                                       style: GoogleFonts.inter(
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w800,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
                                         color: AppColors.textPrimary,
                                       ),
                                     ),
-                                    const SizedBox(height: 4),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: badgeColor.withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(999),
-                                      ),
-                                      child: Text(
-                                        _statusLabel(order.status),
-                                        style: GoogleFonts.inter(
-                                          fontSize: 10.5,
-                                          fontWeight: FontWeight.w700,
-                                          color: badgeColor,
-                                        ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${order.orderId} • ${order.totalCoins} Koin',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 11.5,
+                                        color: AppColors.textSecondary,
                                       ),
                                     ),
                                   ],
                                 ),
-                              ],
-                            ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    order.formattedAmountIdr,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: badgeBgColor,
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Text(
+                                      _statusLabel(order.status),
+                                      style: GoogleFonts.inter(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: badgeTextColor,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         );
                       },
