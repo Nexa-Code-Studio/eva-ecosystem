@@ -128,55 +128,6 @@ class VoiceCallWsClient {
     _sendJson(payload);
   }
 
-  void sendPartial({
-    required String callId,
-    required int userTurnId,
-    required int sttSessionId,
-    required int sequence,
-    required String text,
-  }) {
-    _sendJson({
-      'type': 'stt.partial',
-      'call_id': callId,
-      'user_turn_id': userTurnId,
-      'stt_session_id': sttSessionId,
-      'sequence': sequence,
-      'text': text,
-    });
-  }
-
-  void sendFinalSegment({
-    required String callId,
-    required int userTurnId,
-    required int sttSessionId,
-    required int sequence,
-    required String text,
-  }) {
-    _sendJson({
-      'type': 'stt.final_segment',
-      'call_id': callId,
-      'user_turn_id': userTurnId,
-      'stt_session_id': sttSessionId,
-      'sequence': sequence,
-      'text': text,
-    });
-  }
-
-  void sendStatus({
-    required String callId,
-    required int userTurnId,
-    required int sttSessionId,
-    required String status,
-  }) {
-    _sendJson({
-      'type': 'stt.status',
-      'status': status,
-      'call_id': callId,
-      'user_turn_id': userTurnId,
-      'stt_session_id': sttSessionId,
-    });
-  }
-
   void sendInterrupt({
     required String callId,
     required int assistantTurnId,

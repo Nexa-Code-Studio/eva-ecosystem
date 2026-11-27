@@ -5,16 +5,70 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.util.Log
-import java.io.OutputStream
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
+import kotlin.math.sqrt
 
 /**
- * Single Audio Capture Engine.
- * Responsible for exclusively opening the hardware microphone at 16kHz 16-bit Mono PCM
- * and fanning out audio chunks to both the virtual SpeechRecognizer pipe and Flutter EventChannel.
- * Uses a non-blocking queue for the pipe to guarantee the mic recording thread NEVER blocks.
+ * Thread-safe bounded egress queue with drop-oldest backpressure policy so
+ * the AudioRecord reader thread never stalls on platform-channel delivery.
+ */
+internal class BoundedPcmQueue(private val capacity: Int) {
+    init {
+        require(capacity > 0) { "Queue capacity must be > 0" }
+    }
+
+    private val queue = LinkedBlockingQueue<ByteArray>(capacity)
+    private val droppedCount = AtomicLong(0)
+
+    fun offerDropOldest(frame: ByteArray) {
+        while (!queue.offer(frame)) {
+            if (queue.poll() != null) {
+                droppedCount.incrementAndGet()
+            }
+        }
+    }
+
+    fun poll(timeoutMs: Long): ByteArray? = queue.poll(timeoutMs, TimeUnit.MILLISECONDS)
+
+    fun clear() {
+        queue.clear()
+    }
+
+    fun size(): Int = queue.size
+
+    fun droppedFrames(): Long = droppedCount.get()
+}
+
+/**
+ * Pure PCM16 little-endian signal level helper normalized to [0.0, 1.0].
+ */
+internal object PcmSignalMetrics {
+    fun computeNormalizedRms(buffer: ByteArray, bytesRead: Int): Double {
+        val sampleCount = bytesRead / 2
+        if (sampleCount <= 0) return 0.0
+
+        var sumSquares = 0.0
+        val limit = sampleCount * 2
+        var i = 0
+        while (i < limit) {
+            val lo = buffer[i].toInt() and 0xFF
+            val hi = buffer[i + 1].toInt() shl 8
+            val sample = (lo or hi).toShort().toDouble()
+            sumSquares += sample * sample
+            i += 2
+        }
+        val rms = sqrt(sumSquares / sampleCount)
+        return (rms / 32767.0).coerceIn(0.0, 1.0)
+    }
+}
+
+/**
+ * Single-owner raw PCM 16kHz 16-bit mono audio capture engine.
+ * Captures 4800-byte (150ms) frames uniformly on physical Android devices and emulators,
+ * queues chunks through a single bounded egress queue, and computes normalized RMS levels.
  */
 class AudioCaptureEngine {
 
@@ -23,22 +77,10 @@ class AudioCaptureEngine {
         const val SAMPLE_RATE = 16000
         const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
         const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
-        // 150ms buffer at 16kHz 16-bit mono: 16000 * 2 bytes/sample * 0.150s = 4800 bytes
+        // 150ms at 16kHz 16-bit mono: 16000 * 2 bytes/sample * 0.150s = 4800 bytes
         const val CHUNK_SIZE_BYTES = 4800
-        private const val PIPE_QUEUE_CAPACITY = 20
+        const val EGRESS_QUEUE_CAPACITY = 24
     }
-
-    private var audioRecord: AudioRecord? = null
-    private var captureThread: Thread? = null
-    private var pipeWriterThread: Thread? = null
-    private val isCapturing = AtomicBoolean(false)
-    private val pipeQueue = LinkedBlockingQueue<ByteArray>(PIPE_QUEUE_CAPACITY)
-
-    @Volatile
-    private var activePipeOutputStream: OutputStream? = null
-
-    @Volatile
-    private var activeListener: AudioCaptureListener? = null
 
     interface AudioCaptureListener {
         fun onAudioChunk(bytes: ByteArray)
@@ -46,39 +88,32 @@ class AudioCaptureEngine {
         fun onError(message: String)
     }
 
-    @Synchronized
-    fun updatePipeOutputStream(newPipe: OutputStream?) {
-        val oldPipe = activePipeOutputStream
-        pipeQueue.clear()
-        activePipeOutputStream = newPipe
-        try {
-            oldPipe?.close()
-        } catch (e: Exception) {
-            Log.d(TAG, "Closing previous pipe stream: ${e.message}")
-        }
-        Log.i(TAG, "Updated pipe output stream in AudioCaptureEngine (hasNewPipe=${newPipe != null})")
-    }
+    private var audioRecord: AudioRecord? = null
+    private var captureThread: Thread? = null
+    private var egressThread: Thread? = null
+    private val isCapturing = AtomicBoolean(false)
+    private val isMuted = AtomicBoolean(false)
+    private val egressQueue = BoundedPcmQueue(EGRESS_QUEUE_CAPACITY)
 
+    @Volatile
+    private var activeListener: AudioCaptureListener? = null
+
+    @Synchronized
     @SuppressLint("MissingPermission")
-    fun startCapture(
-        pipeOutputStream: OutputStream?,
-        listener: AudioCaptureListener?
-    ): Boolean {
-        this.activeListener = listener
-        updatePipeOutputStream(pipeOutputStream)
+    fun startCapture(listener: AudioCaptureListener?): Boolean {
+        activeListener = listener
 
         if (isCapturing.get()) {
-            Log.i(TAG, "Audio capture is already running; pipe stream refreshed.")
             return true
         }
 
         val minBufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT)
         if (minBufferSize == AudioRecord.ERROR || minBufferSize == AudioRecord.ERROR_BAD_VALUE) {
-            listener?.onError("Invalid AudioRecord parameters: minBufferSize error")
+            listener?.onError("Invalid AudioRecord parameters: minBufferSize=$minBufferSize")
             return false
         }
 
-        val bufferSize = Math.max(minBufferSize * 2, CHUNK_SIZE_BYTES * 2)
+        val bufferSize = maxOf(minBufferSize * 2, CHUNK_SIZE_BYTES * 2)
 
         try {
             val record = AudioRecord(
@@ -91,86 +126,61 @@ class AudioCaptureEngine {
 
             if (record.state != AudioRecord.STATE_INITIALIZED) {
                 record.release()
-                val err = "AudioRecord failed to initialize (state != STATE_INITIALIZED)"
+                val err = "AudioRecord failed to initialize (state=${record.state})"
                 Log.e(TAG, err)
                 listener?.onError(err)
                 return false
             }
 
+            egressQueue.clear()
             audioRecord = record
             record.startRecording()
             isCapturing.set(true)
 
-            // Start dedicated non-blocking PipeWriterThread
-            pipeWriterThread = Thread({
-                Log.i(TAG, "Virtual pipe writer thread started")
+            egressThread = Thread({
                 while (isCapturing.get()) {
                     try {
-                        val chunk = pipeQueue.poll(200, TimeUnit.MILLISECONDS) ?: continue
-                        val pipe = activePipeOutputStream ?: continue
-                        try {
-                            pipe.write(chunk)
-                            pipe.flush()
-                        } catch (e: Exception) {
-                            Log.d(TAG, "Pipe write exception (${e.message}); draining pipe queue.")
-                            pipeQueue.clear()
+                        val frame = egressQueue.poll(150) ?: continue
+                        if (!isMuted.get() && isCapturing.get()) {
+                            activeListener?.onAudioChunk(frame)
                         }
-                    } catch (ie: InterruptedException) {
+                    } catch (_: InterruptedException) {
                         break
                     }
                 }
-                Log.i(TAG, "Virtual pipe writer thread finished")
-            }, "SingleAudioPipeWriterThread").apply {
+            }, "EvaPcmEgressThread").apply {
                 isDaemon = true
                 start()
             }
 
-            // Main Audio Capture Loop: Reads MIC, feeds Flutter WebSocket and Sound Level
             captureThread = Thread({
                 val buffer = ByteArray(CHUNK_SIZE_BYTES)
-                Log.i(TAG, "🎙️ Audio capture thread started (16kHz 16-bit mono)")
+                Log.i(TAG, "Audio capture started (16kHz 16-bit mono, chunk=${CHUNK_SIZE_BYTES}B)")
 
                 while (isCapturing.get()) {
                     val bytesRead = record.read(buffer, 0, buffer.size)
-
                     if (bytesRead > 0 && isCapturing.get()) {
-                        val chunkCopy = buffer.copyOf(bytesRead)
-
-                        // 1. Calculate sound level RMS (0.0 to 1.0)
-                        var sum = 0.0
-                        val samples = bytesRead / 2
-                        for (i in 0 until bytesRead step 2) {
-                            val sample = (buffer[i].toInt() and 0xFF) or (buffer[i + 1].toInt() shl 8)
-                            val shortVal = sample.toShort()
-                            sum += shortVal * shortVal
+                        if (isMuted.get()) {
+                            activeListener?.onSoundLevel(0.0)
+                            continue
                         }
-                        val rms = if (samples > 0) Math.sqrt(sum / samples) else 0.0
-                        val normalizedLevel = (rms / 32767.0).coerceIn(0.0, 1.0)
+                        val normalizedLevel = PcmSignalMetrics.computeNormalizedRms(buffer, bytesRead)
                         activeListener?.onSoundLevel(normalizedLevel)
-
-                        // 2. Feed Flutter WebSocket stream listener (NEVER BLOCKED)
-                        activeListener?.onAudioChunk(chunkCopy)
-
-                        // 3. Offer to virtual pipe queue for SpeechRecognizer (non-blocking)
-                        if (activePipeOutputStream != null) {
-                            while (!pipeQueue.offer(chunkCopy)) {
-                                pipeQueue.poll() // Drop oldest chunk if reader is lagging
-                            }
-                        }
+                        egressQueue.offerDropOldest(buffer.copyOf(bytesRead))
                     } else if (bytesRead < 0) {
-                        Log.w(TAG, "AudioRecord.read() returned error code: $bytesRead")
+                        Log.w(TAG, "AudioRecord.read() error code: $bytesRead")
                     }
                 }
 
-                // Cleanup pipe stream on thread termination
-                updatePipeOutputStream(null)
-                Log.i(TAG, "🎙️ Audio capture thread finished")
-            }, "SingleAudioCaptureThread")
+                Log.i(TAG, "Audio capture loop exited (droppedFrames=${egressQueue.droppedFrames()})")
+            }, "EvaPcmCaptureThread").apply {
+                isDaemon = true
+                start()
+            }
 
-            captureThread?.start()
             return true
         } catch (e: Exception) {
-            val err = "Exception initializing audio capture: ${e.message}"
+            val err = "Audio capture initialization error: ${e.message}"
             Log.e(TAG, err, e)
             listener?.onError(err)
             stopCapture()
@@ -178,19 +188,21 @@ class AudioCaptureEngine {
         }
     }
 
+    @Synchronized
     fun stopCapture() {
         if (!isCapturing.getAndSet(false)) {
+            egressQueue.clear()
             return
         }
 
-        updatePipeOutputStream(null)
         activeListener = null
+        egressQueue.clear()
 
         try {
-            pipeWriterThread?.interrupt()
-            pipeWriterThread = null
+            egressThread?.interrupt()
+            egressThread = null
         } catch (e: Exception) {
-            Log.w(TAG, "Error stopping pipe writer thread: ${e.message}")
+            Log.w(TAG, "Error stopping egress thread: ${e.message}")
         }
 
         try {
@@ -214,6 +226,15 @@ class AudioCaptureEngine {
 
         Log.i(TAG, "Audio capture stopped and released")
     }
+
+    fun setMuted(muted: Boolean) {
+        isMuted.set(muted)
+        if (muted) {
+            egressQueue.clear()
+        }
+    }
+
+    fun isMuted(): Boolean = isMuted.get()
 
     fun isCapturing(): Boolean = isCapturing.get()
 }

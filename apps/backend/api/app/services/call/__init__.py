@@ -12,6 +12,11 @@ from app.services.call.emotion_coordinator import (
 from app.services.call.emotion_dispatcher import BoundedEmotionDispatcher
 from app.services.call.persistence import CallPersistenceService
 from app.services.call.session_manager import CallSession, CallSessionManager, call_session_manager
+from app.services.call.stt_coordinator import (
+    CallSTTCoordinator,
+    call_stt_coordinator,
+    shutdown_stt_coordinator,
+)
 from app.services.call.stream_buffer import (
     AudioStreamBufferService,
     SessionAudioBuffer,
@@ -42,6 +47,9 @@ __all__ = [
     "CallSession",
     "CallSessionManager",
     "call_session_manager",
+    "CallSTTCoordinator",
+    "call_stt_coordinator",
+    "shutdown_stt_coordinator",
     "CallPersistenceService",
     "AudioStreamBufferService",
     "SessionAudioBuffer",

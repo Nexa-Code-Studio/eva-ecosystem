@@ -1,116 +1,92 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'speech_recognition_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-/// Single Audio Capture & Speech Service.
-/// Combines the battle-tested, reliable SpeechRecognitionService (speech_to_text with dictation mode
-/// and auto-resolved Indonesian locale) for real-time STT, while concurrently running the
-/// native AudioCaptureEngine worker to stream raw 16kHz PCM audio chunks to the VPS WebSocket
-/// for Emotion2vec speech emotion analysis.
+/// Pure single-owner raw PCM 16kHz 16-bit mono audio capture service.
+/// Captures 4800-byte (150ms) PCM frames from Android native AudioCaptureEngine
+/// and forwards them along with normalized RMS sound levels to AiCallController.
 class SingleAudioCaptureService {
-  static const MethodChannel _methodChannel =
+  static const MethodChannel _defaultMethodChannel =
       MethodChannel('com.eva.single_audio/methods');
-  static const EventChannel _audioStreamChannel =
+  static const EventChannel _defaultAudioStreamChannel =
       EventChannel('com.eva.single_audio/audio_stream');
+  static const EventChannel _defaultAudioEventsChannel =
+      EventChannel('com.eva.single_audio/audio_events');
 
-  final SpeechRecognitionService? _fallbackSpeechService;
+  final MethodChannel _methodChannel;
+  final EventChannel _audioStreamChannel;
+  final EventChannel _audioEventsChannel;
+  final bool Function() _isAndroidPlatform;
+  final Future<bool> Function()? _permissionRequester;
 
-  SingleAudioCaptureService({SpeechRecognitionService? fallbackSpeechService})
-      : _fallbackSpeechService = fallbackSpeechService;
+  SingleAudioCaptureService({
+    MethodChannel? methodChannel,
+    EventChannel? audioStreamChannel,
+    EventChannel? audioEventsChannel,
+    bool Function()? isAndroidPlatform,
+    Future<bool> Function()? permissionRequester,
+  })  : _methodChannel = methodChannel ?? _defaultMethodChannel,
+        _audioStreamChannel = audioStreamChannel ?? _defaultAudioStreamChannel,
+        _audioEventsChannel = audioEventsChannel ?? _defaultAudioEventsChannel,
+        _isAndroidPlatform =
+            isAndroidPlatform ?? (() => !kIsWeb && Platform.isAndroid),
+        _permissionRequester = permissionRequester;
 
   bool _isInitialized = false;
-  bool _isListening = false;
+  bool _isCapturing = false;
   bool _isMuted = false;
-  int _activeSttSessionId = 0;
+  bool _isDisposed = false;
 
   StreamSubscription? _audioSubscription;
-  final List<StreamSubscription> _fallbackSubscriptions = [];
+  StreamSubscription? _audioEventsSubscription;
 
   final StreamController<Uint8List> _audioController =
       StreamController<Uint8List>.broadcast();
-  final StreamController<SttPartialResult> _partialController =
-      StreamController<SttPartialResult>.broadcast();
-  final StreamController<SttFinalResult> _finalSegmentController =
-      StreamController<SttFinalResult>.broadcast();
-  final StreamController<SttStatusEvent> _statusController =
-      StreamController<SttStatusEvent>.broadcast();
   final StreamController<double> _soundLevelController =
       StreamController<double>.broadcast();
   final StreamController<String> _errorController =
       StreamController<String>.broadcast();
 
   Stream<Uint8List> get audioStream => _audioController.stream;
-  Stream<SttPartialResult> get partialStream => _partialController.stream;
-  Stream<SttFinalResult> get finalSegmentStream => _finalSegmentController.stream;
-  Stream<SttStatusEvent> get statusStream => _statusController.stream;
   Stream<double> get soundLevelStream => _soundLevelController.stream;
   Stream<String> get errorStream => _errorController.stream;
 
-  bool get isListening => _isListening;
   bool get isInitialized => _isInitialized;
-  int get activeSttSessionId => _activeSttSessionId;
+  bool get isCapturing => _isCapturing;
+  bool get isListening => _isCapturing;
   bool get isMuted => _isMuted;
 
-  /// Raw 16kHz PCM16 stream is currently implemented via Android native AudioRecord only.
-  /// On iOS and non-Android platforms, voice calls gracefully operate in text-only fallback mode.
-  bool get isRawAudioStreamSupported => Platform.isAndroid;
+  /// Raw 16kHz PCM16 capture is implemented on Android native AudioRecord.
+  bool get isRawAudioStreamSupported => _isAndroidPlatform();
 
-  /// Backward-compatible capability flag (virtual STT pipe injection is disabled in parallel mode).
-  bool get isInjectionSupported => false;
-
-  void _setupFallbackStreams() {
-    for (final sub in _fallbackSubscriptions) {
-      sub.cancel();
+  Future<bool> _ensureMicrophonePermission() async {
+    if (_permissionRequester != null) {
+      return _permissionRequester();
     }
-    _fallbackSubscriptions.clear();
-
-    if (_fallbackSpeechService != null) {
-      _fallbackSubscriptions.add(
-        _fallbackSpeechService.partialStream.listen((data) {
-          if (!_partialController.isClosed) _partialController.add(data);
-        }),
-      );
-      _fallbackSubscriptions.add(
-        _fallbackSpeechService.finalSegmentStream.listen((data) {
-          if (!_finalSegmentController.isClosed) _finalSegmentController.add(data);
-        }),
-      );
-      _fallbackSubscriptions.add(
-        _fallbackSpeechService.statusStream.listen((data) {
-          if (!_statusController.isClosed) _statusController.add(data);
-        }),
-      );
-      _fallbackSubscriptions.add(
-        _fallbackSpeechService.soundLevelStream.listen((data) {
-          if (!_soundLevelController.isClosed) _soundLevelController.add(data);
-        }),
-      );
-      _fallbackSubscriptions.add(
-        _fallbackSpeechService.errorStream.listen((data) {
-          if (!_errorController.isClosed) _errorController.add(data);
-        }),
-      );
+    if (!_isAndroidPlatform()) return false;
+    try {
+      final status = await Permission.microphone.request();
+      return status.isGranted;
+    } catch (e) {
+      debugPrint('⚠️ [PCM CAPTURE] Microphone permission check error: $e');
+      return false;
     }
   }
 
   Future<bool> initialize() async {
+    if (_isDisposed) return false;
     if (_isInitialized) return true;
 
-    // 1. Initialize proven SpeechRecognitionService (speech_to_text with dictation mode)
-    if (_fallbackSpeechService != null) {
-      final sttOk = await _fallbackSpeechService.initialize();
-      _setupFallbackStreams();
-      debugPrint('🎙️ [PARALLEL AUDIO] STT Service initialized: $sttOk (Locale: ${_fallbackSpeechService.resolvedLocaleId})');
-    }
-
-    // 2. Setup native raw audio stream for VPS streaming on Android
-    if (Platform.isAndroid) {
+    if (_isAndroidPlatform()) {
       try {
-        _audioSubscription?.cancel();
-        _audioSubscription = _audioStreamChannel.receiveBroadcastStream().listen(
+        await _audioSubscription?.cancel();
+        _audioSubscription =
+            _audioStreamChannel.receiveBroadcastStream().listen(
           (dynamic data) {
+            if (_isDisposed || _isMuted || !_isCapturing) return;
             if (data is Uint8List) {
               if (!_audioController.isClosed) _audioController.add(data);
             } else if (data is List<int>) {
@@ -120,12 +96,41 @@ class SingleAudioCaptureService {
             }
           },
           onError: (dynamic error) {
-            debugPrint('⚠️ [PARALLEL AUDIO] Audio stream error: $error');
+            if (!_errorController.isClosed) {
+              _errorController.add('audio_stream_error: $error');
+            }
           },
         );
-        debugPrint('🎙️ [PARALLEL AUDIO] Native PCM audio stream listener active');
+
+        await _audioEventsSubscription?.cancel();
+        _audioEventsSubscription =
+            _audioEventsChannel.receiveBroadcastStream().listen(
+          (dynamic data) {
+            if (_isDisposed || data is! Map) return;
+            final type = data['type'] as String?;
+            if (type == 'sound_level') {
+              final level = (data['level'] as num?)?.toDouble() ?? 0.0;
+              if (!_soundLevelController.isClosed) {
+                _soundLevelController.add(_isMuted ? 0.0 : level.clamp(0.0, 1.0));
+              }
+            } else if (type == 'error') {
+              final message = data['error']?.toString() ?? 'native_audio_error';
+              if (!_errorController.isClosed) {
+                _errorController.add(message);
+              }
+            }
+          },
+          onError: (dynamic error) {
+            if (!_errorController.isClosed) {
+              _errorController.add('audio_events_error: $error');
+            }
+          },
+        );
       } catch (e) {
-        debugPrint('⚠️ [PARALLEL AUDIO] Failed to subscribe to native audio stream: $e');
+        debugPrint('⚠️ [PCM CAPTURE] Channel subscription error: $e');
+        if (!_errorController.isClosed) {
+          _errorController.add('channel_subscribe_error: $e');
+        }
       }
     }
 
@@ -133,75 +138,80 @@ class SingleAudioCaptureService {
     return true;
   }
 
-  void setMuted(bool muted) {
-    _isMuted = muted;
-    _fallbackSpeechService?.setMuted(muted);
-    if (_isMuted && _isListening) {
-      stopListening();
-    }
-  }
-
-  Future<void> startListening({
-    required int sttSessionId,
-    String locale = 'id-ID',
-  }) async {
-    if (_isMuted) return;
+  Future<bool> startCapture() async {
+    if (_isDisposed || _isMuted) return false;
     if (!_isInitialized) {
       final ok = await initialize();
-      if (!ok) {
-        _errorController.add('Failed to initialize audio capture and STT');
-        return;
+      if (!ok) return false;
+    }
+    if (_isCapturing) return true;
+
+    if (!_isAndroidPlatform()) {
+      return false;
+    }
+
+    final granted = await _ensureMicrophonePermission();
+    if (!granted) {
+      if (!_errorController.isClosed) {
+        _errorController.add('microphone_permission_denied');
       }
+      return false;
     }
 
-    _activeSttSessionId = sttSessionId;
-    _isListening = true;
-
-    // 1. Start STT with proven speech_to_text configuration
-    if (_fallbackSpeechService != null) {
-      await _fallbackSpeechService.startListening(sttSessionId: sttSessionId);
+    try {
+      final started =
+          await _methodChannel.invokeMethod<bool>('startCapture') ?? false;
+      _isCapturing = started;
+      if (!started && !_errorController.isClosed) {
+        _errorController.add('native_capture_start_failed');
+      }
+      return started;
+    } catch (e) {
+      debugPrint('⚠️ [PCM CAPTURE] startCapture error: $e');
+      if (!_errorController.isClosed) {
+        _errorController.add('start_capture_error: $e');
+      }
+      return false;
     }
+  }
 
-    // 2. Start parallel native audio worker to stream 16kHz PCM chunks to WebSocket for Emotion2vec
-    if (Platform.isAndroid) {
+  Future<void> stopCapture() async {
+    if (!_isCapturing) return;
+    _isCapturing = false;
+
+    if (_isAndroidPlatform()) {
       try {
-        await _methodChannel.invokeMethod('startAudioCapture');
+        await _methodChannel.invokeMethod('stopCapture');
       } catch (e) {
-        debugPrint('⚠️ [PARALLEL AUDIO] startAudioCapture method channel error: $e');
+        debugPrint('⚠️ [PCM CAPTURE] stopCapture error: $e');
       }
     }
   }
 
-  Future<void> stopListening() async {
-    _isListening = false;
+  Future<void> setMuted(bool muted) async {
+    if (_isMuted == muted) return;
+    _isMuted = muted;
 
-    // 1. Stop STT
-    if (_fallbackSpeechService != null) {
-      await _fallbackSpeechService.stopListening();
+    if (_isAndroidPlatform()) {
+      try {
+        await _methodChannel.invokeMethod('setMuted', {'muted': muted});
+      } catch (e) {
+        debugPrint('⚠️ [PCM CAPTURE] setMuted error: $e');
+      }
     }
 
-    // 2. Stop parallel native audio worker
-    if (Platform.isAndroid) {
-      try {
-        await _methodChannel.invokeMethod('stopAudioCapture');
-      } catch (e) {
-        debugPrint('⚠️ [PARALLEL AUDIO] stopAudioCapture method channel error: $e');
-      }
+    if (muted && _isCapturing) {
+      await stopCapture();
     }
   }
 
   void dispose() {
-    stopListening();
+    if (_isDisposed) return;
+    _isDisposed = true;
+    stopCapture();
     _audioSubscription?.cancel();
-    for (final sub in _fallbackSubscriptions) {
-      sub.cancel();
-    }
-    _fallbackSubscriptions.clear();
-    _fallbackSpeechService?.dispose();
+    _audioEventsSubscription?.cancel();
     _audioController.close();
-    _partialController.close();
-    _finalSegmentController.close();
-    _statusController.close();
     _soundLevelController.close();
     _errorController.close();
   }

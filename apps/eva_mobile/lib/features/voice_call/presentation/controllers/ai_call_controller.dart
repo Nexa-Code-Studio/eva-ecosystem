@@ -8,7 +8,6 @@ import '../../config/call_config.dart';
 import '../../data/datasources/voice_call_ws_client.dart';
 import '../../data/services/ai_audio_playback_service.dart';
 import '../../data/services/single_audio_capture_service.dart';
-import '../../data/services/speech_recognition_service.dart';
 import '../../data/services/stateless_synthesis_service.dart';
 import '../../domain/entities/call_state.dart';
 import '../../../memory/domain/repositories/memory_repository.dart';
@@ -16,7 +15,7 @@ import '../../../diary/data/datasources/local_diary_datasource.dart';
 import 'ai_call_state.dart';
 
 class AiCallController extends StateNotifier<AiCallViewState> {
-  final SingleAudioCaptureService _singleAudioService;
+  final SingleAudioCaptureService _audioCaptureService;
   final AiAudioPlaybackService _audioPlaybackService;
   final VoiceCallWsClient _wsClient;
   final MemoryRepository? _memoryRepository;
@@ -25,16 +24,14 @@ class AiCallController extends StateNotifier<AiCallViewState> {
   final VoidCallback? _onArtifactsCommitted;
 
   AiCallController({
-    required SpeechRecognitionService speechService,
+    required SingleAudioCaptureService audioCaptureService,
     required AiAudioPlaybackService audioPlaybackService,
     required VoiceCallWsClient wsClient,
-    SingleAudioCaptureService? singleAudioService,
     MemoryRepository? memoryRepository,
     LocalDiaryDataSource? diaryDataSource,
     StatelessSynthesisService? synthesisService,
     VoidCallback? onArtifactsCommitted,
-  })  : _singleAudioService = singleAudioService ??
-            SingleAudioCaptureService(fallbackSpeechService: speechService),
+  })  : _audioCaptureService = audioCaptureService,
         _audioPlaybackService = audioPlaybackService,
         _wsClient = wsClient,
         _memoryRepository = memoryRepository,
@@ -44,9 +41,6 @@ class AiCallController extends StateNotifier<AiCallViewState> {
         super(const AiCallViewState());
 
   StreamSubscription? _audioChunkSubscription;
-  StreamSubscription? _partialSubscription;
-  StreamSubscription? _finalSegmentSubscription;
-  StreamSubscription? _statusSubscription;
   StreamSubscription? _soundLevelSubscription;
   StreamSubscription? _aiAudioSoundSubscription;
   StreamSubscription? _playbackSubscription;
@@ -54,11 +48,9 @@ class AiCallController extends StateNotifier<AiCallViewState> {
   StreamSubscription? _wsAudioSubscription;
   StreamSubscription? _errorSubscription;
   Timer? _durationTimer;
-  Timer? _restartTimer;
   Timer? _thinkingWatchdogTimer;
   Timer? _finalizeWatchdogTimer;
   bool _isDisposed = false;
-  int _restartAttempts = 0;
 
   Future<void> startCall({String? customCallId, String? voiceMode}) async {
     final callId = customCallId ?? 'call_${DateTime.now().millisecondsSinceEpoch}';
@@ -91,8 +83,8 @@ class AiCallController extends StateNotifier<AiCallViewState> {
 
     _finalizeWatchdogTimer?.cancel();
 
-    // 1. Initialize Single Audio Capture & Speech Recognizer
-    await _singleAudioService.initialize();
+    // 1. Initialize pure PCM 16kHz audio capture service
+    await _audioCaptureService.initialize();
 
     // 2. Connect WebSocket
     await _wsClient.connect(callId);
@@ -113,81 +105,26 @@ class AiCallController extends StateNotifier<AiCallViewState> {
   void _initSubscriptions() {
     _cancelSubscriptions();
 
-    // 0. Binary PCM Audio Stream -> VPS WebSocket
-    _audioChunkSubscription = _singleAudioService.audioStream.listen((chunk) {
+    // Binary PCM 16kHz 16-bit mono stream -> Backend WebSocket (listening & unmuted only)
+    _audioChunkSubscription = _audioCaptureService.audioStream.listen((chunk) {
       if (state.callState == CallState.listening && !state.isMuted) {
         _wsClient.sendAudioChunk(chunk);
       }
     });
 
-    // STT Partial transcript
-    _partialSubscription = _singleAudioService.partialStream.listen((partial) {
-      if (state.callState != CallState.listening) return;
-      if (partial.sttSessionId != state.activeSttSessionId) return;
-
-      state = state.copyWith(
-        latestPartial: partial.text,
-        isUserSpeaking: true,
-      );
-
-      _wsClient.sendPartial(
-        callId: state.callId,
-        userTurnId: state.userTurnId,
-        sttSessionId: partial.sttSessionId,
-        sequence: partial.sequence,
-        text: partial.text,
-      );
-    });
-
-    // STT Final Segment
-    _finalSegmentSubscription = _singleAudioService.finalSegmentStream.listen((seg) {
-      if (state.callState != CallState.listening) return;
-      if (seg.sttSessionId != state.activeSttSessionId) return;
-
-      state = state.copyWith(
-        currentTranscript: seg.text,
-        latestPartial: '',
-        isUserSpeaking: true,
-      );
-
-      _wsClient.sendFinalSegment(
-        callId: state.callId,
-        userTurnId: state.userTurnId,
-        sttSessionId: seg.sttSessionId,
-        sequence: seg.sequence,
-        text: seg.text,
-      );
-    });
-
-    // STT Status
-    _statusSubscription = _singleAudioService.statusStream.listen((statusEvent) {
-      if (statusEvent.sttSessionId != state.activeSttSessionId) return;
-
-      _wsClient.sendStatus(
-        callId: state.callId,
-        userTurnId: state.userTurnId,
-        sttSessionId: statusEvent.sttSessionId,
-        status: statusEvent.status,
-      );
-    });
-
-    // Sound Level
-    _soundLevelSubscription = _singleAudioService.soundLevelStream.listen((level) {
-      if (!_isDisposed && mounted) {
+    // Mic RMS Sound Level for live voice visualizer
+    _soundLevelSubscription = _audioCaptureService.soundLevelStream.listen((level) {
+      if (!_isDisposed && mounted && state.callState == CallState.listening && !state.isMuted) {
         state = state.copyWith(soundLevel: level);
       }
     });
 
-    // Error stream
-    _errorSubscription = _singleAudioService.errorStream.listen((err) {
-      debugPrint('⚠️ [STT SERVICE ERROR]: $err');
-      // If listening unexpectedly stopped and recoverable, notify status
-      if (state.callState == CallState.listening) {
-        _wsClient.sendStatus(
-          callId: state.callId,
-          userTurnId: state.userTurnId,
-          sttSessionId: state.activeSttSessionId,
-          status: 'error_$err',
+    // Native capture error stream
+    _errorSubscription = _audioCaptureService.errorStream.listen((err) {
+      debugPrint('⚠️ [AUDIO CAPTURE ERROR]: $err');
+      if (!_isDisposed && mounted && err == 'microphone_permission_denied') {
+        state = state.copyWith(
+          errorMessage: 'Izin mikrofon diperlukan untuk panggilan suara.',
         );
       }
     });
@@ -280,14 +217,51 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       if (confirmedMode != null && confirmedMode.isNotEmpty) {
         state = state.copyWith(voiceMode: confirmedMode);
       }
+    } else if (type == 'stt.partial') {
+      if (state.callState == CallState.listening && !state.isMuted) {
+        final text = (event['text'] as String? ?? '').trim();
+        final eventTurnId = (event['user_turn_id'] as num?)?.toInt();
+        if (eventTurnId == null || eventTurnId == state.userTurnId) {
+          state = state.copyWith(
+            latestPartial: text,
+            isUserSpeaking: text.isNotEmpty || state.currentTranscript.isNotEmpty,
+          );
+        }
+      }
+    } else if (type == 'stt.final_segment') {
+      if (state.callState == CallState.listening) {
+        final text = (event['text'] as String? ?? '').trim();
+        final eventTurnId = (event['user_turn_id'] as num?)?.toInt();
+        if (text.isNotEmpty && (eventTurnId == null || eventTurnId == state.userTurnId)) {
+          final merged = state.currentTranscript.isEmpty
+              ? text
+              : (state.currentTranscript.endsWith(text)
+                  ? state.currentTranscript
+                  : '${state.currentTranscript} $text');
+          state = state.copyWith(
+            currentTranscript: merged,
+            latestPartial: '',
+            isUserSpeaking: true,
+          );
+        }
+      }
+    } else if (type == 'stt.status') {
+      final status = (event['status'] as String? ?? '').trim();
+      final sttSessionId = (event['stt_session_id'] as num?)?.toInt();
+      if (sttSessionId != null && sttSessionId > 0) {
+        state = state.copyWith(activeSttSessionId: sttSessionId);
+      }
+      if (status == 'incognito_blocked') {
+        state = state.copyWith(
+          errorMessage: 'Mode incognito menonaktifkan transkripsi suara cloud.',
+        );
+      } else if (status.startsWith('error_')) {
+        debugPrint('⚠️ [BACKEND STT STATUS]: $status');
+      }
     } else if (type == 'turn.keep_open') {
-      final restart = event['restart_stt'] as bool? ?? false;
-      final waitMs = (event['wait_ms'] as num?)?.toInt() ?? CallConfig.sttRestartDelayMs;
-      // If we were waiting in thinking (e.g. from empty force commit), recover to listening immediately
+      // Recover to listening if waiting in thinking (e.g. from empty force commit)
       if (state.callState == CallState.thinking) {
         enterListening();
-      } else {
-        handleKeepOpen(restart, waitMs);
       }
     } else if (type == 'turn.committed') {
       final finalTranscript = event['final_transcript'] as String? ?? '';
@@ -414,16 +388,14 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     }
   }
 
-  /// Invariant: LISTENING -> STT ON, AI audio OFF
+  /// Invariant: LISTENING -> PCM capture ON, AI audio OFF
   Future<void> enterListening() async {
-    _restartTimer?.cancel();
     _thinkingWatchdogTimer?.cancel();
 
     // Guard: Audio must be completely stopped before mic opens
     await _audioPlaybackService.stop();
 
     final nextSessionId = state.activeSttSessionId + 1;
-    _restartAttempts = 0;
 
     final updatedAcc = state.aiTranscript.isNotEmpty
         ? (state.accumulatedTranscript.isEmpty
@@ -442,20 +414,19 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     );
 
     if (state.conversationMode == ConversationMode.hybridAuto && !state.isMuted) {
-      await _singleAudioService.startListening(sttSessionId: nextSessionId);
+      await _audioCaptureService.startCapture();
     }
   }
 
-  /// Invariant: THINKING -> STT OFF, AI audio OFF
+  /// Invariant: THINKING -> PCM capture OFF, AI audio OFF
   Future<void> enterThinking() async {
-    _restartTimer?.cancel();
     _thinkingWatchdogTimer?.cancel();
     state = state.copyWith(
       callState: CallState.thinking,
       isUserSpeaking: false,
       soundLevel: 0.05,
     );
-    await _singleAudioService.stopListening();
+    await _audioCaptureService.stopCapture();
 
     // Watchdog Timer: Guard against stuck thinking if backend stalls or drops connection
     _thinkingWatchdogTimer = Timer(const Duration(seconds: 15), () async {
@@ -469,9 +440,8 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     });
   }
 
-  /// Invariant: AI_SPEAKING -> STT OFF, AI audio ON
+  /// Invariant: AI_SPEAKING -> PCM capture OFF, AI audio ON
   Future<void> enterAiSpeaking(int assistantTurnId) async {
-    _restartTimer?.cancel();
     _thinkingWatchdogTimer?.cancel();
     state = state.copyWith(
       callState: CallState.aiSpeaking,
@@ -480,7 +450,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       soundLevel: 0.05,
     );
     _audioPlaybackService.prepareNewAssistantTurn(assistantTurnId);
-    await _singleAudioService.stopListening();
+    await _audioCaptureService.stopCapture();
   }
 
   /// Normal Automatic Flow: AI playback finished -> guard delay -> auto LISTENING
@@ -503,28 +473,6 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       }
       await enterListening();
     }
-  }
-
-  /// Auto-restart STT on turn.keep_open if Android recognizer paused
-  void handleKeepOpen(bool restartStt, int waitMs) {
-    if (state.callState != CallState.listening) return;
-    if (!restartStt) return;
-
-    _restartAttempts++;
-    if (_restartAttempts > 10) {
-      debugPrint('⚠️ [AUTO RESTART]: Max restart limit reached. Awaiting timeout or manual commit.');
-      return;
-    }
-
-    _restartTimer?.cancel();
-    _restartTimer = Timer(const Duration(milliseconds: CallConfig.sttRestartDelayMs), () async {
-      if (!_isDisposed && state.callState == CallState.listening && !state.isMuted) {
-        final nextSessionId = state.activeSttSessionId + 1;
-        debugPrint('🔄 [AUTO RESTART STT]: Session $nextSessionId in user_turn ${state.userTurnId}');
-        state = state.copyWith(activeSttSessionId: nextSessionId);
-        await _singleAudioService.startListening(sttSessionId: nextSessionId);
-      }
-    });
   }
 
   /// Manual Barge-In: Interrupt ongoing AI response or pending generation
@@ -575,8 +523,8 @@ class AiCallController extends StateNotifier<AiCallViewState> {
   /// Toggle microphone mute
   void toggleMute() {
     final newMute = !state.isMuted;
-    _singleAudioService.setMuted(newMute);
-    state = state.copyWith(isMuted: newMute);
+    state = state.copyWith(isMuted: newMute, soundLevel: newMute ? 0.0 : state.soundLevel);
+    _audioCaptureService.setMuted(newMute);
     if (state.callId.isNotEmpty) {
       _wsClient.sendAudioBoundary(
         callId: state.callId,
@@ -585,9 +533,10 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     }
 
     if (newMute) {
-      _singleAudioService.stopListening();
-    } else if (state.callState == CallState.listening) {
-      _singleAudioService.startListening(sttSessionId: state.activeSttSessionId);
+      _audioCaptureService.stopCapture();
+    } else if (state.callState == CallState.listening &&
+        state.conversationMode == ConversationMode.hybridAuto) {
+      _audioCaptureService.startCapture();
     }
   }
 
@@ -602,19 +551,21 @@ class AiCallController extends StateNotifier<AiCallViewState> {
   void setConversationMode(ConversationMode mode) {
     state = state.copyWith(conversationMode: mode);
     if (mode == ConversationMode.pushToTalk && state.callState == CallState.listening) {
-      _singleAudioService.stopListening();
-    } else if (mode == ConversationMode.hybridAuto && state.callState == CallState.listening) {
-      _singleAudioService.startListening(sttSessionId: state.activeSttSessionId);
+      _audioCaptureService.stopCapture();
+    } else if (mode == ConversationMode.hybridAuto &&
+        state.callState == CallState.listening &&
+        !state.isMuted) {
+      _audioCaptureService.startCapture();
     }
   }
 
-  /// Push-to-talk press down: start listening
+  /// Push-to-talk press down: start capture
   Future<void> pushToTalkPress() async {
     if (state.conversationMode != ConversationMode.pushToTalk) return;
     if (state.callState == CallState.aiSpeaking || state.callState == CallState.thinking) {
       await bargeIn();
-    } else if (state.callState == CallState.listening) {
-      await _singleAudioService.startListening(sttSessionId: state.activeSttSessionId);
+    } else if (state.callState == CallState.listening && !state.isMuted) {
+      await _audioCaptureService.startCapture();
     }
   }
 
@@ -770,7 +721,6 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     _audioChunkSubscription = null;
 
     _durationTimer?.cancel();
-    _restartTimer?.cancel();
     _thinkingWatchdogTimer?.cancel();
     _finalizeWatchdogTimer?.cancel();
 
@@ -782,7 +732,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       isUserSpeaking: false,
     );
 
-    await _singleAudioService.stopListening();
+    await _audioCaptureService.stopCapture();
     await _audioPlaybackService.stop();
 
     // 2. Immediately commit local fallback artifacts to ensure 0% data loss
@@ -826,9 +776,6 @@ class AiCallController extends StateNotifier<AiCallViewState> {
 
   void _cancelSubscriptions() {
     _audioChunkSubscription?.cancel();
-    _partialSubscription?.cancel();
-    _finalSegmentSubscription?.cancel();
-    _statusSubscription?.cancel();
     _soundLevelSubscription?.cancel();
     _aiAudioSoundSubscription?.cancel();
     _playbackSubscription?.cancel();
@@ -842,13 +789,12 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     _isDisposed = true;
     _cancelSubscriptions();
     _durationTimer?.cancel();
-    _restartTimer?.cancel();
     _thinkingWatchdogTimer?.cancel();
     _finalizeWatchdogTimer?.cancel();
     if (state.isFinalizing) {
       _commitLocalFallbackArtifacts();
     }
-    _singleAudioService.dispose();
+    _audioCaptureService.dispose();
     _audioPlaybackService.stop();
     _wsClient.disconnect();
     super.dispose();

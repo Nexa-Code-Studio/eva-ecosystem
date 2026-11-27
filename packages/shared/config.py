@@ -143,6 +143,12 @@ class BaseConfig(BaseSettings):
             "MIDTRANS_IRIS_APPROVER_KEY",
             "MIDTRANS_IRIS_NOTIFICATION_SECRET",
             "BANK_ACCOUNT_ENCRYPTION_KEY",
+            "STT_PROVIDER",
+            "ELEVENLABS_STT_API_KEY",
+            "ELEVENLABS_STT_URL",
+            "ELEVENLABS_STT_MODEL_ID",
+            "ELEVENLABS_STT_LANGUAGE_CODE",
+            "ELEVENLABS_STT_COMMIT_STRATEGY",
         ):
             if env_key in os.environ:
                 setattr(self, env_key, os.environ[env_key])
@@ -152,10 +158,22 @@ class BaseConfig(BaseSettings):
             "MIDTRANS_PAYMENT_ENABLED",
             "MIDTRANS_PAYOUT_ENABLED",
             "MIDTRANS_PAYOUT_AUTO_APPROVE",
+            "STT_ALLOW_INCOGNITO_CLOUD_AUDIO",
         ):
             if bool_env_key in os.environ:
                 raw_val = os.environ[bool_env_key].strip().lower()
                 setattr(self, bool_env_key, raw_val in ("1", "true", "yes", "on"))
+
+        for float_env_key in (
+            "ELEVENLABS_STT_VAD_SILENCE_THRESHOLD_SECS",
+            "ELEVENLABS_STT_VAD_THRESHOLD",
+            "STT_IDLE_CLOSE_TIMEOUT_S",
+        ):
+            if float_env_key in os.environ:
+                try:
+                    setattr(self, float_env_key, float(os.environ[float_env_key]))
+                except ValueError:
+                    logger.warning("Ignoring invalid OS env %s value", float_env_key)
 
         if "WS_BASE_URL" in os.environ:
             self.WS_BASE_URL = normalize_ws_base_url(os.environ["WS_BASE_URL"])
@@ -186,9 +204,18 @@ class BaseConfig(BaseSettings):
 
     OLLAMA_MODEL: str = "qwen3:1.7B"
 
-    # STT Settings (whisper | openai | mock)
-    STT_PROVIDER: str = "whisper"
+    # STT Settings (elevenlabs | mock)
+    STT_PROVIDER: str = "elevenlabs"
     STT_API_KEY: str = ""
+    ELEVENLABS_STT_API_KEY: str = ""
+    ELEVENLABS_STT_URL: str = "wss://api.elevenlabs.io/v1/speech-to-text/realtime"
+    ELEVENLABS_STT_MODEL_ID: str = "scribe_v2_realtime"
+    ELEVENLABS_STT_LANGUAGE_CODE: str = "id"
+    ELEVENLABS_STT_COMMIT_STRATEGY: str = "vad"
+    ELEVENLABS_STT_VAD_SILENCE_THRESHOLD_SECS: float = 0.8
+    ELEVENLABS_STT_VAD_THRESHOLD: float = 0.4
+    STT_IDLE_CLOSE_TIMEOUT_S: float = 15.0
+    STT_ALLOW_INCOGNITO_CLOUD_AUDIO: bool = False  # Fail-closed by default
 
     # TTS Settings (elevenlabs | openai | edge_tts | mock)
     TTS_PROVIDER: str = "elevenlabs"
@@ -270,6 +297,14 @@ class BaseConfig(BaseSettings):
         if self.TTS_API_KEY and self.TTS_API_KEY.strip():
             return [self.TTS_API_KEY.strip()]
         return []
+
+    def get_elevenlabs_stt_keys(self) -> list[str]:
+        """Return ElevenLabs STT API keys from ELEVENLABS_STT_API_KEY or fallback to ELEVENLABS_API_KEYS."""
+        if self.ELEVENLABS_STT_API_KEY and self.ELEVENLABS_STT_API_KEY.strip():
+            keys = [k.strip() for k in self.ELEVENLABS_STT_API_KEY.split(",") if k.strip()]
+            if keys:
+                return keys
+        return self.get_elevenlabs_keys()
 
 
 

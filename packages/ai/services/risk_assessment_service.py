@@ -2,6 +2,7 @@ import logging
 import re
 from typing import List, Tuple
 
+from packages.shared.config import settings
 from shared.domain_types import (
     IntentLevel,
     MentalHealthSeverity,
@@ -375,7 +376,10 @@ class RiskAssessmentService:
         Main Pure Evaluation Entrypoint.
         Returns dual-axis output (MentalHealthSeverity & RiskLevel) + auditability details.
         """
-        logger.info(f"Executing RiskAssessmentService.assess for text: '{input_data.user_text[:40]}...'")
+        if settings.APP_ENV.lower() == "production":
+            logger.info(f"Executing RiskAssessmentService.assess for text: <redacted len={len(input_data.user_text)}>")
+        else:
+            logger.info(f"Executing RiskAssessmentService.assess for text: '{input_data.user_text[:40]}...'")
 
         # 1. Parse structured signals
         signals = self.parse_signals(input_data)

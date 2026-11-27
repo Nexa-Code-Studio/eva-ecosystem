@@ -26,6 +26,7 @@ from app.models.user import User
 from app.services.call.emotion_coordinator import CallEmotionCoordinator, call_emotion_coordinator
 from app.services.call.persistence import CallPersistenceService
 from app.services.call.stream_buffer import audio_buffer_service
+from app.services.call.stt_coordinator import CallSTTCoordinator, call_stt_coordinator
 from app.services.call.turn_aggregator import TurnAggregator
 from app.services.dass import DASSService
 from app.services.diary import DiaryGeneratorService
@@ -57,6 +58,14 @@ from shared.domain_types import (
 logger = logging.getLogger(__name__)
 
 
+def _safe_text_log(text: str) -> str:
+    """Redact raw transcript contents in production logs to enforce privacy invariants."""
+    if settings.APP_ENV.lower() == "production":
+        return f"<redacted len={len(text)}>"
+    preview = text[:40] + ("..." if len(text) > 40 else "")
+    return f"len={len(text)} preview='{preview}'"
+
+
 class CallSession:
     def __init__(
         self,
@@ -72,8 +81,11 @@ class CallSession:
         self.voice_mode: str = voice_mode or DEFAULT_VOICE_MODE
         self.privacy_mode: str | None = (privacy_mode or "").strip().lower() or None
         self.emotion_generation_token: str | None = None
+        self.stt_generation_token: str | None = None
         self.latest_emotion_snapshot: TemporalEmotionSnapshot | None = None
         self.state: str = "idle"  # idle | listening | user_speaking | ai_thinking | ai_speaking | interrupted
+        self.is_muted: bool = False
+        self.stt_sequence: int = 0
         self.db_conversation_id: Any | None = None
         self.user_id: Any | None = None
         self.user_name: str | None = None
@@ -117,10 +129,16 @@ class CallSession:
 class CallSessionManager:
     """Session Manager for real-time WebSocket AI phone calls with conversation history & dynamic AI emotion analysis."""
 
-    def __init__(self, emotion_coordinator: CallEmotionCoordinator | None = None) -> None:
+    def __init__(
+        self,
+        emotion_coordinator: CallEmotionCoordinator | None = None,
+        stt_coordinator: CallSTTCoordinator | None = None,
+    ) -> None:
         self._active_sessions: dict[str, CallSession] = {}
         self.orchestrator = AIOrchestrator()
         self.emotion_coordinator: CallEmotionCoordinator = emotion_coordinator or call_emotion_coordinator
+        self.stt_coordinator: CallSTTCoordinator = stt_coordinator or call_stt_coordinator
+        self.emotion_coordinator.set_snapshot_callback(self._on_emotion_snapshot_updated)
 
     def register_session(
         self,
@@ -137,7 +155,16 @@ class CallSessionManager:
             voice_mode=voice_mode,
             privacy_mode=privacy_mode,
         )
+        session.stt_generation_token = self.stt_coordinator.register_session(
+            session_id,
+            privacy_mode=session.privacy_mode,
+            on_partial=self._on_backend_stt_partial,
+            on_committed=self._on_backend_stt_committed,
+            on_status=self._on_backend_stt_status,
+            on_error=self._on_backend_stt_error,
+        )
         if settings.EMOTION_STREAMING_ENABLED:
+            self.emotion_coordinator.set_snapshot_callback(self._on_emotion_snapshot_updated)
             session.emotion_generation_token = self.emotion_coordinator.register_session(
                 session_id,
                 privacy_mode=session.privacy_mode,
@@ -150,6 +177,7 @@ class CallSessionManager:
         return session
 
     def unregister_session(self, session_id: str) -> None:
+        self.stt_coordinator.cleanup_session_nowait(session_id)
         self.emotion_coordinator.cleanup_session(session_id)
         if session_id in self._active_sessions:
             session = self._active_sessions[session_id]
@@ -208,16 +236,32 @@ class CallSessionManager:
                 message = await websocket.receive()
                 if "bytes" in message and message["bytes"]:
                     audio_bytes = message["bytes"]
-                    if settings.EMOTION_STREAMING_ENABLED:
-                        # Strictly non-blocking in-memory 3s segmentation & fair async dispatch
-                        self.emotion_coordinator.ingest_pcm_chunk(
-                            session_id,
-                            audio_bytes,
-                            user_turn_id=session.aggregator.user_turn_id,
-                        )
-                    else:
-                        logger.info(f"🎙️ [INCOMING MIC AUDIO] Session {session_id}: Received {len(audio_bytes)} raw mic bytes")
-                        await audio_buffer_service.handle_incoming_audio_chunk(session_id, audio_bytes)
+                    if session.state in ("listening", "user_speaking") and not session.is_muted:
+                        # Non-blocking parallel in-memory fan-out with strict fault isolation
+                        try:
+                            self.stt_coordinator.ingest_pcm_chunk(session_id, audio_bytes)
+                        except Exception as stt_err:
+                            logger.warning(
+                                "[STT FAN-OUT ERROR] session=%s err=%s",
+                                session_id,
+                                type(stt_err).__name__,
+                            )
+
+                        if settings.EMOTION_STREAMING_ENABLED:
+                            try:
+                                self.emotion_coordinator.ingest_pcm_chunk(
+                                    session_id,
+                                    audio_bytes,
+                                    user_turn_id=session.aggregator.user_turn_id,
+                                )
+                            except Exception as emo_err:
+                                logger.warning(
+                                    "[EMOTION FAN-OUT ERROR] session=%s err=%s",
+                                    session_id,
+                                    type(emo_err).__name__,
+                                )
+                        else:
+                            await audio_buffer_service.handle_incoming_audio_chunk(session_id, audio_bytes)
 
                 elif "text" in message and message["text"]:
                     try:
@@ -227,6 +271,7 @@ class CallSessionManager:
                         if event_type == "end_call":
                             duration_sec = payload.get("duration_seconds")
                             logger.info(f"🛑 [CALL ENDED BY USER] Session {session_id}, Duration: {duration_sec}s")
+                            await self.stt_coordinator.pause_session(session_id, reason="end_call")
                             if settings.EMOTION_STREAMING_ENABLED:
                                 await self.emotion_coordinator.drain_and_build_artifact(
                                     session_id,
@@ -246,6 +291,7 @@ class CallSessionManager:
         except Exception as e:
             logger.error(f"❌ [WEBSOCKET ERROR] Session {session_id}: {e}")
         finally:
+            await self.stt_coordinator.cleanup_session(session_id)
             self.unregister_session(session_id)
             audio_buffer_service.clear_session(session_id)
 
@@ -272,6 +318,143 @@ class CallSessionManager:
     async def _sync_today_dass(self, session: CallSession) -> None:
         await CallPersistenceService.sync_today_dass(session)
 
+    async def _safe_send_json(self, session: CallSession, payload: dict[str, Any]) -> None:
+        try:
+            await session.websocket.send_json(payload)
+        except Exception as err:
+            logger.debug(
+                "[WS SEND SKIPPED] session=%s type=%s err=%s",
+                session.session_id,
+                payload.get("type"),
+                type(err).__name__,
+            )
+
+    async def _on_backend_stt_partial(self, session_id: str, stt_session_id: int, text: str) -> None:
+        session = self.get_session(session_id)
+        if session is None or session.is_muted or session.state not in ("listening", "user_speaking"):
+            return
+        if session.aggregator.is_committed:
+            return
+        clean = text.strip()
+        if not clean:
+            return
+
+        session.stt_sequence += 1
+        user_turn_id = session.aggregator.user_turn_id
+        await self._safe_send_json(
+            session,
+            {
+                "type": "stt.partial",
+                "call_id": session_id,
+                "user_turn_id": user_turn_id,
+                "stt_session_id": stt_session_id,
+                "sequence": session.stt_sequence,
+                "text": clean,
+            },
+        )
+        await self._handle_stt_partial(
+            session,
+            {
+                "text": clean,
+                "user_turn_id": user_turn_id,
+                "stt_session_id": stt_session_id,
+            },
+        )
+
+    async def _on_backend_stt_committed(self, session_id: str, stt_session_id: int, text: str) -> None:
+        session = self.get_session(session_id)
+        if session is None or session.state not in ("listening", "user_speaking"):
+            return
+        if session.aggregator.is_committed:
+            return
+        clean = text.strip()
+        if not clean:
+            return
+
+        session.stt_sequence += 1
+        user_turn_id = session.aggregator.user_turn_id
+        await self._safe_send_json(
+            session,
+            {
+                "type": "stt.final_segment",
+                "call_id": session_id,
+                "user_turn_id": user_turn_id,
+                "stt_session_id": stt_session_id,
+                "sequence": session.stt_sequence,
+                "text": clean,
+            },
+        )
+        await self._handle_stt_final_segment(
+            session,
+            {
+                "text": clean,
+                "user_turn_id": user_turn_id,
+                "stt_session_id": stt_session_id,
+            },
+        )
+
+    async def _on_backend_stt_status(self, session_id: str, stt_session_id: int, status: str) -> None:
+        session = self.get_session(session_id)
+        if session is None:
+            return
+        user_turn_id = session.aggregator.user_turn_id
+        await self._safe_send_json(
+            session,
+            {
+                "type": "stt.status",
+                "call_id": session_id,
+                "user_turn_id": user_turn_id,
+                "stt_session_id": stt_session_id,
+                "status": status,
+            },
+        )
+        if not session.aggregator.is_committed and session.state in ("listening", "user_speaking"):
+            session.aggregator.update_stt_status(status, stt_session_id)
+
+    async def _on_backend_stt_error(self, session_id: str, stt_session_id: int, error_code: str) -> None:
+        session = self.get_session(session_id)
+        if session is None:
+            return
+        await self._safe_send_json(
+            session,
+            {
+                "type": "stt.status",
+                "call_id": session_id,
+                "user_turn_id": session.aggregator.user_turn_id,
+                "stt_session_id": stt_session_id,
+                "status": f"error_{error_code}",
+            },
+        )
+
+    def _on_emotion_snapshot_updated(self, session_id: str, snapshot: TemporalEmotionSnapshot) -> None:
+        session = self.get_session(session_id)
+        if session is None:
+            return
+        session.latest_emotion_snapshot = snapshot
+        has_scores = (
+            snapshot.status in (EmotionWindowStatus.READY, EmotionWindowStatus.PARTIAL)
+            and bool(snapshot.scores)
+            and snapshot.primary_emotion is not None
+        )
+        breakdown = [
+            {"name": name, "percent": round(float(score), 4)}
+            for name, score in (snapshot.scores or {}).items()
+        ]
+        payload: dict[str, Any] = {
+            "type": "emotion_result",
+            "session_id": session_id,
+            "status": snapshot.status.value,
+            "source": snapshot.source.value,
+            "primary_emotion": snapshot.primary_emotion if has_scores else None,
+            "confidence": round(float(snapshot.confidence), 4) if has_scores and snapshot.confidence is not None else None,
+            "emotions_breakdown": breakdown if has_scores else [],
+            "segment_count": snapshot.segment_count,
+        }
+        try:
+            asyncio.create_task(self._safe_send_json(session, payload))
+        except RuntimeError:
+            pass
+
     # --------------------------------------------------------------------------
     # Hybrid Half-Duplex WebSocket Event Handlers
     # --------------------------------------------------------------------------
@@ -295,8 +478,15 @@ class CallSessionManager:
         elif event_type == "call.sync":
             await self._handle_call_sync(session, payload)
         elif event_type == "audio.boundary":
+            reason = str(payload.get("reason") or "client_boundary").strip().lower()
+            if reason == "mute":
+                session.is_muted = True
+                await self.stt_coordinator.pause_session(session.session_id, reason="mute")
+            elif reason == "unmute":
+                session.is_muted = False
+                if session.state in ("listening", "user_speaking"):
+                    self.stt_coordinator.resume_session(session.session_id)
             if settings.EMOTION_STREAMING_ENABLED:
-                reason = str(payload.get("reason") or "client_boundary")
                 self.emotion_coordinator.flush_boundary(
                     session.session_id,
                     user_turn_id=session.aggregator.user_turn_id,
@@ -309,6 +499,8 @@ class CallSessionManager:
                 session.voice_mode = str(payload["voice_mode"]).strip()
             logger.info(f"🚀 [CALL STARTED] Session {session.session_id} (Voice Mode: {session.voice_mode})")
             session.state = "listening"
+            session.is_muted = False
+            self.stt_coordinator.resume_session(session.session_id)
             await session.websocket.send_json({
                 "type": "call_started",
                 "session_id": session.session_id,
@@ -316,7 +508,9 @@ class CallSessionManager:
             })
         elif event_type == "user_transcript":
             user_text = payload.get("text", "")
-            logger.info(f"💬 [LEGACY USER TRANSCRIPT] Session {session.session_id}: '{user_text}'")
+            logger.info(
+                f"💬 [LEGACY USER TRANSCRIPT] Session {session.session_id}: {_safe_text_log(user_text)}"
+            )
             await self.handle_user_transcript(session, user_text)
         elif event_type == "user_interrupted":
             logger.info(f"⚡ [LEGACY USER INTERRUPTED] Session {session.session_id}")
@@ -362,7 +556,7 @@ class CallSessionManager:
         session.aggregator.add_final_segment(text, stt_session_id)
         logger.info(
             f"🎙️ [STT FINAL SEGMENT] Session {session.session_id} | Turn {user_turn_id} | "
-            f"Session {stt_session_id}: '{text}'"
+            f"Session {stt_session_id}: {_safe_text_log(text)}"
         )
         await self._evaluate_and_act(session)
 
@@ -400,6 +594,9 @@ class CallSessionManager:
 
         # Prepare new user turn for immediate speaking
         session.aggregator.reset_for_new_turn()
+        session.state = "listening"
+        if not session.is_muted:
+            self.stt_coordinator.resume_session(session.session_id)
 
         # Send structured interrupt ack and legacy ack
         await session.websocket.send_json({
@@ -421,6 +618,9 @@ class CallSessionManager:
         if session.aggregator.is_committed:
             session.aggregator.reset_for_new_turn()
 
+        if not session.is_muted:
+            self.stt_coordinator.resume_session(session.session_id)
+
         await session.websocket.send_json({
             "type": "call.sync_state",
             "call_id": session.session_id,
@@ -441,6 +641,8 @@ class CallSessionManager:
             session.aggregator.current_turn.user_turn_id = user_turn_id
 
         logger.info(f"👆 [USER FORCE COMMIT] Session {session.session_id} | Turn {user_turn_id}")
+        await self.stt_coordinator.flush_and_commit(session.session_id, timeout_ms=350)
+        await self.stt_coordinator.pause_session(session.session_id, reason="force_commit")
         transcript = session.aggregator.force_commit()
         if transcript.strip():
             await self._commit_turn_and_start_ai(session, transcript, reason="manual_commit")
@@ -449,6 +651,9 @@ class CallSessionManager:
                 f"ℹ️ [EMPTY FORCE COMMIT] Session {session.session_id}: Turn {user_turn_id} transcript is empty, resetting aggregator and keeping turn open"
             )
             session.aggregator.reset_for_new_turn(user_turn_id)
+            session.state = "listening"
+            if not session.is_muted:
+                self.stt_coordinator.resume_session(session.session_id)
             await session.websocket.send_json({
                 "type": "turn.keep_open",
                 "call_id": session.session_id,
@@ -551,9 +756,12 @@ class CallSessionManager:
         assistant_turn_id = session.assistant_turn_id
         session.state = "ai_thinking"
 
+        # Immediately close upstream ElevenLabs STT connection for half-duplex cost control
+        await self.stt_coordinator.pause_session(session.session_id, reason="ai_thinking")
+
         logger.info(
             f"🎯 [COMMIT & START AI] Session {session.session_id} | User Turn {user_turn_id} -> "
-            f"Assistant Turn {assistant_turn_id} | Reason: '{reason}': '{final_transcript}'"
+            f"Assistant Turn {assistant_turn_id} | Reason: '{reason}' | {_safe_text_log(final_transcript)}"
         )
 
 
@@ -901,7 +1109,7 @@ class CallSessionManager:
                         })
                         logger.info(
                             f"🔊 [OUTGOING TTD AUDIO CHUNK {seq}] Session {session.session_id}: "
-                            f"Sent {len(sentence_audio)} bytes for '{text_to_show[:35]}...'"
+                            f"Sent {len(sentence_audio)} bytes ({_safe_text_log(text_to_show)})"
                         )
 
                 except Exception as ttd_err:
@@ -1034,6 +1242,8 @@ class CallSessionManager:
             logger.error(f"❌ [AI PIPELINE ERROR] Session {session.session_id} (Assistant Turn {task_id}): {e}")
             if session.current_task_id == task_id:
                 session.state = "listening"
+                if not session.is_muted:
+                    self.stt_coordinator.resume_session(session.session_id)
                 await session.websocket.send_json({"type": "error", "message": str(e)})
                 await session.websocket.send_json({
                     "type": "call.sync_state",

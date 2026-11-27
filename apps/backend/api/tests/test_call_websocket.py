@@ -35,18 +35,24 @@ def test_call_websocket_lifecycle():
         # 3. Client sends binary audio stream
         websocket.send_bytes(b"\x11\x22\x33\x44\x55")
 
-        # 4. Client sends ping
+        # 4. Client sends ping (drain any async stt.* events triggered by audio frame)
         websocket.send_json({"type": "ping"})
         pong_data = websocket.receive_json()
+        for _ in range(5):
+            if pong_data.get("type") == "pong":
+                break
+            pong_data = websocket.receive_json()
         assert pong_data["type"] == "pong"
 
         # 5. Client sends user_transcript (uses Mock LLM / Ollama fallback in test)
         websocket.send_json({"type": "user_transcript", "text": "Halo Eva, selamat pagi!"})
-        first_evt = websocket.receive_json()
-        if first_evt["type"] == "turn.committed":
-            thinking_data = websocket.receive_json()
-        else:
-            thinking_data = first_evt
+        thinking_data = None
+        for _ in range(8):
+            evt = websocket.receive_json()
+            if evt.get("type") in ("ai_thinking", "ai.thinking"):
+                thinking_data = evt
+                break
+        assert thinking_data is not None
         assert thinking_data["type"] in ("ai_thinking", "ai.thinking")
 
         # 6. Receive AI transcript / binary TTS audio or finished signal
