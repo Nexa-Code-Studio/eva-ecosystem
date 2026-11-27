@@ -232,8 +232,9 @@
   "172": {
     "issue": 172,
     "branch": "fix/172-elevenlabs-stt-remove-ai-mocks",
-    "state": "In Progress",
-    "updated_at": 1795770955,
-    "evidence_summary": "Evidence accepted: active task branch verified."
+    "state": "In Review",
+    "updated_at": 1795771882,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/174"
   }
 }
