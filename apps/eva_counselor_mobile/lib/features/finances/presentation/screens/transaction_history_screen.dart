@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/app_async_state_view.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../../core/widgets/top_toast.dart';
@@ -501,7 +502,7 @@ class _TransactionHistoryScreenState
                                   if (!context.mounted) return;
                                   TopToast.show(
                                     context,
-                                    title: 'Pencairan Berhasil Diajukan 💳',
+                                    title: 'Pencairan Berhasil Diajukan',
                                     message:
                                         'Permintaan dana Rp ${_formatRp(quote.netAmountIdr)} telah dikirim ke antrean perbankan.',
                                     type: ToastType.success,
@@ -709,7 +710,7 @@ class _TransactionHistoryScreenState
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
-                              hasVerifiedBank ? 'Rekening Terverifikasi ✅' : 'Belum Ada Rekening ⚠️',
+                              hasVerifiedBank ? 'Rekening Terverifikasi' : 'Belum Ada Rekening',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 10,
@@ -892,7 +893,7 @@ class _TransactionHistoryScreenState
 
                 // 3. Transactions List
                 _buildTransactionsList(txListAsync, payoutsAsync),
-                const SizedBox(height: 80),
+                const SizedBox(height: 72),
               ],
             ),
           ),
@@ -960,14 +961,7 @@ class _TransactionHistoryScreenState
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFECEFF8)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+                  border: Border.all(color: AppColors.cardBorder),
                 ),
                 child: Row(
                   children: [
@@ -1032,17 +1026,16 @@ class _TransactionHistoryScreenState
           }).toList(),
         );
       },
-      loading: () => const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: CircularProgressIndicator(),
-        ),
+      loading: () => AppAsyncStateView.loading(
+        title: 'Memuat riwayat transaksi...',
+        message: 'Mengambil mutasi honorarium dan pencairan.',
+        compact: true,
       ),
-      error: (e, _) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text('Gagal memuat transaksi: $e', style: const TextStyle(color: Colors.red, fontSize: 12)),
-        ),
+      error: (e, _) => AppAsyncStateView.error(
+        title: 'Gagal memuat riwayat transaksi',
+        message: 'Terjadi kendala saat memuat mutasi keuangan.',
+        onRetry: () => ref.invalidate(transactionsListProvider),
+        compact: true,
       ),
     );
   }

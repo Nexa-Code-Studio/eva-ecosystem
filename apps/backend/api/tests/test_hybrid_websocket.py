@@ -6,13 +6,16 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services.call import call_session_manager
 from app.services.call.billing_service import AuthenticatedCallUser, CallChargeResult
+from packages.ai.providers.llm.mock_llm import MockLLMProvider
+from packages.ai.providers.tts.mock_tts import MockTTSProvider
 
 client = TestClient(app)
 
 
 @pytest.fixture(autouse=True)
-def _mock_call_billing():
+def _mock_call_billing(monkeypatch):
     mock_user = AuthenticatedCallUser(
         user_id=uuid.uuid4(),
         display_name="Hybrid Test User",
@@ -25,7 +28,9 @@ def _mock_call_billing():
         minute_index=1,
         invoice_code="EVA-CALL-HYBRID-001",
     )
+    monkeypatch.setattr(call_session_manager.orchestrator, "llm_provider", MockLLMProvider())
     with (
+        patch("app.services.call.session_manager.TTSFactory.get_provider", return_value=MockTTSProvider()),
         patch("app.services.call.session_manager.CallBillingService.resolve_authenticated_user", new=AsyncMock(return_value=mock_user)),
         patch("app.services.call.session_manager.CallBillingService.charge_call_minute", new=AsyncMock(return_value=mock_charge)),
         patch("app.services.call.session_manager.CallBillingService.get_user_coin_balance", new=AsyncMock(return_value=9)),

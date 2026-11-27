@@ -34,7 +34,7 @@ class _VerificationRejectedScreenState
         if (!mounted) return;
         TopToast.show(
           context,
-          title: 'Berkas Dipilih 📄',
+          title: 'Berkas Dipilih',
           message: 'File berkas perbaikan siap diunggah: ${file.name}',
           type: ToastType.success,
         );
@@ -68,7 +68,7 @@ class _VerificationRejectedScreenState
 
     TopToast.show(
       context,
-      title: 'Dokumen Terkirim! 🚀',
+      title: 'Dokumen Terkirim',
       message: 'Berkas perbaikan Anda telah diteruskan ke tim kredensial.',
       type: ToastType.success,
     );

@@ -206,13 +206,15 @@ class _PsychologistVideoCallScreenState
     if (!mounted) return;
 
     if (success) {
-      ref
-          .read(consultationSessionsProvider.notifier)
-          .markSessionExtended(widget.session.id, newDurationMinutes: 60);
-      if (requiredCoins > 0) {
-        await ref
-            .read(coinBalanceProvider.notifier)
-            .syncAfterServerDebit(requiredCoins);
+      if (!widget.session.isPreview) {
+        ref
+            .read(consultationSessionsProvider.notifier)
+            .markSessionExtended(widget.session.id, newDurationMinutes: 60);
+        if (requiredCoins > 0) {
+          await ref
+              .read(coinBalanceProvider.notifier)
+              .syncAfterServerDebit(requiredCoins);
+        }
       }
       if (!mounted) return;
       AppSnackBar.showSuccess(
@@ -250,9 +252,11 @@ class _PsychologistVideoCallScreenState
         .read(videoCallControllerProvider(widget.session).notifier)
         .endCall();
 
+    final useFallbackSummary = widget.session.isPreview || AppConfig.useMockData;
+
     final advice = widget.session.adviceList.isNotEmpty
         ? widget.session.adviceList
-        : (AppConfig.useMockData
+        : (useFallbackSummary
             ? const [
                 'Lakukan relaksasi napas 4-7-8 setiap pagi dan malam.',
                 'Gunakan format restrukturisasi kognitif di Eva Diary saat overthinking.',
@@ -262,7 +266,7 @@ class _PsychologistVideoCallScreenState
 
     final actionItems = widget.session.actionItems.isNotEmpty
         ? widget.session.actionItems
-        : (AppConfig.useMockData
+        : (useFallbackSummary
             ? const [
                 'Tulis 3 hal yang disyukuri setiap malam di Jurnal Eva.',
                 'Latih mindful pause 3 detik sebelum merespon saat merasa tegang.',
@@ -272,23 +276,25 @@ class _PsychologistVideoCallScreenState
     final String? sessionSummary =
         (widget.session.sessionSummary != null && widget.session.sessionSummary!.isNotEmpty)
             ? widget.session.sessionSummary
-            : (AppConfig.useMockData
+            : (useFallbackSummary
                 ? 'Sesi video call telekonsultasi psikologi telah selesai dilaksanakan dengan lancar.'
                 : null);
     final String? moodAfter =
         (widget.session.moodAfter != null && widget.session.moodAfter!.isNotEmpty)
             ? widget.session.moodAfter
-            : (AppConfig.useMockData ? 'Lebih Tenang & Terarah (Skala 4/10)' : null);
+            : (useFallbackSummary ? 'Lebih Tenang & Terarah (Skala 4/10)' : null);
 
-    try {
-      await ref.read(consultationSessionsProvider.notifier).completeSession(
-            widget.session.id,
-            adviceList: advice.isNotEmpty ? advice : null,
-            actionItems: actionItems.isNotEmpty ? actionItems : null,
-            sessionSummary: sessionSummary,
-            moodAfter: moodAfter,
-          );
-    } catch (_) {}
+    if (!widget.session.isPreview) {
+      try {
+        await ref.read(consultationSessionsProvider.notifier).completeSession(
+              widget.session.id,
+              adviceList: advice.isNotEmpty ? advice : null,
+              actionItems: actionItems.isNotEmpty ? actionItems : null,
+              sessionSummary: sessionSummary,
+              moodAfter: moodAfter,
+            );
+      } catch (_) {}
+    }
 
     if (!mounted) return;
 

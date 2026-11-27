@@ -541,9 +541,41 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ),
                             const SizedBox(height: 24),
 
-                            // SECTION 4: TENTANG APLIKASI
+                            // SECTION 4: PRATINJAU ANTARMUKA
                             StaggeredEntrance(
                               index: 4,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildSectionHeader(
+                                    icon: Icons.visibility_outlined,
+                                    title: 'PRATINJAU UI',
+                                  ),
+                                  const SizedBox(height: 10),
+                                  GlassCard(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(16),
+                                    child: _buildActionTile(
+                                      key: const Key('settings_video_call_preview_tile'),
+                                      icon: Icons.video_call_outlined,
+                                      iconColor: AppColors.primary,
+                                      title: 'Pratinjau Layar Video Call',
+                                      subtitle: 'Cek tampilan ruang konsultasi psikolog tanpa perlu booking',
+                                      subtitleColor: const Color(0xFF464652),
+                                      onTap: () => Navigator.pushNamed(
+                                        context,
+                                        '/care/video_call_preview',
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // SECTION 5: TENTANG APLIKASI
+                            StaggeredEntrance(
+                              index: 5,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -819,53 +851,64 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _buildActionTile({
+    Key? key,
     required IconData icon,
     required Color iconColor,
     required String title,
     required String subtitle,
+    Color? subtitleColor,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4.0),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, size: 18, color: iconColor),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
+    return Semantics(
+      button: true,
+      label: title,
+      child: InkWell(
+        key: key,
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6.0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      color: AppColors.textSecondary,
-                    ),
+                  child: Icon(icon, size: 18, color: iconColor),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        title,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: subtitleColor ?? AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                const Icon(Icons.chevron_right, size: 18, color: AppColors.textSecondary),
+              ],
             ),
-            const Icon(Icons.chevron_right, size: 18, color: AppColors.textSecondary),
-          ],
+          ),
         ),
       ),
     );

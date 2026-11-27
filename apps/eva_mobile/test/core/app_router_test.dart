@@ -68,6 +68,15 @@ void main() {
       expect(route2, isA<PageRouteBuilder>());
     });
 
+    test('Returns PageRouteBuilder for /care/video_call_preview', () {
+      final route = AppRouter.onGenerateRoute(
+        const RouteSettings(name: '/care/video_call_preview'),
+      );
+      expect(route, isNotNull);
+      expect(route, isA<PageRouteBuilder>());
+      expect(route!.settings.name, '/care/video_call_preview');
+    });
+
     test('Returns null for unknown route to let MaterialApp handle it or 404', () {
       final route = AppRouter.onGenerateRoute(
         const RouteSettings(name: '/unknown_non_existent_route'),

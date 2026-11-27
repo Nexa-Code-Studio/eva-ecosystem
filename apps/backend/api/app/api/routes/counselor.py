@@ -1,6 +1,7 @@
 import uuid
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, File, Query, Request, UploadFile, status
+from fastapi.responses import FileResponse
 
 from app.api.dependencies import (
     get_care_service,
@@ -68,6 +69,34 @@ async def update_my_counselor_profile(
 ) -> PsychologistProfileResponse:
     """Update profile information for current authenticated counselor."""
     return await service.update_profile(user.id, payload)
+
+
+@router.post("/me/avatar", response_model=PsychologistProfileResponse)
+async def upload_my_counselor_avatar(
+    request: Request,
+    file: UploadFile = File(...),
+    user: User = Depends(get_current_user),
+    service: CounselorService = Depends(get_counselor_service),
+) -> PsychologistProfileResponse:
+    """Upload and persist psychologist profile avatar to UPLOAD_DIR/avatars."""
+    forwarded_proto = (request.headers.get("x-forwarded-proto") or "").split(",")[0].strip()
+    forwarded_host = (request.headers.get("x-forwarded-host") or request.headers.get("host") or "").split(",")[0].strip()
+    if forwarded_proto and forwarded_host:
+        public_base_url = f"{forwarded_proto}://{forwarded_host}"
+    else:
+        public_base_url = str(request.base_url).rstrip("/")
+    return await service.upload_profile_avatar(user.id, file, public_base_url)
+
+
+@router.get("/avatars/{filename}")
+async def get_counselor_avatar(filename: str) -> FileResponse:
+    """Serve psychologist profile avatar image with cache headers."""
+    path, media_type = CounselorService.resolve_avatar_file(filename)
+    return FileResponse(
+        path,
+        media_type=media_type,
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
 
 
 @router.post("/me/resubmit-verification", response_model=PsychologistVerificationResponse)

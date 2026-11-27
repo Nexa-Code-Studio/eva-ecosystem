@@ -107,6 +107,8 @@ class _CounselorMainShellScreenState extends ConsumerState<CounselorMainShellScr
       }
     });
 
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+
     return Stack(
       children: [
         Scaffold(
@@ -117,27 +119,34 @@ class _CounselorMainShellScreenState extends ConsumerState<CounselorMainShellScr
           ),
           bottomNavigationBar: Container(
             key: _navBarKey,
-            margin: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+            margin: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              bottom: bottomInset > 0 ? bottomInset + 8 : 20,
+            ),
             height: 68,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: const Color(0xFFECEFF8), width: 1.2),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: AppColors.cardBorder, width: 1.0),
               boxShadow: const [
                 BoxShadow(
                   color: AppColors.glassShadow,
-                  blurRadius: 24,
-                  offset: Offset(0, 8),
+                  blurRadius: 16,
+                  offset: Offset(0, 6),
                 ),
               ],
             ),
-            child: Row(
-              children: [
-                Expanded(child: _buildNavItem(0, currentIndex, Icons.home_rounded, Icons.home_outlined, 'Beranda')),
-                Expanded(child: _buildNavItem(1, currentIndex, Icons.people_alt_rounded, Icons.people_alt_outlined, 'Pasien')),
-                Expanded(child: _buildNavItem(2, currentIndex, Icons.account_balance_wallet_rounded, Icons.account_balance_wallet_outlined, 'Keuangan')),
-                Expanded(child: _buildNavItem(3, currentIndex, Icons.person_rounded, Icons.person_outline, 'Profil')),
-              ],
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Row(
+                children: [
+                  Expanded(child: _buildNavItem(0, currentIndex, Icons.home_rounded, Icons.home_outlined, 'Beranda')),
+                  Expanded(child: _buildNavItem(1, currentIndex, Icons.people_alt_rounded, Icons.people_alt_outlined, 'Pasien')),
+                  Expanded(child: _buildNavItem(2, currentIndex, Icons.account_balance_wallet_rounded, Icons.account_balance_wallet_outlined, 'Keuangan')),
+                  Expanded(child: _buildNavItem(3, currentIndex, Icons.person_rounded, Icons.person_outline, 'Profil')),
+                ],
+              ),
             ),
           ),
         ),
@@ -154,35 +163,40 @@ class _CounselorMainShellScreenState extends ConsumerState<CounselorMainShellScr
 
   Widget _buildNavItem(int index, int currentIndex, IconData activeIcon, IconData inactiveIcon, String label) {
     final isSelected = currentIndex == index;
-    return GestureDetector(
-      onTap: () => ref.read(counselorBottomNavIndexProvider.notifier).state = index,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-            decoration: BoxDecoration(
-              color: isSelected ? AppColors.primaryContainer : Colors.transparent,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(
-              isSelected ? activeIcon : inactiveIcon,
-              color: isSelected ? AppColors.primary : AppColors.textSecondary,
-              size: 22,
-            ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => ref.read(counselorBottomNavIndexProvider.notifier).state = index,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.primaryContainer : Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  isSelected ? activeIcon : inactiveIcon,
+                  color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: AppTypography.bodySmall.copyWith(
+                  fontSize: 10.5,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: AppTypography.bodySmall.copyWith(
-              fontSize: 10,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: isSelected ? AppColors.primary : AppColors.textSecondary,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

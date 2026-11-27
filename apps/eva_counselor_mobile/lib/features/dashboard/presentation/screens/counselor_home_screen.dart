@@ -4,6 +4,7 @@ import '../../../../core/storage/schedule_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/image_helper.dart';
+import '../../../../core/widgets/app_async_state_view.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../auth/domain/entities/psychologist_user_entity.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -298,14 +299,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFECEFF8)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.08),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
+                          border: Border.all(color: AppColors.cardBorder),
                         ),
                         padding: const EdgeInsets.all(5),
                         child: Image.asset(
@@ -365,14 +359,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0xFFECEFF8)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.03),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
+                            border: Border.all(color: AppColors.cardBorder),
                           ),
                           child: const Icon(
                             Icons.notifications_none_rounded,
@@ -410,14 +397,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFECEFF8)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.04),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  border: Border.all(color: AppColors.cardBorder),
                 ),
                 child: Row(
                   children: [
@@ -468,92 +448,6 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                             ],
                           ),
                         ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // STATUS PRAKTIK OTOMATIS (Berdasarkan Jam Operasional & Jam Istirahat Terjadwal)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFECEFF8)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: (isSelectedDayOnline && isSelectedDayActive)
-                            ? AppColors.verifiedGreen
-                            : AppColors.highRiskRed,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Builder(
-                        builder: (context) {
-                          final selectedDayKey = weekdayKeyFromDate(selectedDate);
-                          final fallbackDayCfg = user?.scheduleConfig[selectedDayKey];
-                          final fallbackBreaks = fallbackDayCfg is Map<String, dynamic>
-                              ? (fallbackDayCfg['breaks'] as List<dynamic>? ?? const [])
-                                  .whereType<Map<String, dynamic>>()
-                                  .map((b) => '${b['start'] ?? '12:00'}-${b['end'] ?? '13:00'}')
-                                  .toList()
-                              : (user?.todayBreaks
-                                      .map((b) =>
-                                          '${b['start'] ?? '12:00'}-${b['end'] ?? '13:00'}')
-                                      .toList() ??
-                                  const <String>[]);
-                          final breakRanges = timeline != null
-                              ? timeline.blockedRanges
-                                  .where((r) => r.type == 'break')
-                                  .map((r) => '${r.start}-${r.end}')
-                                  .toList()
-                              : fallbackBreaks;
-                          final String statusText;
-                          if (!isSelectedDayOnline) {
-                            statusText = 'Mode Cuti • Pemesanan Ditutup';
-                          } else if (!isSelectedDayActive) {
-                            statusText = 'Hari Libur Praktik (Offline)';
-                          } else if (breakRanges.isEmpty) {
-                            statusText = 'Aktif • Tanpa Jam Istirahat';
-                          } else {
-                            statusText =
-                                'Aktif • Istirahat ${breakRanges.join(', ')}';
-                          }
-                          return Text(
-                            statusText,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    InkWell(
-                      onTap: _openScheduleSettings,
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                        child: Text(
-                          'Ubah',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                        ),
                       ),
                     ),
                   ],
@@ -752,14 +646,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.02),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    border: Border.all(color: AppColors.cardBorder),
                   ),
                   child: Row(
                     children: [
@@ -832,14 +719,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.02),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    border: Border.all(color: AppColors.cardBorder),
                   ),
                   child: Row(
                     children: [
@@ -1637,10 +1517,19 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                     }).toList(),
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Text('Error: $e'),
+                loading: () => AppAsyncStateView.loading(
+                  title: 'Memuat daftar pasien...',
+                  message: 'Mengambil jadwal konsultasi dan status persetujuan pasien.',
+                  compact: true,
+                ),
+                error: (e, _) => AppAsyncStateView.error(
+                  title: 'Gagal memuat daftar pasien',
+                  message: 'Periksa koneksi Anda lalu coba muat ulang data pasien.',
+                  onRetry: () => ref.invalidate(patientsListProvider),
+                  compact: true,
+                ),
               ),
-              const SizedBox(height: 80),
+              const SizedBox(height: 72),
             ],
           ),
         ),
@@ -1745,14 +1634,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFECEFF8)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        border: Border.all(color: AppColors.cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

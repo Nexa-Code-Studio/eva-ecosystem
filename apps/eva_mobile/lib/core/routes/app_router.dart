@@ -281,8 +281,39 @@ class AppRouter {
         }
         return null;
 
+      case '/care/video_call_preview':
+        return AppRouteTransitions.horizontalDetailRoute(
+          page: PsychologistVideoCallScreen(
+            session: _buildVideoCallPreviewSession(),
+          ),
+          settings: settings,
+        );
+
       default:
         return null;
     }
+  }
+
+  static ConsultationSessionEntity _buildVideoCallPreviewSession() {
+    return ConsultationSessionEntity(
+      id: 'preview-video-call',
+      psychologist: const PsychologistEntity(
+        id: 'preview-psychologist',
+        name: 'Dr. Eva Pratinjau, M.Psi.',
+        title: 'Mode Pratinjau UI Video Call',
+        registrationNumber: 'PRATINJAU',
+        avatarUrl: '',
+        rating: 5.0,
+        reviewCount: 0,
+        experienceYears: 5,
+        specialties: ['Pratinjau Konsultasi'],
+        bio: 'Sesi pratinjau untuk memeriksa antarmuka video call Eva Mobile.',
+      ),
+      sessionDateTime: DateTime.now(),
+      status: ConsultationStatus.upcoming,
+      sessionNumber: 1,
+      durationMinutes: 30,
+      isPreview: true,
+    );
   }
 }

@@ -27,7 +27,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AppColors.divider, width: 1),
+          side: const BorderSide(color: AppColors.cardBorder, width: 1),
         ),
       ),
     );

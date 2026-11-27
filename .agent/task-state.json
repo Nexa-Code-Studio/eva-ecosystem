@@ -229,6 +229,22 @@
     "evidence_summary": "Evidence accepted: PR and test verification documented.",
     "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/160"
   },
+  "173": {
+    "issue": 173,
+    "branch": "feat/173-video-call-ui-preview",
+    "state": "In Review",
+    "updated_at": 1795772866,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/175"
+  },
+  "172": {
+    "issue": 172,
+    "branch": "fix/172-elevenlabs-stt-remove-ai-mocks",
+    "state": "In Review",
+    "updated_at": 1795771882,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/174"
+  },
   "171": {
     "issue": 171,
     "branch": "refactor/171-eva-mobile-ui-antislop",

@@ -1,4 +1,4 @@
-"""Factory for instantiating Speech-to-Text providers with dev fallback and prod fail-fast."""
+"""Factory for instantiating Speech-to-Text providers with strict fail-fast validation."""
 
 from __future__ import annotations
 
@@ -32,7 +32,13 @@ class STTFactory:
         *,
         force_new: bool = False,
     ) -> BaseSTTProvider:
-        target = (provider_type or settings.STT_PROVIDER or "elevenlabs").strip().lower()
+        configured = (settings.STT_PROVIDER or "").strip().lower()
+        if provider_type is None and configured == "mock":
+            raise RuntimeError(
+                "STT_PROVIDER='mock' is disabled; configure a real STT provider such as 'elevenlabs'."
+            )
+
+        target = (provider_type or configured or "elevenlabs").strip().lower()
 
         if not force_new and target in cls._instances:
             return cls._instances[target]
@@ -46,23 +52,15 @@ class STTFactory:
         elif target in ("elevenlabs", "elevenlabs_realtime", "scribe_v2_realtime"):
             keys = [k for k in settings.get_elevenlabs_stt_keys() if not _is_placeholder(k)]
             if not keys:
-                if is_prod:
-                    raise RuntimeError(
-                        "No valid ElevenLabs API key configured for STT in production "
-                        "(set ELEVENLABS_STT_API_KEY or ELEVENLABS_API_KEYS)."
-                    )
-                logger.warning(
-                    "No valid ElevenLabs STT API key configured in %s; falling back to MockSTTProvider.",
-                    settings.APP_ENV,
+                raise RuntimeError(
+                    "No valid ElevenLabs API key configured for STT "
+                    "(set ELEVENLABS_STT_API_KEY or ELEVENLABS_API_KEYS)."
                 )
-                instance = MockSTTProvider()
-            else:
-                instance = ElevenLabsRealtimeSTTProvider(api_key=",".join(keys))
+            instance = ElevenLabsRealtimeSTTProvider(api_key=",".join(keys))
         else:
-            if is_prod:
-                raise RuntimeError(f"Unsupported STT_PROVIDER '{target}' in production.")
-            logger.warning("Unknown STT_PROVIDER '%s'; falling back to MockSTTProvider.", target)
-            instance = MockSTTProvider()
+            raise RuntimeError(
+                f"Unsupported STT_PROVIDER '{target}'. Supported providers: elevenlabs."
+            )
 
         cls._instances[target] = instance
         return instance

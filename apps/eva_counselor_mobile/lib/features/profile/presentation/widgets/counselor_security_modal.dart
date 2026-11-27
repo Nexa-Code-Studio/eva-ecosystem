@@ -7,8 +7,6 @@ import '../providers/privacy_settings_provider.dart';
 class CounselorSecurityModal {
   static void show(BuildContext context, [WidgetRef? ref]) {
     final currentPrivacy = ref?.read(privacySettingsProvider) ?? const PrivacySettingsState();
-    bool biometric = currentPrivacy.isBiometricEnabled;
-    bool twoFactor = currentPrivacy.isTwoFactorEnabled;
     bool maskPatient = currentPrivacy.isPatientNameMasked;
 
     showModalBottomSheet(
@@ -40,24 +38,6 @@ class CounselorSecurityModal {
               const SizedBox(height: 14),
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Kunci Biometrik (Face ID / Sidik Jari)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                subtitle: const Text('Wajib autentikasi sebelum membuka rekam medis pasien', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                value: biometric,
-                activeThumbColor: AppColors.primary,
-                onChanged: (val) => setModalState(() => biometric = val),
-              ),
-              const Divider(height: 1, color: Color(0xFFF0F2F8)),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Verifikasi 2 Langkah (2FA)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                subtitle: const Text('Kode OTP saat login di perangkat baru', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                value: twoFactor,
-                activeThumbColor: AppColors.primary,
-                onChanged: (val) => setModalState(() => twoFactor = val),
-              ),
-              const Divider(height: 1, color: Color(0xFFF0F2F8)),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
                 title: const Text('Masking Nama Pasien di Notifikasi', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                 subtitle: const Text('Sembunyikan nama terang pasien pada notifikasi layar kunci', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                 value: maskPatient,
@@ -75,8 +55,6 @@ class CounselorSecurityModal {
                 ),
                 onPressed: () {
                   if (ref != null) {
-                    ref.read(privacySettingsProvider.notifier).setBiometric(biometric);
-                    ref.read(privacySettingsProvider.notifier).setTwoFactor(twoFactor);
                     ref.read(privacySettingsProvider.notifier).setMaskPatientName(maskPatient);
                   }
                   Navigator.pop(ctx);

@@ -81,7 +81,7 @@ class _CounselorRateSheetState extends ConsumerState<_CounselorRateSheet> {
       if (!mounted) return;
       TopToast.show(
         context,
-        title: 'Berhasil Disimpan 💰',
+        title: 'Berhasil Disimpan',
         message: 'Tarif sesi mandiri berhasil diperbarui ke server!',
         type: ToastType.success,
       );
@@ -363,7 +363,7 @@ class _CounselorRateSheetState extends ConsumerState<_CounselorRateSheet> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Tarif sesi Rp${_formatRupiah(metrics?.activeSessionPrice ?? 50000.0)} ditetapkan oleh Tier Level Anda (${metrics?.levelName ?? "Praktisi"}). Bagi hasil bersih ${(100 - platformFeePercent).toStringAsFixed(0)}% otomatis masuk ke dompet Anda setelah sesi berakhir.',
+                            'Tarif Rp${_formatRupiah(metrics?.activeSessionPrice ?? 50000.0)} mengikuti Tier ${metrics?.levelName ?? "Praktisi"} dengan bagi hasil bersih ${(100 - platformFeePercent).toStringAsFixed(0)}%.',
                             style: const TextStyle(
                                 fontSize: 11,
                                 color: Color(0xFF166534),

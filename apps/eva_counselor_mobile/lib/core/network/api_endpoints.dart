@@ -5,6 +5,7 @@ class ApiEndpoints {
   static const String register = '/counselors/register';
   static const String profile = '/counselors/me';
   static const String updateProfile = '/counselors/me';
+  static const String uploadAvatar = '/counselors/me/avatar';
   static const String uploadCertificate = '/counselors/me/resubmit-verification';
   static const String availability = '/counselors/me/availability';
   static const String bankDetails = '/counselors/me/bank-details';

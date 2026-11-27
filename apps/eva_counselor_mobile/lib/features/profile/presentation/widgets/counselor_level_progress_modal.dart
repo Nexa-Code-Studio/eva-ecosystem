@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/app_async_state_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../providers/counselor_level_metrics_provider.dart';
@@ -50,18 +51,16 @@ class _CounselorLevelProgressSheet extends ConsumerWidget {
         bottom: MediaQuery.of(context).padding.bottom + 20,
       ),
       child: metricsAsync.when(
-        loading: () => const SizedBox(
-          height: 250,
-          child: Center(child: CircularProgressIndicator()),
+        loading: () => AppAsyncStateView.loading(
+          title: 'Memuat status level...',
+          message: 'Menghitung progres sesi dan rating Anda.',
+          compact: true,
         ),
-        error: (err, _) => SizedBox(
-          height: 200,
-          child: Center(
-            child: Text(
-              'Gagal memuat status level: $err',
-              style: const TextStyle(color: AppColors.error),
-            ),
-          ),
+        error: (err, _) => AppAsyncStateView.error(
+          title: 'Gagal memuat status level',
+          message: 'Terjadi kendala saat mengambil progres level.',
+          onRetry: () => ref.invalidate(counselorLevelMetricsProvider),
+          compact: true,
         ),
         data: (metrics) {
           if (metrics == null) {
@@ -239,8 +238,8 @@ class _CounselorLevelProgressSheet extends ConsumerWidget {
                       const SizedBox(height: 10),
                       _buildChecklistRow(
                         title: 'Rata-rata Rating Kepuasan',
-                        current: '${metrics.averageRating.toStringAsFixed(1)} ⭐',
-                        target: 'Min. ${next.targetRating.toStringAsFixed(1)} ⭐',
+                        current: '${metrics.averageRating.toStringAsFixed(1)} / 5.0',
+                        target: 'Min. ${next.targetRating.toStringAsFixed(1)} / 5.0',
                         isAchieved: metrics.averageRating >= next.targetRating,
                       ),
                       const SizedBox(height: 10),
@@ -273,7 +272,7 @@ class _CounselorLevelProgressSheet extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Level Tertinggi Tercapai! 👑',
+                              'Level Tertinggi Tercapai',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,

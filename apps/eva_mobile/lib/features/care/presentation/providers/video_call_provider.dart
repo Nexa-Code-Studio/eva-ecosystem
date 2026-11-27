@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:webrtc_client/webrtc_client.dart';
 import '../../../../config/app_config.dart';
 import '../../domain/entities/consultation_session_entity.dart';
 import '../../domain/entities/video_call_state_entity.dart';
@@ -25,6 +26,15 @@ final videoCallRepositoryProvider = Provider<VideoCallRepository>((ref) {
 final videoCallControllerProvider = StateNotifierProvider.autoDispose
     .family<VideoCallController, VideoCallStateEntity,
         ConsultationSessionEntity>((ref, session) {
+  if (session.isPreview) {
+    return VideoCallController(
+      repository: VideoCallRepositoryImpl(dataSource: MockVideoCallDataSource()),
+      initialSession: session,
+      peerManager: MockWebRtcPeerManager(),
+      signalingService: MockSignalingService(),
+      isPreviewMode: true,
+    );
+  }
   final repository = ref.watch(videoCallRepositoryProvider);
   return VideoCallController(
     repository: repository,

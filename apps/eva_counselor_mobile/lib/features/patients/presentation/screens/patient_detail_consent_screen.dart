@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/screen_security_helper.dart';
+import '../../../../core/widgets/app_async_state_view.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../../core/widgets/top_toast.dart';
@@ -179,7 +180,7 @@ class _PatientDetailConsentScreenState
             SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Catatan Disimpan! 🌟',
+                'Catatan Disimpan',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
@@ -462,8 +463,21 @@ class _PatientDetailConsentScreenState
           ),
         );
       },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        loading: () => Padding(
+          padding: const EdgeInsets.all(20),
+          child: AppAsyncStateView.loading(
+            title: 'Memuat rekam pasien...',
+            message: 'Menyiapkan data keluhan dan status persetujuan.',
+          ),
+        ),
+        error: (e, _) => Padding(
+          padding: const EdgeInsets.all(20),
+          child: AppAsyncStateView.error(
+            title: 'Gagal memuat detail pasien',
+            message: 'Data pasien belum dapat ditampilkan saat ini.',
+            onRetry: () => ref.invalidate(patientDetailProvider(widget.patientId)),
+          ),
+        ),
       ),
     );
   }
@@ -499,7 +513,7 @@ class _PatientDetailConsentScreenState
           ),
           const SizedBox(height: 8),
           const Text(
-            'Berdasarkan regulasi privasi rekam medis psikologi, data skrining DASS-21 serta memori riwayat keluhan klinis pasien hanya dapat diakses setelah pasien memberikan persetujuan (Consent Gate).',
+            'Data skrining DASS-21 dan riwayat keluhan pasien hanya dapat diakses setelah pasien menyetujui izin akses.',
             style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.5),
             textAlign: TextAlign.center,
           ),
@@ -547,12 +561,12 @@ class _PatientDetailConsentScreenState
             ),
             const SizedBox(height: 12),
             const Text(
-              'Akses Rekam Medis Terkunci 🔒',
+              'Akses Rekam Medis Terkunci',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 6),
             const Text(
-              'Sesuai etika kerahasiaan pasien, detail rekam emosional hanya dapat diakses saat ada jadwal konsultasi aktif (booking mendatang atau sesi terjadwal). Setelah sesi selesai difinalisasi, akses tertutup kembali secara otomatis demi privasi.',
+              'Rekam emosional hanya dapat diakses saat ada jadwal konsultasi aktif. Akses tertutup otomatis setelah sesi selesai.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary, height: 1.45),
             ),
@@ -666,7 +680,7 @@ class _PatientDetailConsentScreenState
               SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Kode Etik HIMPSI (Pasal 24 Kerahasiaan Rekam Psikologi): Data dibatasi pada pemicu klinis esensial & keluhan utama demi menjaga kerahasiaan penuh privasi pasien.',
+                  'Data dibatasi pada pemicu klinis esensial & keluhan utama sesuai Kode Etik HIMPSI.',
                   style: TextStyle(fontSize: 10.5, color: Color(0xFF1D4ED8), height: 1.4),
                 ),
               ),
@@ -914,7 +928,7 @@ class _PatientDetailConsentScreenState
                         ),
                         SizedBox(height: 3),
                         Text(
-                          'Sesuai kode etik klinis & ketentuan honorarium, koin honorarium sesi (150 Koin) akan otomatis dikreditkan ke saldo dompet Anda setelah Anda menyimpan catatan observasi ini.',
+                          'Koin honorarium (150 Koin) otomatis masuk ke dompet setelah Anda menyimpan catatan sesi pertama.',
                           style: TextStyle(fontSize: 11, color: Color(0xFF92400E), height: 1.45),
                         ),
                       ],
@@ -957,7 +971,7 @@ class _PatientDetailConsentScreenState
                           ),
                           SizedBox(height: 2),
                           Text(
-                            'Sesuai Kode Etik Psikologi Indonesia (HIMPSI), psikolog mencatat poin observasi esensial, riwayat trauma, dan narasi evaluasi secara manual. Data tersimpan aman dengan enkripsi database (AES-256).',
+                            'Catat poin observasi dan evaluasi klinis secara ringkas. Data tersimpan terenkripsi (AES-256).',
                             style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
                           ),
                         ],
@@ -1273,8 +1287,17 @@ class _PatientDetailConsentScreenState
               ],
             );
           },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Text('Error: $e'),
+          loading: () => AppAsyncStateView.loading(
+            title: 'Memuat riwayat catatan SOAP...',
+            message: 'Mengambil catatan sesi sebelumnya.',
+            compact: true,
+          ),
+          error: (e, _) => AppAsyncStateView.error(
+            title: 'Gagal memuat catatan SOAP',
+            message: 'Riwayat catatan medis belum dapat dimuat.',
+            onRetry: () => ref.invalidate(patientNotesProvider(widget.patientId)),
+            compact: true,
+          ),
         ),
       ],
     );
@@ -1417,7 +1440,7 @@ class _PatientDetailConsentScreenState
             ),
             const SizedBox(height: 8),
             const Text(
-              'Waktu jadwal telekonsultasi telah aktif. Anda dapat langsung membuka ruang video call sekarang. Eva AI akan mentranskripsikan audio percakapan menjadi draf catatan SOAP secara otomatis.',
+              'Ruang video call sudah aktif. Audio percakapan akan ditranskrip otomatis menjadi draf catatan SOAP.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.5),
             ),
@@ -1538,7 +1561,7 @@ class _PatientDetailConsentScreenState
                       border: Border.all(color: const Color(0xFFFDE68A)),
                     ),
                     child: Text(
-                      '⏱️ ${schedule.statusText}',
+                      schedule.statusText,
                       style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
                     ),
                   ),
@@ -1547,7 +1570,7 @@ class _PatientDetailConsentScreenState
             ),
             const SizedBox(height: 10),
             Text(
-              'Sesuai etika telekonsultasi klinis, ruang video call dan transkripsi SOAP baru dibuka 15 menit sebelum sesi (pukul ${schedule.roomOpensAt}). Pasien belum standby di ruang sesi saat ini.',
+              'Ruang video call dibuka 15 menit sebelum sesi (${schedule.roomOpensAt}). Pasien belum bergabung.',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.5),
             ),
