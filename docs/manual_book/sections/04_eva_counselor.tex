@@ -2,20 +2,134 @@
 \chapter{Panduan Psikolog EVA Counselor Mobile}
 \label{chap:eva-counselor}
 
+\textbf{EVA Counselor} adalah aplikasi seluler mandiri (\texttt{apps/eva\_counselor\_mobile}) yang dibangun khusus bagi psikolog klinis dan konselor berlisensi resmi. Aplikasi ini memfasilitasi pengelolaan jam praktik telekonseling yang fleksibel, integrasi ringkasan rekam emosi pasien berbasis persetujuan (\textit{Consent-Gated Clinical Context}), pelaksanaan panggilan video WebRTC berlatensi rendah, pencatatan rekam medis standar \textbf{SOAP}, hingga penarikan honorarium koin secara transparan.
+
 \section{Registrasi dan Gate Verifikasi STR/SIP}
-% TODO(@KhoirotunNisa25): Dokumentasikan pengunggahan kredensial STR/SIP dan status verifikasi.
+
+\subsection{Persyaratan Kredensial Legalitas Psikolog}
+Sesuai standar operasional dan kode etik HIMPSI, hanya tenaga psikologi profesional yang memiliki legalitas sah yang dapat berpraktik di dalam EVA Ecosystem:
+\begin{itemize}[leftmargin=1.4em]
+  \item Lulusan pendidikan Magister Psikologi Profesi (Psikolog Klinis / S.Psi., M.Psi., Psikolog).
+  \item Memiliki \textbf{Surat Tanda Registrasi (STR)} aktif yang diterbitkan oleh Konsil Tenaga Kesehatan Indonesia (KTKI).
+  \item Memiliki \textbf{Surat Izin Praktik Psikologi (SIPP)} yang masih berlaku di wilayah Republik Indonesia.
+\end{itemize}
+
+\subsection{Alur Pendaftaran dan Gerbang Verifikasi (\textit{Verification Gate})}
+\begin{enumerate}[leftmargin=1.4em]
+  \item \stepbadge{1} Buka aplikasi EVA Counselor dan pilih tautan \textbf{Daftar sebagai Psikolog Mitra}.
+  \item \stepbadge{2} Lengkapi formulir pendaftaran: Nama Lengkap beserta Gelar Akademik resmi, Nomor Induk Kependudukan (NIK), Nomor STR, Nomor SIPP, serta masa berlaku izin.
+  \item \stepbadge{3} Unggah pindaian atau foto dokumen fisik STR dan SIPP yang jelas dan terbaca.
+  \item \stepbadge{4} Kirim permohonan. Akun akan segera memasuki tahap \textbf{Gate Verifikasi (\textit{Pending Verification Review})}.
+\end{enumerate}
+
+\calloutwarn{Batasan Akses Sebelum Disetujui}{Selama status akun masih \textit{Pending}, psikolog belum dapat membuka kalender praktik dan nama psikolog tidak akan ditampilkan pada direktori pencarian di EVA Mobile. Jika berkas ditolak oleh Administrator karena dokumen buram atau kedaluwarsa, psikolog akan menerima notifikasi alasan penolakan dan dapat memperbarui unggahan dokumen.}
 
 \section{Dashboard Konselor}
-% TODO(@KhoirotunNisa25): Dokumentasikan ringkasan jadwal harian, notifikasi, dan quick actions.
+
+\subsection{Navigasi dan Ringkasan Operasional Harian}
+Setelah akun disetujui Administrator, psikolog dapat mengakses \textbf{Dashboard Konselor} yang menyajikan pusat komando kerja harian:
+\begin{itemize}[leftmargin=1.4em]
+  \item \textbf{Status Verifikasi Resmi}: Lencana centang hijau \textit{Terverifikasi STR/SIPP} yang aktif.
+  \item \textbf{Kalender Sesi Hari Ini}: Garis waktu (\textit{timeline}) interaktif yang menampilkan daftar sesi telekonseling yang telah dipesan pasien, urut berdasarkan jam pelaksanaan.
+  \item \textbf{Metrik Kinerja Utama}: Tiga kartu indikator ringkas: \textit{Total Sesi Konsultasi Selesai}, \textit{Rating Rata-Rata Pasien (skala 5.0)}, dan \textit{Saldo EVA Coin Tersedia}.
+  \item \textbf{Antrean Tindak Lanjut}: Pengingat pengisian catatan klinis SOAP untuk sesi yang baru saja selesai.
+\end{itemize}
+
+\uifigure[0.38\textwidth]{counselor/01_dashboard_jadwal.png}{Tampilan Dashboard Utama dan Jadwal Praktik Psikolog (\texttt{/#/counselor-shell})}{fig:counselor-dashboard}
 
 \section{Manajemen Profil, Level, Tarif, dan Jadwal Praktik}
-% TODO(@KhoirotunNisa25): Dokumentasikan edit profil, avatar, jam praktik, dan slot 30 menit.
+
+\subsection{Pengaturan Profil Publik dan Keahlian}
+Profil publik adalah etalase profesional yang dilihat oleh calon pasien di aplikasi EVA Mobile:
+\begin{enumerate}[leftmargin=1.4em]
+  \item \stepbadge{1} Buka menu \textbf{Profil Konselor}.
+  \item \stepbadge{2} Atur foto profil berpenampilan profesional dan lengkapi deskripsi singkat mengenai pendekatan terapeutik yang digunakan (misal: \textit{CBT, Mindfulness, SFBT, Person-Centered}).
+  \item \stepbadge{3} Pilih tag spesialisasi kasus utama (misal: \textit{Kecemasan, Depresi, Masalah Relasi & Keluarga, Stres Akademik, Burnout Karier}).
+\end{enumerate}
+
+\subsection{Tingkat Leveling Psikolog dan Kebijakan Tarif}
+Platform menerapkan sistem jenjang karier berbasis pengalaman dan performa:
+\begin{table}[htbp]
+  \centering
+  \caption{Struktur Jenjang Level dan Batas Tarif Sesi Konsultasi}
+  \label{tab:counselor-levels}
+  \small
+  \begin{tabularx}{\textwidth}{@{}lcp{5.2cm}X@{}}
+    \toprule
+    \textbf{Tingkat Level} & \textbf{Tarif Standar} & \textbf{Kriteria Kualifikasi} & \textbf{Fasilitas Platform} \\
+    \midrule
+    \textbf{Junior} & 50 Koin (Rp 50.000) & Pengalaman praktik $<2$ tahun, STR/SIPP aktif & Bimbingan supervisi kasus, akses penuh sistem SOAP \\
+    \textbf{Reguler} & 100 Koin (Rp 100.000) & Pengalaman praktik 2--5 tahun, $\ge 50$ sesi selesai, rating $\ge 4.5$ & Prioritas tampil di rekomendasi direktori pasien \\
+    \textbf{Senior} & 150 Koin (Rp 150.000) & Pengalaman praktik $>5$ tahun, $\ge 150$ sesi selesai, rating $\ge 4.8$ & Lencana verifikasi senioritas, sertifikat apresiasi berkala \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{Penyusunan Jadwal Praktik Fleksibel (\textit{Availability Slots})}
+Psikolog memiliki kemerdekaan penuh dalam mengatur jam kerja:
+\begin{itemize}[leftmargin=1.4em]
+  \item Jadwal diatur per hari dalam blok slot berdurasi \textbf{30 menit}.
+  \item \textbf{Fitur Multi-Break}: Psikolog dapat menyisipkan jeda istirahat di antara slot konsultasi untuk mencegah kejenuhan (\textit{compassion fatigue}).
+  \item Jadwal dapat diaktifkan atau dinonaktifkan secara instan sewaktu-waktu sesuai ketersediaan waktu luang konselor.
+\end{itemize}
 
 \section{Daftar Pasien dan Shared Clinical Context}
-% TODO(@KhoirotunNisa25): Dokumentasikan daftar pasien serta akses rekam emosional berbasis consent.
+
+\subsection{Daftar Pasien Aktif dan Riwayat Sesi}
+Tab \textbf{Pasien} memuat daftar seluruh pasien yang pernah atau akan mengadakan sesi konsultasi. Setiap entri menampilkan riwayat tanggal sesi, ringkasan diagnosis kerja, serta tautan menuju dokumen SOAP sebelumnya.
+
+\subsection{Akses Rekam Emosional Berbasis Consent (\textit{Shared Clinical Context})}
+Salah satu keunggulan terbesar integrasi EVA Ecosystem adalah ketersediaan \textbf{Ringkasan Pra-Konsultasi Terstruktur}:
+\begin{itemize}[leftmargin=1.4em]
+  \item Jika pasien mengaktifkan izin berbagi (\textit{Consent Toggle}), psikolog dapat membuka lembar ringkasan emosi sebelum panggilan dimulai.
+  \item Data yang ditampilkan mencakup: grafik skor skrining \textbf{DASS-21} terakhir (tingkat depresi, kecemasan, dan stres), tag tema emosi dominan dari jurnal harian pasien, serta riwayat pencetus stres.
+  \item \textbf{Efisiensi Klinis}: Memangkas waktu wawancara awal (\textit{anamnesis}) dari yang biasanya memakan 30--40 menit menjadi hanya 5--10 menit konfirmasi data, sehingga sisa waktu sesi dapat difokuskan untuk intervensi terapeutik langsung.
+\end{itemize}
+
+\calloutnote{Prinsip Kerahasiaan Medis}{Data rekam emosional yang dibagikan pasien bersifat rahasia dan dilindungi oleh kode etik profesi. Data ini dilarang disebarluaskan, direkam tangkapan layarnya, atau digunakan di luar konteks pemberian layanan psikologis resmi.}
+
+\uifigure[0.38\textwidth]{counselor/02_rekam_klinis_consent.png}{Ringkasan Rekam Emosi Pasien Berbasis Izin Eksplisit (Consent)}{fig:counselor-consent}
 
 \section{Pelaksanaan Telekonseling Video Call dan Catatan SOAP}
-% TODO(@KhoirotunNisa25): Dokumentasikan join video call, extension in-call, mutual early termination, dan batas edit SOAP H+1.
+
+\subsection{Pelaksanaan Sesi Telekonseling WebRTC}
+\begin{enumerate}[leftmargin=1.4em]
+  \item \stepbadge{1} Masuk ke aplikasi 5 menit sebelum jadwal sesi dimulai.
+  \item \stepbadge{2} Tombol \textbf{Masuk Ruang Telekonseling} akan berubah menjadi aktif di Dashboard.
+  \item \stepbadge{3} Sesi video call berjalan dengan enkripsi ujung-ke-ujung (\textit{End-to-End Encryption}). Tersedia kontrol mikrofon, kamera, dan tampilan pratinjau diri.
+  \item \stepbadge{4} \textbf{Penghitung Waktu (\textit{In-Call Timer})}: Menampilkan sisa durasi sesi 30 menit. Jika kedua belah pihak sepakat menambah durasi, tersedia opsi perpanjangan waktu (\textit{In-Call Extension}) sebesar 15 menit dengan persetujuan koin pasien.
+  \item \stepbadge{5} Jika sesi selesai lebih awal atas kesepakatan bersama, kedua belah pihak dapat menekan tombol \textbf{Selesaikan Sesi Bersama (\textit{Mutual Early Termination})}.
+\end{enumerate}
+
+\uifigure[0.38\textwidth]{counselor/03_ruang_telekonseling.png}{Ruang Telekonsultasi Video Call 30 Menit}{fig:counselor-teleconsult}
+
+\subsection{Kewajiban Pengisian Catatan Klinis SOAP}
+Sebagai syarat akuntabilitas medis dan pelepasan honorarium, psikolog wajib melengkapi catatan klinis berformat \textbf{SOAP} segera setelah sesi panggilan berakhir:
+\begin{itemize}[leftmargin=1.4em]
+  \item \textbf{S (Subjective)}: Keluhan utama yang diceritakan pasien, riwayat perasaan, dan narasi subjektif pasien.
+  \item \textbf{O (Objective)}: Observasi afek, kontak mata, intonasi suara, ekspresi emosional, dan respons motorik selama video call.
+  \item \textbf{A (Assessment)}: Analisis psikologis, evaluasi dinamika kepribadian, atau diagnosis kerja sementara.
+  \item \textbf{P (Plan)}: Rencana intervensi sesi berikutnya, rekomendasi latihan mandiri (\textit{homework} seperti teknik pernapasan atau CBT journal), atau rujukan lanjutan ke psikiater/faskes fisik jika berisiko tinggi.
+\end{itemize}
+
+\calloutwarn{Batas Waktu Pengisian SOAP (H+1)}{Catatan SOAP wajib diselesaikan selambat-lambatnya 24 jam (H+1) setelah sesi video call berakhir. Keterlambatan pengisian SOAP akan menunda proses pencairan honorarium koin ke dompet konselor.}
 
 \section{Keuangan, Skema Bagi Hasil, dan Penarikan Dana}
-% TODO(@KhoirotunNisa25): Dokumentasikan honorarium koin, rekening bank terverifikasi, dan withdraw.
+
+\subsection{Akumulasi Honorarium dan Skema Bagi Hasil}
+Setiap sesi telekonseling yang telah diselesaikan dan dilengkapi catatan SOAP-nya akan menghasilkan pelepasan koin ke saldo dompet psikolog:
+\begin{itemize}[leftmargin=1.4em]
+  \item \textbf{Skema Bagi Hasil}: Psikolog menerima \textbf{80\%} dari total tarif koin sesi, sementara \textbf{20\%} dialokasikan untuk pemeliharaan infrastruktur server, lisensi WebRTC, dan operasional platform EVA.
+  \item Nilai konversi saldo koin adalah \textbf{1 Koin = Rp 1.000}.
+\end{itemize}
+
+\subsection{Prosedur Penarikan Dana (\textit{Payout / Withdrawal})}
+\begin{enumerate}[leftmargin=1.4em]
+  \item \stepbadge{1} Akses tab \textbf{Keuangan \& Saldo} di aplikasi EVA Counselor.
+  \item \stepbadge{2} Daftarkan nomor rekening bank atas nama psikolog sendiri (BCA, Bank Mandiri, BNI, BRI, atau Bank Jatim). Sistem memvalidasi keselarasan nama pemilik rekening dengan data STR pendaftar.
+  \item \stepbadge{3} Masukkan nominal koin yang ingin ditarik (Batas penarikan minimum: 50 Koin atau setara Rp 50.000).
+  \item \stepbadge{4} Konfirmasi permohonan penarikan. Dana akan diproses dan ditransfer ke rekening bank dalam waktu 1--2 hari kerja (maksimal 1x24 jam pada hari kerja perbankan).
+  \item \stepbadge{5} Seluruh mutasi koin masuk dan histori transfer bank dapat dipantau secara transparan pada tabel riwayat transaksi.
+\end{enumerate}
+
+\uifigure[0.38\textwidth]{counselor/04_keuangan_penarikan.png}{Manajemen Keuangan, Honorarium Koin, dan Penarikan Dana}{fig:counselor-finances}
