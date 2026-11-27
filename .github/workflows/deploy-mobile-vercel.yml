@@ -77,7 +77,7 @@ jobs:
       - name: Prepare Vercel Build Output (Eva Mobile)
         run: |
           set -euo pipefail
-          OUT_DIR="apps/eva_mobile/.vercel/output"
+          OUT_DIR=".vercel/output"
           rm -rf "$OUT_DIR"
           mkdir -p "$OUT_DIR/static"
           cp -r apps/eva_mobile/build/web/. "$OUT_DIR/static/"
@@ -153,7 +153,7 @@ jobs:
       - name: Prepare Vercel Build Output (Eva Counselor)
         run: |
           set -euo pipefail
-          OUT_DIR="apps/eva_counselor_mobile/.vercel/output"
+          OUT_DIR=".vercel/output"
           rm -rf "$OUT_DIR"
           mkdir -p "$OUT_DIR/static"
           cp -r apps/eva_counselor_mobile/build/web/. "$OUT_DIR/static/"
