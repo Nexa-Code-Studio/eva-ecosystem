@@ -5,6 +5,7 @@ from typing import Literal
 import uuid
 from datetime import UTC, datetime, time, timedelta, timezone
 
+from email_validator import EmailNotValidError, validate_email
 from fastapi import HTTPException, UploadFile, status
 from shared.config import settings
 from sqlalchemy import case, or_, select
@@ -57,6 +58,15 @@ class CounselorService:
     async def register(self, payload: RegisterPsychologistRequest) -> PsychologistProfileResponse:
         """Register a new individual professional psychologist with pending verification."""
         clean_email = payload.email.strip().lower()
+
+        try:
+            val = validate_email(clean_email, check_deliverability=True)
+            clean_email = val.normalized
+        except EmailNotValidError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Domain email tidak valid atau tidak menerima email ({e})",
+            )
 
         # Check existing user
         query = select(User).where(User.email == clean_email)

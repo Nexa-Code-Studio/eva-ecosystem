@@ -123,7 +123,9 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
                       20,
                       12,
                       20,
-                      MediaQuery.paddingOf(context).bottom + 104,
+                      MediaQuery.paddingOf(context).bottom > 0
+                          ? MediaQuery.paddingOf(context).bottom + 64
+                          : 72,
                     ),
                     itemCount: filtered.length,
                     separatorBuilder: (context, index) => const SizedBox(height: 12),

@@ -893,7 +893,7 @@ class _TransactionHistoryScreenState
 
                 // 3. Transactions List
                 _buildTransactionsList(txListAsync, payoutsAsync),
-                SizedBox(height: MediaQuery.paddingOf(context).bottom + 104),
+                const SizedBox(height: 72),
               ],
             ),
           ),

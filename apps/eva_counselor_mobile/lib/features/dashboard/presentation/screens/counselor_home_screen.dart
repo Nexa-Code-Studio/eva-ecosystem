@@ -453,92 +453,6 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 8),
-
-              // STATUS PRAKTIK OTOMATIS (Berdasarkan Jam Operasional & Jam Istirahat Terjadwal)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFECEFF8)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: (isSelectedDayOnline && isSelectedDayActive)
-                            ? AppColors.verifiedGreen
-                            : AppColors.highRiskRed,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Builder(
-                        builder: (context) {
-                          final selectedDayKey = weekdayKeyFromDate(selectedDate);
-                          final fallbackDayCfg = user?.scheduleConfig[selectedDayKey];
-                          final fallbackBreaks = fallbackDayCfg is Map<String, dynamic>
-                              ? (fallbackDayCfg['breaks'] as List<dynamic>? ?? const [])
-                                  .whereType<Map<String, dynamic>>()
-                                  .map((b) => '${b['start'] ?? '12:00'}-${b['end'] ?? '13:00'}')
-                                  .toList()
-                              : (user?.todayBreaks
-                                      .map((b) =>
-                                          '${b['start'] ?? '12:00'}-${b['end'] ?? '13:00'}')
-                                      .toList() ??
-                                  const <String>[]);
-                          final breakRanges = timeline != null
-                              ? timeline.blockedRanges
-                                  .where((r) => r.type == 'break')
-                                  .map((r) => '${r.start}-${r.end}')
-                                  .toList()
-                              : fallbackBreaks;
-                          final String statusText;
-                          if (!isSelectedDayOnline) {
-                            statusText = 'Mode Cuti • Pemesanan Ditutup';
-                          } else if (!isSelectedDayActive) {
-                            statusText = 'Hari Libur Praktik (Offline)';
-                          } else if (breakRanges.isEmpty) {
-                            statusText = 'Aktif • Tanpa Jam Istirahat';
-                          } else {
-                            statusText =
-                                'Aktif • Istirahat ${breakRanges.join(', ')}';
-                          }
-                          return Text(
-                            statusText,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    InkWell(
-                      onTap: _openScheduleSettings,
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                        child: Text(
-                          'Ubah',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
               const SizedBox(height: 12),
               _buildDailyTimelineProgressBar(
                 user: user,
@@ -1615,7 +1529,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                   compact: true,
                 ),
               ),
-              SizedBox(height: MediaQuery.paddingOf(context).bottom + 104),
+              const SizedBox(height: 72),
             ],
           ),
         ),

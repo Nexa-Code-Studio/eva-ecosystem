@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/services/google_drive_service.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 import '../../../../core/widgets/glass_card.dart';
@@ -80,45 +79,6 @@ class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScree
     }
 
     Navigator.of(context).pushReplacementNamed('/counselor-shell');
-  }
-
-  void _handleGoogleSignIn() async {
-    setState(() => _isLoading = true);
-    try {
-      final driveService = ref.read(googleDriveServiceProvider);
-      final account = await driveService.signInWithGoogle();
-      if (account != null) {
-        setState(() {
-          _emailController.text = account.email;
-        });
-
-        await ref
-            .read(authStateProvider.notifier)
-            .login(account.email, _passwordController.text);
-        if (!mounted) return;
-
-        final user = ref.read(authStateProvider).value;
-        if (user != null) {
-          ref.read(authStateProvider.notifier).syncDriveBackup(
-                email: account.email,
-                frequency: 'Harian',
-              );
-          Navigator.of(context).pushReplacementNamed('/counselor-shell');
-          return;
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        TopToast.show(
-          context,
-          title: 'Google Sign-In',
-          message: 'Gagal menghubungkan akun Google: ${e.toString()}',
-          type: ToastType.error,
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
   }
 
   @override
@@ -216,57 +176,6 @@ class _PsychologistLoginScreenState extends ConsumerState<PsychologistLoginScree
                       onPressed: _handleLogin,
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        const Expanded(child: Divider(color: Color(0xFFE2E8F0))),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            'atau masuk dengan',
-                            style: AppTypography.bodySmall.copyWith(
-                              color: AppColors.textSecondary,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
-                        const Expanded(child: Divider(color: Color(0xFFE2E8F0))),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          side: const BorderSide(color: Color(0xFFE2E8F0)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        icon: Image.asset(
-                          'assets/images/google_logo.png',
-                          width: 20,
-                          height: 20,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(
-                            Icons.g_mobiledata_rounded,
-                            size: 24,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        label: const Text(
-                          'Masuk dengan Akun Google',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        onPressed: _isLoading ? null : _handleGoogleSignIn,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
                     InkWell(
                       onTap: () {
                         setState(() {
