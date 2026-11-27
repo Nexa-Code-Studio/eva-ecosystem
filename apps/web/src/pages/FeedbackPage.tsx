@@ -1,20 +1,49 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { ArrowLeft, CheckCircle2, Circle, Loader2, Lock, Send } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Circle, Loader2, Lock, Send, Smartphone, Stethoscope } from 'lucide-react'
 import { Link } from 'react-router'
 import {
   BoothPhotoPicker,
   type SelectedBoothPhoto,
 } from '@/components/feedback/BoothPhotoPicker'
 import { RatingSelector } from '@/components/feedback/RatingSelector'
+import { ScaleSelector, type ScaleOptionMeta } from '@/components/feedback/ScaleSelector'
 import { Button, Logo } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { submitBoothFeedback } from '@/lib/portalStore'
-import type { SubmitBoothFeedbackResult } from '@/types/portal'
+import type { BoothVisitorRole, SubmitBoothFeedbackResult } from '@/types/portal'
+
+const USAGE_SCALE_LABELS: Record<number, ScaleOptionMeta> = {
+  1: { title: 'Sangat kecil', toneClass: 'border-[#FECACA] bg-[#FEF2F2] text-[#991B1B]' },
+  2: { title: 'Masih ragu', toneClass: 'border-[#FED7AA] bg-[#FFF7ED] text-[#9A3412]' },
+  3: { title: 'Pertimbangkan', toneClass: 'border-[#FDE68A] bg-[#FFFBEB] text-[#92400E]' },
+  4: { title: 'Kemungkinan besar', toneClass: 'border-[#BBF7D0] bg-[#F0FDF4] text-[#166534]' },
+  5: { title: 'Pasti menggunakan', toneClass: 'border-[#BBF7D0] bg-[#ECFDF5] text-[#047857]' },
+}
+
+const RECOMMENDATION_SCALE_LABELS: Record<number, ScaleOptionMeta> = {
+  1: { title: 'Tidak merekomendasikan', toneClass: 'border-[#FECACA] bg-[#FEF2F2] text-[#991B1B]' },
+  2: { title: 'Kemungkinan kecil', toneClass: 'border-[#FED7AA] bg-[#FFF7ED] text-[#9A3412]' },
+  3: { title: 'Netral', toneClass: 'border-[#FDE68A] bg-[#FFFBEB] text-[#92400E]' },
+  4: { title: 'Cukup merekomendasikan', toneClass: 'border-[#BBF7D0] bg-[#F0FDF4] text-[#166534]' },
+  5: { title: 'Pasti merekomendasikan', toneClass: 'border-[#BBF7D0] bg-[#ECFDF5] text-[#047857]' },
+}
+
+const VISITOR_ROLE_OPTIONS: ReadonlyArray<{
+  value: BoothVisitorRole
+  title: string
+  subtitle: string
+}> = [
+  { value: 'user', title: 'Pengguna Biasa', subtitle: 'Aplikasi Eva Mobile' },
+  { value: 'counselor', title: 'Psikolog', subtitle: 'Aplikasi Eva Counselor' },
+]
 
 export function FeedbackPage() {
   const [visitorName, setVisitorName] = useState('')
   const [visitorContact, setVisitorContact] = useState('')
+  const [visitorRole, setVisitorRole] = useState<BoothVisitorRole>('user')
   const [rating, setRating] = useState<number>(0)
+  const [usageLikelihood, setUsageLikelihood] = useState<number>(0)
+  const [recommendationScore, setRecommendationScore] = useState<number>(0)
   const [message, setMessage] = useState('')
   const [photos, setPhotos] = useState<SelectedBoothPhoto[]>([])
   const [photoNote, setPhotoNote] = useState<string | null>(null)
@@ -50,7 +79,10 @@ export function FeedbackPage() {
     photos.forEach((p) => URL.revokeObjectURL(p.previewUrl))
     setVisitorName('')
     setVisitorContact('')
+    setVisitorRole('user')
     setRating(0)
+    setUsageLikelihood(0)
+    setRecommendationScore(0)
     setMessage('')
     setPhotos([])
     setPhotoNote(null)
@@ -58,12 +90,28 @@ export function FeedbackPage() {
     setSubmittedResult(null)
   }
 
+  const isCounselor = visitorRole === 'counselor'
+  const targetAppName = isCounselor ? 'Eva Counselor' : 'Eva Mobile'
+  const recommendTargetLabel = isCounselor ? 'rekan psikolog' : 'teman'
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (submitting) return
 
     if (rating < 1 || rating > 5) {
       setErrorMessage('Ketuk bintang 1 sampai 5 terlebih dahulu sebelum mengirim.')
+      return
+    }
+    if (usageLikelihood < 1 || usageLikelihood > 5) {
+      setErrorMessage(
+        `Pilih skala 1 sampai 5 untuk seberapa mungkin Anda menggunakan aplikasi ${targetAppName}.`,
+      )
+      return
+    }
+    if (recommendationScore < 1 || recommendationScore > 5) {
+      setErrorMessage(
+        `Pilih skala 1 sampai 5 untuk kesediaan merekomendasikan ${targetAppName} ke ${recommendTargetLabel}.`,
+      )
       return
     }
     const trimmedMessage = message.trim()
@@ -81,6 +129,9 @@ export function FeedbackPage() {
     try {
       const result = await submitBoothFeedback({
         rating,
+        usageLikelihood,
+        recommendationScore,
+        visitorRole,
         message: trimmedMessage,
         visitorName: visitorName.trim() || undefined,
         visitorContact: visitorContact.trim() || undefined,
@@ -98,8 +149,11 @@ export function FeedbackPage() {
   }
 
   const isRatingDone = rating >= 1 && rating <= 5
+  const isUsageDone = usageLikelihood >= 1 && usageLikelihood <= 5
+  const isRecDone = recommendationScore >= 1 && recommendationScore <= 5
   const isMessageDone = message.trim().length >= 5
   const isPhotosDone = photos.length >= 1
+  const completedScoreCount = [isRatingDone, isUsageDone, isRecDone].filter(Boolean).length
 
   return (
     <div className="min-h-screen bg-canvas text-ink">
@@ -152,9 +206,29 @@ export function FeedbackPage() {
               {submittedResult.message}
             </p>
             <dl className="mt-5 grid grid-cols-2 gap-3 rounded-[16px] border border-[#E2E8F0] bg-canvas p-4 text-center text-xs">
+              <div className="col-span-2 border-b border-[#E2E8F0] pb-2.5">
+                <dt className="text-ink-muted">Peran Responden</dt>
+                <dd className="mt-0.5 text-sm font-bold text-ink">
+                  {submittedResult.visitorRole === 'counselor'
+                    ? 'Psikolog (Aplikasi Eva Counselor)'
+                    : 'Pengguna Biasa (Aplikasi Eva Mobile)'}
+                </dd>
+              </div>
               <div>
                 <dt className="text-ink-muted">Rating Anda</dt>
                 <dd className="mt-1 text-base font-bold text-ink">{submittedResult.rating} / 5 Bintang</dd>
+              </div>
+              <div>
+                <dt className="text-ink-muted">Minat Pakai Apps</dt>
+                <dd className="mt-1 text-base font-bold text-ink">{submittedResult.usageLikelihood} / 5</dd>
+              </div>
+              <div>
+                <dt className="text-ink-muted">
+                  {submittedResult.visitorRole === 'counselor'
+                    ? 'Rekomendasi Rekan'
+                    : 'Rekomendasi Teman'}
+                </dt>
+                <dd className="mt-1 text-base font-bold text-ink">{submittedResult.recommendationScore} / 5</dd>
               </div>
               <div>
                 <dt className="text-ink-muted">Foto Booth</dt>
@@ -197,6 +271,15 @@ export function FeedbackPage() {
                   <p className="text-xs font-bold text-ink">Kelengkapan Kiriman</p>
                   <ul className="mt-2.5 space-y-2 text-xs">
                     <li className="flex items-center gap-2">
+                      <CheckCircle2 className="size-4 shrink-0 text-[#047857]" aria-hidden="true" />
+                      <span className="font-semibold text-ink">
+                        Peran:{' '}
+                        {visitorRole === 'counselor'
+                          ? 'Psikolog (Eva Counselor)'
+                          : 'Pengguna Biasa (Eva Mobile)'}
+                      </span>
+                    </li>
+                    <li className="flex items-center gap-2">
                       {isRatingDone ? (
                         <CheckCircle2 className="size-4 shrink-0 text-[#047857]" aria-hidden="true" />
                       ) : (
@@ -204,6 +287,27 @@ export function FeedbackPage() {
                       )}
                       <span className={isRatingDone ? 'font-semibold text-ink' : 'text-ink-muted'}>
                         Rating pengalaman ({isRatingDone ? `${rating}/5` : 'belum dipilih'})
+                      </span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      {isUsageDone ? (
+                        <CheckCircle2 className="size-4 shrink-0 text-[#047857]" aria-hidden="true" />
+                      ) : (
+                        <Circle className="size-4 shrink-0 text-ink-muted" aria-hidden="true" />
+                      )}
+                      <span className={isUsageDone ? 'font-semibold text-ink' : 'text-ink-muted'}>
+                        Minat pakai {targetAppName} ({isUsageDone ? `${usageLikelihood}/5` : 'belum dipilih'})
+                      </span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      {isRecDone ? (
+                        <CheckCircle2 className="size-4 shrink-0 text-[#047857]" aria-hidden="true" />
+                      ) : (
+                        <Circle className="size-4 shrink-0 text-ink-muted" aria-hidden="true" />
+                      )}
+                      <span className={isRecDone ? 'font-semibold text-ink' : 'text-ink-muted'}>
+                        {isCounselor ? 'Rekomendasi rekan psikolog' : 'Rekomendasi teman'} (
+                        {isRecDone ? `${recommendationScore}/5` : 'belum dipilih'})
                       </span>
                     </li>
                     <li className="flex items-center gap-2">
@@ -238,12 +342,102 @@ export function FeedbackPage() {
               noValidate
               className="space-y-5 rounded-[20px] border border-border-subtle bg-white p-4 shadow-subtle sm:rounded-[24px] sm:p-6"
             >
+              {/* 0. Role / App Selector (Default: Pengguna Biasa / Eva Mobile) */}
+              <div className="rounded-[16px] border border-[#E2E8F0] bg-canvas/60 px-3.5 py-4 sm:px-4">
+                <p id="booth-role-label" className="text-sm font-bold text-ink">
+                  Anda mencoba EVA sebagai?
+                </p>
+                <div
+                  role="radiogroup"
+                  aria-labelledby="booth-role-label"
+                  className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2"
+                >
+                  {VISITOR_ROLE_OPTIONS.map((opt) => {
+                    const selected = visitorRole === opt.value
+                    const Icon = opt.value === 'counselor' ? Stethoscope : Smartphone
+                    return (
+                      <button
+                        key={opt.value}
+                        id={`booth-role-${opt.value}`}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        disabled={submitting}
+                        onClick={() => setVisitorRole(opt.value)}
+                        onKeyDown={(e) => {
+                          if (submitting) return
+                          if (
+                            e.key === 'ArrowRight' ||
+                            e.key === 'ArrowLeft' ||
+                            e.key === 'ArrowUp' ||
+                            e.key === 'ArrowDown'
+                          ) {
+                            e.preventDefault()
+                            setVisitorRole(opt.value === 'user' ? 'counselor' : 'user')
+                          }
+                        }}
+                        className={cn(
+                          'flex min-h-12 cursor-pointer items-center gap-3 rounded-[12px] border px-3.5 py-2.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50',
+                          selected
+                            ? 'border-primary bg-primary text-white shadow-2xs'
+                            : 'border-[#CBD5E1] bg-white text-ink hover:border-primary/50 hover:bg-[#EEF0FF]/40',
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'flex size-8 shrink-0 items-center justify-center rounded-[9px]',
+                            selected ? 'bg-white/20 text-white' : 'bg-[#EEF0FF] text-primary',
+                          )}
+                        >
+                          <Icon className="size-4" aria-hidden="true" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-xs font-bold sm:text-sm">{opt.title}</span>
+                          <span
+                            className={cn(
+                              'block text-[11px]',
+                              selected ? 'text-white/85' : 'text-ink-muted',
+                            )}
+                          >
+                            {opt.subtitle}
+                          </span>
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
               {/* 1. Gojek / Shopee Open Star Rating */}
               <div className="rounded-[16px] bg-canvas/70 px-3 py-4 text-center sm:px-4">
                 <span className="mb-3 block text-sm font-bold text-ink">
                   Bagaimana pengalaman Anda di booth EVA? <span className="text-[#B91C1C]">*</span>
                 </span>
                 <RatingSelector value={rating} onChange={(val) => setRating(val)} disabled={submitting} />
+              </div>
+
+              {/* 2. Adoption & Recommendation Scales (1-5) */}
+              <div className="space-y-4">
+                <ScaleSelector
+                  id="booth-usage-scale"
+                  questionLabel={`Seberapa mungkin Anda menggunakan aplikasi ${targetAppName}?`}
+                  value={usageLikelihood}
+                  onChange={setUsageLikelihood}
+                  minLabel="1 = Sangat kecil"
+                  maxLabel="5 = Pasti menggunakan"
+                  scoreLabels={USAGE_SCALE_LABELS}
+                  disabled={submitting}
+                />
+                <ScaleSelector
+                  id="booth-recommendation-scale"
+                  questionLabel={`Seberapa mungkin Anda merekomendasikan ${targetAppName} ke ${recommendTargetLabel}?`}
+                  value={recommendationScore}
+                  onChange={setRecommendationScore}
+                  minLabel="1 = Tidak merekomendasikan"
+                  maxLabel="5 = Pasti merekomendasikan"
+                  scoreLabels={RECOMMENDATION_SCALE_LABELS}
+                  disabled={submitting}
+                />
               </div>
 
               {/* 2. Comment Input */}
@@ -360,7 +554,7 @@ export function FeedbackPage() {
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border-subtle bg-white/95 px-4 pt-2.5 pb-[max(12px,env(safe-area-inset-bottom))] backdrop-blur-md sm:hidden">
           <div className="mx-auto flex max-w-xl items-center gap-3">
             <div className="min-w-0 shrink-0 text-[11px] leading-tight text-ink-soft">
-              <p className="font-bold text-ink">{isRatingDone ? `${rating}/5 Bintang` : 'Belum beri bintang'}</p>
+              <p className="font-bold text-ink">{completedScoreCount}/3 skor terisi</p>
               <p>{photos.length}/5 foto</p>
             </div>
             <button

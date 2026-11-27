@@ -4,7 +4,7 @@ import uuid
 
 from fastapi import HTTPException, UploadFile, status
 from shared.config import settings
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -17,6 +17,9 @@ from app.schemas.booth_feedback import (
     BoothFeedbackSummaryResponse,
     PublicBoothFeedbackCreateResponse,
 )
+
+
+VALID_VISITOR_ROLES = {"user", "counselor"}
 
 
 def _detect_image_format(data: bytes) -> tuple[str, str]:
@@ -51,22 +54,42 @@ class BoothFeedbackService:
         self.db = db
         self.upload_dir = (upload_root or (Path(settings.UPLOAD_DIR) / "booth-feedbacks")).resolve()
 
+    @staticmethod
+    def _validate_scale_score(value: int, field_label: str) -> None:
+        if value < 1 or value > 5:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"{field_label} wajib dipilih antara 1 sampai 5.",
+            )
+
+    @staticmethod
+    def _validate_visitor_role(visitor_role: str | None) -> str:
+        normalized = (visitor_role or "user").strip().lower()
+        if normalized not in VALID_VISITOR_ROLES:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Peran responden wajib dipilih antara 'user' atau 'counselor'.",
+            )
+        return normalized
+
     async def submit_feedback(
         self,
         *,
         rating: int,
+        usage_likelihood: int,
+        recommendation_score: int,
+        visitor_role: str = "user",
         message: str,
         visitor_name: str | None,
         visitor_contact: str | None,
         event_label: str | None,
         photos: list[UploadFile],
     ) -> PublicBoothFeedbackCreateResponse:
-        """Validate visitor feedback and 1..5 uploaded booth photos, then persist atomically."""
-        if rating < 1 or rating > 5:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Rating wajib dipilih antara 1 sampai 5.",
-            )
+        """Validate visitor feedback role, scores (1-5), and 1..5 uploaded booth photos."""
+        normalized_role = self._validate_visitor_role(visitor_role)
+        self._validate_scale_score(rating, "Rating pengalaman")
+        self._validate_scale_score(usage_likelihood, "Skala minat menggunakan aplikasi")
+        self._validate_scale_score(recommendation_score, "Skala rekomendasi ke teman")
 
         clean_message = message.strip()
         if len(clean_message) < 5 or len(clean_message) > 2000:
@@ -111,6 +134,9 @@ class BoothFeedbackService:
 
             entry = BoothFeedback(
                 rating=rating,
+                usage_likelihood=usage_likelihood,
+                recommendation_score=recommendation_score,
+                visitor_role=normalized_role,
                 message=clean_message,
                 visitor_name=visitor_name.strip()[:120] if visitor_name and visitor_name.strip() else None,
                 visitor_contact=visitor_contact.strip()[:150] if visitor_contact and visitor_contact.strip() else None,
@@ -139,6 +165,9 @@ class BoothFeedbackService:
         return PublicBoothFeedbackCreateResponse(
             id=str(entry.id),
             rating=entry.rating,
+            usage_likelihood=entry.usage_likelihood,
+            recommendation_score=entry.recommendation_score,
+            visitor_role=entry.visitor_role,
             photo_count=len(prepared_photos),
             created_at=entry.created_at,
             message="Terima kasih! Feedback dan foto booth Anda telah tersimpan.",
@@ -148,14 +177,21 @@ class BoothFeedbackService:
         self,
         *,
         rating: int | None = None,
+        visitor_role: str | None = None,
         search: str | None = None,
         page: int = 1,
         page_size: int = 10,
     ) -> AdminBoothFeedbackListResponse:
-        """Return aggregated booth rating stats and paginated filtered entries for Admin Portal."""
-        summary = await self._compute_summary()
+        """Return aggregated booth stats (filtered by role if given) and paginated entries."""
+        active_role: str | None = None
+        if visitor_role is not None and visitor_role.strip():
+            active_role = self._validate_visitor_role(visitor_role)
+
+        summary = await self._compute_summary(visitor_role=active_role)
 
         filters = []
+        if active_role is not None:
+            filters.append(BoothFeedback.visitor_role == active_role)
         if rating is not None and 1 <= rating <= 5:
             filters.append(BoothFeedback.rating == rating)
         if search and search.strip():
@@ -251,26 +287,73 @@ class BoothFeedbackService:
 
         return BoothFeedbackDeleteResponse(deleted_id=str(feedback_id))
 
-    async def _compute_summary(self) -> BoothFeedbackSummaryResponse:
-        counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
-        res = await self.db.execute(
-            select(BoothFeedback.rating, func.count(BoothFeedback.id)).group_by(BoothFeedback.rating)
+    async def _compute_summary(
+        self,
+        *,
+        visitor_role: str | None = None,
+    ) -> BoothFeedbackSummaryResponse:
+        summary_stmt = select(
+            func.count(BoothFeedback.id),
+            func.coalesce(func.sum(BoothFeedback.rating), 0),
+            func.coalesce(func.sum(case((BoothFeedback.rating == 1, 1), else_=0)), 0),
+            func.coalesce(func.sum(case((BoothFeedback.rating == 2, 1), else_=0)), 0),
+            func.coalesce(func.sum(case((BoothFeedback.rating == 3, 1), else_=0)), 0),
+            func.coalesce(func.sum(case((BoothFeedback.rating == 4, 1), else_=0)), 0),
+            func.coalesce(func.sum(case((BoothFeedback.rating == 5, 1), else_=0)), 0),
+            func.coalesce(func.sum(BoothFeedback.usage_likelihood), 0),
+            func.coalesce(
+                func.sum(case((BoothFeedback.usage_likelihood >= 4, 1), else_=0)),
+                0,
+            ),
+            func.coalesce(func.sum(BoothFeedback.recommendation_score), 0),
+            func.coalesce(
+                func.sum(case((BoothFeedback.recommendation_score >= 4, 1), else_=0)),
+                0,
+            ),
         )
-        total = 0
-        weighted_sum = 0
-        for rating_val, cnt in res.all():
-            r_int = int(rating_val)
-            c_int = int(cnt)
-            if r_int in counts:
-                counts[r_int] = c_int
-                total += c_int
-                weighted_sum += r_int * c_int
+        if visitor_role is not None:
+            summary_stmt = summary_stmt.where(BoothFeedback.visitor_role == visitor_role)
 
-        avg = round(weighted_sum / total, 2) if total > 0 else 0.0
+        res = await self.db.execute(summary_stmt)
+        row = res.one()
+
+        role_res = await self.db.execute(
+            select(
+                func.coalesce(func.sum(case((BoothFeedback.visitor_role == "user", 1), else_=0)), 0),
+                func.coalesce(
+                    func.sum(case((BoothFeedback.visitor_role == "counselor", 1), else_=0)),
+                    0,
+                ),
+            )
+        )
+        role_row = role_res.one()
+
+        total = int(row[0] or 0)
+        rating_sum = int(row[1] or 0)
+        counts = {score: int(row[1 + score] or 0) for score in range(1, 6)}
+        usage_sum = int(row[7] or 0)
+        high_usage_count = int(row[8] or 0)
+        rec_sum = int(row[9] or 0)
+        promoter_count = int(row[10] or 0)
+
         return BoothFeedbackSummaryResponse(
             total_count=total,
-            average_rating=avg,
+            average_rating=round(rating_sum / total, 2) if total > 0 else 0.0,
             rating_counts=counts,
+            role_counts={
+                "user": int(role_row[0] or 0),
+                "counselor": int(role_row[1] or 0),
+            },
+            average_usage_likelihood=round(usage_sum / total, 2) if total > 0 else 0.0,
+            high_usage_intent_count=high_usage_count,
+            high_usage_intent_percentage=(
+                round((high_usage_count / total) * 100, 1) if total > 0 else 0.0
+            ),
+            average_recommendation_score=round(rec_sum / total, 2) if total > 0 else 0.0,
+            promoter_count=promoter_count,
+            promoter_percentage=(
+                round((promoter_count / total) * 100, 1) if total > 0 else 0.0
+            ),
         )
 
     @staticmethod
@@ -278,6 +361,9 @@ class BoothFeedbackService:
         return BoothFeedbackItemResponse(
             id=str(entry.id),
             rating=entry.rating,
+            usage_likelihood=entry.usage_likelihood,
+            recommendation_score=entry.recommendation_score,
+            visitor_role=entry.visitor_role,
             message=entry.message,
             visitor_name=entry.visitor_name,
             visitor_contact=entry.visitor_contact,
