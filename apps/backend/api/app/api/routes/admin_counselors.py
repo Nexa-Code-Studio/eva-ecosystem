@@ -10,6 +10,7 @@ from app.schemas.counselor import (
     ToggleDocumentVerificationRequest,
     UpdateCounselorStatusRequest,
 )
+from app.schemas.finances import TransactionResponse
 from app.services.counselor import CounselorService
 
 router = APIRouter(prefix="/admin/counselors", tags=["Admin Counselors"])
@@ -51,3 +52,13 @@ async def update_counselor_account_status(
 ) -> PsychologistProfileResponse:
     """Suspend or reactivate a psychologist profile verification status (Admin)."""
     return await service.update_counselor_account_status(counselor_id, admin.id, payload)
+
+
+@router.get("/{counselor_id}/transactions", response_model=list[TransactionResponse])
+async def list_admin_counselor_transactions(
+    counselor_id: uuid.UUID,
+    admin: User = Depends(get_current_admin),
+    service: CounselorService = Depends(get_counselor_service),
+) -> list[TransactionResponse]:
+    """List coin earning and payout ledger transactions for a psychologist (Admin)."""
+    return await service.list_counselor_transactions_for_admin(counselor_id)

@@ -1,4 +1,4 @@
-import { Eye, FileCheck2, Stethoscope } from 'lucide-react'
+import { Coins, Eye, FileCheck2, Stethoscope } from 'lucide-react'
 import {
   PsychologistShieldBadge,
   VerificationBadge,
@@ -41,13 +41,14 @@ export function PsychologistTable({
                 <th className="px-5 py-3.5">Nomor STR &amp; SIP</th>
                 <th className="px-5 py-3.5">Asosiasi &amp; Spesialisasi</th>
                 <th className="px-5 py-3.5">Status Verifikasi</th>
+                <th className="px-5 py-3.5">Saldo Koin</th>
                 <th className="px-5 py-3.5 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E2E8F0] text-xs">
               {psychologists.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-ink-muted">
+                  <td colSpan={6} className="p-8 text-center text-ink-muted">
                     <div className="flex flex-col items-center justify-center">
                       <Stethoscope className="size-8 text-ink-muted/50" aria-hidden="true" />
                       <p className="mt-2 text-xs font-semibold text-ink">
@@ -145,6 +146,13 @@ export function PsychologistTable({
                             <span>Belum ada lampiran digital</span>
                           )}
                         </div>
+                      </td>
+
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 rounded-[6px] bg-[#EEF0FF] px-2.5 py-1 text-xs font-bold text-primary">
+                          <Coins className="size-3.5" aria-hidden="true" />
+                          {(psy.coinBalance ?? 0).toLocaleString('id-ID')} Koin
+                        </span>
                       </td>
 
                       <td className="px-5 py-4 text-right">

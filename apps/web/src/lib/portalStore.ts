@@ -27,6 +27,7 @@ export {
 export {
   deletePsychologist,
   fetchAdminPsychologists,
+  fetchAdminPsychologistTransactions,
   reactivatePsychologistAccount,
   registerPsychologistApplication,
   resubmitPsychologistApplication,

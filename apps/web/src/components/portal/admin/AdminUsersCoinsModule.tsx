@@ -4,10 +4,12 @@ import { useSearchParams } from 'react-router'
 import { AdminActionConfirmModal, type ConfirmDialogTone } from './AdminActionConfirmModal'
 import { AdminCoinTopupModal } from './AdminCoinTopupModal'
 import { AdminCoinsTransactionsTab } from './AdminCoinsTransactionsTab'
+import { AdminPsychologistCoinsTab } from './AdminPsychologistCoinsTab'
 import { TablePagination } from '@/components/portal/TablePagination'
 import { useUrlPagination } from '@/hooks/useUrlPagination'
 import { cn } from '@/lib/cn'
 import {
+  fetchAdminPsychologists,
   fetchAdminUsers,
   fetchCoinEconomyConfig,
   fetchCoinPackages,
@@ -112,15 +114,20 @@ export function AdminUsersCoinsModule({
 }: AdminUsersCoinsModuleProps) {
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = searchParams.get('tab')
-  const activeSubTab: 'users' | 'coins' = tabParam === 'coins' ? 'coins' : 'users'
+  const activeSubTab: 'users' | 'psychologists' | 'coins' =
+    tabParam === 'coins'
+      ? 'coins'
+      : tabParam === 'psychologists'
+        ? 'psychologists'
+        : 'users'
 
-  const handleSubTabChange = (tab: 'users' | 'coins') => {
+  const handleSubTabChange = (tab: 'users' | 'psychologists' | 'coins') => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
-      if (tab === 'coins') {
-        next.set('tab', 'coins')
-      } else {
+      if (tab === 'users') {
         next.delete('tab')
+      } else {
+        next.set('tab', tab)
       }
       next.delete('page')
       return next
@@ -136,6 +143,7 @@ export function AdminUsersCoinsModule({
 
   useEffect(() => {
     void fetchAdminUsers()
+    void fetchAdminPsychologists()
     void fetchCoinTransactions()
     void fetchCoinEconomyConfig()
     void fetchCoinPackages()
@@ -220,7 +228,7 @@ export function AdminUsersCoinsModule({
         <div
           role="tablist"
           aria-label="Submenu Pengguna & Koin"
-          className="grid w-full shrink-0 grid-cols-2 gap-1 rounded-[8px] border border-[#E2E8F0] bg-white p-1 sm:inline-flex sm:w-auto"
+          className="grid w-full shrink-0 grid-cols-3 gap-1 rounded-[8px] border border-[#E2E8F0] bg-white p-1 sm:inline-flex sm:w-auto"
         >
           <button
             type="button"
@@ -235,6 +243,20 @@ export function AdminUsersCoinsModule({
             )}
           >
             Pengguna ({db.generalUsers.length})
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeSubTab === 'psychologists'}
+            onClick={() => handleSubTabChange('psychologists')}
+            className={cn(
+              'min-h-11 cursor-pointer rounded-[6px] px-3 py-1.5 text-xs font-semibold transition-colors sm:min-h-0',
+              activeSubTab === 'psychologists'
+                ? 'bg-primary text-white'
+                : 'text-ink-soft hover:text-ink',
+            )}
+          >
+            Psikolog ({db.psychologists.length})
           </button>
           <button
             type="button"
@@ -265,7 +287,9 @@ export function AdminUsersCoinsModule({
         </div>
       </div>
 
-      {activeSubTab === 'users' ? (
+      {activeSubTab === 'psychologists' ? (
+        <AdminPsychologistCoinsTab psychologists={db.psychologists} />
+      ) : activeSubTab === 'users' ? (
         <div className="mt-5 space-y-3">
           <div
             ref={usersTableCardRef}

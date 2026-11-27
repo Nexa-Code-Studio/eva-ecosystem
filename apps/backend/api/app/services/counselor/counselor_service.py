@@ -11,7 +11,13 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.payment_errors import raise_contract_error
 from app.core.security import hash_password
-from app.models.counselor import ConsultationSession, PlatformPricingConfig, PsychologistProfile
+from app.models.counselor import (
+    ConsultationSession,
+    CounselorTransaction,
+    PlatformPricingConfig,
+    PsychologistProfile,
+)
+from app.schemas.finances import TransactionResponse
 from app.models.enums import (
     ConsultationSessionStatus,
     PricingConfigStatus,
@@ -864,3 +870,40 @@ class CounselorService:
             buffer_time_minutes=profile.buffer_time_minutes,
             schedule_config=profile.schedule_config,
         )
+
+    async def list_counselor_transactions_for_admin(
+        self,
+        counselor_id: uuid.UUID,
+    ) -> list[TransactionResponse]:
+        """List coin ledger transactions (earnings & payouts) for a specific psychologist."""
+        c_res = await self.db.execute(
+            select(PsychologistProfile).where(PsychologistProfile.id == counselor_id)
+        )
+        profile = c_res.scalar_one_or_none()
+        if not profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Profil psikolog tidak ditemukan.",
+            )
+
+        tx_res = await self.db.execute(
+            select(CounselorTransaction)
+            .where(CounselorTransaction.counselor_id == counselor_id)
+            .order_by(CounselorTransaction.created_at.desc())
+        )
+        txs = list(tx_res.scalars().all())
+        return [
+            TransactionResponse(
+                id=str(tx.id),
+                patient_name=tx.description or tx.transaction_type,
+                session_type=tx.transaction_type,
+                date=tx.created_at.isoformat(),
+                amount=round(float(tx.amount)),
+                admin_fee=0,
+                net_earnings=round(float(tx.amount)),
+                status=tx.status,
+                transaction_type=tx.transaction_type,
+                reference_id=str(tx.session_id) if tx.session_id else None,
+            )
+            for tx in txs
+        ]
