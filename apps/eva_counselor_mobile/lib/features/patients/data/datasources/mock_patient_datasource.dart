@@ -3,6 +3,7 @@ import '../models/patient_dto.dart';
 import 'patient_datasource.dart';
 
 class MockPatientDataSource implements PatientDataSource {
+  final Set<String> _awardedSessionIds = <String>{};
   final List<PatientResponseDto> _mockPatients = [
     PatientResponseDto(
       id: 'patient-001',
@@ -205,6 +206,32 @@ class MockPatientDataSource implements PatientDataSource {
   Future<ClinicalNoteResponseDto> createClinicalNote(
       CreateClinicalNoteRequestDto request) async {
     await Future.delayed(const Duration(milliseconds: 500));
+
+    final pIdx = _mockPatients.indexWhere((p) => p.id == request.patientId);
+    DateTime? sessionRef;
+    if (pIdx != -1) {
+      final p = _mockPatients[pIdx];
+      if (p.upcomingSchedule != null) {
+        sessionRef = DateTime.now();
+      } else if (p.lastSessionDate != null) {
+        sessionRef = DateTime.tryParse(p.lastSessionDate!);
+      }
+    }
+
+    if (sessionRef != null) {
+      final wibRef = sessionRef.toUtc().add(const Duration(hours: 7));
+      final nextDayWib = DateTime.utc(wibRef.year, wibRef.month, wibRef.day + 1, 23, 59, 59);
+      final deadlineUtc = nextDayWib.subtract(const Duration(hours: 7));
+      if (DateTime.now().toUtc().isAfter(deadlineUtc)) {
+        throw Exception(
+          'Batas waktu pengisian/edit catatan SOAP (maksimal H+1 pukul 23:59 WIB) telah berakhir.',
+        );
+      }
+    }
+
+    final isFirstRewardForSession = _awardedSessionIds.add(request.sessionId);
+    final coinsAwarded = isFirstRewardForSession ? 150 : 0;
+
     final newNote = ClinicalNoteResponseDto(
       id: 'note-${DateTime.now().millisecondsSinceEpoch}',
       patientId: request.patientId,
@@ -217,10 +244,17 @@ class MockPatientDataSource implements PatientDataSource {
       recommendedTasks: request.recommendedTasks,
       points: request.points,
       narrative: request.narrative,
+      coinsAwarded: coinsAwarded,
+      isSoapEditable: true,
     );
-    _mockNotes.putIfAbsent(request.patientId, () => []).insert(0, newNote);
+    final existingList = _mockNotes.putIfAbsent(request.patientId, () => []);
+    final existingIdx = existingList.indexWhere((n) => n.sessionId == request.sessionId);
+    if (existingIdx != -1) {
+      existingList[existingIdx] = newNote;
+    } else {
+      existingList.insert(0, newNote);
+    }
 
-    final pIdx = _mockPatients.indexWhere((p) => p.id == request.patientId);
     if (pIdx != -1) {
       final p = _mockPatients[pIdx];
       _mockPatients[pIdx] = PatientResponseDto(
@@ -233,8 +267,10 @@ class MockPatientDataSource implements PatientDataSource {
         emotionalRiskScore: (p.emotionalRiskScore - 2).clamp(1, 10),
         isHighRisk: false,
         hasConsent: true,
-        lastSessionDate: DateTime.now().toIso8601String(),
-        totalCompletedSessions: p.totalCompletedSessions + 1,
+        lastSessionDate: p.lastSessionDate ?? DateTime.now().toIso8601String(),
+        totalCompletedSessions: isFirstRewardForSession
+            ? p.totalCompletedSessions + 1
+            : p.totalCompletedSessions,
         dassHistory: p.dassHistory,
         sharedDiarySummaries: p.sharedDiarySummaries,
         upcomingSchedule: p.upcomingSchedule,

@@ -19,6 +19,8 @@ services:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@eva_postgres:5432/eva_ai?ssl=disable
       - REDIS_URL=redis://redis:6379/0
       - QDRANT_URL=http://qdrant:6333
+      - MIDTRANS_IS_PRODUCTION=${MIDTRANS_IS_PRODUCTION:-false}
+      - MIDTRANS_SANDBOX_SIMULATION_ENABLED=${MIDTRANS_SANDBOX_SIMULATION_ENABLED:-true}
       - EMOTION_STREAMING_ENABLED=${EMOTION_STREAMING_ENABLED:-true}
       - EMOTION_PROVIDER=${EMOTION_PROVIDER:-remote_http}
       - EMOTION_SERVICE_URL=${EMOTION_SERVICE_URL:-http://emotion_service:8890}
@@ -79,6 +81,8 @@ services:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@eva_postgres:5432/eva_ai?ssl=disable
       - REDIS_URL=redis://redis:6379/0
       - QDRANT_URL=http://qdrant:6333
+      - MIDTRANS_IS_PRODUCTION=${MIDTRANS_IS_PRODUCTION:-false}
+      - MIDTRANS_SANDBOX_SIMULATION_ENABLED=${MIDTRANS_SANDBOX_SIMULATION_ENABLED:-true}
     depends_on:
       redis:
         condition: service_healthy

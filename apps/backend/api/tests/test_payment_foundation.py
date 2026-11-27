@@ -45,6 +45,7 @@ class TestPaymentFoundation(unittest.TestCase):
             cfg = BaseConfig(_env_file=None)
         self.assertFalse(cfg.MIDTRANS_IS_PRODUCTION)
         self.assertFalse(cfg.MIDTRANS_PAYMENT_ENABLED)
+        self.assertFalse(cfg.MIDTRANS_SANDBOX_SIMULATION_ENABLED)
         self.assertFalse(cfg.MIDTRANS_PAYOUT_ENABLED)
         self.assertFalse(cfg.MIDTRANS_PAYOUT_AUTO_APPROVE)
         self.assertEqual(cfg.MIDTRANS_QRIS_ACQUIRER, "gopay")
@@ -52,6 +53,18 @@ class TestPaymentFoundation(unittest.TestCase):
         self.assertEqual(cfg.MIDTRANS_SERVER_KEY, "")
         self.assertEqual(cfg.MIDTRANS_IRIS_CREATOR_KEY, "")
         self.assertEqual(cfg.BANK_ACCOUNT_ENCRYPTION_KEY, "")
+
+        with patch.dict(
+            os.environ,
+            {
+                "MIDTRANS_IS_PRODUCTION": "false",
+                "MIDTRANS_SANDBOX_SIMULATION_ENABLED": "true",
+            },
+            clear=True,
+        ):
+            sim_cfg = BaseConfig(_env_file=None)
+        self.assertFalse(sim_cfg.MIDTRANS_IS_PRODUCTION)
+        self.assertTrue(sim_cfg.MIDTRANS_SANDBOX_SIMULATION_ENABLED)
 
     def test_contract_error_and_pagination_envelopes(self):
         with self.assertRaises(HTTPException) as ctx:

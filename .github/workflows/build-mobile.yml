@@ -115,6 +115,8 @@ jobs:
               --dart-define=USE_LOCAL_API=false \
               --dart-define=USE_HYBRID_FALLBACK=true \
               --dart-define=HYBRID=true \
+              --dart-define=ENABLE_QRIS_TOPUP=true \
+              --dart-define=ENABLE_SANDBOX_SIMULATION=true \
               --dart-define=API_BASE_URL=https://eva.nexacode.dev/api/v1
             cp build/app/outputs/flutter-apk/app-debug.apk "$GITHUB_WORKSPACE/eva-mobile-debug.apk"
           else
@@ -122,6 +124,8 @@ jobs:
               --dart-define=USE_LOCAL_API=false \
               --dart-define=USE_HYBRID_FALLBACK=true \
               --dart-define=HYBRID=true \
+              --dart-define=ENABLE_QRIS_TOPUP=true \
+              --dart-define=ENABLE_SANDBOX_SIMULATION=true \
               --dart-define=API_BASE_URL=https://eva.nexacode.dev/api/v1
             cp build/app/outputs/flutter-apk/app-release.apk "$GITHUB_WORKSPACE/eva-mobile-release.apk"
           fi
@@ -174,6 +178,8 @@ jobs:
             --dart-define=USE_LOCAL_API=false \
             --dart-define=USE_HYBRID_FALLBACK=true \
             --dart-define=HYBRID=true \
+            --dart-define=ENABLE_QRIS_TOPUP=true \
+            --dart-define=ENABLE_SANDBOX_SIMULATION=true \
             --dart-define=API_BASE_URL=https://eva.nexacode.dev/api/v1
           cd build
           tar -czf "$GITHUB_WORKSPACE/eva-mobile-web.tar.gz" web/

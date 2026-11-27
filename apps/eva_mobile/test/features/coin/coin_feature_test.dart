@@ -433,5 +433,19 @@ void main() {
       expect(find.text('Simulasikan Bayar'), findsNothing);
       containerDisabled.read(topupFlowProvider.notifier).stopPolling();
     });
+
+    test('QRIS top-up and sandbox simulator are enabled by default in non-mock cloud builds', () {
+      expect(AppConfig.enableQrisTopup, isTrue);
+      expect(AppConfig.enableSandboxSimulation, isTrue);
+      expect(AppConfig.isSandboxSimulationEnabled, isTrue);
+
+      final container = ProviderContainer(
+        overrides: [coinUseMockModeProvider.overrideWithValue(false)],
+      );
+      addTearDown(container.dispose);
+
+      expect(container.read(qrisTopupEnabledProvider), isTrue);
+      expect(container.read(sandboxSimulationProvider), isTrue);
+    });
   });
 }

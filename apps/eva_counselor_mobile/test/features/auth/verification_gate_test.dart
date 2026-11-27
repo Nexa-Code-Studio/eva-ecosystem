@@ -239,6 +239,9 @@ class _TestAuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEn
   void addCoins(int coins) {}
 
   @override
+  void syncCoinBalance(int newBalance) {}
+
+  @override
   void syncVerifiedBankAccount({
     required String bankName,
     required String accountNumberMasked,

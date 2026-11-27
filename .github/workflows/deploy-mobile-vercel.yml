@@ -71,6 +71,8 @@ jobs:
             --dart-define=USE_LOCAL_API=false \
             --dart-define=USE_HYBRID_FALLBACK="${USE_HYBRID}" \
             --dart-define=HYBRID="${USE_HYBRID}" \
+            --dart-define=ENABLE_QRIS_TOPUP=true \
+            --dart-define=ENABLE_SANDBOX_SIMULATION=true \
             --dart-define=API_BASE_URL="${API_URL}"
           cp web/vercel.json build/web/vercel.json
 

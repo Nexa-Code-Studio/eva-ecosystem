@@ -152,28 +152,28 @@ seed:
 # DEFAULT: Local API (8888). Append '-cloud' to connect to production cloud.
 # ------------------------------------------------------------------------------
 mobile-usb:
-	@./scripts/run_mobile.sh usb --dart-define=ENABLE_QRIS_TOPUP=true $(ARGS)
+	@./scripts/run_mobile.sh usb --dart-define=ENABLE_QRIS_TOPUP=true --dart-define=ENABLE_SANDBOX_SIMULATION=true $(ARGS)
 
 mobile-emu:
-	@./scripts/run_mobile.sh emu --dart-define=ENABLE_QRIS_TOPUP=true $(ARGS)
+	@./scripts/run_mobile.sh emu --dart-define=ENABLE_QRIS_TOPUP=true --dart-define=ENABLE_SANDBOX_SIMULATION=true $(ARGS)
 
 mobile-web:
-	@./scripts/run_mobile.sh web --dart-define=ENABLE_QRIS_TOPUP=true $(ARGS)
+	@./scripts/run_mobile.sh web --dart-define=ENABLE_QRIS_TOPUP=true --dart-define=ENABLE_SANDBOX_SIMULATION=true $(ARGS)
 
 mobile-mock:
-	@./scripts/run_mobile.sh mock --dart-define=ENABLE_QRIS_TOPUP=true $(ARGS)
+	@./scripts/run_mobile.sh mock --dart-define=ENABLE_QRIS_TOPUP=true --dart-define=ENABLE_SANDBOX_SIMULATION=true $(ARGS)
 
 mobile-hybrid:
-	@./scripts/run_mobile.sh hybrid --dart-define=ENABLE_QRIS_TOPUP=true $(ARGS)
+	@./scripts/run_mobile.sh hybrid --dart-define=ENABLE_QRIS_TOPUP=true --dart-define=ENABLE_SANDBOX_SIMULATION=true $(ARGS)
 
 mobile-usb-hybrid:
-	@./scripts/run_mobile.sh usb-hybrid --dart-define=ENABLE_QRIS_TOPUP=true $(ARGS)
+	@./scripts/run_mobile.sh usb-hybrid --dart-define=ENABLE_QRIS_TOPUP=true --dart-define=ENABLE_SANDBOX_SIMULATION=true $(ARGS)
 
 mobile-emu-hybrid:
-	@./scripts/run_mobile.sh emu-hybrid --dart-define=ENABLE_QRIS_TOPUP=true $(ARGS)
+	@./scripts/run_mobile.sh emu-hybrid --dart-define=ENABLE_QRIS_TOPUP=true --dart-define=ENABLE_SANDBOX_SIMULATION=true $(ARGS)
 
 mobile-web-hybrid:
-	@./scripts/run_mobile.sh web-hybrid --dart-define=ENABLE_QRIS_TOPUP=true $(ARGS)
+	@./scripts/run_mobile.sh web-hybrid --dart-define=ENABLE_QRIS_TOPUP=true --dart-define=ENABLE_SANDBOX_SIMULATION=true $(ARGS)
 
 mobile-web-build:
 	@./scripts/build_mobile_web.sh $(ARGS)
@@ -182,13 +182,13 @@ mobile-vercel:
 	@./scripts/deploy_mobile_vercel.sh $(ARGS)
 
 mobile-usb-cloud:
-	@./scripts/run_mobile.sh usb-cloud $(ARGS)
+	@./scripts/run_mobile.sh usb-cloud --dart-define=ENABLE_QRIS_TOPUP=true --dart-define=ENABLE_SANDBOX_SIMULATION=true $(ARGS)
 
 mobile-emu-cloud:
-	@./scripts/run_mobile.sh emu-cloud $(ARGS)
+	@./scripts/run_mobile.sh emu-cloud --dart-define=ENABLE_QRIS_TOPUP=true --dart-define=ENABLE_SANDBOX_SIMULATION=true $(ARGS)
 
 mobile-web-cloud:
-	@./scripts/run_mobile.sh web-cloud $(ARGS)
+	@./scripts/run_mobile.sh web-cloud --dart-define=ENABLE_QRIS_TOPUP=true --dart-define=ENABLE_SANDBOX_SIMULATION=true $(ARGS)
 
 mobile-cloud: mobile-usb-cloud
 
