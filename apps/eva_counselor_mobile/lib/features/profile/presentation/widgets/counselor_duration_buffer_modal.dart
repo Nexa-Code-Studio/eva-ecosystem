@@ -211,7 +211,7 @@ class CounselorDurationBufferModal {
                   Navigator.pop(ctx);
                   TopToast.show(
                     context,
-                    title: 'Jeda Buffer Disimpan! ⏱️',
+                    title: 'Jeda Buffer Disimpan',
                     message:
                         'Durasi sesi 30 menit dengan jeda buffer $tempBuffer menit antar sesi berhasil diperbarui.',
                     type: ToastType.success,

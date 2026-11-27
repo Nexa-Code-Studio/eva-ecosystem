@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/app_async_state_view.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../patients/domain/entities/patient_entity.dart';
 import '../../../patients/presentation/providers/patient_provider.dart';
@@ -124,14 +125,7 @@ class _CounselorFullScheduleScreenState
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFECEFF8)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+                  border: Border.all(color: AppColors.cardBorder),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -165,14 +159,7 @@ class _CounselorFullScheduleScreenState
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: const Color(0xFFECEFF8)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  border: Border.all(color: AppColors.cardBorder),
                 ),
                 child: Column(
                   children: [
@@ -380,14 +367,7 @@ class _CounselorFullScheduleScreenState
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: const Color(0xFFECEFF8)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.02),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
+                          border: Border.all(color: AppColors.cardBorder),
                         ),
                         child: Row(
                           children: [
@@ -484,8 +464,17 @@ class _CounselorFullScheduleScreenState
                     }).toList(),
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Text('Error: $e'),
+                loading: () => AppAsyncStateView.loading(
+                  title: 'Memuat jadwal praktik...',
+                  message: 'Menyelaraskan jadwal telekonseling Anda.',
+                  compact: true,
+                ),
+                error: (e, _) => AppAsyncStateView.error(
+                  title: 'Gagal memuat jadwal',
+                  message: 'Data jadwal belum dapat diambil saat ini.',
+                  onRetry: () => ref.invalidate(patientsListProvider),
+                  compact: true,
+                ),
               ),
               const SizedBox(height: 40),
             ],

@@ -146,7 +146,7 @@ class _PsychologistRegistrationScreenState
         if (!mounted) return;
         TopToast.show(
           context,
-          title: 'Akun Google Terhubung ✨',
+          title: 'Akun Google Terhubung',
           message:
               'Email & nama otomatis terisi dari Google (${account.email}). Notifikasi verifikasi akan dikirimkan ke email ini.',
           type: ToastType.success,
@@ -242,7 +242,7 @@ class _PsychologistRegistrationScreenState
         if (!mounted) return;
         TopToast.show(
           context,
-          title: 'Berkas STR Terpilih 📄',
+          title: 'Berkas STR Terpilih',
           message: '${files.first.name} berhasil dilampirkan.',
           type: ToastType.success,
         );
@@ -271,7 +271,7 @@ class _PsychologistRegistrationScreenState
         if (!mounted) return;
         TopToast.show(
           context,
-          title: 'Berkas SIP Terpilih 📄',
+          title: 'Berkas SIP Terpilih',
           message: '${files.first.name} berhasil dilampirkan.',
           type: ToastType.success,
         );
@@ -488,7 +488,7 @@ class _PsychologistRegistrationScreenState
             ),
             const SizedBox(height: 10),
             const Text(
-              'Pendaftaran akun Psikolog Mandiri dan dokumen kredensial Anda telah berhasil diunggah. Akun Anda akan ditinjau oleh tim kredensial Eva dalam 1x24 jam kerja.',
+              'Pendaftaran dan dokumen kredensial terkirim. Tim kredensial akan meninjau dalam 1x24 jam kerja.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 12,
@@ -669,7 +669,7 @@ class _PsychologistRegistrationScreenState
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  isAttached ? 'Terlampir ✓' : 'Belum Ada',
+                  isAttached ? 'Terlampir' : 'Belum Ada',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,

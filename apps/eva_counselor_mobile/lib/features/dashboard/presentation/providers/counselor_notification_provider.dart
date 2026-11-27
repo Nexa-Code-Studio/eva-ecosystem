@@ -60,7 +60,7 @@ class CounselorNotificationNotifier
   static final List<CounselorNotificationItem> _initialNotifications = [
     const CounselorNotificationItem(
       id: 'notif-welcome-01',
-      title: 'Selamat Datang di Eva Konselor! 👋',
+      title: 'Selamat Datang di Eva Konselor',
       body:
           'Akun Anda telah terdaftar. Silakan atur jadwal telekonseling dan lengkapi profil praktik Anda agar pasien dapat mulai menjadwalkan sesi.',
       category: 'Sistem',
@@ -70,7 +70,7 @@ class CounselorNotificationNotifier
     ),
     const CounselorNotificationItem(
       id: 'notif-earning-01',
-      title: 'Honorarium Sesi Masuk 🪙',
+      title: 'Honorarium Sesi Masuk',
       body:
           '+120 Koin berhasil dikreditkan ke dompet Anda dari sesi telekonsultasi #EVA-20261120-001.',
       category: 'Keuangan',
@@ -79,7 +79,7 @@ class CounselorNotificationNotifier
     ),
     const CounselorNotificationItem(
       id: 'notif-system-01',
-      title: 'Verifikasi Profil & STR Berhasil ✅',
+      title: 'Verifikasi Profil & STR Berhasil',
       body:
           'Kredensial psikolog klinis Anda telah diverifikasi resmi oleh platform Eva.',
       category: 'Sistem',
