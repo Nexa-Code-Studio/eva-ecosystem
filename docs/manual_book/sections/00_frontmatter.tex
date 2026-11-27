@@ -1,51 +1,13 @@
 % PIC: @Oktavian19
 \begin{titlepage}
-  \centering
-  \vspace*{2.2cm}
-  {\small\bfseries\color{EvaPrimary} NEXA CODE STUDIO \textbullet\space PANDUAN PENGGUNA RESMI\par}
-  \vspace{0.8cm}
-  {\Huge\bfseries\color{EvaInk} EVA Ecosystem\par}
-  \vspace{0.35cm}
-  {\Large\color{EvaPrimary} Buku Panduan Lengkap Pengguna, Psikolog, dan Web Admin\par}
-  \vspace{1.2cm}
-
-  \begin{tcolorbox}[
-    width=0.88\textwidth,
-    colback=EvaCanvas,
-    colframe=EvaPrimary,
-    boxrule=1pt,
-    arc=6pt
-  ]
-    \centering
-    \textbf{Cakupan Platform}\\[6pt]
-    \small
-    \textbf{1. EVA Mobile} (Pengguna / Pasien) \quad\textbullet\quad
-    \textbf{2. EVA Counselor} (Psikolog / Konselor) \quad\textbullet\quad
-    \textbf{3. Web Portal \& Admin}
-  \end{tcolorbox}
-
-  \vspace{0.9cm}
-  \begin{tcolorbox}[
-    width=0.88\textwidth,
-    colback=white,
-    colframe=EvaBorder,
-    boxrule=0.8pt,
-    arc=6pt
-  ]
-    \small\raggedright
-    \textbf{Metadata Dokumen}\\
-    \begin{tabularx}{\linewidth}{@{}lX@{}}
-      \textbf{Pengembang} & : Nexa Code Studio \\
-      \textbf{Versi Panduan} & : v1.0 (Edisi Ekosistem Terpadu) \\
-      \textbf{Tim Penyusun} & : @Oktavian19, @ekyaaa, @KhoirotunNisa25 \\
-      \textbf{Target Pembaca} & : Pengguna Umum/Pasien, Psikolog Mitra, Administrator Platform
-    \end{tabularx}
-  \end{tcolorbox}
-
-  \vfill
-  {\small\color{EvaMuted}
-    Dokumen Resmi EVA Ecosystem \quad\textbullet\quad \today
-  \par}
+  \thispagestyle{empty}
+  \begin{tikzpicture}[remember picture, overlay]
+    \node[inner sep=0pt] at (current page.center) {%
+      \includegraphics[width=\paperwidth,height=\paperheight]{figures/shared/cover_panduan.png}%
+    };
+  \end{tikzpicture}
+  \mbox{}
+  \clearpage
 \end{titlepage}
 
 \chapter*{Kata Pengantar dan Konvensi Panduan}
