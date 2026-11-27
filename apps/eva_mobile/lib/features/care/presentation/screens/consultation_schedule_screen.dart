@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../config/app_config.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_back_button.dart';
+import '../../../../widgets/safe_network_avatar.dart';
 import '../../domain/entities/consultation_session_entity.dart';
 import '../providers/care_provider.dart';
 import '../widgets/consultation_result_bottom_sheet.dart';
@@ -473,9 +474,9 @@ class _ConsultationScheduleScreenState
             children: [
               Stack(
                 children: [
-                  CircleAvatar(
+                  SafeNetworkAvatar(
+                    imageUrl: session.psychologist.avatarUrl,
                     radius: 26,
-                    backgroundImage: NetworkImage(session.psychologist.avatarUrl),
                   ),
                   Positioned(
                     bottom: 0,
@@ -722,9 +723,9 @@ class _ConsultationScheduleScreenState
           // Header Row
           Row(
             children: [
-              CircleAvatar(
+              SafeNetworkAvatar(
+                imageUrl: session.psychologist.avatarUrl,
                 radius: 22,
-                backgroundImage: NetworkImage(session.psychologist.avatarUrl),
               ),
               const SizedBox(width: 12),
               Expanded(

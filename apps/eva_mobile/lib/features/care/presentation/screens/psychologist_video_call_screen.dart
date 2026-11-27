@@ -8,6 +8,7 @@ import 'package:webrtc_client/webrtc_client.dart';
 import '../../../../config/app_config.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_snack_bar.dart';
+import '../../../../widgets/safe_network_avatar.dart';
 import '../../../coin/presentation/providers/coin_provider.dart';
 import '../../domain/entities/consultation_session_entity.dart';
 import '../../domain/entities/extension_availability_entity.dart';
@@ -744,14 +745,12 @@ class _PsychologistVideoCallScreenState
                       width: 2.5,
                     ),
                   ),
-                  child: CircleAvatar(
+                  child: SafeNetworkAvatar(
+                    imageUrl: session.psychologist.avatarUrl,
                     radius: 54,
                     backgroundColor: const Color(0xFF1E293B),
-                    backgroundImage: NetworkImage(session.psychologist.avatarUrl),
-                    child: session.psychologist.avatarUrl.isEmpty
-                        ? const Icon(Icons.person,
-                            size: 48, color: Colors.white)
-                        : null,
+                    iconColor: Colors.white,
+                    iconSize: 48,
                   ),
                 ),
               );
@@ -922,19 +921,7 @@ class _PsychologistVideoCallScreenState
                           )
                         else
                           // Fallback backdrop avatar
-                          Image.network(
-                            psychologist.avatarUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(
-                              color: const Color(0xFF1E293B),
-                              child: const Icon(
-                                Icons.person,
-                                size: 100,
-                                color: Colors.white30,
-                              ),
-                            ),
-                          ),
+                          _buildBackdropAvatar(psychologist.avatarUrl),
 
                         // Scrim overlay for accessibility
                         Positioned.fill(
@@ -1032,15 +1019,12 @@ class _PsychologistVideoCallScreenState
                   Expanded(
                     child: Row(
                       children: [
-                        CircleAvatar(
+                        SafeNetworkAvatar(
+                          imageUrl: psychologist.avatarUrl,
                           radius: 18,
                           backgroundColor: const Color(0xFF334155),
-                          backgroundImage:
-                              NetworkImage(psychologist.avatarUrl),
-                          child: psychologist.avatarUrl.isEmpty
-                              ? const Icon(Icons.person,
-                                  size: 18, color: Colors.white)
-                              : null,
+                          iconColor: Colors.white,
+                          iconSize: 18,
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -1392,6 +1376,24 @@ class _PsychologistVideoCallScreenState
         ),
         child: Icon(icon, color: iconColor, size: 24),
       ),
+    );
+  }
+
+  Widget _buildBackdropAvatar(String avatarUrl) {
+    const fallback = ColoredBox(
+      color: Color(0xFF1E293B),
+      child: Icon(
+        Icons.person_rounded,
+        size: 100,
+        color: Colors.white30,
+      ),
+    );
+    final provider = resolveSafeAvatarImageProvider(avatarUrl);
+    if (provider == null) return fallback;
+    return Image(
+      image: provider,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => fallback,
     );
   }
 }
