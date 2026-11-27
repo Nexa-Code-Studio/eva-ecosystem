@@ -240,11 +240,11 @@ def test_call_websocket_chunked_4800b_fanout_and_emotion_failure_isolation(monke
 
     from packages.shared.config import settings
 
-    class _FailingEmotionProvider(MockEmotionProvider):
-        async def predict_audio_window(self, audio_bytes: bytes, sample_rate: int = 16000):
-            raise RuntimeError("Simulated emotion_service 503 outage")
-
-    coordinator = CallEmotionCoordinator(provider_getter=lambda: _FailingEmotionProvider())
+    failing_provider = MockEmotionProvider(
+        simulated_latency_ms=1.0,
+        fail_with=RuntimeError("Simulated emotion_service 503 outage"),
+    )
+    coordinator = CallEmotionCoordinator(provider_getter=lambda: failing_provider)
 
     monkeypatch.setattr(settings, "EMOTION_STREAMING_ENABLED", True)
     monkeypatch.setattr(call_session_manager, "emotion_coordinator", coordinator)
@@ -303,7 +303,7 @@ def test_call_websocket_chunked_4800b_fanout_and_emotion_failure_isolation(monke
 
             seen_types: list[str] = []
             emotion_evt = None
-            for _ in range(15):
+            for _ in range(60):
                 evt = ws.receive_json()
                 seen_types.append(evt.get("type", ""))
                 if evt.get("type") == "emotion_result":
