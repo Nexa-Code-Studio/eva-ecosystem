@@ -9,19 +9,19 @@
 \subsection{Alur Registrasi dan Onboarding Pertama Kali}
 Saat pertama kali mengunduh dan membuka EVA Mobile, pengguna disambut dengan layar \textit{Splash Onboarding} yang mengenalkan persona EVA serta komitmen privasi aplikasi.
 
-\begin{enumerate}[leftmargin=1.4em]
-  \item \stepbadge{1} Buka aplikasi EVA Mobile dan klik \textbf{Mulai Sekarang}.
-  \item \stepbadge{2} Pilih \textbf{Daftar Akun} pada halaman login. Masukkan Nama Panggilan (\textit{display name}), Email aktif, serta Kata Sandi yang aman.
-  \item \stepbadge{3} Setujui \textbf{Syarat Ketentuan \& Kebijakan Privasi}. Pengguna diingatkan bahwa EVA adalah asisten pendamping emosi suportif dan bukan pengganti instalasi gawat darurat psikiatri.
-  \item \stepbadge{4} Ikuti tur panduan interaktif singkat mengenai navigasi bilah bawah (\textit{Bottom Navigation Bar}) yang terdiri dari: \textbf{Beranda}, \textbf{Curhat AI}, \textbf{Diari}, \textbf{Cari Psikolog}, dan \textbf{Profil/Pengaturan}.
-\end{enumerate}
+\begin{steplist}
+  \item Buka aplikasi EVA Mobile dan klik \textbf{Mulai Sekarang}.
+  \item Pilih \textbf{Daftar Akun} pada halaman login. Masukkan Nama Panggilan (\textit{display name}), Email aktif, serta Kata Sandi yang aman.
+  \item Setujui \textbf{Syarat Ketentuan \& Kebijakan Privasi}. Pengguna diingatkan bahwa EVA adalah asisten pendamping emosi suportif dan bukan pengganti instalasi gawat darurat psikiatri.
+  \item Ikuti tur panduan interaktif singkat mengenai navigasi bilah bawah (\textit{Bottom Navigation Bar}) yang terdiri dari: \textbf{Beranda}, \textbf{Curhat AI}, \textbf{Diari}, \textbf{Cari Psikolog}, dan \textbf{Profil/Pengaturan}.
+\end{steplist}
 
 \subsection{Antarmuka Beranda Utama (\textit{Dashboard})}
 Halaman Beranda dirancang dengan tata letak visual yang menenangkan (palet Periwinkle dan Slate lembut), menyajikan ringkasan kondisi emosional pengguna hari ini tanpa rasa intimidasi:
 \begin{itemize}[leftmargin=1.4em]
   \item \textbf{Header Sapaan Emosional}: Menampilkan nama panggilan pengguna, saldo \textbf{EVA Coin}, dan indikator suasana hati terkini.
   \item \textbf{Kartu Pintasan Curhat Cepat}: Tombol satu sentuhan untuk langsung memulai sesi panggilan suara interaktif (\textit{Voice Call}) bersama EVA.
-  \item \textbf{Misi Pemulihan Harian (\textit{Daily Coping Quest})}: Kartu panduan latihan mikro hari ini (seperti teknik pernapasan atau pencatatan jurnal syukur).
+  \item \textbf{Kartu Progres Perawatan Diri (\textit{0/3 -- 3/3 Selesai})}: Pelacak gamifikasi harian non-kompetitif dengan bilah progres 3 segmen untuk tiga rutinitas terapeutik (\textit{Sesi Curhat Bersama Eva}, \textit{Refleksi Jurnal Harian}, dan \textit{Latihan Relaksasi \& Koping}).
   \item \textbf{Status Skrining Emosional}: Menampilkan skor DASS-21 terakhir dan rekomendasi aksi perawatan diri.
 \end{itemize}
 
@@ -32,22 +32,30 @@ Halaman Beranda dirancang dengan tata letak visual yang menenangkan (palet Periw
 \subsection{Percakapan Suara Real-Time (\textit{Interactive Voice Call})}
 Fitur unggulan EVA Mobile adalah percakapan suara langsung dengan latensi sangat rendah, memungkinkan pengguna berbicara secara natural layaknya mengobrol dengan sahabat terpercaya di jam-jam rawan malam hari (\textit{The 2 AM Crisis}).
 
-\begin{enumerate}[leftmargin=1.4em]
-  \item \stepbadge{1} Ketuk ikon mikrofon besar pada bilah navigasi atau tombol \textbf{Mulai Curhat Suara} di Beranda.
-  \item \stepbadge{2} Izinkan akses mikrofon perangkat saat sistem meminta izin audio pertama kali.
-  \item \stepbadge{3} Mulailah berbicara secara alami. Indikator bola energi (\textit{Orb Animation}) akan berekspresi secara dinamis merespons intonasi dan isi cerita pengguna.
-  \item \stepbadge{4} EVA merespons menggunakan sintesis suara ekspresif berbahasa Indonesia yang empatik, hangat, dan tanpa penghakiman.
-  \item \stepbadge{5} Ketuk tombol merah \textbf{Akhiri Sesi} kapan saja untuk menutup percakapan suara dan menyimpan rangkuman emosional.
-\end{enumerate}
+\begin{steplist}
+  \item Ketuk ikon mikrofon besar pada bilah navigasi atau tombol \textbf{Mulai Curhat Suara} di Beranda.
+  \item Izinkan akses mikrofon perangkat saat sistem meminta izin audio pertama kali.
+  \item Mulailah berbicara secara alami. Indikator bola energi (\textit{Orb Animation}) akan berekspresi secara dinamis merespons intonasi dan isi cerita pengguna.
+  \item EVA merespons menggunakan sintesis suara ekspresif berbahasa Indonesia yang empatik, hangat, dan tanpa penghakiman.
+  \item Ketuk tombol merah \textbf{Akhiri Sesi} kapan saja untuk menutup percakapan suara dan menyimpan rangkuman emosional.
+\end{steplist}
 
 \callouttip{Kualitas Audio Percakapan}{Gunakan earphone atau mikrofon bawaan di ruangan yang tenang agar modul Speech-to-Text dapat menangkap cerita Anda dengan artikulasi terbaik.}
 
-\subsection{Safety Gate dan Intervensi Krisis Otomatis}
-Sistem dilengkapi dengan modul \textbf{AI Safety Gate} yang bekerja secara deterministik di latar belakang percakapan:
+\subsection{Safety Gate dan Dukungan Darurat Saat Terdeteksi Risiko Bunuh Diri}
+Sistem dilengkapi modul \textbf{AI Safety Gate} deterministik yang memantau transkrip percakapan dan kondisi emosional pengguna secara \textit{real-time}:
 \begin{itemize}[leftmargin=1.4em]
-  \item Jika terdeteksi kata kunci atau indikasi risiko akut (seperti dorongan melukai diri sendiri atau ideasi bunuh diri), EVA segera menghentikan obrolan santai dan mengaktifkan protokol de-eskalasi keselamatan.
-  \item Layar aplikasi secara otomatis memunculkan \textit{Pop-up Bantuan Darurat} yang menawarkan panduan pernapasan darurat serta tombol langsung menuju \textbf{Hotline Darurat 119 ext 8} atau kontak darurat pribadi.
+  \item \textbf{Deteksi Otomatis Saat Panggilan Berjalan}: Apabila pengguna mengucapkan indikasi bahaya diri atau niat bunuh diri (misalnya \textit{``Aku mau bunuh diri''}), panggilan suara bersama EVA \textbf{tidak langsung terputus}, melainkan tetap berlanjut secara empatik sambil menampilkan kartu peringatan merah muda \textbf{Dukungan Darurat Tersedia} dengan pesan \textit{``Panggilan EVA tetap berlanjut. Kamu tidak sendirian.''}.
+  \item \textbf{Akses Bantuan Seketika di Layar Voice Call}: Kartu tersebut langsung menyediakan informasi layanan resmi \textbf{Hotline Dinkes (WhatsApp 0813-8007-3120) / Kemenkes 119 ext 8} beserta empat tombol aksi cepat satu sentuhan:
+  \begin{enumerate}[leftmargin=1.4em]
+    \item \textbf{Hotline 119 / LISA}: Menghubungkan langsung ke layanan krisis psikologis resmi.
+    \item \textbf{Latihan Napas}: Membuka sesi stabilisasi pernapasan terpandu secara langsung untuk membantu menurunkan kepanikan akut.
+    \item \textbf{WA Dinkes DKI}: Membuka percakapan WhatsApp darurat layanan kesehatan jiwa daerah (\texttt{0813-8007-3120}).
+    \item \textbf{Orang Terdekat}: Menghubungi kontak darurat pribadi (\textit{Trusted Contact}) yang telah didaftarkan pengguna.
+  \end{enumerate}
 \end{itemize}
+
+\uifigure[0.34\textwidth]{mobile/08_dukungan_darurat_in_call.jpg}{Kartu Dukungan Darurat Tersedia Saat Terdeteksi Risiko Bunuh Diri pada Voice Call}{fig:mobile-in-call-emergency}
 
 \uifigure[0.38\textwidth]{mobile/02_ai_voice_call.png}{Layar Sesi Panggilan Suara Interaktif (AI Voice Call)}{fig:mobile-voice}
 
@@ -72,11 +80,11 @@ Riwayat obrolan dan grafik emosi pengguna \textbf{tidak pernah dibagikan kepada 
 
 \subsection{Pelaksanaan Skrining Mandiri DASS-21}
 Aplikasi menyediakan instrumen psikometri baku \textbf{Depression Anxiety Stress Scale (DASS-21)} yang telah divalidasi secara klinis untuk populasi Indonesia.
-\begin{enumerate}[leftmargin=1.4em]
-  \item \stepbadge{1} Akses tab \textbf{Skrining} dari menu bawah atau kartu rekomendasi Beranda.
-  \item \stepbadge{2} Jawab 21 butir pertanyaan sederhana mengenai kondisi yang dialami dalam 7 hari terakhir menggunakan skala 0 (\textit{Tidak Pernah}) hingga 3 (\textit{Sangat Sering}).
-  \item \stepbadge{3} Klik \textbf{Kirim \& Lihat Hasil} untuk memproses skor secara instan.
-\end{enumerate}
+\begin{steplist}
+  \item Akses tab \textbf{Skrining} dari menu bawah atau kartu rekomendasi Beranda.
+  \item Jawab 21 butir pertanyaan sederhana mengenai kondisi yang dialami dalam 7 hari terakhir menggunakan skala 0 (\textit{Tidak Pernah}) hingga 3 (\textit{Sangat Sering}).
+  \item Klik \textbf{Kirim \& Lihat Hasil} untuk memproses skor secara instan.
+\end{steplist}
 
 \subsection{Interpretasi Skor dan Rekomendasi Klinis}
 Hasil skrining dipetakan ke dalam tiga dimensi terpisah dengan lima tingkat keparahan:
@@ -106,7 +114,7 @@ Pengguna dapat memantau riwayat fluktuasi skor dari minggu ke minggu melalui dia
 
 \uifigure[0.38\textwidth]{mobile/04_skrining_dass21.png}{Halaman Skrining Mandiri DASS-21 Klinis}{fig:mobile-screening}
 
-\section{Diary dan Coping Missions}
+\section{Diary, Gamifikasi Perawatan Diri, dan Coping Missions}
 
 \subsection{Diari Emosi AI (\textit{Smart Emotional Journaling})}
 Modul Diari memungkinkan pengguna menuliskan refleksi harian secara bebas:
@@ -118,15 +126,46 @@ Modul Diari memungkinkan pengguna menuliskan refleksi harian secara bebas:
 
 \uifigure[0.38\textwidth]{mobile/03_diary_coping.png}{Diari Emosi AI dan Refleksi Pikiran}{fig:mobile-diary}
 
-\subsection{Misi Coping Berbasis Terapi Perilaku Kognitif (\textit{CBT})}
-Di samping pencatatan pasif, EVA menyediakan katalog latihan psikologis aktif intensitas rendah (\textit{Low-Intensity CBT Quests}):
+\subsection{Gamifikasi Perawatan Diri Harian (\textit{Daily Self-Care Progress})}
+EVA Mobile menerapkan gamifikasi suportif non-kompetitif pada kartu \textbf{Perawatan Diri} di Beranda (tanpa hukuman \textit{streak} atau papan peringkat yang memicu rasa bersalah) untuk menjaga konsistensi kebiasaan baik pengguna:
 \begin{itemize}[leftmargin=1.4em]
-  \item \textbf{Teknik Grounding 5-4-3-2-1}: Panduan menenangkan serangan cemas akut dengan menyadari 5 hal yang dilihat, 4 disentuh, 3 didengar, 2 dihirup, dan 1 dirasakan.
-  \item \textbf{Latihan Pernapasan Berirama (4-7-8)}: Animasi lingkaran pernapasan terpandu untuk menurunkan denyut jantung tinggi saat panik.
-  \item \textbf{Thought Challenging}: Lembar kerja interaktif untuk mengidentifikasi distorsi kognitif (seperti \textit{catastrophizing} atau \textit{all-or-nothing thinking}) dan merumuskan sudut pandang alternatif yang lebih rasional.
+  \item \textbf{Progres 3 Segmen (\texttt{0/3} hingga \texttt{3/3 Selesai})}: Menampilkan bilah progres bertahap dengan persentase pencapaian harian (\texttt{0\%}--\texttt{100\%}) dan pesan motivasi adaptif pada setiap langkah penyelesaian.
+  \item \textbf{Tiga Rutinitas Terapeutik Harian}:
+  \begin{enumerate}[leftmargin=1.4em]
+    \item \textbf{Sesi Curhat Bersama Eva}: Mencatat keterlibatan pengguna dalam dialog suara atau teks hari ini.
+    \item \textbf{Refleksi Jurnal Harian}: Otomatis tercentang saat pengguna membaca atau menyusun rangkuman dan pola emosi harian.
+    \item \textbf{Latihan Relaksasi \& Koping}: Otomatis tercentang saat pengguna menyelesaikan minimal satu latihan dari katalog \textbf{Panduan Ketenangan}.
+  \end{enumerate}
 \end{itemize}
 
-\uifigure[0.38\textwidth]{mobile/06_quest_monitoring.png}{Misi Coping dan Pemantauan Ketahanan Emosi}{fig:mobile-quest}
+\subsection{Panduan Ketenangan dan Misi Coping Interaktif (\textit{CBT \& Mindfulness})}
+Melalui halaman \textbf{Latihan Coping \& Relaksasi} (\texttt{/coping}), pengguna dapat mengikuti alur latihan terstruktur: memilih kartu latihan $\rightarrow$ membaca panduan singkat pada dialog tutorial awal $\rightarrow$ memulai sesi interaktif $\rightarrow$ sistem mencatat penyelesaian ke progres harian serta menyinkronkan status rekomendasi. Saat ini tersedia enam modul koping aktif yang dirangkum pada Tabel~\ref{tab:coping-catalog}:
+
+\begin{table}[htbp]
+  \centering
+  \caption{Katalog Modul Panduan Ketenangan dan Gamifikasi Coping di EVA Mobile}
+  \label{tab:coping-catalog}
+  \small
+  \begin{tabularx}{\textwidth}{@{}p{4.3cm}p{2.3cm}p{2.3cm}X@{}}
+    \toprule
+    \textbf{Nama Modul} & \textbf{Kategori} & \textbf{Durasi} & \textbf{Mekanika \& Fokus Latihan} \\
+    \midrule
+    \textbf{Latihan Pernapasan Terpandu} & Mindfulness & Sekitar 1 Menit & Pengalaman visual imersif: fase persiapan 4 detik, 4 siklus tarik--hembus (4 detik tarik / 4 detik hembus), penutup 4 detik, animasi gelombang napas, partikel, dan efek sentuhan (\textit{touch ripple}). \\
+    \addlinespace[4pt]
+    \textbf{Teknik Grounding 5-4-3-2-1} & CBT & 5 Menit & Panduan kesadaran panca indra (5 dilihat, 4 disentuh, 3 didengar, 2 dicium, 1 dirasakan) untuk meredakan kecemasan akut. \\
+    \addlinespace[4pt]
+    \textbf{Catatan Syukur Harian} & Refleksi & 3 Menit & Refleksi mikro hal-hal positif harian guna menyeimbangkan bias pikiran negatif. \\
+    \addlinespace[4pt]
+    \textbf{Metode Notice and Name} & CBT & 4 Menit & Latihan menamai dan mengambil jarak dari pikiran mengganggu (\textit{cognitive defusion}). \\
+    \addlinespace[4pt]
+    \textbf{Metode Stop-Think-Go} & CBT & 5 Menit & Langkah terarah berhenti sejenak, menimbang opsi, dan menentukan solusi bertahap saat beban menumpuk. \\
+    \addlinespace[4pt]
+    \textbf{Jalan Santai Mindful} & Fisik \& Gerak & 10 Menit & Aktivitas gerak ringan berkesadaran penuh untuk melepaskan ketegangan fisik dan mental. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\uifigure[0.38\textwidth]{mobile/06_quest_monitoring.png}{Misi Coping, Gamifikasi Harian, dan Pemantauan Ketahanan Emosi}{fig:mobile-quest}
 
 \section{EVA Coin (Saldo, Paket, Top-up, dan Riwayat)}
 
@@ -138,40 +177,41 @@ Di samping pencatatan pasif, EVA menyediakan katalog latihan psikologis aktif in
 \end{itemize}
 
 \subsection{Cara Melakukan Top-up Saldo via QRIS}
-\begin{enumerate}[leftmargin=1.4em]
-  \item \stepbadge{1} Buka halaman \textbf{Dompet \& Koin} melalui header Beranda atau menu Profil.
-  \item \stepbadge{2} Pilih paket koin yang diinginkan (Tersedia paket 50, 100, 200, atau 500 koin).
-  \item \stepbadge{3} Pilih metode pembayaran instan \textbf{QRIS (Midtrans Sandbox/Production)}.
-  \item \stepbadge{4} Kode QRIS akan muncul di layar. Pindai menggunakan aplikasi m-Banking atau dompet digital (GoPay, OVO, Dana, ShopeePay).
-  \item \stepbadge{5} Setelah pembayaran berhasil, webhook Midtrans secara otomatis memverifikasi transaksi dan saldo koin langsung bertambah seketika.
-\end{enumerate}
+\begin{steplist}
+  \item Buka halaman \textbf{Dompet \& Koin} melalui header Beranda atau menu Profil.
+  \item Pilih paket koin yang diinginkan (Tersedia paket 50, 100, 200, atau 500 koin).
+  \item Pilih metode pembayaran instan \textbf{QRIS (Midtrans Sandbox/Production)}.
+  \item Kode QRIS akan muncul di layar. Pindai menggunakan aplikasi m-Banking atau dompet digital (GoPay, OVO, Dana, ShopeePay).
+  \item Setelah pembayaran berhasil, webhook Midtrans secara otomatis memverifikasi transaksi dan saldo koin langsung bertambah seketika.
+\end{steplist}
 
 \section{Konsultasi Psikolog dan Sesi Video Call}
 
 \subsection{Mencari dan Memilih Psikolog Mitra}
 Saat pengguna membutuhkan pertolongan klinis mendalam dari tenaga profesional manusia:
-\begin{enumerate}[leftmargin=1.4em]
-  \item \stepbadge{1} Buka tab \textbf{Cari Psikolog} pada bilah navigasi bawah.
-  \item \stepbadge{2} Gunakan filter pencarian berdasarkan fokus permasalahan (\textit{Keluarga, Depresi, Karier, Hubungan Interpersonal}), tarif koin, atau tingkat level psikolog.
-  \item \stepbadge{3} Klik kartu profil psikolog untuk melihat nomor STR/SIPP terverifikasi, ulasan bintang dari pasien lain, riwayat pendidikan, dan kalender ketersediaan jadwal.
-\end{enumerate}
+\begin{steplist}
+  \item Buka tab \textbf{Cari Psikolog} pada bilah navigasi bawah.
+  \item Gunakan filter pencarian berdasarkan fokus permasalahan (\textit{Keluarga, Depresi, Karier, Hubungan Interpersonal}), tarif koin, atau tingkat level psikolog.
+  \item Klik kartu profil psikolog untuk melihat nomor STR/SIPP terverifikasi, ulasan bintang dari pasien lain, riwayat pendidikan, dan kalender ketersediaan jadwal.
+\end{steplist}
 
 \subsection{Pemesanan Jadwal dan Pelaksanaan Video Call}
-\begin{enumerate}[leftmargin=1.4em]
-  \item \stepbadge{1} Pilih tanggal dan slot waktu praktik yang tersedia (durasi 30 menit).
-  \item \stepbadge{2} Konfirmasi pembayaran menggunakan saldo EVA Coin dan tentukan izin pembagian rekam ringkasan emosi (\textit{Consent Toggle}).
-  \item \stepbadge{3} Pada waktu yang telah dijadwalkan, tombol \textbf{Masuk Ruang Sesi} akan aktif pada halaman jadwal.
-  \item \stepbadge{4} Sesi telekonseling berjalan melalui sambungan video WebRTC terenkripsi \textit{peer-to-peer}.
-  \item \stepbadge{5} Selesai sesi, pasien dapat memberikan penilaian bintang (1 hingga 5) serta ulasan kualitatif yang membantu menjaga transparansi mutu layanan.
-\end{enumerate}
+\begin{steplist}
+  \item Pilih tanggal dan slot waktu praktik yang tersedia (durasi 30 menit).
+  \item Konfirmasi pembayaran menggunakan saldo EVA Coin dan tentukan izin pembagian rekam ringkasan emosi (\textit{Consent Toggle}).
+  \item Pada waktu yang telah dijadwalkan, tombol \textbf{Masuk Ruang Sesi} akan aktif pada halaman jadwal.
+  \item Sesi telekonseling berjalan melalui sambungan video WebRTC terenkripsi \textit{peer-to-peer}.
+  \item Selesai sesi, pasien dapat memberikan penilaian bintang (1 hingga 5) serta ulasan kualitatif yang membantu menjaga transparansi mutu layanan.
+\end{steplist}
 
 \section{Layanan Darurat Krisis}
 
-Ketika pengguna berada dalam ancaman bahaya fisik, dorongan bunuh diri akut, atau tindak kekerasan seketika, EVA Mobile menyediakan tombol bantuan darurat \textbf{SafetyNet 24/7}:
+Ketika pengguna berada dalam ancaman bahaya fisik, dorongan bunuh diri akut, atau tindak kekerasan seketika, EVA Mobile menyediakan akses cepat \textbf{SafetyNet 24/7} (baik melalui halaman darurat khusus maupun kartu \textbf{Dukungan Darurat Tersedia} yang muncul langsung saat Voice Call):
 \begin{itemize}[leftmargin=1.4em]
-  \item \textbf{Akses Langsung Hotline Nasional}: Panggilan satu sentuhan ke layanan gawat darurat psikiatri resmi Kementerian Kesehatan RI (\textbf{119 ext 8}) atau nomor darurat nasional (112).
-  \item \textbf{Notifikasi Kontak Darurat Pribadi}: Mengirimkan sinyal pesan darurat dan status lokasi terenkripsi kepada satu orang kerabat terdekat (\textit{Trusted Contact}) yang telah didaftarkan sebelumnya oleh pengguna.
-  \item \textbf{Panduan Stabilisasi Suara}: Fitur audio darurat yang memandu pengguna mengatur ritme napas dan mengamankan diri di lingkungan terdekat.
+  \item \textbf{Hotline Nasional 119 ext 8 / LISA}: Panggilan satu sentuhan ke layanan konseling dan gawat darurat kesehatan jiwa Kementerian Kesehatan RI atau nomor darurat nasional (112).
+  \item \textbf{WA Dinkes DKI (\texttt{0813-8007-3120})}: Akses pesan cepat WhatsApp untuk layanan konsultasi krisis kesehatan jiwa daerah.
+  \item \textbf{Notifikasi Orang Terdekat (\textit{Trusted Contact})}: Mengirimkan sinyal darurat dan tautan bantuan kepada kontak terpercaya yang telah didaftarkan pengguna sebelumnya.
+  \item \textbf{Panduan Latihan Napas Stabilisasi}: Akses langsung ke latihan pernapasan terpandu untuk menenangkan respons panik sambil menunggu pertolongan.
 \end{itemize}
 
 \uifigure[0.38\textwidth]{mobile/05_safetynet_krisis.png}{Protokol Bantuan Darurat dan Hotline Krisis 24/7}{fig:mobile-safety}

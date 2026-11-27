@@ -52,6 +52,8 @@
 \color{EvaInk}
 \setlist[itemize]{leftmargin=1.4em, itemsep=3pt, topsep=4pt}
 \setlist[enumerate]{leftmargin=1.6em, itemsep=3pt, topsep=4pt}
+\newlist{steplist}{enumerate}{1}
+\setlist[steplist]{label=\protect\stepbadge{\arabic*}, leftmargin=2.2em, labelsep=0.5em, itemsep=4pt, topsep=4pt}
 
 % --- Chapter & Section Styling ---
 \titleformat{\chapter}[display]
@@ -132,10 +134,10 @@
 }
 
 % --- Step Badge ---
-\newcommand{\stepbadge}[1]{%
+\DeclareRobustCommand{\stepbadge}[1]{%
   \tikz[baseline=(char.base)]{%
     \node[shape=circle, fill=EvaPrimary, text=white, inner sep=1.8pt, font=\scriptsize\bfseries] (char) {#1};%
-  }\hspace{4pt}%
+  }%
 }
 
 % --- Safe UI Figure Macro (with Placeholder Fallback) ---
