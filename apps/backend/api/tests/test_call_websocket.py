@@ -140,3 +140,80 @@ def test_call_websocket_authenticated_mobile_flow():
             assert pong["type"] == "pong"
 
             websocket.send_json({"type": "end_call"})
+
+
+def test_call_websocket_crisis_escalation_continues_with_dynamic_llm(monkeypatch):
+    """Crisis turn emits ai.crisis_escalation, streams dynamic LLM, and keeps call open for follow-up turns."""
+    mock_user = AuthenticatedCallUser(
+        user_id=uuid.uuid4(),
+        display_name="Crisis Tester",
+        coin_balance=5,
+    )
+    mock_charge = CallChargeResult(
+        success=True,
+        coin_balance=4,
+        coins_debited=1,
+        minute_index=1,
+        invoice_code="EVA-CALL-CRISIS-001",
+    )
+    monkeypatch.setattr(call_session_manager.orchestrator, "llm_provider", MockLLMProvider())
+    monkeypatch.setattr(call_session_manager.stt_coordinator, "_provider_getter", lambda: MockSTTProvider())
+
+    with (
+        patch("app.services.call.session_manager.TTSFactory.get_provider", return_value=MockTTSProvider()),
+        patch("app.services.call.session_manager.CallBillingService.resolve_authenticated_user", new=AsyncMock(return_value=mock_user)),
+        patch("app.services.call.session_manager.CallBillingService.charge_call_minute", new=AsyncMock(return_value=mock_charge)),
+        patch("app.services.call.session_manager.CallBillingService.get_user_coin_balance", new=AsyncMock(return_value=4)),
+        client.websocket_connect("/api/v1/call/ws/test_crisis_ws_1?token=test_token&privacy_mode=local_private") as websocket,
+    ):
+        assert websocket.receive_json()["type"] == "call_connected"
+        websocket.send_json({"type": "start_call", "voice_mode": "mode_2"})
+        assert websocket.receive_json()["type"] == "call_started"
+
+        websocket.send_json({"type": "user_transcript", "text": "Aku mau bunuh diri malam ini."})
+
+        seen_types = []
+        crisis_evt = None
+        transcript_parts = []
+        for _ in range(15):
+            msg = websocket.receive()
+            if "text" in msg and msg["text"]:
+                data = json.loads(msg["text"])
+                evt_type = data.get("type")
+                seen_types.append(evt_type)
+                if evt_type == "ai.crisis_escalation":
+                    crisis_evt = data
+                elif evt_type == "ai.transcript_chunk":
+                    transcript_parts.append(data.get("text", ""))
+                elif evt_type in ("ai.speech_finished", "ai_speech_finished"):
+                    break
+
+        assert crisis_evt is not None
+        assert crisis_evt["risk_level"] == "critical"
+        assert "119" in crisis_evt["hotline"]
+        assert "".join(transcript_parts).strip() != ""
+
+        # Session must remain open and keep is_crisis_session=True on follow-up turn
+        session = call_session_manager.get_session("test_crisis_ws_1")
+        assert session is not None
+        assert session.is_crisis_session is True
+
+        websocket.send_json({
+            "type": "playback.finished",
+            "call_id": "test_crisis_ws_1",
+            "assistant_turn_id": 1,
+        })
+        websocket.send_json({"type": "user_transcript", "text": "Aku masih gemetar sekarang."})
+        followup_finished = False
+        for _ in range(15):
+            msg = websocket.receive()
+            if "text" in msg and msg["text"]:
+                data = json.loads(msg["text"])
+                if data.get("type") in ("ai.speech_finished", "ai_speech_finished"):
+                    followup_finished = True
+                    break
+        assert followup_finished is True
+        assert session.latest_orchestration_turn is not None
+        assert "MODE DARURAT LANJUTAN" in session.latest_orchestration_turn.final_system_prompt
+
+        websocket.send_json({"type": "end_call"})

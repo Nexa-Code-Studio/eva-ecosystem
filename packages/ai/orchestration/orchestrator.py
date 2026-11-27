@@ -213,6 +213,34 @@ class AIOrchestrator:
             logger.warning(f"⚠️ [ORCHESTRATOR] RAG search error: {e}")
             return []
 
+    def _compose_crisis_guidance_block(
+        self,
+        *,
+        is_crisis: bool,
+        is_crisis_session: bool,
+        risk_level: str,
+    ) -> str:
+        """Build strict, empathetic emergency guidance for dynamic LLM responses."""
+        if is_crisis:
+            return (
+                "\n[MODE DARURAT AKTIF — KESELAMATAN, KEHATI-HATIAN & EMPATI TINGGI]\n"
+                f"- Tingkat risiko terdeteksi: '{risk_level}'. Pengguna membutuhkan pendampingan yang sangat hati-hati, tenang, hangat, dan peduli.\n"
+                "- Hadir penuh untuk pengguna: validasi rasa sakit/lelahnya tanpa menghakimi, jangan menyalahkan, jangan mendikte, dan jangan memberi janji palsu atau diagnosis klinis.\n"
+                "- Gunakan kalimat pendek, lembut, dan menenangkan (grounding) agar pengguna merasa aman dan tidak sendirian.\n"
+                "- Ajak secara halus dan penuh kepedulian untuk menghubungi orang terdekat yang dipercaya atau layanan bantuan profesional darurat "
+                "(Kemenkes 119 ekstensi 8 atau Hotline LISA 0811-3855-472) yang juga tersedia di layar panggilan, sambil tetap siap mendengarkan bila pengguna ingin terus berbicara.\n"
+                "- DILARANG membahas metode menyakiti diri, memberi instruksi berisiko, bersikap dingin/robotik, atau memakai humor."
+            )
+        if is_crisis_session:
+            return (
+                "\n[MODE DARURAT LANJUTAN — ELEVATED CARE & GROUNDING]\n"
+                "- Panggilan ini berada dalam status perhatian darurat dari giliran sebelumnya. Pertahankan nada yang sangat lembut, berhati-hati, sabar, dan penuh kepedulian.\n"
+                "- Dengarkan dan respons langsung ucapan terbaru pengguna dengan validasi hangat dan langkah grounding sederhana (misal mengajak tarik napas perlahan).\n"
+                "- Jangan mengulang skrip nomor hotline secara kaku di setiap giliran jika sudah disampaikan, cukup ingatkan secara lembut bila relevan bahwa bantuan profesional atau orang terdekat selalu bisa dihubungi dari layar panggilan.\n"
+                "- DILARANG bersikap santai berlebihan, bercanda, atau mengabaikan kerentanan emosional pengguna."
+            )
+        return ""
+
     def _compose_system_prompt_v1(
         self,
         emotion: EmotionDetectionResult,
@@ -222,6 +250,8 @@ class AIOrchestrator:
         user_name: Optional[str] = None,
         persisted_memory: Optional[str] = None,
         structured_persisted_context: Optional[List[Dict[str, Any]]] = None,
+        is_crisis: bool = False,
+        is_crisis_session: bool = False,
     ) -> str:
         """Menyusun system prompt empati konseling dinamis berdasarkan hasil observasi multi-agent."""
         emotion_guidance_map = {
@@ -324,6 +354,14 @@ class AIOrchestrator:
                 "- Gunakan tanda elipsis (...) untuk jeda hening alami.\n"
             )
 
+        crisis_block = self._compose_crisis_guidance_block(
+            is_crisis=is_crisis,
+            is_crisis_session=is_crisis_session,
+            risk_level=safety_decision.risk_level,
+        )
+        if crisis_block:
+            prompt += crisis_block + "\n"
+
         return prompt
 
     def _compose_system_prompt(
@@ -335,6 +373,8 @@ class AIOrchestrator:
         user_name: Optional[str] = None,
         persisted_memory: Optional[str] = None,
         structured_persisted_context: Optional[List[Dict[str, Any]]] = None,
+        is_crisis: bool = False,
+        is_crisis_session: bool = False,
     ) -> str:
         """Menyusun system prompt empati konseling dinamis berlapis untuk ElevenLabs v4 Turbo."""
         prompt_version = getattr(settings, "EVA_PROMPT_VERSION", getattr(settings, "LUNA_PROMPT_VERSION", "v2"))
@@ -347,6 +387,8 @@ class AIOrchestrator:
                 user_name,
                 persisted_memory,
                 structured_persisted_context,
+                is_crisis=is_crisis,
+                is_crisis_session=is_crisis_session,
             )
 
         # Layer 1 — Identitas & Peran Eva
@@ -417,11 +459,25 @@ class AIOrchestrator:
                 "Jangan pernah memperlakukan hasil deteksi sebagai fakta mutlak; utamakan pernyataan langsung pengguna dan gunakan bahasa yang tentatif."
             )
 
+        effective_risk_level = (
+            safety_decision.risk_level
+            if safety_decision.risk_level in ("high", "critical")
+            else ("high" if (is_crisis or is_crisis_session) else safety_decision.risk_level)
+        )
+
         prompt_parts.extend([
             "\n[LAYER 3 — SAFETY & GROUNDING]",
-            f"- Status Risiko: '{safety_decision.risk_level}'. Kebijakan respon: '{safety_decision.response_policy}'.",
+            f"- Status Risiko: '{effective_risk_level}'. Kebijakan respon: '{safety_decision.response_policy}'.",
             acoustic_line,
         ])
+
+        crisis_block = self._compose_crisis_guidance_block(
+            is_crisis=is_crisis,
+            is_crisis_session=is_crisis_session,
+            risk_level=effective_risk_level,
+        )
+        if crisis_block:
+            prompt_parts.append(crisis_block)
 
         if dass_scores:
             dep = dass_scores.get("depression", 0)
@@ -435,13 +491,21 @@ class AIOrchestrator:
                 )
 
         # Layer 4 — Bahasa Indonesia Percakapan (Spoken Indonesian)
-        prompt_parts.extend([
-            "\n[LAYER 4 — BAHASA INDONESIA PERCAKAPAN (SPOKEN INDONESIAN)]",
-            "- Panjang respons: Default 1 hingga 3 kalimat pendek dan mengalir alami untuk panggilan telepon suara interaktif.",
-            "- Responsif pada maksud pengguna. Hindari pembuka template berulang seperti 'Aku mengerti perasaanmu' atau formula mekanis 'validasi + saran + pertanyaan' di setiap respons.",
-            "- Selipkan MAKSIMAL SATU pertanyaan lanjutan terbuka yang relevan bila benar-benar diperlukan. Boleh tanpa pertanyaan sama sekali jika situasi membutuhkan ketenangan atau kehadiran mendengarkan.",
-            "- Gunakan bahasa percakapan yang hidup dan luwes. Boleh menggunakan kata santai yang wajar (seperti 'nggak', 'udah', 'kok', 'banget') sesuai kenyamanan pengguna tanpa dipaksa kaku.",
-        ])
+        if is_crisis or is_crisis_session:
+            prompt_parts.extend([
+                "\n[LAYER 4 — BAHASA INDONESIA PERCAKAPAN (SPOKEN INDONESIAN)]",
+                "- Panjang respons: Default 2 hingga 3 kalimat pendek, lembut, tenang, dan mengalir alami untuk panggilan telepon suara.",
+                "- Utamakan kehadiran emosional, validasi hangat, dan grounding; hindari kata-kata bernada menghakimi, terburu-buru, atau bercanda.",
+                "- Jangan mengajukan pertanyaan bertubi-tubi; cukup paling banyak satu pertanyaan lembut yang aman bila perlu.",
+            ])
+        else:
+            prompt_parts.extend([
+                "\n[LAYER 4 — BAHASA INDONESIA PERCAKAPAN (SPOKEN INDONESIAN)]",
+                "- Panjang respons: Default 1 hingga 3 kalimat pendek dan mengalir alami untuk panggilan telepon suara interaktif.",
+                "- Responsif pada maksud pengguna. Hindari pembuka template berulang seperti 'Aku mengerti perasaanmu' atau formula mekanis 'validasi + saran + pertanyaan' di setiap respons.",
+                "- Selipkan MAKSIMAL SATU pertanyaan lanjutan terbuka yang relevan bila benar-benar diperlukan. Boleh tanpa pertanyaan sama sekali jika situasi membutuhkan ketenangan atau kehadiran mendengarkan.",
+                "- Gunakan bahasa percakapan yang hidup dan luwes. Boleh menggunakan kata santai yang wajar (seperti 'nggak', 'udah', 'kok', 'banget') sesuai kenyamanan pengguna tanpa dipaksa kaku.",
+            ])
 
         # Layer 5 — Delivery Suara & Audio Tags (ElevenLabs v4 Turbo)
         enable_audio_tags = getattr(settings, "TTS_ENABLE_AUDIO_TAGS", True)
@@ -450,7 +514,7 @@ class AIOrchestrator:
             style, tag = map_emotion_to_delivery_style(
                 detected_emotion=emotion.primary_emotion,
                 confidence=emotion.confidence,
-                risk_level=safety_decision.risk_level,
+                risk_level=effective_risk_level,
             )
             hint_desc = f"rekomendasi nada: {style}" + (f" (tag opsi: {tag})" if tag else " (tanpa tag)")
             prompt_parts.extend([
@@ -465,6 +529,36 @@ class AIOrchestrator:
 
         return "\n".join(prompt_parts)
 
+    async def _stream_crisis_sop_fallback(self) -> AsyncGenerator[str, None]:
+        """Fallback deterministik saat stream LLM gagal atau kosong pada kondisi darurat."""
+        words = CRISIS_SOP_MESSAGE.split(" ")
+        for i in range(0, len(words), 3):
+            yield " ".join(words[i:i + 3]) + " "
+            await asyncio.sleep(0.02)
+
+    async def _stream_with_crisis_fallback(
+        self,
+        messages: list[LLMMessage],
+    ) -> AsyncGenerator[str, None]:
+        """Stream respons LLM dinamis dengan fallback aman ke CRISIS_SOP_MESSAGE jika gagal/kosong."""
+        has_content = False
+        try:
+            async for token in self.llm_provider.stream_response(messages):
+                if token and token.strip():
+                    has_content = True
+                yield token
+        except Exception as err:
+            logger.error(f"⚠️ [ORCHESTRATOR CRISIS LLM FALLBACK] Stream error: {err}")
+            if not has_content:
+                async for fallback_chunk in self._stream_crisis_sop_fallback():
+                    yield fallback_chunk
+            return
+
+        if not has_content:
+            logger.warning("⚠️ [ORCHESTRATOR CRISIS LLM FALLBACK] Empty LLM stream; yielding CRISIS_SOP_MESSAGE")
+            async for fallback_chunk in self._stream_crisis_sop_fallback():
+                yield fallback_chunk
+
     async def prepare_turn(
         self,
         user_text: str,
@@ -476,6 +570,7 @@ class AIOrchestrator:
         structured_persisted_context: Optional[List[Dict[str, Any]]] = None,
         temporal_emotion: Optional[TemporalEmotionSnapshot] = None,
         allow_sync_audio_fallback: bool = True,
+        is_crisis_session: bool = False,
     ) -> OrchestratedTurnResult:
         """Memproses seluruh evaluasi orkestrasi (Emosi -> Gejala -> Risiko -> RAG)
 
@@ -558,43 +653,27 @@ class AIOrchestrator:
         )
 
         # 4. Evaluasi Skenario Krisis
-        is_crisis = ( 
+        is_crisis = (
             safety_decision.mode == ResponseMode.CRISIS
             or safety_decision.llm_mode == LLMMode.NONE
             or safety_decision.response_policy in [ProtocolAction.IMMEDIATE_HOTLINE, ProtocolAction.CRISIS_REFERRAL]
         )
+        crisis_care_active = is_crisis or is_crisis_session
 
         if is_crisis:
-            logger.warning("🚨 [ORCHESTRATOR CRISIS ACTIVATED] Safety Gate triggered crisis intervention!")
-
-            async def _crisis_stream_generator() -> AsyncGenerator[str, None]:
-                # Stream kalimat-kalimat krisis secara teratur
-                words = CRISIS_SOP_MESSAGE.split(" ")
-                for i in range(0, len(words), 3):
-                    chunk = " ".join(words[i:i + 3]) + " "
-                    yield chunk
-                    await asyncio.sleep(0.02)
-
-            exec_time = (time.perf_counter() - start_t) * 1000
-            return OrchestratedTurnResult(
-                user_text=user_text,
-                emotion=emotion_res,
-                symptoms=symptom_res,
-                risk_output=risk_output,
-                safety_decision=safety_decision,
-                rag_items=[],
-                is_crisis=True,
-                final_system_prompt="[CRISIS SOP PROTOCOL ACTIVATED]",
-                token_stream=_crisis_stream_generator(),
-                execution_time_ms=round(exec_time, 2),
+            logger.warning(
+                "🚨 [ORCHESTRATOR CRISIS ACTIVATED] Routing to bounded dynamic crisis LLM guidance "
+                f"(risk_level={safety_decision.risk_level})"
             )
+        elif is_crisis_session:
+            logger.info("🛡️ [ORCHESTRATOR ELEVATED CARE] Continuing active crisis session with careful dynamic prompt")
 
         # 5. RAG Retrieval jika diizinkan oleh Safety Policy DAN Intent Gating
         from packages.ai.services.rag_gating import RAGGatingService
-        gating_res = RAGGatingService.evaluate_intent(user_text, is_crisis=is_crisis)
+        gating_res = RAGGatingService.evaluate_intent(user_text, is_crisis=crisis_care_active)
 
         rag_items: list[dict[str, Any]] = []
-        if safety_decision.allow_normal_rag and gating_res.should_retrieve_rag:
+        if not crisis_care_active and safety_decision.allow_normal_rag and gating_res.should_retrieve_rag:
             logger.info(f"📚 [ORCHESTRATOR RAG ACTIVATED] Querying Qdrant for intent: {gating_res.intent.value}")
             rag_items = await self._fetch_rag_context(user_text)
         else:
@@ -620,6 +699,8 @@ class AIOrchestrator:
             user_name=user_name,
             persisted_memory=persisted_memory,
             structured_persisted_context=structured_persisted_context,
+            is_crisis=is_crisis,
+            is_crisis_session=is_crisis_session,
         )
 
         # 7. Siapkan Message History dengan Adaptive History Budgeting
@@ -646,11 +727,18 @@ class AIOrchestrator:
         if not messages or messages[-1].role != "user" or messages[-1].content != user_text:
             messages.append(LLMMessage(role="user", content=user_text))
 
-        # 8. Siapkan Token Stream dari LLM Provider
-        token_stream = self.llm_provider.stream_response(messages)
+        # 8. Siapkan Token Stream dari LLM Provider (dengan fallback SOP krisis bila mode darurat aktif)
+        token_stream = (
+            self._stream_with_crisis_fallback(messages)
+            if crisis_care_active
+            else self.llm_provider.stream_response(messages)
+        )
 
         exec_time = (time.perf_counter() - start_t) * 1000
-        logger.info(f"✅ [ORCHESTRATOR TURN READY] Ready in {exec_time:.2f}ms (Emosi: {emotion_res.primary_emotion})")
+        logger.info(
+            f"✅ [ORCHESTRATOR TURN READY] Ready in {exec_time:.2f}ms "
+            f"(Emosi: {emotion_res.primary_emotion}, CrisisTurn: {is_crisis}, CrisisSession: {is_crisis_session})"
+        )
 
         return OrchestratedTurnResult(
             user_text=user_text,
@@ -659,7 +747,7 @@ class AIOrchestrator:
             risk_output=risk_output,
             safety_decision=safety_decision,
             rag_items=rag_items,
-            is_crisis=False,
+            is_crisis=is_crisis,
             final_system_prompt=system_prompt,
             token_stream=token_stream,
             execution_time_ms=round(exec_time, 2),

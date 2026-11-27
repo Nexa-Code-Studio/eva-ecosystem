@@ -1,11 +1,19 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import 'package:eva_mobile/core/routes/app_route_transitions.dart';
+import 'package:eva_mobile/features/auth/presentation/providers/auth_provider.dart';
+import 'package:eva_mobile/features/coping/exercises/breathing/breathing.dart';
+import 'package:eva_mobile/features/coping/shared/domain/coping_session_result.dart';
+import 'package:eva_mobile/features/emergency/presentation/widgets/emergency_hotline_modal.dart';
 import 'package:eva_mobile/features/voice_call/domain/entities/call_state.dart';
 import 'package:eva_mobile/features/voice_call/presentation/controllers/ai_call_controller.dart';
 import 'package:eva_mobile/features/voice_call/presentation/controllers/ai_call_state.dart';
 import 'package:eva_mobile/features/voice_call/presentation/providers/ai_call_provider.dart';
+import 'package:eva_mobile/features/voice_call/presentation/widgets/in_call_emergency_card.dart';
 import 'package:eva_mobile/features/voice_call/presentation/widgets/morphing_voice_nodes_visualizer.dart';
 import 'package:eva_mobile/services/daily_progress_local_service.dart';
 import 'package:eva_mobile/theme/app_colors.dart';
@@ -48,9 +56,19 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
   @override
   void dispose() {
     _aiRippleController.dispose();
-    // Guarantee that if user exited screen, call session and mic audio are stopped
-    if (_callController.mounted && !_callController.isCallEnded) {
-      _callController.endCall();
+    // Stop AI/mic audio immediately on screen exit while preserving background diary/DASS synthesis
+    if (_callController.mounted) {
+      _callController.stopAudioForScreenExit();
+      if (!_callController.isCallEnded) {
+        unawaited(
+          Future.microtask(() {
+            if (_callController.mounted && !_callController.isCallEnded) {
+              return _callController.endCall();
+            }
+            return Future<void>.value();
+          }),
+        );
+      }
     }
     super.dispose();
   }
@@ -59,6 +77,71 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
     final minutes = (totalSeconds ~/ 60).toString().padLeft(2, '0');
     final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
     return '$minutes:$seconds';
+  }
+
+  static const String _defaultDinkesWhatsappUrl =
+      'https://api.whatsapp.com/send/?phone=6281380073120&text=halo%20kak%2C%20saya%20ingin%20bercerita%20mengenai...&type=phone_number&app_absent=0';
+
+  void _openInCallHotlineModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const EmergencyHotlineModal(),
+    );
+  }
+
+  Future<void> _openInCallBreathing() async {
+    await Navigator.of(context).push<CopingSessionResult>(
+      AppRouteTransitions.modalSlideUpRoute<CopingSessionResult>(
+        page: const BreathingExperiencePage(),
+      ),
+    );
+  }
+
+  Future<void> _openInCallDinkesWhatsapp(String? hotlineUrl) async {
+    final uri = Uri.parse(
+      (hotlineUrl != null && hotlineUrl.isNotEmpty)
+          ? hotlineUrl
+          : _defaultDinkesWhatsappUrl,
+    );
+    try {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (_) {
+      try {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      } catch (_) {
+        if (mounted) {
+          AppSnackBar.showError(context, 'Tidak dapat membuka WhatsApp Dinkes');
+        }
+      }
+    }
+  }
+
+  Future<void> _openInCallEmergencyContact() async {
+    try {
+      final contacts = await ref.read(authRepositoryProvider).getEmergencyContacts();
+      if (!mounted) return;
+      if (contacts.isNotEmpty) {
+        final primary = contacts.firstWhere(
+          (c) => c.isPrimary,
+          orElse: () => contacts.first,
+        );
+        final phone = primary.phone.replaceAll(RegExp(r'[^\d+]'), '');
+        if (phone.isNotEmpty) {
+          await launchUrl(Uri.parse('tel:$phone'), mode: LaunchMode.externalApplication);
+          return;
+        }
+      }
+      await Navigator.pushNamed(context, '/emergency_contacts');
+    } catch (_) {
+      if (mounted) {
+        AppSnackBar.showError(context, 'Gagal memuat kontak darurat.');
+      }
+    }
   }
 
   void _handleExitCall(AiCallViewState state) {
@@ -785,6 +868,11 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
             );
             Navigator.of(context).maybePop();
           } else {
+            AppSnackBar.show(
+              context,
+              message: 'Saldo koin habis. Panggilan diakhiri dan ringkasan sesi disimpan.',
+              variant: SnackBarVariant.warning,
+            );
             _handleExitCall(next);
           }
         });
@@ -883,54 +971,76 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
                 ),
               ),
 
-              const Spacer(),
+              Expanded(
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Center Avatar Orb with Multi-Layer Ripple Wave Animation
+                        _buildInteractiveAvatarOrb(state),
 
-              // Center Avatar Orb with Multi-Layer Ripple Wave Animation
-              _buildInteractiveAvatarOrb(state),
+                        const SizedBox(height: 20),
 
-              const SizedBox(height: 24),
+                        // Title & Clean Subtitle Info
+                        Text(
+                          'EVA AI Assistant',
+                          style: GoogleFonts.inter(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                          child: Text(
+                            _getCleanStatusText(state),
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: state.isMuted ? const Color(0xFFFF8B94) : Colors.white70,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
 
-              // Title & Clean Subtitle Info
-              Text(
-                'EVA AI Assistant',
-                style: GoogleFonts.inter(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                _getCleanStatusText(state),
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: state.isMuted ? const Color(0xFFFF8B94) : Colors.white70,
-                  letterSpacing: 0.2,
-                ),
-              ),
-
-              // Dynamic Live Transcript preview
-              if (state.latestPartial.isNotEmpty || state.currentTranscript.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 8.0),
-                  child: Text(
-                    '"${state.latestPartial.isNotEmpty ? state.latestPartial : state.currentTranscript}"',
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontStyle: FontStyle.italic,
-                      color: Colors.white60,
+                        // Dynamic Live Transcript preview
+                        if (state.latestPartial.isNotEmpty || state.currentTranscript.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 8.0),
+                            child: Text(
+                              '"${state.latestPartial.isNotEmpty ? state.latestPartial : state.currentTranscript}"',
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontStyle: FontStyle.italic,
+                                color: Colors.white60,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
+              ),
 
-
-
-              const Spacer(),
+              if (state.isCrisisSession)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 12.0),
+                  child: InCallEmergencyCard(
+                    hotlineSummary: state.crisisHotline,
+                    onOpenHotline: _openInCallHotlineModal,
+                    onOpenBreathing: _openInCallBreathing,
+                    onOpenDinkesWhatsapp: () =>
+                        _openInCallDinkesWhatsapp(state.crisisHotlineUrl),
+                    onOpenEmergencyContact: _openInCallEmergencyContact,
+                  ),
+                ),
 
               if (state.isLowBalanceWarning || state.isBillingEnded)
                 Padding(
@@ -1103,7 +1213,7 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
       return ElevatedButton.icon(
         onPressed: () => controller.bargeIn(),
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.warningDark,
+          backgroundColor: const Color(0xFFF59E0B),
           foregroundColor: Colors.white,
           elevation: 2,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

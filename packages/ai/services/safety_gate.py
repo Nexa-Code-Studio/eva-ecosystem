@@ -40,18 +40,18 @@ class SafetyGate:
                 decision_rule=rule,
                 mode=ResponseMode.CRISIS,
                 response_policy=ProtocolAction.IMMEDIATE_HOTLINE,
-                llm_mode=LLMMode.NONE,
+                llm_mode=LLMMode.BOUNDED_CRISIS,
                 allow_normal_rag=False,
                 requires_crisis_sop=True,
                 requires_human_escalation=True,  # Pure Policy Flag
                 allowed_actions=[
+                    SafetyAction.BOUNDED_LLM,
                     SafetyAction.CRISIS_TEMPLATE,
                     SafetyAction.RESOURCE_RESOLUTION,
                     SafetyAction.HUMAN_ESCALATION,
                 ],
                 prohibited_actions=[
                     SafetyAction.NORMAL_RAG,
-                    SafetyAction.BOUNDED_LLM,
                 ],
                 resource_category="emergency_hotline_directory",
                 audit_required=True,

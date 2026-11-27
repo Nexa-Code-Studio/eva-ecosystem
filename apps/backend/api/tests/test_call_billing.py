@@ -192,3 +192,64 @@ def test_call_websocket_auto_debit_warning_and_graceful_end(monkeypatch):
             warnings = [e for e in events if e["type"] == "call.billing_warning"]
             assert warnings[0]["will_expire_if_zero"] is False
             assert warnings[-1]["will_expire_if_zero"] is True
+
+
+def test_call_websocket_billing_exhausted_allows_session_finalize(monkeypatch):
+    ws_app = FastAPI()
+    ws_app.include_router(call_router, prefix="/api/v1")
+    client = TestClient(ws_app)
+
+    monkeypatch.setattr(call_config, "ai_call_coins_per_minute", 1)
+    monkeypatch.setattr(call_config, "ai_call_interval_seconds", 1)
+    monkeypatch.setattr(call_config, "ai_call_warning_seconds", 0)
+    monkeypatch.setattr(call_config, "ai_call_grace_seconds", 2)
+
+    state = {"balance": 1}
+    mock_user = AuthenticatedCallUser(user_id=uuid.uuid4(), display_name="Finalize User", coin_balance=1)
+
+    async def _fake_charge(user_id, session_id, minute_index, coins_cost):
+        if state["balance"] < coins_cost:
+            return CallChargeResult(
+                success=False,
+                coin_balance=0,
+                coins_debited=0,
+                minute_index=minute_index,
+                reason="insufficient_coins",
+            )
+        state["balance"] -= coins_cost
+        return CallChargeResult(
+            success=True,
+            coin_balance=state["balance"],
+            coins_debited=coins_cost,
+            minute_index=minute_index,
+            invoice_code=f"EVA-FIN-{minute_index}",
+        )
+
+    with (
+        patch("app.services.call.session_manager.CallBillingService.resolve_authenticated_user", new=AsyncMock(return_value=mock_user)),
+        patch("app.services.call.session_manager.CallBillingService.charge_call_minute", side_effect=_fake_charge),
+        patch("app.services.call.session_manager.CallBillingService.get_user_coin_balance", new=AsyncMock(return_value=0)),
+    ):
+        with client.websocket_connect("/api/v1/call/ws/bill_fin_sess?token=ok&privacy_mode=local_private") as ws:
+            assert ws.receive_json()["type"] == "call_connected"
+            ws.send_json({"type": "start_call"})
+            assert ws.receive_json()["type"] == "call_started"
+
+            for _ in range(10):
+                evt = ws.receive_json()
+                if evt.get("type") == "call.ended_by_billing":
+                    break
+
+            ws.send_json({
+                "type": "session_finalize_v1",
+                "client_session_id": "bill_fin_sess",
+                "request_id": "req_fin_1",
+                "duration_seconds": 60,
+                "request_memory_candidates": False,
+            })
+            artifacts = ws.receive_json()
+            assert artifacts["type"] == "session_artifacts_v1"
+            assert artifacts["request_id"] == "req_fin_1"
+            ws.send_json({"type": "session_artifacts_ack_v1", "request_id": "req_fin_1"})
+            finalized = ws.receive_json()
+            assert finalized["type"] == "session_finalized_v1"
