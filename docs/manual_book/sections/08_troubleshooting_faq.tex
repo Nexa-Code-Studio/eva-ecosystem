@@ -1,0 +1,34 @@
+% PIC: Shared (@Oktavian19, @ekyaaa, @KhoirotunNisa25)
+\chapter{Troubleshooting dan Pertanyaan Umum (FAQ)}
+\label{chap:troubleshooting-faq}
+
+\section{Troubleshooting EVA Mobile (Pasien)}
+% TODO(@ekyaaa): Tambahkan daftar kendala & solusi untuk pengguna pasien.
+
+\section{Troubleshooting EVA Counselor (Psikolog)}
+% TODO(@KhoirotunNisa25): Tambahkan daftar kendala & solusi untuk psikolog.
+
+\section{Troubleshooting Web Portal dan Admin}
+Tabel~\ref{tab:troubleshooting-web-admin} merangkum kendala operasional yang paling sering ditemui pada Web Portal dan Panel Admin beserta langkah penanganannya.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Panduan Troubleshooting Web Portal dan Panel Admin}
+  \label{tab:troubleshooting-web-admin}
+  \small
+  \begin{tabularx}{\textwidth}{@{}p{4.0cm}p{4.3cm}X@{}}
+    \toprule
+    \textbf{Kendala} & \textbf{Kemungkinan Penyebab} & \textbf{Langkah Penyelesaian} \\
+    \midrule
+    \textbf{Gagal masuk ke \texttt{/admin/dashboard}} & Sesi autentikasi kedaluwarsa atau akun bukan peran Administrator. & Muat ulang halaman \texttt{/login}, masuk kembali dengan akun Admin resmi, lalu pastikan cookie/token sesi tidak terblokir browser. \\
+    \addlinespace[4pt]
+    \textbf{Dokumen STR/SIPP tidak tampil saat verifikasi} & Koneksi ke penyimpanan objek lambat atau format unggahan psikolog tidak didukung. & Buka ulang modal detail psikolog, klik pratinjau dokumen; jika tetap gagal, tolak dengan alasan unggah ulang dokumen berformat JPG/PNG/PDF yang jelas. \\
+    \addlinespace[4pt]
+    \textbf{Transaksi koin pengguna masih berstatus Menunggu} & Callback QRIS tertunda atau pengguna belum menyelesaikan pembayaran. & Cek tab \textbf{Transaksi Koin} di \texttt{/admin/users-coins} dan cocokkan kode invoice pada modul \textbf{Keuangan \& Rekonsiliasi}. Gunakan konfirmasi manual hanya jika bukti bayar valid. \\
+    \addlinespace[4pt]
+    \textbf{Status rekonsiliasi Finance menunjukkan Selisih} & Perbedaan nominal/biaya penyedia atau waktu potong (\textit{cutoff}) UTC vs WIB. & Buka modal detail transaksi pada \texttt{/admin/finance}, periksa referensi provider dan biaya tercatat, lalu tandai untuk tinjauan tim keuangan. \\
+    \addlinespace[4pt]
+    \textbf{Perubahan FAQ atau Crisis Config belum tampil} & Cache aplikasi klien masih menyimpan konfigurasi lama. & Pastikan perubahan pada \texttt{/admin/content-config} telah disimpan, lalu minta pengguna memuat ulang aplikasi. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}

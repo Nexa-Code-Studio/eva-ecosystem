@@ -1,0 +1,29 @@
+\documentclass[11pt,a4paper]{report}
+
+\input{preamble/styles}
+
+\begin{document}
+
+% --- Frontmatter & Title Page ---
+\input{sections/00_frontmatter}
+
+% --- Table of Contents & List of Figures ---
+\pagenumbering{roman}
+\tableofcontents
+\clearpage
+\listoffigures
+\clearpage
+
+% --- Main Content ---
+\pagenumbering{arabic}
+\input{sections/01_pendahuluan}
+\input{sections/02_memulai_dan_akun}
+\input{sections/03_eva_mobile}
+\input{sections/04_eva_counselor}
+\input{sections/05_web_portal_admin}
+\input{sections/06_alur_lintas_aktor}
+\input{sections/07_privasi_etika_keamanan}
+\input{sections/08_troubleshooting_faq}
+\input{sections/09_glosarium_penutup}
+
+\end{document}

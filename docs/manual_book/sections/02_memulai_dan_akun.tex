@@ -1,0 +1,50 @@
+% PIC: @Oktavian19
+\chapter{Memulai dan Pengelolaan Akun}
+\label{chap:memulai-akun}
+
+\section{Persyaratan Perangkat dan Akses}
+Agar seluruh fitur EVA Ecosystem berjalan optimal—khususnya sesi suara AI, panggilan video telekonseling, dan dasbor analitik Web Admin—pastikan perangkat memenuhi spesifikasi minimum pada Tabel~\ref{tab:persyaratan-perangkat}.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Persyaratan Minimum Perangkat dan Akses Jaringan}
+  \label{tab:persyaratan-perangkat}
+  \small
+  \begin{tabularx}{\textwidth}{@{}p{3.4cm}p{4.5cm}X@{}}
+    \toprule
+    \textbf{Platform} & \textbf{Perangkat / Browser} & \textbf{Kebutuhan Tambahan} \\
+    \midrule
+    \textbf{EVA Mobile} & Android 8.0+ atau iOS 14+ & Mikrofon, kamera (untuk video call), ruang kosong $\ge 150\,\text{MB}$, koneksi stabil $\ge 2\,\text{Mbps}$. \\
+    \addlinespace[4pt]
+    \textbf{EVA Counselor} & Android 8.0+ atau iOS 14+ & Kamera \& mikrofon jernih, dokumen digital STR/SIPP (PDF/JPG/PNG) untuk proses verifikasi. \\
+    \addlinespace[4pt]
+    \textbf{Web Portal \& Admin} & Chrome, Edge, Firefox, atau Safari versi terbaru & Resolusi layar $\ge 1280 \times 720\,\text{px}$ disarankan untuk tabel rekonsiliasi dan tinjauan dokumen. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Registrasi, Login, dan Keamanan Akun}
+
+\subsection{Akun Pengguna / Pasien (EVA Mobile)}
+\begin{enumerate}[leftmargin=1.4em]
+  \item \stepbadge{1} Buka aplikasi \textbf{EVA Mobile} dan pilih metode pendaftaran menggunakan alamat email aktif atau akun Google terhubung.
+  \item \stepbadge{2} Lengkapi profil dasar secara ringkas dan buat kata sandi yang kuat (minimal 8 karakter dengan kombinasi huruf dan angka).
+  \item \stepbadge{3} Aktifkan pengamanan tambahan (PIN/biometrik perangkat jika tersedia) karena diari dan riwayat asesmen bersifat pribadi.
+\end{enumerate}
+
+\subsection{Akun Psikolog / Konselor (EVA Counselor)}
+\begin{enumerate}[leftmargin=1.4em]
+  \item \stepbadge{1} Daftarkan akun melalui \textbf{EVA Counselor} menggunakan email profesional yang aktif.
+  \item \stepbadge{2} Lengkapi biodata klinis serta unggah dokumen legalitas praktik berupa \textbf{STR} (\textit{Surat Tanda Registrasi}) dan \textbf{SIPP} (\textit{Surat Izin Praktik Psikologi}).
+  \item \stepbadge{3} Tunggu proses peninjauan oleh tim \textbf{Web Admin}. Selama status masih \textit{Antrean}, akun belum tampil di direktori publik EVA Mobile.
+\end{enumerate}
+
+\subsection{Akun Administrator (Web Portal \& Admin)}
+Akses panel administrator tidak dibuka untuk pendaftaran publik. Akun Admin disediakan secara internal oleh tim pengelola platform.
+\begin{enumerate}[leftmargin=1.4em]
+  \item \stepbadge{1} Buka halaman login portal pada rute \texttt{/login}.
+  \item \stepbadge{2} Masukkan kredensial akun Administrator resmi dan klik tombol masuk untuk diarahkan ke \texttt{/admin/dashboard}.
+  \item \stepbadge{3} Setelah selesai bertugas, selalu gunakan tombol keluar (\textit{Logout}) terutama saat mengakses dari perangkat bersama.
+\end{enumerate}
+
+\calloutwarn{Kerahasiaan Kredensial Admin}{Jangan pernah membagikan akun Administrator atau membiarkan sesi \texttt{/admin} terbuka tanpa pengawasan. Perubahan pada \textbf{Pengaturan Platform}, \textbf{Verifikasi Psikolog}, dan \textbf{Keuangan \& Rekonsiliasi} berdampak langsung pada operasional seluruh pengguna.}

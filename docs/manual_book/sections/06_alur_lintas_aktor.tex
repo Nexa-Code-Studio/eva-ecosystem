@@ -1,0 +1,117 @@
+% PIC: @Oktavian19
+\chapter{Alur Terintegrasi Lintas Aktor}
+\label{chap:alur-lintas-aktor}
+
+Bab ini memvisualisasikan keterkaitan antar-aplikasi (\textbf{EVA Mobile}, \textbf{EVA Counselor}, dan \textbf{Web Portal \& Admin}) dalam empat skenario operasional utama di EVA Ecosystem.
+
+\section{Diagram Alur Pendaftaran dan Verifikasi Psikolog}
+Proses onboarding psikolog memastikan hanya tenaga profesional dengan STR/SIPP yang valid yang dapat tampil di direktori pasien.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+    node distance=0.85cm and 1.0cm,
+    box/.style={
+      rectangle, rounded corners=5pt, draw=EvaPrimary, fill=EvaCanvas,
+      text width=3.4cm, align=center, minimum height=1.1cm, font=\small
+    },
+    arrow/.style={->, >=Stealth, thick, color=EvaPrimary}
+  ]
+    \node[box] (daftar) {\textbf{1. EVA Counselor}\\Daftar akun \& unggah STR/SIPP};
+    \node[box, right=of daftar] (antrean) {\textbf{2. Web Admin}\\Masuk tab \textit{Antrean Verifikasi}};
+    \node[box, right=of antrean] (tinjau) {\textbf{3. Web Admin}\\Tinjau dokumen \& terbitkan sertifikat};
+    \node[box, below=of tinjau] (aktif) {\textbf{4. EVA Mobile}\\Psikolog tampil di direktori publik};
+    \node[box, below=of antrean, draw=EvaWarn, fill=EvaWarnBg] (tolak) {\textbf{Jika Ditolak}\\Kirim alasan revisi ke Counselor};
+
+    \draw[arrow] (daftar) -- (antrean);
+    \draw[arrow] (antrean) -- (tinjau);
+    \draw[arrow] (tinjau) -- node[right, font=\scriptsize\color{EvaPrimary}]{Disetujui} (aktif);
+    \draw[arrow, color=EvaWarn] (antrean) -- node[right, font=\scriptsize\color{EvaWarn}]{Revisi} (tolak);
+    \draw[arrow, dashed, color=EvaMuted] (tolak.west) -| (daftar.south);
+  \end{tikzpicture}
+  \caption{Alur Pendaftaran dan Verifikasi Psikolog Lintas Aplikasi}
+  \label{fig:tikz-verifikasi-psikolog}
+\end{figure}
+
+\section{Diagram Alur Booking, Video Call, dan Catatan SOAP}
+Setiap sesi telekonseling mengikuti siklus akuntabilitas klinis: pemesanan berbasis koin, pelaksanaan sesi video, pengisian catatan \textbf{SOAP} pada H+1, hingga pelepasan honorarium.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+    node distance=0.85cm and 0.75cm,
+    stepbox/.style={
+      rectangle, rounded corners=5pt, draw=EvaPrimary, fill=white,
+      text width=2.7cm, align=center, minimum height=1.15cm, font=\footnotesize
+    },
+    arrow/.style={->, >=Stealth, thick, color=EvaPrimary}
+  ]
+    \node[stepbox, fill=EvaCanvas] (book) {\textbf{Booking}\\Pasien pilih jadwal \& bayar EVA Coin};
+    \node[stepbox, right=of book] (video) {\textbf{Video Call}\\Sesi telekonseling terenkripsi};
+    \node[stepbox, right=of video] (soap) {\textbf{Catatan SOAP}\\Psikolog isi SOAP maksimal H+1};
+    \node[stepbox, right=of soap, fill=EvaSuccessBg, draw=EvaSuccess] (release) {\textbf{Honorarium}\\Koin dilepas ke wallet psikolog};
+
+    \draw[arrow] (book) -- (video);
+    \draw[arrow] (video) -- (soap);
+    \draw[arrow] (soap) -- (release);
+  \end{tikzpicture}
+  \caption{Alur Booking, Pelaksanaan Sesi Video, Catatan SOAP, dan Pelepasan Honorarium}
+  \label{fig:tikz-booking-soap}
+\end{figure}
+
+\section{Diagram Alur Ekonomi Koin dan Pencairan Dana}
+Arus nilai ekonomi di EVA Ecosystem berjalan tertutup dan dapat diaudit melalui modul \textbf{Pengguna \& Koin} serta \textbf{Keuangan \& Rekonsiliasi}.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+    node distance=0.85cm and 0.85cm,
+    ebox/.style={
+      rectangle, rounded corners=5pt, draw=EvaPrimary, fill=EvaCanvas,
+      text width=3.1cm, align=center, minimum height=1.1cm, font=\footnotesize
+    },
+    arrow/.style={->, >=Stealth, thick, color=EvaPrimary}
+  ]
+    \node[ebox] (qris) {\textbf{Top-Up QRIS}\\Pasien beli paket koin di EVA Mobile};
+    \node[ebox, right=of qris] (walletu) {\textbf{Saldo Koin Pasien}\\Dipakai untuk booking konsultasi};
+    \node[ebox, right=of walletu] (walletp) {\textbf{Wallet Psikolog}\\Terima honorarium pasca-SOAP};
+    \node[ebox, below=of walletp] (withdraw) {\textbf{Withdraw Payout}\\Psikolog ajukan pencairan dana};
+    \node[ebox, below=of qris, fill=white] (recon) {\textbf{Web Admin Finance}\\Rekonsiliasi \textit{Money In} \& \textit{Money Out}};
+
+    \draw[arrow] (qris) -- (walletu);
+    \draw[arrow] (walletu) -- (walletp);
+    \draw[arrow] (walletp) -- (withdraw);
+    \draw[arrow] (withdraw.west) -- (recon.east);
+    \draw[arrow, dashed, color=EvaMuted] (qris.south) -- (recon.north);
+  \end{tikzpicture}
+  \caption{Alur Ekonomi Koin, Honorarium Psikolog, dan Rekonsiliasi Admin}
+  \label{fig:tikz-ekonomi-koin}
+\end{figure}
+
+\section{Diagram Alur Consent Sharing dan Protokol Krisis}
+Perlindungan privasi pengguna dijalankan berdampingan dengan mekanisme keselamatan darurat (\textit{SafetyNet}).
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+    node distance=0.85cm and 0.9cm,
+    cbox/.style={
+      rectangle, rounded corners=5pt, draw=EvaPrimary, fill=EvaCanvas,
+      text width=3.5cm, align=center, minimum height=1.1cm, font=\footnotesize
+    },
+    arrow/.style={->, >=Stealth, thick, color=EvaPrimary}
+  ]
+    \node[cbox] (mobile) {\textbf{EVA Mobile}\\Skrining DASS-21 / interaksi LUNA AI};
+    \node[cbox, right=of mobile] (consent) {\textbf{Consent Gate}\\Pasien pilih izinkan/tolak ringkasan pra-sesi};
+    \node[cbox, right=of consent] (counselor) {\textbf{EVA Counselor}\\Hanya lihat ringkasan jika diizinkan};
+    \node[cbox, below=of mobile, draw=EvaWarn, fill=EvaWarnBg] (crisis) {\textbf{Deteksi Risiko Tinggi}\\Aktifkan \textit{SafetyNet} \& kontak darurat};
+    \node[cbox, below=of consent, fill=white] (adminflag) {\textbf{Web Admin}\\Tandai \textit{Pantauan Krisis} (tanpa isi chat)};
+
+    \draw[arrow] (mobile) -- (consent);
+    \draw[arrow] (consent) -- (counselor);
+    \draw[arrow, color=EvaWarn] (mobile) -- node[right, font=\scriptsize\color{EvaWarn}]{Skor/Sinyal Krisis} (crisis);
+    \draw[arrow, color=EvaWarn] (crisis) -- (adminflag);
+  \end{tikzpicture}
+  \caption{Alur Consent Gate dan Eskalasi Protokol Krisis SafetyNet}
+  \label{fig:tikz-consent-crisis}
+\end{figure}
