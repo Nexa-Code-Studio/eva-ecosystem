@@ -1,9 +1,12 @@
 import logging
+from pathlib import Path
+import re
 from typing import Literal
 import uuid
 from datetime import UTC, datetime, time, timedelta, timezone
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, UploadFile, status
+from shared.config import settings
 from sqlalchemy import case, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -297,7 +300,13 @@ class CounselorService:
         if payload.bio is not None:
             profile.bio = payload.bio.strip()
         if payload.profile_photo_url is not None:
-            profile.profile_photo_url = payload.profile_photo_url
+            photo_val = payload.profile_photo_url.strip()
+            if photo_val.startswith("data:image/"):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Gunakan endpoint multipart /counselors/me/avatar untuk mengunggah foto profil.",
+                )
+            profile.profile_photo_url = photo_val or None
         if payload.buffer_time_minutes is not None:
             profile.buffer_time_minutes = payload.buffer_time_minutes
 
@@ -907,3 +916,108 @@ class CounselorService:
             )
             for tx in txs
         ]
+
+    _MAX_AVATAR_BYTES = 5 * 1024 * 1024
+    _AVATAR_FILENAME_RE = re.compile(r"^[a-f0-9-]+-[a-f0-9]{8}\.(jpg|png|webp)$")
+    _AVATAR_MEDIA_TYPES = {
+        ".jpg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+    }
+
+    @staticmethod
+    def _detect_avatar_format(data: bytes) -> tuple[str, str]:
+        """Validate uploaded avatar magic bytes and return (mime_type, extension)."""
+        if data.startswith(b"\xff\xd8\xff"):
+            return ("image/jpeg", ".jpg")
+        if data.startswith(b"\x89PNG\r\n\x1a\n"):
+            return ("image/png", ".png")
+        if len(data) >= 12 and data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+            return ("image/webp", ".webp")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Format foto profil harus JPEG, PNG, atau WebP yang valid.",
+        )
+
+    async def upload_profile_avatar(
+        self,
+        user_id: uuid.UUID,
+        file: UploadFile,
+        public_base_url: str,
+        upload_root: Path | None = None,
+    ) -> PsychologistProfileResponse:
+        """Store psychologist avatar on UPLOAD_DIR/avatars and update profile_photo_url."""
+        res = await self.db.execute(
+            select(PsychologistProfile).where(PsychologistProfile.user_id == user_id)
+        )
+        profile = res.scalar_one_or_none()
+        if not profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Profil psikolog tidak ditemukan.",
+            )
+
+        raw = await file.read(self._MAX_AVATAR_BYTES + 1)
+        if not raw:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Berkas foto profil tidak boleh kosong.",
+            )
+        if len(raw) > self._MAX_AVATAR_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="Ukuran foto profil maksimal 5 MB.",
+            )
+
+        _, ext = self._detect_avatar_format(raw)
+        avatar_dir = (upload_root or (Path(settings.UPLOAD_DIR) / "avatars")).resolve()
+        avatar_dir.mkdir(parents=True, exist_ok=True)
+
+        filename = f"{user_id}-{uuid.uuid4().hex[:8]}{ext}"
+        dest = (avatar_dir / filename).resolve()
+        if not dest.is_relative_to(avatar_dir):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Path berkas avatar tidak valid.",
+            )
+
+        old_url = profile.profile_photo_url or ""
+        dest.write_bytes(raw)
+
+        base = public_base_url.rstrip("/")
+        profile.profile_photo_url = f"{base}/api/v1/counselors/avatars/{filename}"
+        await self.db.commit()
+        await self.db.refresh(profile)
+
+        # Clean up previous avatar file if it was stored under /counselors/avatars/
+        marker = "/counselors/avatars/"
+        if marker in old_url:
+            old_name = old_url.split(marker, 1)[1].split("?", 1)[0].strip()
+            if self._AVATAR_FILENAME_RE.match(old_name) and old_name != filename:
+                old_path = (avatar_dir / old_name).resolve()
+                if old_path.is_relative_to(avatar_dir):
+                    old_path.unlink(missing_ok=True)
+
+        return self._to_profile_response(profile)
+
+    @classmethod
+    def resolve_avatar_file(
+        cls,
+        filename: str,
+        upload_root: Path | None = None,
+    ) -> tuple[Path, str]:
+        """Resolve and validate an avatar file path safely against path traversal."""
+        if not cls._AVATAR_FILENAME_RE.match(filename):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Foto profil tidak ditemukan.",
+            )
+        avatar_dir = (upload_root or (Path(settings.UPLOAD_DIR) / "avatars")).resolve()
+        target = (avatar_dir / filename).resolve()
+        if not target.is_relative_to(avatar_dir) or not target.is_file():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Foto profil tidak ditemukan.",
+            )
+        media_type = cls._AVATAR_MEDIA_TYPES.get(target.suffix.lower(), "application/octet-stream")
+        return target, media_type

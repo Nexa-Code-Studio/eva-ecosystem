@@ -85,6 +85,27 @@ class ApiClient {
     return _handleResponse(response);
   }
 
+  Future<dynamic> postMultipart(
+    String path, {
+    required String fieldName,
+    required List<int> bytes,
+    required String filename,
+  }) async {
+    final uri = _buildUri(path);
+    final token = await TokenStorage.getToken();
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['Accept'] = 'application/json';
+    if (token != null && token.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+    request.files.add(
+      http.MultipartFile.fromBytes(fieldName, bytes, filename: filename),
+    );
+    final streamed = await _client.send(request).timeout(AppConfig.connectTimeout);
+    final response = await http.Response.fromStream(streamed);
+    return _handleResponse(response);
+  }
+
   Future<List<int>> getRawBytes(String path, {Map<String, dynamic>? queryParams}) async {
     final uri = _buildUri(path, queryParams);
     final headers = await _buildHeaders(extra: {'Accept': 'application/pdf, application/octet-stream, */*'});

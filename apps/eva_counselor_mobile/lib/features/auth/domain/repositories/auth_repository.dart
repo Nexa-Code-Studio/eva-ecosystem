@@ -35,6 +35,10 @@ abstract class IAuthRepository {
     String? titleDegree,
     String? profilePhotoUrl,
   });
+  Future<PsychologistUserEntity> uploadAvatar({
+    required List<int> bytes,
+    required String filename,
+  });
   Future<PsychologistUserEntity> updateBankDetails({
     required String bankName,
     required String accountNumber,

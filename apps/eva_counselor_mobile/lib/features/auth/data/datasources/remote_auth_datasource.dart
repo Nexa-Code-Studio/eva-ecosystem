@@ -70,6 +70,20 @@ class RemoteAuthDataSource implements AuthDataSource {
   }
 
   @override
+  Future<PsychologistProfileResponseDto> uploadAvatar({
+    required List<int> bytes,
+    required String filename,
+  }) async {
+    final response = await _client.postMultipart(
+      ApiEndpoints.uploadAvatar,
+      fieldName: 'file',
+      bytes: bytes,
+      filename: filename,
+    );
+    return PsychologistProfileResponseDto.fromJson(response as Map<String, dynamic>);
+  }
+
+  @override
   Future<PsychologistProfileResponseDto> updateBankDetails({
     required String bankName,
     required String accountNumber,

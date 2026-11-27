@@ -9,6 +9,10 @@ abstract class AuthDataSource {
     String? titleDegree,
     String? profilePhotoUrl,
   });
+  Future<PsychologistProfileResponseDto> uploadAvatar({
+    required List<int> bytes,
+    required String filename,
+  });
   Future<PsychologistProfileResponseDto> updateBankDetails({
     required String bankName,
     required String accountNumber,
