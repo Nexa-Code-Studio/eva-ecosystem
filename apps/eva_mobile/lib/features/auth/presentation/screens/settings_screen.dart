@@ -510,7 +510,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                         _buildActionTile(
                                           icon: Icons.psychology_outlined,
                                           iconColor: AppColors.primary,
-                                          title: 'Kelola Memori Personal Luna',
+                                          title: 'Kelola Memori Personal Eva',
                                           subtitle: 'Tinjau, aktifkan, atau nonaktifkan fakta ingatan AI lokal',
                                           onTap: () => Navigator.push(
                                             context,

@@ -124,7 +124,7 @@ class _MemoryCandidateReviewSheetState extends State<MemoryCandidateReviewSheet>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Luna Ingin Mengingat Hal Ini',
+                      'EVA Ingin Mengingat Hal Ini',
                       style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700),
                     ),
                     Text(
