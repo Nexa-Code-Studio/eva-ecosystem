@@ -51,21 +51,22 @@ class CustomButton extends StatelessWidget {
     }
 
     final disabled = onPressed == null || isLoading;
+    final effectiveHeight = height < 44.0 ? 44.0 : height;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      height: height,
+      height: effectiveHeight,
       width: width ?? double.infinity,
       decoration: BoxDecoration(
         color: disabled ? bg.withValues(alpha: 0.5) : bg,
-        borderRadius: BorderRadius.circular(16.0),
+        borderRadius: BorderRadius.circular(14.0),
         border: border,
         boxShadow: variant == ButtonVariant.primary && !disabled
             ? [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.25),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
+                  color: AppColors.primary.withValues(alpha: 0.18),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
                 ),
               ]
             : null,
@@ -73,7 +74,7 @@ class CustomButton extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16.0),
+          borderRadius: BorderRadius.circular(14.0),
           onTap: disabled ? null : onPressed,
           child: Center(
             child: isLoading

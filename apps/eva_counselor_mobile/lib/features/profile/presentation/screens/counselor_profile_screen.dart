@@ -53,7 +53,7 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
 
       TopToast.show(
         context,
-        title: 'Pencadangan Berhasil! ☁️',
+        title: 'Pencadangan Berhasil',
         message:
             '${result.formattedSizeMb} data rekam SOAP & audio transkrip terenkripsi aman di Google Drive Anda ($targetEmail).',
         type: ToastType.success,
@@ -81,7 +81,7 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
       if (!mounted) return;
       TopToast.show(
         context,
-        title: 'Cadangan Google Drive Sinkron ☁️',
+        title: 'Cadangan Google Drive Sinkron',
         message:
             'Data rekam medis lokal terverifikasi sinkron dengan cadangan Google Drive ($targetEmail).',
         type: ToastType.info,
@@ -194,9 +194,9 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                 iconBg: const Color(0xFFEFF6FF),
                 title: 'Rekening Bank Pencairan Dana',
                 subtitle: hasVerifiedBank
-                    ? '${bankAccount.bankName} • ${bankAccount.accountNumberMasked} (TERVERIFIKASI ✅)'
+                    ? '${bankAccount.bankName} • ${bankAccount.accountNumberMasked} (Terverifikasi)'
                     : (hasLegacyBank
-                        ? '${user!.bankName} • ****${user.bankAccountNumber.length >= 4 ? user.bankAccountNumber.substring(user.bankAccountNumber.length - 4) : user.bankAccountNumber} (Belum Diverifikasi ⚠️)'
+                        ? '${user!.bankName} • ****${user.bankAccountNumber.length >= 4 ? user.bankAccountNumber.substring(user.bankAccountNumber.length - 4) : user.bankAccountNumber} (Belum Diverifikasi)'
                         : 'Belum diatur • Ketuk untuk mendaftarkan rekening'),
                 onTap: () => CounselorBankAccountModal.show(context, ref: ref),
               ),
@@ -215,13 +215,13 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                       color: AppColors.verifiedBg,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text('E2EE 256-bit ✅', style: TextStyle(color: AppColors.verifiedGreen, fontWeight: FontWeight.bold, fontSize: 10)),
+                    child: const Text('E2EE 256-bit', style: TextStyle(color: AppColors.verifiedGreen, fontWeight: FontWeight.bold, fontSize: 10)),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
               const Text(
-                'Data rekam medis SOAP & audio transkrip tersimpan lokal di perangkat Anda (bukan di server EVA). Cadangkan ke Google Drive pribadi Anda untuk keamanan.',
+                'Rekam SOAP dan transkrip tersimpan lokal (E2EE). Cadangkan ke Google Drive pribadi Anda.',
                 style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
               ),
               const SizedBox(height: 10),
@@ -298,28 +298,30 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
               const SizedBox(height: 24),
 
               // 8. Logout
-              GestureDetector(
-                onTap: _confirmLogout,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    color: AppColors.highRiskBg,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.logout, color: AppColors.error, size: 18),
-                      SizedBox(width: 8),
-                      Text(
-                        'Keluar dari Akun Konselor',
-                        style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                    ],
+              Material(
+                color: AppColors.highRiskBg,
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
+                  onTap: _confirmLogout,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    constraints: const BoxConstraints(minHeight: 48),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.logout, color: AppColors.error, size: 18),
+                        SizedBox(width: 8),
+                        Text(
+                          'Keluar dari Akun Konselor',
+                          style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 80),
+              SizedBox(height: MediaQuery.paddingOf(context).bottom + 104),
             ],
           ),
         ),

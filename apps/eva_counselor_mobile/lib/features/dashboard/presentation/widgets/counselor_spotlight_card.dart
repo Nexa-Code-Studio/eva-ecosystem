@@ -133,7 +133,7 @@ class CounselorSpotlightCard extends StatelessWidget {
                 ),
                 onPressed: onNext,
                 child: Text(
-                  isLast ? 'Mulai Praktik 🚀' : 'Lanjut →',
+                  isLast ? 'Mulai Praktik' : 'Lanjut',
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
               ),

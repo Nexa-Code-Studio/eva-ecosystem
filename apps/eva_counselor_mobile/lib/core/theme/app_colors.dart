@@ -16,11 +16,12 @@ class AppColors {
   static const Color background = Color(0xFFF8F9FE); // Cool Tint Off-White
   static const Color surface = Color(0xFFFFFFFF);
   static const Color cardBg = Color(0xFFFFFFFF);
+  static const Color cardBorder = Color(0xFFE2E8F0);
 
-  // Text
+  // Text (WCAG AA >= 4.5:1 on surface and background)
   static const Color textPrimary = Color(0xFF191C1F);
-  static const Color textSecondary = Color(0xFF767684);
-  static const Color textLight = Color(0xFF9EA0AB);
+  static const Color textSecondary = Color(0xFF525466);
+  static const Color textLight = Color(0xFF5F6275);
 
   // Glass Effect Tokens
   static const Color glassBackground = Color(0xCCFFFFFF); // 80% opacity
@@ -28,12 +29,12 @@ class AppColors {
   static const Color glassShadow = Color(0x145358CB); // 8% periwinkle shadow
   static const Color divider = Color(0x0E5358CB); // Soft divider
 
-  // Clinical Status Badges
-  static const Color verifiedGreen = Color(0xFF2E7D32);
+  // Clinical Status Badges (WCAG AA >= 4.5:1)
+  static const Color verifiedGreen = Color(0xFF1E6B3A);
   static const Color verifiedBg = Color(0xFFE8F5E9);
-  static const Color pendingAmber = Color(0xFFED6C02);
+  static const Color pendingAmber = Color(0xFFB45309);
   static const Color pendingBg = Color(0xFFFFF4E5);
-  static const Color highRiskRed = Color(0xFFD32F2F);
+  static const Color highRiskRed = Color(0xFFB91C1C);
   static const Color highRiskBg = Color(0xFFFFEBEE);
 
   // Functional

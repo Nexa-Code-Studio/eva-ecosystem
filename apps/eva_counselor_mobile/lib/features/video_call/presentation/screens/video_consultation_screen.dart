@@ -572,7 +572,7 @@ class _VideoConsultationScreenState
                         Text(
                           isPatientConnected
                               ? (isNearEnd
-                                  ? '⏱️ Sisa ${_formatDuration(Duration(seconds: remainingSeconds))} (${_formatDuration(session.callDuration)}/${session.isExtended ? "60:00" : "30:00"})'
+                                  ? 'Sisa ${_formatDuration(Duration(seconds: remainingSeconds))} (${_formatDuration(session.callDuration)}/${session.isExtended ? "60:00" : "30:00"})'
                                   : 'Sesi Aktif: ${_formatDuration(session.callDuration)} / ${session.isExtended ? "60:00" : "30:00"}')
                               : (session.isPatientReconnecting
                                   ? 'Menghubungkan Ulang...'
@@ -939,7 +939,7 @@ class _VideoConsultationScreenState
                                 if (success && context.mounted) {
                                   TopToast.show(
                                     context,
-                                    title: 'Sesi Diperpanjang! 🎉',
+                                    title: 'Sesi Diperpanjang',
                                     message:
                                         'Konsultasi diperpanjang +30 menit (total 60:00).',
                                     type: ToastType.success,
@@ -998,8 +998,8 @@ class _VideoConsultationScreenState
                           children: [
                             Text(
                               isUrgentEnd
-                                  ? '⏰ Waktu Sesi Tersisa ${_formatDuration(Duration(seconds: remainingSeconds))}!'
-                                  : '⚠️ Waktu Sesi Tersisa ${_formatDuration(Duration(seconds: remainingSeconds))}',
+                                  ? 'Waktu Sesi Tersisa ${_formatDuration(Duration(seconds: remainingSeconds))}'
+                                  : 'Waktu Sesi Tersisa ${_formatDuration(Duration(seconds: remainingSeconds))}',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,

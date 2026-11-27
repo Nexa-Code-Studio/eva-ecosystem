@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/app_async_state_view.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../providers/patient_provider.dart';
 
@@ -118,7 +119,12 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
                   }
 
                   return ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    padding: EdgeInsets.fromLTRB(
+                      20,
+                      12,
+                      20,
+                      MediaQuery.paddingOf(context).bottom + 104,
+                    ),
                     itemCount: filtered.length,
                     separatorBuilder: (context, index) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
@@ -127,21 +133,12 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
                       return Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(18),
                           border: Border.all(
                             color: p.isHighRisk
-                                ? AppColors.highRiskRed.withValues(alpha: 0.2)
-                                : const Color(0xFFECEFF8),
+                                ? AppColors.highRiskRed.withValues(alpha: 0.35)
+                                : AppColors.cardBorder,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: p.isHighRisk
-                                  ? AppColors.highRiskRed.withValues(alpha: 0.04)
-                                  : Colors.black.withValues(alpha: 0.02),
-                              blurRadius: 14,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
                         ),
                         child: Material(
                           color: Colors.transparent,
@@ -269,8 +266,21 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
                     },
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
+                loading: () => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: AppAsyncStateView.loading(
+                    title: 'Memuat direktori pasien...',
+                    message: 'Mengambil riwayat pasien dan status persetujuan.',
+                  ),
+                ),
+                error: (e, _) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: AppAsyncStateView.error(
+                    title: 'Gagal memuat direktori pasien',
+                    message: 'Terjadi kendala jaringan saat mengambil daftar pasien.',
+                    onRetry: () => ref.invalidate(patientsListProvider),
+                  ),
+                ),
               ),
             ),
           ],

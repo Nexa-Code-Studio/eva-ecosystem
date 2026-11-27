@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/app_async_state_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../providers/counselor_level_metrics_provider.dart';
@@ -71,27 +72,16 @@ class _CounselorReviewsSheet extends ConsumerWidget {
 
             Expanded(
               child: reviewsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, _) => Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.error_outline_rounded,
-                          size: 36, color: AppColors.error),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Gagal memuat ulasan: $err',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.textSecondary),
-                      ),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: () => ref.refresh(counselorReviewsProvider(null)),
-                        child: const Text('Coba Lagi'),
-                      ),
-                    ],
-                  ),
+                loading: () => AppAsyncStateView.loading(
+                  title: 'Memuat ulasan pasien...',
+                  message: 'Mengambil penilaian dan komentar sesi.',
+                  compact: true,
+                ),
+                error: (err, _) => AppAsyncStateView.error(
+                  title: 'Gagal memuat ulasan',
+                  message: 'Ulasan pasien belum dapat dimuat saat ini.',
+                  onRetry: () => ref.invalidate(counselorReviewsProvider(null)),
+                  compact: true,
                 ),
                 data: (reviewsList) {
                   final reviews = reviewsList.items;

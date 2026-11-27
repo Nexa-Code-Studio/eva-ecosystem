@@ -215,7 +215,7 @@ class _CounselorProfileScheduleCardState extends State<CounselorProfileScheduleC
                   Navigator.pop(ctx);
                   TopToast.show(
                     context,
-                    title: 'Jadwal Offline Diperbarui! 📅',
+                    title: 'Jadwal Offline Diperbarui',
                     message: 'Slot jadwal tatap muka Anda telah disimpan.',
                     type: ToastType.success,
                   );

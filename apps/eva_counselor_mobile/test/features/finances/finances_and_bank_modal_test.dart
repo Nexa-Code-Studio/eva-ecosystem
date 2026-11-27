@@ -163,7 +163,7 @@ void main() {
       expect(find.text('Rekening Bank Pencairan'), findsOneWidget);
       expect(find.text('Bank Mandiri'), findsOneWidget);
       expect(find.text('****3333'), findsOneWidget);
-      expect(find.text('TERVERIFIKASI ✅'), findsOneWidget);
+      expect(find.text('Terverifikasi'), findsOneWidget);
       expect(find.text('Ubah Rekening Bank'), findsOneWidget);
     });
   });

@@ -54,30 +54,30 @@ void main() {
       expect(find.text('Beranda Praktik Konseling'), findsOneWidget);
       expect(find.text('Menu 1 dari 4'), findsOneWidget);
 
-      // Tap "Lanjut →" to step 2 (Rekam Medis & SOAP)
-      await tester.tap(find.text('Lanjut →'));
+      // Tap "Lanjut" to step 2 (Rekam Medis & SOAP)
+      await tester.tap(find.text('Lanjut'));
       await tester.pumpAndSettle();
 
       expect(find.text('Rekam Medis & SOAP'), findsOneWidget);
       expect(find.text('Menu 2 dari 4'), findsOneWidget);
 
-      // Tap "Lanjut →" to step 3 (Keuangan & Saldo Koin)
-      await tester.tap(find.text('Lanjut →'));
+      // Tap "Lanjut" to step 3 (Keuangan & Saldo Koin)
+      await tester.tap(find.text('Lanjut'));
       await tester.pumpAndSettle();
 
       expect(find.text('Keuangan & Saldo Koin'), findsOneWidget);
       expect(find.text('Menu 3 dari 4'), findsOneWidget);
 
-      // Tap "Lanjut →" to step 4 (Profil, Drive E2EE & Sertifikat)
-      await tester.tap(find.text('Lanjut →'));
+      // Tap "Lanjut" to step 4 (Profil, Drive E2EE & Sertifikat)
+      await tester.tap(find.text('Lanjut'));
       await tester.pumpAndSettle();
 
       expect(find.text('Profil, Drive E2EE & Sertifikat'), findsOneWidget);
       expect(find.text('Menu 4 dari 4'), findsOneWidget);
-      expect(find.text('Mulai Praktik 🚀'), findsOneWidget);
+      expect(find.text('Mulai Praktik'), findsOneWidget);
 
-      // Tap "Mulai Praktik 🚀"
-      await tester.tap(find.text('Mulai Praktik 🚀'));
+      // Tap "Mulai Praktik"
+      await tester.tap(find.text('Mulai Praktik'));
       await tester.pumpAndSettle();
 
       // Spotlight overlay is dismissed

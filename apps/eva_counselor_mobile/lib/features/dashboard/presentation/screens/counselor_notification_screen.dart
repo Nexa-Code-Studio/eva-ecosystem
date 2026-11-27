@@ -182,37 +182,31 @@ class _CounselorNotificationScreenState
                           catIcon = Icons.notifications_active_rounded;
                         }
 
-                        return GestureDetector(
-                          onTap: () {
-                            ref
-                                .read(counselorNotificationsProvider.notifier)
-                                .markAsRead(notif.id);
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isCrisis
-                                    ? AppColors.highRiskRed.withValues(alpha: 0.2)
-                                    : const Color(0xFFF0F2F8),
-                                width: 1,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: isCrisis
-                                      ? AppColors.highRiskRed
-                                          .withValues(alpha: 0.05)
-                                      : Colors.black.withValues(alpha: 0.02),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isCrisis
+                                  ? AppColors.highRiskRed.withValues(alpha: 0.35)
+                                  : AppColors.cardBorder,
+                              width: 1,
                             ),
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(20),
+                              onTap: () {
+                                ref
+                                    .read(counselorNotificationsProvider.notifier)
+                                    .markAsRead(notif.id);
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
                                 Row(
                                   children: [
                                     Container(
@@ -333,9 +327,11 @@ class _CounselorNotificationScreenState
                               ],
                             ),
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      ),
+                    );
+                    },
+                  ),
             ),
           ],
         ),
