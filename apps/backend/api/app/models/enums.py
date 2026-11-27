@@ -207,6 +207,7 @@ class CoinTransactionType(StrEnum):
     GRANT_ADMIN = "grant_admin"
     BOOKING_DEBIT = "booking_debit"
     EXTENSION_DEBIT = "extension_debit"
+    AI_CALL_DEBIT = "ai_call_debit"
     REFUND = "refund"
 
 

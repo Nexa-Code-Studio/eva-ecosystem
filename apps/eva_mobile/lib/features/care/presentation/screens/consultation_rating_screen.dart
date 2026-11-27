@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_back_button.dart';
 import '../../../../widgets/app_snack_bar.dart';
+import '../../../../widgets/safe_network_avatar.dart';
 import '../../domain/entities/psychologist_entity.dart';
 import '../../domain/entities/psychologist_rating_review.dart';
 import '../providers/care_provider.dart';
@@ -235,9 +236,9 @@ class _ConsultationRatingScreenState
       ),
       child: Row(
         children: [
-          CircleAvatar(
+          SafeNetworkAvatar(
+            imageUrl: widget.psychologist.avatarUrl,
             radius: 24,
-            backgroundImage: NetworkImage(widget.psychologist.avatarUrl),
           ),
           const SizedBox(width: 12),
           Expanded(

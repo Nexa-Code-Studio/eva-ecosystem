@@ -6,6 +6,7 @@ import '../../../../config/app_config.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_back_button.dart';
 import '../../../../widgets/glass_card.dart';
+import '../../../../widgets/safe_network_avatar.dart';
 import '../../domain/entities/psychologist_entity.dart';
 import '../providers/care_provider.dart';
 import '../widgets/booking_consultation_sheet.dart';
@@ -171,23 +172,9 @@ class PsychologistDetailScreen extends ConsumerWidget {
             children: [
               Stack(
                 children: [
-                  CircleAvatar(
+                  SafeNetworkAvatar(
+                    imageUrl: activePsy.avatarUrl,
                     radius: 36,
-                    backgroundColor: AppColors.primaryContainer,
-                    backgroundImage: activePsy.avatarUrl.isNotEmpty
-                        ? NetworkImage(activePsy.avatarUrl)
-                        : null,
-                    child: activePsy.avatarUrl.isEmpty
-                        ? Text(
-                            activePsy.name.isNotEmpty
-                                ? activePsy.name.substring(0, activePsy.name.length >= 2 ? 2 : 1).toUpperCase()
-                                : 'PS',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
-                            ),
-                          )
-                        : null,
                   ),
                   if (activePsy.availableOnline)
                     Positioned(

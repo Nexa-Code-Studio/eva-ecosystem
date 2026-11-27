@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../theme/app_colors.dart';
+import '../../../../widgets/safe_network_avatar.dart';
 import '../../domain/entities/psychologist_entity.dart';
 import 'dense_review_tags_wrap.dart';
 
@@ -49,22 +50,9 @@ class PsychologistCard extends StatelessWidget {
                   Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      CircleAvatar(
+                      SafeNetworkAvatar(
+                        imageUrl: psychologist.avatarUrl,
                         radius: 28,
-                        backgroundColor: AppColors.primaryContainer,
-                        backgroundImage: psychologist.avatarUrl.isNotEmpty
-                            ? NetworkImage(psychologist.avatarUrl)
-                            : null,
-                        onBackgroundImageError: psychologist.avatarUrl.isNotEmpty
-                            ? (exception, stackTrace) {}
-                            : null,
-                        child: Text(
-                          _initials(psychologist.name),
-                          style: GoogleFonts.plusJakartaSans(
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                          ),
-                        ),
                       ),
                       if (psychologist.levelTier != null)
                         Positioned(
@@ -244,13 +232,6 @@ class PsychologistCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  static String _initials(String name) {
-    final trimmed = name.trim();
-    if (trimmed.isEmpty) return 'PS';
-    if (trimmed.length == 1) return trimmed.toUpperCase();
-    return trimmed.substring(0, 2).toUpperCase();
   }
 }
 

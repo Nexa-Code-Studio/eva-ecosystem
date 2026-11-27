@@ -7,7 +7,7 @@ import sys
 import time
 from array import array
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from app.services.call.audio_segmenter import CANONICAL_SAMPLE_RATE
@@ -175,7 +175,9 @@ def test_call_websocket_streaming_non_blocking_end_to_end(monkeypatch):
 
     from app.api.routes.call import router as call_router
     from app.services.call import call_session_manager
+    from app.services.call.billing_service import AuthenticatedCallUser, CallChargeResult
     from packages.shared.config import settings
+    import uuid
 
     provider = MockEmotionProvider(simulated_latency_ms=5.0)
     coordinator = CallEmotionCoordinator(provider_getter=lambda: provider)
@@ -188,12 +190,18 @@ def test_call_websocket_streaming_non_blocking_end_to_end(monkeypatch):
     ws_app.include_router(call_router, prefix="/api/v1")
     test_client = TestClient(ws_app)
 
+    mock_user = AuthenticatedCallUser(user_id=uuid.uuid4(), display_name="Private User", coin_balance=5)
+    mock_charge = CallChargeResult(success=True, coin_balance=4, coins_debited=1, minute_index=1)
+
     with (
         patch("app.services.call.persistence.AsyncSessionLocal") as mock_db,
         patch("app.services.call.session_manager.TTSFactory.get_provider", return_value=MockTTSProvider()),
+        patch("app.services.call.session_manager.CallBillingService.resolve_authenticated_user", new=AsyncMock(return_value=mock_user)),
+        patch("app.services.call.session_manager.CallBillingService.charge_call_minute", new=AsyncMock(return_value=mock_charge)),
+        patch("app.services.call.session_manager.CallBillingService.get_user_coin_balance", new=AsyncMock(return_value=4)),
     ):
         with test_client.websocket_connect(
-            "/api/v1/call/ws/e2e_stream_sess?privacy_mode=local_private"
+            "/api/v1/call/ws/e2e_stream_sess?token=test_token&privacy_mode=local_private"
         ) as ws:
             connected = ws.receive_json()
             assert connected["type"] == "call_connected"
@@ -235,8 +243,10 @@ def test_call_websocket_chunked_4800b_fanout_and_emotion_failure_isolation(monke
     never stall or fail conversation even when emotion_service raises an error."""
     from app.api.routes.call import router as call_router
     from app.services.call import call_session_manager
+    from app.services.call.billing_service import AuthenticatedCallUser, CallChargeResult
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
+    import uuid
 
     from packages.shared.config import settings
 
@@ -254,15 +264,21 @@ def test_call_websocket_chunked_4800b_fanout_and_emotion_failure_isolation(monke
     ws_app.include_router(call_router, prefix="/api/v1")
     test_client = TestClient(ws_app)
 
+    mock_user = AuthenticatedCallUser(user_id=uuid.uuid4(), display_name="Private User", coin_balance=5)
+    mock_charge = CallChargeResult(success=True, coin_balance=4, coins_debited=1, minute_index=1)
+
     with (
         patch("app.services.call.persistence.AsyncSessionLocal") as mock_db,
         patch(
             "app.services.call.session_manager.TTSFactory.get_provider",
             return_value=MockTTSProvider(),
         ),
+        patch("app.services.call.session_manager.CallBillingService.resolve_authenticated_user", new=AsyncMock(return_value=mock_user)),
+        patch("app.services.call.session_manager.CallBillingService.charge_call_minute", new=AsyncMock(return_value=mock_charge)),
+        patch("app.services.call.session_manager.CallBillingService.get_user_coin_balance", new=AsyncMock(return_value=4)),
     ):
         with test_client.websocket_connect(
-            "/api/v1/call/ws/e2e_isolation_sess?privacy_mode=local_private"
+            "/api/v1/call/ws/e2e_isolation_sess?token=test_token&privacy_mode=local_private"
         ) as ws:
             assert ws.receive_json()["type"] == "call_connected"
             ws.send_json({"type": "start_call"})

@@ -23,6 +23,7 @@ from app.models.dass import DASSAssessment
 from app.models.diary import DiaryEntry
 from app.models.enums import MessageType
 from app.models.user import User
+from app.services.call.billing_service import CallBillingService
 from app.services.call.emotion_coordinator import CallEmotionCoordinator, call_emotion_coordinator
 from app.services.call.persistence import CallPersistenceService
 from app.services.call.stream_buffer import audio_buffer_service
@@ -99,6 +100,13 @@ class CallSession:
         self._current_ai_task: asyncio.Task[Any] | None = None
         self._active_ttd_session: ElevenLabsTTDSession | None = None
         self._endpoint_timer_task: asyncio.Task[Any] | None = None
+        self._billing_task: asyncio.Task[Any] | None = None
+        self._billing_lock: asyncio.Lock = asyncio.Lock()
+        self.billed_minutes: int = 0
+        self.latest_coin_balance: int = 0
+        self.billing_started: bool = False
+        self.billing_terminated: bool = False
+        self.is_crisis_session: bool = False
         self.aggregator = TurnAggregator(call_id=session_id, initial_turn_id=1)
         self.thesis_metrics_log: list[dict[str, Any]] = []
         self.latest_orchestration_turn: OrchestratedTurnResult | None = None
@@ -124,6 +132,13 @@ class CallSession:
             if current != self._endpoint_timer_task:
                 self._endpoint_timer_task.cancel()
             self._endpoint_timer_task = None
+
+    def cancel_billing_task(self) -> None:
+        if self._billing_task and not self._billing_task.done():
+            current = asyncio.current_task()
+            if current != self._billing_task:
+                self._billing_task.cancel()
+            self._billing_task = None
 
 
 class CallSessionManager:
@@ -181,6 +196,7 @@ class CallSessionManager:
         self.emotion_coordinator.cleanup_session(session_id)
         if session_id in self._active_sessions:
             session = self._active_sessions[session_id]
+            session.cancel_billing_task()
             session.cancel_active_ai_task()
             session.cancel_endpoint_timer()
 
@@ -211,6 +227,17 @@ class CallSessionManager:
     ) -> None:
         """Handle entire bi-directional WebSocket connection lifecycle for AI Phone Call sessions."""
         await websocket.accept()
+        auth_user = await CallBillingService.resolve_authenticated_user(token)
+        if auth_user is None:
+            logger.warning(f"🔒 [WS AUTH REJECTED] Session {session_id}: invalid or missing token")
+            await websocket.send_json({
+                "type": "call.auth_error",
+                "code": "AUTH_REQUIRED",
+                "message": "Sesi login tidak valid untuk memulai telepon AI.",
+            })
+            await websocket.close(code=1008)
+            return
+
         session = self.register_session(
             session_id,
             websocket,
@@ -218,6 +245,9 @@ class CallSessionManager:
             voice_mode=voice_mode,
             privacy_mode=privacy_mode,
         )
+        session.user_id = auth_user.user_id
+        session.user_name = auth_user.display_name
+        session.latest_coin_balance = auth_user.coin_balance
         logger.info(f"🔌 [WEBSOCKET CONNECTED] Session: {session_id} (Voice Mode: {session.voice_mode})")
 
         try:
@@ -282,6 +312,8 @@ class CallSessionManager:
                             break
 
                         await self.handle_event(session, payload)
+                        if session.billing_terminated and not session.billing_started:
+                            break
 
                     except json.JSONDecodeError:
                         logger.warning(f"⚠️ [INVALID JSON] Session {session_id}: Received malformed JSON")
@@ -463,6 +495,15 @@ class CallSessionManager:
         """Central event dispatcher for Hybrid Half-Duplex WebSocket protocol."""
         event_type = payload.get("type")
 
+        if session.billing_terminated and event_type in (
+            "stt.partial",
+            "stt.final_segment",
+            "user.force_commit",
+            "user_transcript",
+        ):
+            logger.info(f"🛑 [BILLING TERMINATED IGNORE] Session {session.session_id}: ignoring {event_type}")
+            return
+
         if event_type == "stt.partial":
             await self._handle_stt_partial(session, payload)
         elif event_type == "stt.final_segment":
@@ -495,17 +536,7 @@ class CallSessionManager:
                 )
         # Backward compatibility events
         elif event_type == "start_call":
-            if "voice_mode" in payload and payload["voice_mode"]:
-                session.voice_mode = str(payload["voice_mode"]).strip()
-            logger.info(f"🚀 [CALL STARTED] Session {session.session_id} (Voice Mode: {session.voice_mode})")
-            session.state = "listening"
-            session.is_muted = False
-            self.stt_coordinator.resume_session(session.session_id)
-            await session.websocket.send_json({
-                "type": "call_started",
-                "session_id": session.session_id,
-                "voice_mode": session.voice_mode,
-            })
+            await self._handle_start_call(session, payload)
         elif event_type == "user_transcript":
             user_text = payload.get("text", "")
             logger.info(
@@ -517,6 +548,188 @@ class CallSessionManager:
             await self._handle_assistant_interrupt(session, {"assistant_turn_id": session.assistant_turn_id})
         elif event_type == "ping":
             await session.websocket.send_json({"type": "pong"})
+
+    async def _safe_send_json(self, session: CallSession, data: dict[str, Any]) -> bool:
+        try:
+            await session.websocket.send_json(data)
+            return True
+        except Exception:
+            return False
+
+    async def _handle_start_call(self, session: CallSession, payload: dict[str, Any]) -> None:
+        if "voice_mode" in payload and payload["voice_mode"]:
+            session.voice_mode = str(payload["voice_mode"]).strip()
+
+        interval_s = max(1, call_config.ai_call_interval_seconds)
+        warning_s = max(0, min(call_config.ai_call_warning_seconds, interval_s - 1)) if interval_s > 1 else 0
+
+        async with session._billing_lock:
+            if session.billing_terminated:
+                return
+            if not session.billing_started:
+                charge = await CallBillingService.charge_call_minute(
+                    user_id=session.user_id,
+                    session_id=session.session_id,
+                    minute_index=1,
+                    coins_cost=call_config.ai_call_coins_per_minute,
+                )
+                if not charge.success:
+                    session.billing_terminated = True
+                    await self._safe_send_json(
+                        session,
+                        {
+                            "type": "call.billing_insufficient",
+                            "session_id": session.session_id,
+                            "required_coins": call_config.ai_call_coins_per_minute,
+                            "coin_balance": charge.coin_balance,
+                            "message": "Saldo koin tidak mencukupi untuk memulai telepon AI.",
+                        },
+                    )
+                    try:
+                        await session.websocket.close(code=4002)
+                    except Exception:
+                        pass
+                    return
+
+                session.billed_minutes = 1
+                session.latest_coin_balance = charge.coin_balance
+                session.billing_started = True
+                session._billing_task = asyncio.create_task(self._run_billing_loop(session))
+
+        logger.info(f"🚀 [CALL STARTED] Session {session.session_id} (Voice Mode: {session.voice_mode})")
+        session.state = "listening"
+        session.is_muted = False
+        self.stt_coordinator.resume_session(session.session_id)
+        await self._safe_send_json(
+            session,
+            {
+                "type": "call_started",
+                "session_id": session.session_id,
+                "voice_mode": session.voice_mode,
+                "billing": {
+                    "coins_per_minute": call_config.ai_call_coins_per_minute,
+                    "interval_seconds": interval_s,
+                    "warning_seconds": warning_s,
+                    "current_minute": session.billed_minutes,
+                    "remaining_balance": session.latest_coin_balance,
+                    "seconds_until_next_charge": interval_s,
+                },
+            },
+        )
+
+    async def _run_billing_loop(self, session: CallSession) -> None:
+        try:
+            while not session.billing_terminated and session.session_id in self._active_sessions:
+                interval_s = max(1, call_config.ai_call_interval_seconds)
+                warning_s = (
+                    max(0, min(call_config.ai_call_warning_seconds, interval_s - 1))
+                    if interval_s > 1
+                    else 0
+                )
+                pre_warn_sleep = interval_s - warning_s
+
+                if pre_warn_sleep > 0:
+                    await asyncio.sleep(pre_warn_sleep)
+
+                if session.billing_terminated or session.session_id not in self._active_sessions:
+                    break
+
+                if warning_s > 0:
+                    current_bal = await CallBillingService.get_user_coin_balance(session.user_id)
+                    effective_bal = current_bal if current_bal is not None else 0
+                    will_expire = effective_bal < call_config.ai_call_coins_per_minute
+                    await self._safe_send_json(
+                        session,
+                        {
+                            "type": "call.billing_warning",
+                            "session_id": session.session_id,
+                            "seconds_remaining": warning_s,
+                            "coin_balance": effective_bal,
+                            "will_expire_if_zero": will_expire,
+                        },
+                    )
+                    await asyncio.sleep(warning_s)
+
+                if session.billing_terminated or session.session_id not in self._active_sessions:
+                    break
+
+                next_minute = session.billed_minutes + 1
+                async with session._billing_lock:
+                    if session.billing_terminated or session.session_id not in self._active_sessions:
+                        break
+                    charge = await CallBillingService.charge_call_minute(
+                        user_id=session.user_id,
+                        session_id=session.session_id,
+                        minute_index=next_minute,
+                        coins_cost=call_config.ai_call_coins_per_minute,
+                    )
+
+                if charge.success:
+                    session.billed_minutes = next_minute
+                    session.latest_coin_balance = charge.coin_balance
+                    await self._safe_send_json(
+                        session,
+                        {
+                            "type": "call.billing_charged",
+                            "session_id": session.session_id,
+                            "current_minute": next_minute,
+                            "coins_debited": charge.coins_debited,
+                            "remaining_balance": charge.coin_balance,
+                            "seconds_until_next_charge": interval_s,
+                        },
+                    )
+                    continue
+
+                await self._terminate_session_due_to_billing(session, charge.coin_balance)
+                break
+        except asyncio.CancelledError:
+            pass
+        except Exception as exc:
+            logger.error(f"❌ [BILLING LOOP ERROR] Session {session.session_id}: {exc}")
+
+    async def _terminate_session_due_to_billing(self, session: CallSession, coin_balance: int) -> None:
+        session.billing_terminated = True
+        session.cancel_endpoint_timer()
+        grace_s = max(0, call_config.ai_call_grace_seconds)
+
+        await self._safe_send_json(
+            session,
+            {
+                "type": "call.billing_exhausted",
+                "session_id": session.session_id,
+                "reason": "insufficient_coins",
+                "coin_balance": coin_balance,
+                "grace_seconds": grace_s,
+                "is_crisis": session.is_crisis_session,
+                "message": "Saldo koin Anda habis. Panggilan akan segera berakhir.",
+            },
+        )
+
+        active_task = session._current_ai_task
+        if active_task and not active_task.done():
+            try:
+                if session.is_crisis_session:
+                    await asyncio.shield(active_task)
+                elif grace_s > 0:
+                    await asyncio.wait_for(asyncio.shield(active_task), timeout=grace_s)
+            except (TimeoutError, asyncio.CancelledError, Exception):
+                pass
+
+        await self._safe_send_json(
+            session,
+            {
+                "type": "call.ended_by_billing",
+                "session_id": session.session_id,
+                "reason": "insufficient_coins",
+                "billed_minutes": session.billed_minutes,
+                "is_crisis": session.is_crisis_session,
+            },
+        )
+        await asyncio.sleep(0.2)
+        try:
+            await session.websocket.close(code=4002)
+        except Exception:
+            pass
 
     async def _handle_stt_partial(self, session: CallSession, payload: dict[str, Any]) -> None:
         text = payload.get("text", "").strip()
@@ -1024,6 +1237,7 @@ class CallSessionManager:
 
             # Notifikasi darurat ke WebSocket jika Safety Gate mendeteksi skenario krisis
             if turn.is_crisis:
+                session.is_crisis_session = True
                 logger.warning(f"🚨 [CALL CRISIS ALERT] Session {session.session_id}: Safety Gate escalated to crisis protocol!")
                 try:
                     await session.websocket.send_json({

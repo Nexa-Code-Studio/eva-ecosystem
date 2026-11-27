@@ -1,0 +1,195 @@
+name: Deploy EVA Mobile Simulators to Vercel
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: 'Target Simulator App'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - 'all'
+          - 'eva_mobile'
+          - 'eva_counselor_mobile'
+      api_base_url:
+        description: 'Backend API Base URL (HTTPS required)'
+        required: true
+        default: 'https://eva.nexacode.dev/api/v1'
+      use_hybrid:
+        description: 'Enable Hybrid Fallback for Eva Mobile'
+        required: true
+        type: boolean
+        default: true
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/eva_mobile/**'
+      - 'apps/eva_counselor_mobile/**'
+      - 'packages/webrtc_client/**'
+      - '.github/workflows/deploy-mobile-vercel.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-eva-mobile:
+    name: Build & Deploy Eva Mobile (User)
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' || github.event.inputs.app == 'all' || github.event.inputs.app == 'eva_mobile' || github.event.inputs.app == null }}
+    outputs:
+      deploy_url: ${{ steps.vercel_deploy.outputs.url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Eva Mobile Web (Root Base Href)
+        run: |
+          API_URL="${{ github.event.inputs.api_base_url || 'https://eva.nexacode.dev/api/v1' }}"
+          USE_HYBRID="${{ github.event.inputs.use_hybrid != 'false' && 'true' || 'false' }}"
+          cd apps/eva_mobile
+          flutter pub get
+          flutter build web --release \
+            --base-href "/" \
+            --dart-define=USE_LOCAL_API=false \
+            --dart-define=USE_HYBRID_FALLBACK="${USE_HYBRID}" \
+            --dart-define=HYBRID="${USE_HYBRID}" \
+            --dart-define=API_BASE_URL="${API_URL}"
+          cp web/vercel.json build/web/vercel.json
+
+      - name: Prepare Vercel Build Output (Eva Mobile)
+        run: |
+          set -euo pipefail
+          OUT_DIR=".vercel/output"
+          rm -rf "$OUT_DIR"
+          mkdir -p "$OUT_DIR/static"
+          cp -r apps/eva_mobile/build/web/. "$OUT_DIR/static/"
+          cat <<'EOF' > "$OUT_DIR/config.json"
+          {
+            "version": 3,
+            "routes": [
+              {
+                "src": "/(.*)",
+                "headers": {
+                  "Cross-Origin-Opener-Policy": "same-origin",
+                  "Cross-Origin-Embedder-Policy": "credentialless"
+                },
+                "continue": true
+              },
+              {
+                "handle": "filesystem"
+              },
+              {
+                "src": "/(.*)",
+                "dest": "/index.html"
+              }
+            ]
+          }
+          EOF
+
+      - name: Deploy Eva Mobile to Vercel (Production)
+        id: vercel_deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_MOBILE }}
+        run: |
+          set -euo pipefail
+          DEPLOY_LOG="$(mktemp)"
+          npx --yes vercel deploy . --prebuilt --prod --yes --token="$VERCEL_TOKEN" | tee "$DEPLOY_LOG"
+          DEPLOY_URL="$(grep -Eo 'https://[^[:space:]]+' "$DEPLOY_LOG" | tail -n 1 | tr -d '\r')"
+          echo "url=${DEPLOY_URL}" >> "$GITHUB_OUTPUT"
+          echo "Deployed Eva Mobile (User): ${DEPLOY_URL}"
+
+  deploy-eva-counselor:
+    name: Build & Deploy Eva Counselor (Psikolog)
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' || github.event.inputs.app == 'all' || github.event.inputs.app == 'eva_counselor_mobile' || github.event.inputs.app == null }}
+    outputs:
+      deploy_url: ${{ steps.vercel_deploy.outputs.url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Eva Counselor Web (Root Base Href)
+        run: |
+          cd apps/eva_counselor_mobile
+          flutter pub get
+          flutter build web --release \
+            --base-href "/" \
+            --dart-define=USE_LOCAL_API=false \
+            --dart-define=USE_MOCK_DATA=false
+          cp vercel.json build/web/vercel.json
+
+      - name: Prepare Vercel Build Output (Eva Counselor)
+        run: |
+          set -euo pipefail
+          OUT_DIR=".vercel/output"
+          rm -rf "$OUT_DIR"
+          mkdir -p "$OUT_DIR/static"
+          cp -r apps/eva_counselor_mobile/build/web/. "$OUT_DIR/static/"
+          cat <<'EOF' > "$OUT_DIR/config.json"
+          {
+            "version": 3,
+            "routes": [
+              {
+                "src": "/(.*)",
+                "headers": {
+                  "Cross-Origin-Opener-Policy": "same-origin",
+                  "Cross-Origin-Embedder-Policy": "credentialless"
+                },
+                "continue": true
+              },
+              {
+                "handle": "filesystem"
+              },
+              {
+                "src": "/(.*)",
+                "dest": "/index.html"
+              }
+            ]
+          }
+          EOF
+
+      - name: Deploy Eva Counselor to Vercel (Production)
+        id: vercel_deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_COUNSELOR }}
+        run: |
+          set -euo pipefail
+          DEPLOY_LOG="$(mktemp)"
+          npx --yes vercel deploy . --prebuilt --prod --yes --token="$VERCEL_TOKEN" | tee "$DEPLOY_LOG"
+          DEPLOY_URL="$(grep -Eo 'https://[^[:space:]]+' "$DEPLOY_LOG" | tail -n 1 | tr -d '\r')"
+          echo "url=${DEPLOY_URL}" >> "$GITHUB_OUTPUT"
+          echo "Deployed Eva Counselor (Psikolog): ${DEPLOY_URL}"

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../theme/app_colors.dart';
+import '../../../../widgets/safe_network_avatar.dart';
 import '../../domain/entities/consultation_session_entity.dart';
 
 class ConsultationHistoryCard extends StatelessWidget {
@@ -88,19 +89,9 @@ class ConsultationHistoryCard extends StatelessWidget {
           // Doctor Info Row
           Row(
             children: [
-              CircleAvatar(
+              SafeNetworkAvatar(
+                imageUrl: session.psychologist.avatarUrl,
                 radius: 20,
-                backgroundColor: AppColors.primaryContainer,
-                backgroundImage: NetworkImage(session.psychologist.avatarUrl),
-                onBackgroundImageError: (exception, stackTrace) {},
-                child: Text(
-                  session.psychologist.name.substring(0, 2).toUpperCase(),
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                    color: AppColors.primary,
-                  ),
-                ),
               ),
               const SizedBox(width: 10),
               Expanded(
