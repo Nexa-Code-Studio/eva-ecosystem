@@ -33,6 +33,7 @@ class _SupportEmergencyScreenState extends ConsumerState<SupportEmergencyScreen>
 
   Map<String, dynamic>? _primaryContact;
   bool _isLoadingContact = true;
+  bool _contactLoadFailed = false;
 
   static const String _dinkesWhatsappUrl =
       'https://api.whatsapp.com/send/?phone=6281380073120&text=halo%20kak%2C%20saya%20ingin%20bercerita%20mengenai...&type=phone_number&app_absent=0';
@@ -62,30 +63,46 @@ class _SupportEmergencyScreenState extends ConsumerState<SupportEmergencyScreen>
   }
 
   Future<void> _fetchPrimaryEmergencyContact() async {
-    try {
-      final contacts = await ref.read(authRepositoryProvider).getEmergencyContacts();
-      if (contacts.isNotEmpty && mounted) {
-        final primary = contacts.firstWhere(
-          (c) => c.isPrimary,
-          orElse: () => contacts.first,
-        );
-        setState(() {
-          _primaryContact = {
-            'id': primary.id,
-            'name': primary.name,
-            'relationship': primary.relationship,
-            'phone': primary.phone,
-            'is_primary': primary.isPrimary,
-          };
-          _isLoadingContact = false;
-        });
-        return;
-      }
-    } catch (_) {}
     if (mounted) {
       setState(() {
-        _isLoadingContact = false;
+        _isLoadingContact = true;
+        _contactLoadFailed = false;
       });
+    }
+    try {
+      final contacts = await ref.read(authRepositoryProvider).getEmergencyContacts();
+      if (mounted) {
+        if (contacts.isNotEmpty) {
+          final primary = contacts.firstWhere(
+            (c) => c.isPrimary,
+            orElse: () => contacts.first,
+          );
+          setState(() {
+            _primaryContact = {
+              'id': primary.id,
+              'name': primary.name,
+              'relationship': primary.relationship,
+              'phone': primary.phone,
+              'is_primary': primary.isPrimary,
+            };
+            _isLoadingContact = false;
+            _contactLoadFailed = false;
+          });
+        } else {
+          setState(() {
+            _primaryContact = null;
+            _isLoadingContact = false;
+            _contactLoadFailed = false;
+          });
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isLoadingContact = false;
+          _contactLoadFailed = true;
+        });
+      }
     }
   }
 
@@ -108,6 +125,14 @@ class _SupportEmergencyScreenState extends ConsumerState<SupportEmergencyScreen>
   }
 
   void _onTapHubungiOrangTerdekat() {
+    if (_contactLoadFailed) {
+      AppSnackBar.showError(
+        context,
+        'Gagal memuat kontak pribadi. Memuat ulang kontak...',
+      );
+      _fetchPrimaryEmergencyContact();
+      return;
+    }
     if (_primaryContact != null && _primaryContact!['phone'] != null) {
       final phone = _primaryContact!['phone'].toString().replaceAll(RegExp(r'[^\d+]'), '');
       final uri = Uri.parse('tel:$phone');
@@ -143,9 +168,11 @@ class _SupportEmergencyScreenState extends ConsumerState<SupportEmergencyScreen>
   Widget build(BuildContext context) {
     final contactSubtitle = _isLoadingContact
         ? 'Memuat data kontak...'
-        : (_primaryContact != null
-            ? '${_primaryContact!['name']} (${_primaryContact!['relation']})'
-            : 'Atur nomor kontak keluarga atau teman');
+        : (_contactLoadFailed
+            ? 'Gagal memuat kontak pribadi (ketuk untuk coba lagi)'
+            : (_primaryContact != null
+                ? '${_primaryContact!['name']} (${_primaryContact!['relationship'] ?? 'Kontak Darurat'})'
+                : 'Atur nomor kontak keluarga atau teman'));
 
     return PopScope(
       canPop: false,

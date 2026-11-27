@@ -23,6 +23,7 @@ class EmergencyContactsScreen extends ConsumerStatefulWidget {
 class _EmergencyContactsScreenState extends ConsumerState<EmergencyContactsScreen> {
   List<Map<String, dynamic>> _contacts = [];
   bool _isLoading = false;
+  String? _loadErrorMessage;
 
   void _copyToClipboard(String text, String label) {
     Clipboard.setData(ClipboardData(text: text));
@@ -40,7 +41,10 @@ class _EmergencyContactsScreenState extends ConsumerState<EmergencyContactsScree
   }
 
   Future<void> _loadContacts() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _loadErrorMessage = null;
+    });
     try {
       final contacts = await ref.read(authRepositoryProvider).getEmergencyContacts();
       if (mounted) {
@@ -52,10 +56,18 @@ class _EmergencyContactsScreenState extends ConsumerState<EmergencyContactsScree
             'phone': c.phone,
             'isPrimary': c.isPrimary,
           }).toList();
+          _loadErrorMessage = null;
         });
       }
-    } catch (_) {}
-    finally {
+    } catch (_) {
+      if (mounted) {
+        const message = 'Gagal memuat kontak darurat. Periksa koneksi Anda lalu coba lagi.';
+        setState(() => _loadErrorMessage = message);
+        if (_contacts.isNotEmpty) {
+          AppSnackBar.showError(context, message);
+        }
+      }
+    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -67,6 +79,9 @@ class _EmergencyContactsScreenState extends ConsumerState<EmergencyContactsScree
     required bool isPrimary,
     Map<String, dynamic>? contactToEdit,
   }) async {
+    final previousContacts =
+        _contacts.map((c) => Map<String, dynamic>.from(c)).toList();
+
     setState(() {
       if (isPrimary) {
         for (var c in _contacts) {
@@ -99,12 +114,26 @@ class _EmergencyContactsScreenState extends ConsumerState<EmergencyContactsScree
           isPrimary: isPrimary,
         ),
       );
-      _loadContacts();
-    } catch (_) {}
+      await _loadContacts();
+      if (mounted) {
+        AppSnackBar.showSuccess(context, 'Kontak darurat berhasil disimpan.');
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _contacts = previousContacts);
+        AppSnackBar.showError(
+          context,
+          'Gagal menyimpan kontak darurat. Periksa koneksi Anda dan coba lagi.',
+        );
+      }
+    }
   }
 
   Future<void> _deleteContactFromBackend(Map<String, dynamic> contact) async {
     final contactId = contact['id']?.toString();
+    final previousContacts =
+        _contacts.map((c) => Map<String, dynamic>.from(c)).toList();
+
     setState(() {
       _contacts.removeWhere((c) => c['id'] == contact['id']);
       if (contact['isPrimary'] == true && _contacts.isNotEmpty) {
@@ -115,7 +144,21 @@ class _EmergencyContactsScreenState extends ConsumerState<EmergencyContactsScree
     if (contactId != null && contactId.isNotEmpty) {
       try {
         await ref.read(authRepositoryProvider).deleteEmergencyContact(contactId);
-      } catch (_) {}
+        if (mounted) {
+          AppSnackBar.showWarning(
+            context,
+            'Kontak "${contact['name']}" telah dihapus.',
+          );
+        }
+      } catch (_) {
+        if (mounted) {
+          setState(() => _contacts = previousContacts);
+          AppSnackBar.showError(
+            context,
+            'Gagal menghapus kontak "${contact['name']}". Coba lagi nanti.',
+          );
+        }
+      }
     }
   }
 
@@ -192,12 +235,8 @@ class _EmergencyContactsScreenState extends ConsumerState<EmergencyContactsScree
               ),
 
               onPressed: () {
-                _deleteContactFromBackend(contact);
                 Navigator.pop(context);
-                AppSnackBar.showWarning(
-                  context,
-                  'Kontak "${contact['name']}" telah dihapus.',
-                );
+                _deleteContactFromBackend(contact);
               },
 
               child: Text(
@@ -376,27 +415,65 @@ class _EmergencyContactsScreenState extends ConsumerState<EmergencyContactsScree
                         index: 3,
                         child: _isLoading
                             ? const EmergencyContactsSkeletonLoader()
-                            : _contacts.isEmpty
+                            : (_loadErrorMessage != null && _contacts.isEmpty)
                                 ? Center(
                                     child: Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 40.0),
+                                      padding: const EdgeInsets.symmetric(vertical: 36.0),
                                       child: Column(
                                         children: [
-                                          const Icon(Icons.contacts_outlined, size: 48, color: AppColors.textLight),
+                                          const Icon(
+                                            Icons.cloud_off_rounded,
+                                            size: 48,
+                                            color: Color(0xFFD32F2F),
+                                          ),
                                           const SizedBox(height: 12),
                                           Text(
-                                            'Belum ada kontak darurat',
+                                            _loadErrorMessage!,
+                                            textAlign: TextAlign.center,
                                             style: GoogleFonts.inter(
-                                              fontSize: 14,
+                                              fontSize: 13.5,
                                               fontWeight: FontWeight.w600,
                                               color: AppColors.textSecondary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          ElevatedButton.icon(
+                                            onPressed: _loadContacts,
+                                            icon: const Icon(Icons.refresh_rounded, size: 18),
+                                            label: const Text('Muat Ulang'),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: AppColors.primary,
+                                              foregroundColor: Colors.white,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(999),
+                                              ),
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
                                   )
-                                : ListView.separated(
+                                : _contacts.isEmpty
+                                    ? Center(
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(vertical: 40.0),
+                                          child: Column(
+                                            children: [
+                                              const Icon(Icons.contacts_outlined, size: 48, color: AppColors.textLight),
+                                              const SizedBox(height: 12),
+                                              Text(
+                                                'Belum ada kontak darurat',
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppColors.textSecondary,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      )
+                                    : ListView.separated(
                                     shrinkWrap: true,
                                     physics: const NeverScrollableScrollPhysics(),
                                     itemCount: _contacts.length,
