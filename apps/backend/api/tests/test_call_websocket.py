@@ -4,27 +4,31 @@ import uuid
 
 import pytest
 from app.main import app
-from app.services.call import AudioStreamBufferService, analyze_audio_placeholder
+from app.services.call import AudioStreamBufferService, call_session_manager
 from app.services.call.billing_service import AuthenticatedCallUser, CallChargeResult
 from fastapi.testclient import TestClient
+from packages.ai.providers.llm.mock_llm import MockLLMProvider
+from packages.ai.providers.stt.mock_stt import MockSTTProvider
+from packages.ai.providers.tts.mock_tts import MockTTSProvider
 
 client = TestClient(app)
 
 
 @pytest.mark.asyncio
-async def test_audio_stream_buffer_placeholder():
+async def test_audio_stream_buffer_collects_chunks():
     service = AudioStreamBufferService()
     chunk = b"\x00\x01\x02\x03\x04"
     result = await service.handle_incoming_audio_chunk("sess_1", chunk)
     assert result["status"] == "audio_received"
     assert result["bytes_len"] == 5
+    assert "emotion_detected" not in result
 
     buf = service.get_or_create_buffer("sess_1")
     assert buf.total_bytes == 5
     assert buf.get_full_audio() == chunk
 
 
-def test_call_websocket_lifecycle():
+def test_call_websocket_lifecycle(monkeypatch):
     mock_user = AuthenticatedCallUser(
         user_id=uuid.uuid4(),
         display_name="Test User",
@@ -37,7 +41,10 @@ def test_call_websocket_lifecycle():
         minute_index=1,
         invoice_code="EVA-CALL-TEST-001",
     )
+    monkeypatch.setattr(call_session_manager.orchestrator, "llm_provider", MockLLMProvider())
+    monkeypatch.setattr(call_session_manager.stt_coordinator, "_provider_getter", lambda: MockSTTProvider())
     with (
+        patch("app.services.call.session_manager.TTSFactory.get_provider", return_value=MockTTSProvider()),
         patch("app.services.call.session_manager.CallBillingService.resolve_authenticated_user", new=AsyncMock(return_value=mock_user)),
         patch("app.services.call.session_manager.CallBillingService.charge_call_minute", new=AsyncMock(return_value=mock_charge)),
         patch("app.services.call.session_manager.CallBillingService.get_user_coin_balance", new=AsyncMock(return_value=9)),

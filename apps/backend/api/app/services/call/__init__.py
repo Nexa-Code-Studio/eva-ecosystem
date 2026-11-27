@@ -25,7 +25,6 @@ from app.services.call.stt_coordinator import (
 from app.services.call.stream_buffer import (
     AudioStreamBufferService,
     SessionAudioBuffer,
-    analyze_audio_placeholder,
     audio_buffer_service,
 )
 from app.services.call.synthesis_service import (
@@ -70,7 +69,6 @@ __all__ = [
     "AudioStreamBufferService",
     "SessionAudioBuffer",
     "audio_buffer_service",
-    "analyze_audio_placeholder",
     "TurnAggregator",
     "merge_overlapping_segments",
     "TurnDetectionResult",
