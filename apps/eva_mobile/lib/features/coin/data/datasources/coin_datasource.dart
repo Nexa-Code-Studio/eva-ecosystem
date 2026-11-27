@@ -26,5 +26,7 @@ abstract class CoinDataSource {
 
   Future<CoinTopupOrderModel> refreshTopupOrder(String topupId);
 
+  Future<CoinTopupOrderModel> simulateTopupPayment(String topupId);
+
   Future<Uint8List> fetchTopupQrBytes(String topupId);
 }

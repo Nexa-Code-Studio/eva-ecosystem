@@ -27,6 +27,11 @@ final qrisTopupEnabledProvider = Provider<bool>(
   (ref) => AppConfig.enableQrisTopup || ref.watch(coinUseMockModeProvider),
 );
 
+/// Enables QA sandbox payment simulator floating card in non-release/mock builds.
+final sandboxSimulationProvider = Provider<bool>(
+  (ref) => AppConfig.isSandboxSimulationEnabled,
+);
+
 final coinDataSourceProvider = Provider<CoinDataSource>((ref) {
   final isMock = ref.watch(coinUseMockModeProvider);
   return isMock ? MockCoinDataSource() : RemoteCoinDataSource();
@@ -353,6 +358,35 @@ class TopupFlowNotifier extends StateNotifier<TopupFlowState> {
       if (!updated.status.isActivePending) {
         stopPolling();
         state = state.copyWith(clearIdempotency: true);
+        if (updated.status.isSuccess) {
+          await _onOrderPaid();
+        }
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isRefreshing: false,
+        errorMessage: _extractMessage(e),
+        errorCode: _extractCode(e),
+      );
+    }
+  }
+
+  /// QA/Sandbox-only helper: simulate QRIS settlement via backend or mock datasource.
+  Future<void> simulateSandboxPayment() async {
+    final current = state.activeOrder;
+    if (current == null || !current.status.isActivePending) return;
+
+    state = state.copyWith(isRefreshing: true, clearError: true);
+    try {
+      final updated = await _repository.simulateTopupPayment(current.id);
+      await _persistPendingOrderId(updated);
+      state = state.copyWith(
+        isRefreshing: false,
+        activeOrder: updated,
+        clearIdempotency: !updated.status.isActivePending,
+      );
+      if (!updated.status.isActivePending) {
+        stopPolling();
         if (updated.status.isSuccess) {
           await _onOrderPaid();
         }

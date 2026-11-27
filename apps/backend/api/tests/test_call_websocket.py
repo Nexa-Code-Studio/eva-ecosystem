@@ -1,7 +1,11 @@
 import json
+from unittest.mock import AsyncMock, patch
+import uuid
+
 import pytest
 from app.main import app
 from app.services.call import AudioStreamBufferService, analyze_audio_placeholder
+from app.services.call.billing_service import AuthenticatedCallUser, CallChargeResult
 from fastapi.testclient import TestClient
 
 client = TestClient(app)
@@ -21,7 +25,24 @@ async def test_audio_stream_buffer_placeholder():
 
 
 def test_call_websocket_lifecycle():
-    with client.websocket_connect("/api/v1/call/ws/test_session_999") as websocket:
+    mock_user = AuthenticatedCallUser(
+        user_id=uuid.uuid4(),
+        display_name="Test User",
+        coin_balance=10,
+    )
+    mock_charge = CallChargeResult(
+        success=True,
+        coin_balance=9,
+        coins_debited=1,
+        minute_index=1,
+        invoice_code="EVA-CALL-TEST-001",
+    )
+    with (
+        patch("app.services.call.session_manager.CallBillingService.resolve_authenticated_user", new=AsyncMock(return_value=mock_user)),
+        patch("app.services.call.session_manager.CallBillingService.charge_call_minute", new=AsyncMock(return_value=mock_charge)),
+        patch("app.services.call.session_manager.CallBillingService.get_user_coin_balance", new=AsyncMock(return_value=9)),
+        client.websocket_connect("/api/v1/call/ws/test_session_999?token=test_token") as websocket,
+    ):
         # 1. Server sends call_connected event
         connected_data = websocket.receive_json()
         assert connected_data["type"] == "call_connected"
@@ -70,21 +91,39 @@ def test_call_websocket_lifecycle():
 
 def test_call_websocket_authenticated_mobile_flow():
     """Validates mobile WebSocket connection with JWT token and voice_mode query params."""
-    login_res = client.post("/api/v1/auth/login", json={"email": "samsul@gmail.com", "password": "password123"})
-    assert login_res.status_code == 200
-    token = login_res.json()["access_token"]
+    with TestClient(app) as local_client:
+        login_res = local_client.post(
+            "/api/v1/auth/login",
+            json={"email": "samsul@gmail.com", "password": "password123"},
+        )
+        assert login_res.status_code == 200
+        token = login_res.json()["access_token"]
 
-    with client.websocket_connect(f"/api/v1/call/ws/test_mobile_auth_session?token={token}&voice_mode=supportive") as websocket:
-        connected = websocket.receive_json()
-        assert connected["type"] == "call_connected"
-        assert connected["session_id"] == "test_mobile_auth_session"
+        mock_charge = CallChargeResult(
+            success=True,
+            coin_balance=9,
+            coins_debited=1,
+            minute_index=1,
+            invoice_code="EVA-CALL-TEST-002",
+        )
+        with (
+            patch("app.services.call.session_manager.CallBillingService.charge_call_minute", new=AsyncMock(return_value=mock_charge)),
+            patch("app.services.call.session_manager.CallBillingService.get_user_coin_balance", new=AsyncMock(return_value=9)),
+            local_client.websocket_connect(
+                f"/api/v1/call/ws/test_mobile_auth_session?token={token}&voice_mode=supportive"
+            ) as websocket,
+        ):
+            connected = websocket.receive_json()
+            assert connected["type"] == "call_connected"
+            assert connected["session_id"] == "test_mobile_auth_session"
 
-        websocket.send_json({"type": "start_call", "voice_mode": "supportive"})
-        started = websocket.receive_json()
-        assert started["type"] == "call_started"
+            websocket.send_json({"type": "start_call", "voice_mode": "supportive"})
+            started = websocket.receive_json()
+            assert started["type"] == "call_started"
+            assert started["billing"]["current_minute"] == 1
 
-        websocket.send_json({"type": "ping"})
-        pong = websocket.receive_json()
-        assert pong["type"] == "pong"
+            websocket.send_json({"type": "ping"})
+            pong = websocket.receive_json()
+            assert pong["type"] == "pong"
 
-        websocket.send_json({"type": "end_call"})
+            websocket.send_json({"type": "end_call"})

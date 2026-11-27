@@ -19,12 +19,18 @@ services:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@eva_postgres:5432/eva_ai?ssl=disable
       - REDIS_URL=redis://redis:6379/0
       - QDRANT_URL=http://qdrant:6333
+      - EMOTION_STREAMING_ENABLED=${EMOTION_STREAMING_ENABLED:-true}
+      - EMOTION_PROVIDER=${EMOTION_PROVIDER:-remote_http}
+      - EMOTION_SERVICE_URL=${EMOTION_SERVICE_URL:-http://emotion_service:8890}
+      - EMOTION_SERVICE_AUTH_MODE=${EMOTION_SERVICE_AUTH_MODE:-none}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
       qdrant:
+        condition: service_started
+      emotion_service:
         condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8888/health"]
@@ -125,25 +131,29 @@ services:
       - eva_network
 
   emotion_service:
-    profiles: ["emotion"]
     build:
       context: .
-      dockerfile: apps/backend/emotion_service/Dockerfile
+      dockerfile: apps/backend/emotion_service/Dockerfile.dev
     container_name: eva_emotion_service
     ports:
       - "8890:8890"
+    volumes:
+      - emotion_models:/models
+      - emotion_model_cache:/home/appuser/.cache
     environment:
       - APP_ENV=development
       - PORT=8890
-      - EMOTION_ENGINE_BACKEND=${EMOTION_ENGINE_BACKEND:-mock}
+      - EMOTION_ENGINE_BACKEND=${EMOTION_ENGINE_BACKEND:-auto}
+      - EMOTION_FUNASR_MODEL=${EMOTION_FUNASR_MODEL:-iic/emotion2vec_plus_base}
       - EMOTION_SERVICE_AUTH_MODE=${EMOTION_SERVICE_AUTH_MODE:-none}
       - ORT_INTRA_OP_THREADS=2
       - ORT_INTER_OP_THREADS=1
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8890/ready"]
-      interval: 10s
+      interval: 15s
       timeout: 5s
-      retries: 3
+      retries: 10
+      start_period: 60s
     networks:
       - eva_network
 
@@ -156,3 +166,5 @@ volumes:
   redis_data:
   qdrant_data:
   eva_uploads:
+  emotion_models:
+  emotion_model_cache:

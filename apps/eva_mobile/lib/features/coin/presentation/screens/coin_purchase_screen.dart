@@ -694,7 +694,7 @@ class _CoinPurchaseScreenState extends ConsumerState<CoinPurchaseScreen> {
     required bool qrisEnabled,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
         border: const Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
@@ -725,7 +725,7 @@ class _CoinPurchaseScreenState extends ConsumerState<CoinPurchaseScreen> {
                 Text(
                   selectedPackage.formattedPrice,
                   style: GoogleFonts.inter(
-                    fontSize: 18,
+                    fontSize: 17,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
                   ),
@@ -733,11 +733,12 @@ class _CoinPurchaseScreenState extends ConsumerState<CoinPurchaseScreen> {
               ],
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             flex: 2,
             child: CustomButton(
               text: qrisEnabled ? 'Bayar via QRIS' : 'Segera Hadir',
+              height: 40,
               isLoading: isCreating,
               onPressed: (isCreating || !qrisEnabled)
                   ? null

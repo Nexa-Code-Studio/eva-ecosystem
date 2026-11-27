@@ -490,11 +490,11 @@ void main() {
     await controller.startCall();
     expect(controller.state.isMuted, isFalse);
 
-    controller.toggleMute();
+    await controller.toggleMute();
     expect(controller.state.isMuted, isTrue);
     expect(fakeSpeech.isListening, isFalse);
 
-    controller.toggleMute();
+    await controller.toggleMute();
     expect(controller.state.isMuted, isFalse);
     expect(fakeSpeech.isListening, isTrue);
   });
@@ -684,7 +684,7 @@ void main() {
 
   test('toggleMute sends optional audio.boundary event to backend segmenter', () async {
     await controller.startCall();
-    controller.toggleMute();
+    await controller.toggleMute();
     expect(controller.state.isMuted, true);
 
     final boundaryEvt = fakeWs.sentEvents.firstWhere(
@@ -692,5 +692,159 @@ void main() {
       orElse: () => {},
     );
     expect(boundaryEvt['reason'], 'mute');
+
+    await controller.toggleMute();
+    expect(controller.state.isMuted, false);
+    final unmuteEvt = fakeWs.sentEvents.lastWhere(
+      (e) => e['type'] == 'audio.boundary',
+      orElse: () => {},
+    );
+    expect(unmuteEvt['reason'], 'unmute');
+  });
+
+  test('enterThinking and enterAiSpeaking emit audio.boundary hints cleanly', () async {
+    await controller.startCall();
+    await controller.enterThinking();
+    expect(
+      fakeWs.sentEvents.any((e) => e['type'] == 'audio.boundary' && e['reason'] == 'turn_thinking'),
+      isTrue,
+    );
+
+    await controller.enterAiSpeaking(1);
+    expect(
+      fakeWs.sentEvents.any((e) => e['type'] == 'audio.boundary' && e['reason'] == 'ai_speaking'),
+      isTrue,
+    );
+  });
+
+  test('endCall while disconnected does not throw when disposed mid-flight', () async {
+    await controller.startCall();
+    fakeWs.isConnected = false;
+
+    final endFuture = controller.endCall();
+    controller.dispose();
+    await endFuture;
+  });
+
+  group('AI Call Billing & Timer', () {
+    test('handles call_started billing metadata, warning, renewal, and exhausted', () async {
+      int syncedBalance = 10;
+      final billingController = AiCallController(
+        speechService: fakeSpeech,
+        audioPlaybackService: fakeAudio,
+        wsClient: fakeWs,
+        onCoinBalanceSynced: (bal) async {
+          syncedBalance = bal;
+        },
+      );
+      addTearDown(billingController.dispose);
+
+      await billingController.startCall(customCallId: 'bill_call_1');
+
+      fakeWs.eventController.add({
+        'type': 'call_started',
+        'voice_mode': 'mode_2',
+        'billing': {
+          'coins_per_minute': 1,
+          'interval_seconds': 60,
+          'warning_seconds': 15,
+          'current_minute': 1,
+          'remaining_balance': 1,
+          'seconds_until_next_charge': 60,
+        },
+      });
+      await pumpEventQueue();
+
+      expect(syncedBalance, 1);
+      expect(billingController.state.currentBilledMinute, 1);
+      expect(billingController.state.remainingSecondsInCycle, 60);
+      expect(billingController.state.isLowBalanceWarning, false);
+
+      fakeWs.eventController.add({
+        'type': 'call.billing_charged',
+        'current_minute': 2,
+        'coins_debited': 1,
+        'remaining_balance': 0,
+        'seconds_until_next_charge': 60,
+      });
+      await pumpEventQueue();
+
+      expect(syncedBalance, 0);
+      expect(billingController.state.currentBilledMinute, 2);
+      expect(billingController.state.remainingSecondsInCycle, 60);
+
+      fakeWs.eventController.add({
+        'type': 'call.billing_warning',
+        'seconds_remaining': 15,
+        'coin_balance': 0,
+        'will_expire_if_zero': true,
+      });
+      await pumpEventQueue();
+
+      expect(billingController.state.isLowBalanceWarning, true);
+      expect(billingController.state.remainingSecondsInCycle, 15);
+
+      fakeWs.eventController.add({
+        'type': 'call.billing_exhausted',
+        'reason': 'insufficient_coins',
+        'coin_balance': 0,
+        'grace_seconds': 5,
+        'is_crisis': false,
+      });
+      await pumpEventQueue();
+
+      expect(billingController.state.isBillingEnded, true);
+      expect(billingController.state.remainingSecondsInCycle, 0);
+
+      fakeWs.eventController.add({
+        'type': 'call.ended_by_billing',
+        'reason': 'insufficient_coins',
+      });
+      await pumpEventQueue();
+
+      expect(billingController.state.callState, CallState.ended);
+    });
+
+    test('mock billing mode deducts 1 coin on start and ends when coins are 0', () async {
+      int mockCoins = 0;
+      final emptyController = AiCallController(
+        speechService: fakeSpeech,
+        audioPlaybackService: fakeAudio,
+        wsClient: fakeWs,
+        isMockBillingMode: true,
+        readCurrentCoinBalance: () => mockCoins,
+        onMockSpendCoins: (coins) async {
+          if (mockCoins < coins) return false;
+          mockCoins -= coins;
+          return true;
+        },
+      );
+      addTearDown(emptyController.dispose);
+
+      await emptyController.startCall(customCallId: 'mock_empty_call');
+      expect(emptyController.state.callState, CallState.ended);
+      expect(emptyController.state.isBillingEnded, true);
+      expect(emptyController.state.billingEndReason, 'call.billing_insufficient');
+
+      mockCoins = 2;
+      final activeController = AiCallController(
+        speechService: fakeSpeech,
+        audioPlaybackService: fakeAudio,
+        wsClient: fakeWs,
+        isMockBillingMode: true,
+        readCurrentCoinBalance: () => mockCoins,
+        onMockSpendCoins: (coins) async {
+          if (mockCoins < coins) return false;
+          mockCoins -= coins;
+          return true;
+        },
+      );
+      addTearDown(activeController.dispose);
+
+      await activeController.startCall(customCallId: 'mock_active_call');
+      expect(mockCoins, 1);
+      expect(activeController.state.currentBilledMinute, 1);
+      expect(activeController.state.remainingSecondsInCycle, 60);
+    });
   });
 }

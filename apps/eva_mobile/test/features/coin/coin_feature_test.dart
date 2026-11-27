@@ -127,6 +127,24 @@ void main() {
         if (request.url.path.endsWith('/users/coins')) {
           return http.Response(jsonEncode({'user_id': 'u1', 'coin_balance': 370}), 200);
         }
+        if (request.url.path.endsWith('/coins/topups/topup-1/simulate-paid') && request.method == 'POST') {
+          return http.Response(
+            jsonEncode({
+              'id': 'topup-1',
+              'order_id': 'EVA-TOPUP-123',
+              'package': {'id': 'pkg-uuid-1', 'name': 'Paket Favorit', 'coins': 150, 'bonus_coins': 20},
+              'amount_idr': 45000,
+              'currency': 'IDR',
+              'total_coins': 170,
+              'payment_method': 'qris',
+              'status': 'paid',
+              'paid_at': DateTime.now().toUtc().toIso8601String(),
+              'created_at': DateTime.now().toUtc().toIso8601String(),
+              'updated_at': DateTime.now().toUtc().toIso8601String(),
+            }),
+            200,
+          );
+        }
         return http.Response('Not found', 404);
       });
 
@@ -147,6 +165,9 @@ void main() {
 
       final balance = await repo.getMyCoinBalance();
       expect(balance, 370);
+
+      final simPaid = await repo.simulateTopupPayment('topup-1');
+      expect(simPaid.status, CoinTopupStatus.paid);
     });
   });
 
@@ -359,6 +380,58 @@ void main() {
       expect(find.text('Pembelian Berhasil!'), findsOneWidget);
       await tester.pump(const Duration(seconds: 4));
       await tester.pumpAndSettle();
+    });
+
+    testWidgets('QrisPaymentScreen floating sandbox card settles payment and hides when disabled', (tester) async {
+      final repo = CoinRepositoryImpl(MockCoinDataSource());
+      final containerEnabled = ProviderContainer(
+        overrides: [
+          coinUseMockModeProvider.overrideWithValue(true),
+          sandboxSimulationProvider.overrideWithValue(true),
+          coinRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+      addTearDown(containerEnabled.dispose);
+
+      await containerEnabled.read(topupFlowProvider.notifier).startTopup('pkg_popular');
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: containerEnabled,
+          child: const MaterialApp(home: QrisPaymentScreen()),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('Simulator Sandbox'), findsOneWidget);
+      expect(find.text('Simulasikan Bayar'), findsOneWidget);
+
+      await tester.tap(find.text('Simulasikan Bayar'));
+      await tester.pumpAndSettle();
+      expect(find.text('Pembelian Berhasil!'), findsOneWidget);
+      expect(find.text('Simulasikan Bayar'), findsNothing);
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+
+      final containerDisabled = ProviderContainer(
+        overrides: [
+          coinUseMockModeProvider.overrideWithValue(true),
+          sandboxSimulationProvider.overrideWithValue(false),
+          coinRepositoryProvider.overrideWithValue(CoinRepositoryImpl(MockCoinDataSource())),
+        ],
+      );
+      addTearDown(containerDisabled.dispose);
+
+      await containerDisabled.read(topupFlowProvider.notifier).startTopup('pkg_popular');
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: containerDisabled,
+          child: const MaterialApp(home: QrisPaymentScreen()),
+        ),
+      );
+      await tester.pump();
+      expect(find.text('Simulasikan Bayar'), findsNothing);
+      containerDisabled.read(topupFlowProvider.notifier).stopPolling();
     });
   });
 }

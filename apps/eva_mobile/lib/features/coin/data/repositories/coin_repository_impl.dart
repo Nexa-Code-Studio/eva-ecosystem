@@ -67,6 +67,12 @@ class CoinRepositoryImpl implements ICoinRepository {
   }
 
   @override
+  Future<CoinTopupOrderEntity> simulateTopupPayment(String topupId) async {
+    final model = await _dataSource.simulateTopupPayment(topupId);
+    return model.toEntity();
+  }
+
+  @override
   Future<Uint8List> fetchTopupQrBytes(String topupId) {
     return _dataSource.fetchTopupQrBytes(topupId);
   }

@@ -83,6 +83,12 @@ class RemoteCoinDataSource implements CoinDataSource {
   }
 
   @override
+  Future<CoinTopupOrderModel> simulateTopupPayment(String topupId) async {
+    final res = await _client.post('/coins/topups/$topupId/simulate-paid');
+    return CoinTopupOrderModel.fromJson(res as Map<String, dynamic>);
+  }
+
+  @override
   Future<Uint8List> fetchTopupQrBytes(String topupId) async {
     return _client.getBytes('/coins/topups/$topupId/qr');
   }

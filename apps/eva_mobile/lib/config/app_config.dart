@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,6 +16,9 @@ class AppConfig {
     'ENABLE_QRIS_TOPUP',
     defaultValue: false,
   );
+
+  /// Sandbox payment simulator button visibility: active in non-release debug/mock builds only.
+  static bool get isSandboxSimulationEnabled => !kReleaseMode || useMockData;
 
   /// Compile-time hybrid fallback flag: --dart-define=USE_HYBRID_FALLBACK=true or --dart-define=HYBRID=true
   /// Default is false so live API failures surface transparently instead of masking with mock data.

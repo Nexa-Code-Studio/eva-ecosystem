@@ -174,7 +174,9 @@ class SpeechRecognitionService {
           _sequenceCounter++;
 
           if (result.finalResult) {
-            debugPrint('🎙️ [STT FINAL SEGMENT]: "$words" (session $sttSessionId, seq $_sequenceCounter)');
+            if (kDebugMode) {
+              debugPrint('🎙️ [STT FINAL SEGMENT]: len=${words.length} (session $sttSessionId, seq $_sequenceCounter)');
+            }
             if (!_finalSegmentController.isClosed) {
               _finalSegmentController.add(SttFinalResult(
                 text: words,
@@ -183,7 +185,9 @@ class SpeechRecognitionService {
               ));
             }
           } else {
-            debugPrint('🎙️ [STT PARTIAL]: "$words" (session $sttSessionId, seq $_sequenceCounter)');
+            if (kDebugMode) {
+              debugPrint('🎙️ [STT PARTIAL]: len=${words.length} (session $sttSessionId, seq $_sequenceCounter)');
+            }
             if (!_partialController.isClosed) {
               _partialController.add(SttPartialResult(
                 text: words,

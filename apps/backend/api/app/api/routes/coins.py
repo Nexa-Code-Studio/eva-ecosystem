@@ -90,3 +90,13 @@ async def refresh_coin_topup(
 ) -> CoinTopupOrderResponse:
     """Synchronize QRIS top-up status on demand with rate-limit protection."""
     return await service.refresh_topup_order(user.id, topup_id)
+
+
+@router.post("/topups/{topup_id}/simulate-paid", response_model=CoinTopupOrderResponse)
+async def simulate_coin_topup_paid(
+    topup_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    service: CoinTopupService = Depends(get_coin_topup_service),
+) -> CoinTopupOrderResponse:
+    """Sandbox-only endpoint to simulate QRIS settlement for QA testing."""
+    return await service.simulate_sandbox_payment(user.id, topup_id)

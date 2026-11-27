@@ -499,16 +499,24 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                     Expanded(
                       child: Builder(
                         builder: (context) {
-                          final breakRanges = timeline != null
-                              ? timeline.blockedRanges
-                                  .where((r) => r.type == 'break')
-                                  .map((r) => '${r.start}-${r.end}')
+                          final selectedDayKey = weekdayKeyFromDate(selectedDate);
+                          final fallbackDayCfg = user?.scheduleConfig[selectedDayKey];
+                          final fallbackBreaks = fallbackDayCfg is Map<String, dynamic>
+                              ? (fallbackDayCfg['breaks'] as List<dynamic>? ?? const [])
+                                  .whereType<Map<String, dynamic>>()
+                                  .map((b) => '${b['start'] ?? '12:00'}-${b['end'] ?? '13:00'}')
                                   .toList()
                               : (user?.todayBreaks
                                       .map((b) =>
                                           '${b['start'] ?? '12:00'}-${b['end'] ?? '13:00'}')
                                       .toList() ??
                                   const <String>[]);
+                          final breakRanges = timeline != null
+                              ? timeline.blockedRanges
+                                  .where((r) => r.type == 'break')
+                                  .map((r) => '${r.start}-${r.end}')
+                                  .toList()
+                              : fallbackBreaks;
                           final String statusText;
                           if (!isSelectedDayOnline) {
                             statusText = 'Mode Cuti • Pemesanan Ditutup';
@@ -556,6 +564,7 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                 user: user,
                 timeline: timeline,
                 timelineAsync: timelineAsync,
+                selectedDate: selectedDate,
                 selectedDateIso: selectedDateIso,
               ),
               const SizedBox(height: 16),
@@ -1644,23 +1653,39 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
     required PsychologistUserEntity? user,
     required CounselorDailyTimelineEntity? timeline,
     required AsyncValue<CounselorDailyTimelineEntity> timelineAsync,
+    required DateTime selectedDate,
     required String selectedDateIso,
   }) {
-    final opHours = user?.todayScheduleConfig?['operating_hours'];
+    final selectedDayKey = weekdayKeyFromDate(selectedDate);
+    final selectedDayCfg = user?.scheduleConfig[selectedDayKey];
+    final opHours = selectedDayCfg is Map<String, dynamic>
+        ? selectedDayCfg['operating_hours']
+        : user?.todayScheduleConfig?['operating_hours'];
     final fallbackStart =
         opHours is Map ? (opHours['start'] as String? ?? '08:00') : '08:00';
     final fallbackEnd =
         opHours is Map ? (opHours['end'] as String? ?? '17:00') : '17:00';
     final opStart = timeline?.operatingStart ?? fallbackStart;
     final opEnd = timeline?.operatingEnd ?? fallbackEnd;
-    final isActive = timeline?.isActive ?? user?.isTodayPracticeActive ?? true;
+    final fallbackIsActive = selectedDayCfg is Map<String, dynamic>
+        ? (selectedDayCfg['is_active'] as bool? ?? true)
+        : (user?.isTodayPracticeActive ?? true);
+    final isActive = timeline?.isActive ?? fallbackIsActive;
     final isOnline = timeline?.isOnline ?? user?.isOnline ?? true;
 
     final startMinutes = _parseTimeToMinutes(opStart, fallback: 8 * 60);
     final endMinutes = _parseTimeToMinutes(opEnd, fallback: 17 * 60);
 
-    final breakRanges = timeline != null
-        ? timeline.blockedRanges.where((r) => r.type == 'break').toList()
+    final fallbackBreaks = selectedDayCfg is Map<String, dynamic>
+        ? (selectedDayCfg['breaks'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map((b) => CounselorBlockedRangeEntity(
+                  start: b['start']?.toString() ?? '12:00',
+                  end: b['end']?.toString() ?? '13:00',
+                  type: 'break',
+                  label: b['label']?.toString() ?? 'Istirahat',
+                ))
+            .toList()
         : (user?.todayBreaks ?? const <Map<String, String>>[])
             .map((b) => CounselorBlockedRangeEntity(
                   start: b['start'] ?? '12:00',
@@ -1669,6 +1694,10 @@ class _CounselorHomeScreenState extends ConsumerState<CounselorHomeScreen> {
                   label: b['label'] ?? 'Istirahat',
                 ))
             .toList();
+
+    final breakRanges = timeline != null
+        ? timeline.blockedRanges.where((r) => r.type == 'break').toList()
+        : fallbackBreaks;
     final bookedRanges = timeline != null
         ? timeline.blockedRanges.where((r) => r.type == 'booked').toList()
         : const <CounselorBlockedRangeEntity>[];
