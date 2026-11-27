@@ -65,6 +65,8 @@ if [ "${TARGET_APP}" = "all" ] || [ "${TARGET_APP}" = "mobile" ]; then
         --dart-define=USE_LOCAL_API=false \
         --dart-define=USE_HYBRID_FALLBACK="${FALLBACK_HYBRID}" \
         --dart-define=HYBRID="${FALLBACK_HYBRID}" \
+        --dart-define=ENABLE_QRIS_TOPUP="${ENABLE_QRIS_TOPUP:-true}" \
+        --dart-define=ENABLE_SANDBOX_SIMULATION="${ENABLE_SANDBOX_SIMULATION:-true}" \
         --dart-define=API_BASE_URL="${API_BASE_URL}"
 
     cp -r "${ROOT_DIR}/apps/eva_mobile/build/web/"* "${DIST_DIR}/app/"

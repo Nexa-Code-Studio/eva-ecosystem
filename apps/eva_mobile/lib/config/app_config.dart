@@ -10,15 +10,22 @@ class AppConfig {
     defaultValue: bool.fromEnvironment('MOCK', defaultValue: false),
   );
 
-  /// Compile-time QRIS top-up release gate: --dart-define=ENABLE_QRIS_TOPUP=true
-  /// Kept false by default on distributed builds until #135 policy sign-off.
+  /// Compile-time QRIS top-up release gate: --dart-define=ENABLE_QRIS_TOPUP=true|false
+  /// Enabled by default during prototype/sandbox testing; disable via --dart-define=ENABLE_QRIS_TOPUP=false.
   static const bool enableQrisTopup = bool.fromEnvironment(
     'ENABLE_QRIS_TOPUP',
-    defaultValue: false,
+    defaultValue: true,
   );
 
-  /// Sandbox payment simulator button visibility: active in non-release debug/mock builds only.
-  static bool get isSandboxSimulationEnabled => !kReleaseMode || useMockData;
+  /// Compile-time Sandbox Simulator visibility gate: --dart-define=ENABLE_SANDBOX_SIMULATION=true|false
+  static const bool enableSandboxSimulation = bool.fromEnvironment(
+    'ENABLE_SANDBOX_SIMULATION',
+    defaultValue: true,
+  );
+
+  /// Sandbox payment simulator button visibility: active in debug/mock or when enabled for sandbox QA.
+  static bool get isSandboxSimulationEnabled =>
+      !kReleaseMode || useMockData || enableSandboxSimulation;
 
   /// Compile-time hybrid fallback flag: --dart-define=USE_HYBRID_FALLBACK=true or --dart-define=HYBRID=true
   /// Default is false so live API failures surface transparently instead of masking with mock data.

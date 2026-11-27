@@ -477,27 +477,87 @@ async def test_c2_and_c6_http_routes_end_to_end():
         )
         assert bal_after_sim.json()["coin_balance"] == 135
 
-        # Fail closed if MIDTRANS_IS_PRODUCTION=True
-        prod_app = FastAPI()
-        prod_app.include_router(coins_router, prefix="/api/v1")
+        # Fail closed if MIDTRANS_IS_PRODUCTION=True even when simulation flag is True
+        async def _assert_sim_status(
+            *,
+            is_prod: bool,
+            app_env: str,
+            sim_flag: bool,
+            expected_status: int,
+            target_topup_id: str,
+        ):
+            scoped_app = FastAPI()
+            scoped_app.include_router(coins_router, prefix="/api/v1")
 
-        async def override_prod_service():
-            async with AsyncSessionLocal() as db:
-                yield CoinTopupService(
-                    db,
-                    gateway=gateway,
-                    config=_test_settings(MIDTRANS_IS_PRODUCTION=True, APP_ENV="production"),
+            async def override_scoped_service():
+                async with AsyncSessionLocal() as db:
+                    yield CoinTopupService(
+                        db,
+                        gateway=gateway,
+                        config=_test_settings(
+                            MIDTRANS_IS_PRODUCTION=is_prod,
+                            APP_ENV=app_env,
+                            MIDTRANS_SANDBOX_SIMULATION_ENABLED=sim_flag,
+                        ),
+                    )
+
+            scoped_app.dependency_overrides[get_coin_topup_service] = override_scoped_service
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=scoped_app),
+                base_url="http://testserver",
+            ) as scoped_client:
+                resp = await scoped_client.post(
+                    f"/api/v1/coins/topups/{target_topup_id}/simulate-paid",
+                    headers={"Authorization": f"Bearer {token}"},
                 )
+                assert resp.status_code == expected_status
+                return resp.json()
 
-        prod_app.dependency_overrides[get_coin_topup_service] = override_prod_service
-        async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=prod_app),
-            base_url="http://testserver",
-        ) as prod_client:
-            denied = await prod_client.post(
-                f"/api/v1/coins/topups/{sim_id}/simulate-paid",
-                headers={"Authorization": f"Bearer {token}"},
-            )
-            assert denied.status_code == 403
-            assert denied.json()["detail"]["code"] == "SANDBOX_ONLY"
+        denied_prod = await _assert_sim_status(
+            is_prod=True,
+            app_env="production",
+            sim_flag=True,
+            expected_status=403,
+            target_topup_id=sim_id,
+        )
+        assert denied_prod["detail"]["code"] == "SANDBOX_ONLY"
+
+        denied_dev_prod_midtrans = await _assert_sim_status(
+            is_prod=True,
+            app_env="development",
+            sim_flag=True,
+            expected_status=403,
+            target_topup_id=sim_id,
+        )
+        assert denied_dev_prod_midtrans["detail"]["code"] == "SANDBOX_ONLY"
+
+        denied_prod_env_without_opt_in = await _assert_sim_status(
+            is_prod=False,
+            app_env="production",
+            sim_flag=False,
+            expected_status=403,
+            target_topup_id=sim_id,
+        )
+        assert denied_prod_env_without_opt_in["detail"]["code"] == "SANDBOX_ONLY"
+
+        # Cloud/Docker production container running Midtrans Sandbox with explicit simulation opt-in succeeds
+        cloud_sim_create = await client.post(
+            "/api/v1/coins/topups",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Idempotency-Key": f"idem-cloud-sim-{suffix}",
+            },
+            json={"package_id": str(pkg.id)},
+        )
+        assert cloud_sim_create.status_code == 201
+        cloud_sim_id = cloud_sim_create.json()["id"]
+
+        allowed_cloud_sandbox = await _assert_sim_status(
+            is_prod=False,
+            app_env="production",
+            sim_flag=True,
+            expected_status=200,
+            target_topup_id=cloud_sim_id,
+        )
+        assert allowed_cloud_sandbox["status"] == "paid"
 
