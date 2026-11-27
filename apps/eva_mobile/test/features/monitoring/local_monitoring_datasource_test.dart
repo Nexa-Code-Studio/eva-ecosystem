@@ -88,5 +88,37 @@ void main() {
       expect(weekData.risks.firstWhere((r) => r.type == 'depresi').percent, 0.0);
       expect(weekData.risks.firstWhere((r) => r.type == 'depresi').levelLabel, 'Rendah (0%)');
     });
+
+    test('Aggregates 7-emotion vector from stored emotions_breakdown_json', () async {
+      final testDbPath = '${tempDir.path}/mon_breakdown_test.db';
+      await localDb.open(localAccountKey: 'test_mon_user', customPath: testDbPath);
+
+      await diaryDataSource.saveSessionArtifacts(
+        sessionId: 'sess_mon_7emo',
+        sessionSummary: 'Sesi dengan data 7 emosi lengkap.',
+        journalDelta: {
+          'title': 'Pemantauan 7 Emosi',
+          'mood_tag': 'Bahagia',
+          'emotions_breakdown': [
+            {'label': 'Bahagia', 'percent': 0.25},
+            {'label': 'Netral', 'percent': 0.20},
+            {'label': 'Cemas & Takut', 'percent': 0.15},
+            {'label': 'Sedih', 'percent': 0.10},
+            {'label': 'Terkejut', 'percent': 0.12},
+            {'label': 'Marah', 'percent': 0.10},
+            {'label': 'Jijik', 'percent': 0.08},
+          ],
+        },
+      );
+
+      final todayData = await monitoringDataSource.getMonitoringData('today');
+      expect(todayData.chartData, isNotEmpty);
+      final vector = todayData.chartData.first;
+      expect(vector.length, 7);
+      // Verify indices 4 (surprise), 5 (anger), 6 (disgusted) reflect persisted values rather than 0.0
+      expect(vector[4], closeTo(0.12, 0.01));
+      expect(vector[5], closeTo(0.10, 0.01));
+      expect(vector[6], closeTo(0.08, 0.01));
+    });
   });
 }

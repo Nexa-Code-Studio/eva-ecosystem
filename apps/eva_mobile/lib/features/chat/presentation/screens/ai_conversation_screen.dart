@@ -57,9 +57,11 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
         'title': c.title,
         'date': c.date,
         'lastMessageTime': c.lastSessionTime,
+        'duration': c.duration,
         'dominant_emoji': c.moodEmoji,
         'dominant_emotion': c.moodTag,
         'summary': c.summary,
+        'emotionsBreakdown': c.emotionsBreakdown,
         'messages': c.messages.map((m) => <String, dynamic>{
           'id': m.id,
           'isUser': m.isUser,
@@ -78,32 +80,6 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
     } catch (_) {} finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  static ({String tag, String emoji}) _detectEmotionFallback(String text) {
-    final tLow = text.toLowerCase();
-    const anxWords = ['cemas', 'takut', 'nervous', 'panggung', 'khawatir', 'panik', 'deg-degan', 'gugup', 'takutnya', 'bingung', 'was-was', 'tegang'];
-    const depWords = ['sedih', 'nangis', 'menangis', 'hampa', 'sendiri', 'kehilangan', 'terpuruk', 'putus asa', 'kecewa', 'patah hati', 'bunuh diri'];
-    const strWords = ['stres', 'capek', 'lelah', 'beban', 'berat', 'penat', 'pusing', 'mumet', 'tekanan', 'tugas', 'deadline', 'kerjaan', 'letih'];
-    const angWords = ['marah', 'kesal', 'jengkel', 'benci', 'emosi', 'sebal', 'kesel', 'geram', 'murka'];
-    const posWords = ['lega', 'senang', 'bahagia', 'terima kasih', 'makasih', 'enakan', 'tenang', 'nyaman', 'santai', 'alhamdulillah', 'syukurlah', 'baik', 'bersyukur'];
-
-    if (anxWords.any((w) => tLow.contains(w))) {
-      return (tag: 'fear (78%)', emoji: '😨');
-    }
-    if (depWords.any((w) => tLow.contains(w))) {
-      return (tag: 'sadness (82%)', emoji: '😔');
-    }
-    if (strWords.any((w) => tLow.contains(w))) {
-      return (tag: 'stress (75%)', emoji: '💥');
-    }
-    if (angWords.any((w) => tLow.contains(w))) {
-      return (tag: 'anger (70%)', emoji: '😡');
-    }
-    if (posWords.any((w) => tLow.contains(w))) {
-      return (tag: 'calm (85%)', emoji: '😌');
-    }
-    return (tag: 'netral (60%)', emoji: '😐');
   }
 
   Future<void> _openCoinPurchase() async {
@@ -556,20 +532,20 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
     final duration = (conv['duration'] != null && conv['duration'].toString().isNotEmpty)
         ? conv['duration'].toString()
         : '00:00';
+    final rawEmotions = (conv['emotionsBreakdown'] as List?)
+            ?.whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList() ??
+        <Map<String, dynamic>>[];
 
     String dominantEmoji = conv['dominant_emoji']?.toString() ?? '';
     String dominantEmotion = conv['dominant_emotion']?.toString() ?? '';
     if (dominantEmoji.isEmpty) {
       for (final m in msgs) {
-        if (m is Map && m['sender'] == 'user') {
+        if (m is Map && (m['isUser'] == true || m['sender'] == 'user')) {
           final emoji = (m['emotionEmoji'] ?? m['emotion_emoji'])?.toString();
           if (emoji != null && emoji.isNotEmpty) {
             dominantEmoji = emoji;
-            break;
-          }
-          final text = (m['text'] ?? '').toString();
-          if (text.isNotEmpty) {
-            dominantEmoji = _detectEmotionFallback(text).emoji;
             break;
           }
         }
@@ -577,6 +553,8 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
     }
     if (dominantEmoji.isEmpty) dominantEmoji = '😌';
     if (dominantEmotion.isEmpty) dominantEmotion = 'Tenang & Nyaman';
+
+    final summaryStr = (conv['summary']?.toString() ?? '').trim();
 
     return _buildSessionHistoryCard(
       title: title,
@@ -597,13 +575,10 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
             'lastSessionTime': time,
             'moodTag': dominantEmotion,
             'moodEmoji': dominantEmoji,
-            'summary': conv['summary'],
-            'riskWarning': {'detected': false},
-            'aiInsight': conv['summary'] ??
-                'Percakapan berhasil disintesis dan diproses untuk pemantauan kesehatan emosionalmu.',
-            'importantEvents': ['Sesi percakapan aktif selesai tercatat'],
-            'emotionalReflection':
-                'Emosi terartikulasi secara positif melalui sesi curhat bersama AI.',
+            'summary': summaryStr,
+            'aiInsight': summaryStr,
+            'importantEvents': const <String>[],
+            'emotionalReflection': '',
             'sessions': [
               {
                 'id': conv['id'] ?? 's1',
@@ -611,50 +586,22 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
                 'time': time,
                 'moodTag': dominantEmotion,
                 'moodEmoji': dominantEmoji,
-                'emotionsBreakdown': [
-                  {
-                    'name': 'netral',
-                    'label': 'Netral',
-                    'emoji': '😐',
-                    'percent': 0.60,
-                    'color': const Color(0xFFA7E6FF)
-                  },
-                  {
-                    'name': 'happy',
-                    'label': 'Lega',
-                    'emoji': '😌',
-                    'percent': 0.40,
-                    'color': const Color(0xFFFFE6A7)
-                  },
-                ],
+                'emotionsBreakdown': rawEmotions,
                 'transcripts': msgs
                     .map((m) {
                       final isUser = m['isUser'] == true ||
                           m['sender'] == 'user' ||
                           m['role'] == 'user';
                       final text = (m['text'] ?? '').toString();
-                      final tag = (m['emotionTag'] ?? m['emotion_tag'])?.toString();
-                      final emoji = (m['emotionEmoji'] ?? m['emotion_emoji'])?.toString();
-
-                      String resolvedTag = '';
-                      String resolvedEmoji = '';
-                      if (isUser) {
-                        if (tag != null && tag.isNotEmpty && tag != 'Refleksi') {
-                          resolvedTag = tag;
-                          resolvedEmoji = (emoji != null && emoji.isNotEmpty) ? emoji : '🌱';
-                        } else {
-                          final fallback = _detectEmotionFallback(text);
-                          resolvedTag = fallback.tag;
-                          resolvedEmoji = fallback.emoji;
-                        }
-                      }
+                      final tag = (m['emotionTag'] ?? m['emotion_tag'])?.toString() ?? '';
+                      final emoji = (m['emotionEmoji'] ?? m['emotion_emoji'])?.toString() ?? '';
 
                       return {
                         'isUser': isUser,
                         'time': m['time'] ?? '',
                         'text': text,
-                        'emotionTag': resolvedTag,
-                        'emotionEmoji': resolvedEmoji,
+                        'emotionTag': isUser && tag != 'Refleksi' ? tag : '',
+                        'emotionEmoji': isUser && tag != 'Refleksi' ? emoji : '',
                       };
                     })
                     .toList(),
@@ -662,7 +609,9 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
             ],
             'selectedSessionId': conv['id'] ?? 's1',
           },
-        );
+        ).then((_) {
+          if (mounted) _fetchConversations();
+        });
       },
     );
   }

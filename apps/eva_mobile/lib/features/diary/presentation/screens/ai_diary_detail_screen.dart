@@ -9,7 +9,6 @@ import '../../../chat/presentation/providers/chat_provider.dart';
 import '../../../monitoring/presentation/providers/monitoring_provider.dart';
 import '../../../voice_call/presentation/providers/ai_call_provider.dart';
 import '../../data/models/diary_entry_model.dart';
-import '../../data/datasources/diary_fallback_fixture.dart';
 import '../providers/diary_provider.dart';
 import '../widgets/diary_emotion_distribution_card.dart';
 import '../widgets/diary_insight_card.dart';
@@ -57,13 +56,19 @@ class _AiDiaryDetailScreenState extends ConsumerState<AiDiaryDetailScreen> {
 
         if (isSingle) {
           final convId = _diaryData!['conversationId'] ?? dId;
-          final existingSummary = _diaryData!['summary'];
-          if (existingSummary == null || existingSummary.toString().trim().isEmpty) {
-            if (convId != null) {
-              _streamSummary(convId.toString());
-            }
-          } else {
-            _streamedSummary = existingSummary.toString();
+          final existingSummary = _diaryData!['summary']?.toString().trim() ?? '';
+          final sessionsList = _diaryData!['sessions'] as List?;
+          final firstEmotions = (sessionsList != null && sessionsList.isNotEmpty && sessionsList.first is Map)
+              ? (sessionsList.first['emotionsBreakdown'] as List?)
+              : null;
+          final needsSynthesis = existingSummary.isEmpty ||
+              existingSummary.startsWith('User:') ||
+              (firstEmotions == null || firstEmotions.isEmpty);
+
+          if (!needsSynthesis) {
+            _streamedSummary = existingSummary;
+          } else if (convId != null) {
+            _streamSummary(convId.toString());
           }
         } else if (dId != null) {
           _fetchDiaryDetail(dId.toString());
@@ -86,6 +91,52 @@ class _AiDiaryDetailScreenState extends ConsumerState<AiDiaryDetailScreen> {
     });
 
     try {
+      final synthesisService = ref.read(statelessSynthesisServiceProvider);
+      final isDone = await synthesisService.isSessionSynthesized(conversationId);
+      if (!isDone) {
+        final ok = await synthesisService.synthesizeSessionOnDemand(sessionId: conversationId);
+        if (ok && mounted) {
+          final updatedConv = await ref.read(chatRepositoryProvider).getConversationById(conversationId);
+          if (updatedConv != null && mounted) {
+            setState(() {
+              _isLoadingSkeleton = false;
+              _isStreaming = false;
+              _streamedSummary = updatedConv.summary;
+              if (_diaryData != null) {
+                _diaryData!['title'] = updatedConv.title;
+                _diaryData!['moodTag'] = updatedConv.moodTag;
+                _diaryData!['moodEmoji'] = updatedConv.moodEmoji;
+                _diaryData!['summary'] = updatedConv.summary;
+                final sessions = _diaryData!['sessions'];
+                if (sessions is List && sessions.isNotEmpty && sessions.first is Map) {
+                  final firstSess = Map<String, dynamic>.from(sessions.first as Map);
+                  firstSess['title'] = updatedConv.title;
+                  firstSess['moodTag'] = updatedConv.moodTag;
+                  firstSess['moodEmoji'] = updatedConv.moodEmoji;
+                  firstSess['emotionsBreakdown'] = updatedConv.emotionsBreakdown;
+                  if (updatedConv.messages.isNotEmpty) {
+                    firstSess['transcripts'] = updatedConv.messages
+                        .map((m) => {
+                              'isUser': m.isUser,
+                              'time': m.time,
+                              'text': m.text,
+                              'emotionTag': m.emotionTag ?? '',
+                              'emotionEmoji': m.emotionEmoji ?? '',
+                            })
+                        .toList();
+                  }
+                  _diaryData!['sessions'] = [firstSess];
+                }
+              }
+            });
+            ref.invalidate(conversationsProvider);
+            ref.invalidate(diaryEntriesProvider);
+            ref.invalidate(monitoringDataProvider);
+            return;
+          }
+        }
+      }
+
       final stream = ref.read(chatRepositoryProvider).streamConversationSummary(conversationId);
       await for (final token in stream) {
         if (!mounted) break;
@@ -98,8 +149,10 @@ class _AiDiaryDetailScreenState extends ConsumerState<AiDiaryDetailScreen> {
         setState(() {
           _isStreaming = false;
           _isLoadingSkeleton = false;
-          if (_diaryData != null && _streamedSummary != null) {
+          if (_diaryData != null && _streamedSummary != null && _streamedSummary!.isNotEmpty) {
             _diaryData!['summary'] = _streamedSummary;
+          } else if (_streamedSummary == null || _streamedSummary!.isEmpty) {
+            _streamError = true;
           }
         });
       }
@@ -185,7 +238,37 @@ class _AiDiaryDetailScreenState extends ConsumerState<AiDiaryDetailScreen> {
     final args = widget.journalData ??
         (ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?);
 
-    final data = _diaryData ?? args ?? kDefaultDiaryDetailFallback;
+    final data = _diaryData ?? args;
+    if (data == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF9F9FB),
+        body: SafeArea(
+          child: Column(
+            children: [
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                child: Row(
+                  children: [
+                    AppBackButton(),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: Text(
+                    'Data jurnal atau sesi tidak tersedia.',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     final bool isSingleSession = data['isSingleSession'] == true;
     final bool hasRisk = data['riskWarning'] != null && data['riskWarning']['detected'] == true;
 
@@ -246,11 +329,6 @@ class _AiDiaryDetailScreenState extends ConsumerState<AiDiaryDetailScreen> {
             };
           }).toList();
           activeEmotions.sort((a, b) => ((b['percent'] as num?) ?? 0.0).compareTo((a['percent'] as num?) ?? 0.0));
-        } else {
-          // If no acoustic emotion data was captured yet, display default calm/neutral baseline
-          activeEmotions = [
-            {'name': 'netral', 'label': 'Netral & Tenang', 'emoji': '😌', 'percent': 1.00, 'color': const Color(0xFFA7E6FF)},
-          ];
         }
       }
     } else {
@@ -271,10 +349,6 @@ class _AiDiaryDetailScreenState extends ConsumerState<AiDiaryDetailScreen> {
         activeEmotions = (selectedSessData['emotionsBreakdown'] as List)
             .map((e) => Map<String, dynamic>.from(e as Map))
             .toList();
-      } else {
-        activeEmotions = [
-          {'name': 'netral', 'label': 'Ketenangan & Refleksi', 'emoji': '😌', 'percent': 1.00, 'color': const Color(0xFFA7E6FF)},
-        ];
       }
     }
 

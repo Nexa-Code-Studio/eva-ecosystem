@@ -271,6 +271,14 @@ async def get_admin_finance_service(
     return AdminFinanceService(db, payout_gateway=gateway)
 
 
+def get_call_synthesis_service():
+    """Dependency factory for stateless CallSynthesisService."""
+    from app.services.call import CallSynthesisService
+
+    return CallSynthesisService()
+
+
+
 
 
 

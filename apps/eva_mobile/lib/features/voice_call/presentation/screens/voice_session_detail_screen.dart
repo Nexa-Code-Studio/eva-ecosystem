@@ -188,52 +188,43 @@ class _VoiceSessionDetailScreenState extends ConsumerState<VoiceSessionDetailScr
     final bool isTitleLoading = _isTitleLoading(rawTitle);
     final displayTitle = rawTitle.replaceAll(r'$skeleton', '').trim();
     final title = displayTitle.isEmpty ? 'Sesi Panggilan Suara' : displayTitle;
-    final date = _sessionData?['date']?.toString() ?? 'Hari ini, 09:15 AM';
-    final duration = _sessionData?['duration']?.toString() ?? '04:12';
-    
-    final emotionAnalysisMap = _sessionData?['emotion_analysis'] as Map<String, dynamic>?;
-    final rawEmotionList = (_sessionData?['emotions_breakdown'] ?? emotionAnalysisMap?['emotions_breakdown']) as List? ?? [
-      {'label': 'Ketenangan & Kedamaian', 'emoji': '😌', 'percent': 0.85, 'color': '#4ECDC4'},
-      {'label': 'Bahagia & Puas', 'emoji': '😃', 'percent': 0.60, 'color': '#FFE6A7'},
-      {'label': 'Takut & Gelisah', 'emoji': '😨', 'percent': 0.25, 'color': '#6C63FF'},
-      {'label': 'Tingkat Stres', 'emoji': '😟', 'percent': 0.15, 'color': '#FF8B94'},
-    ];
+    final date = _sessionData?['date']?.toString() ?? 'Baru saja';
+    final duration = _sessionData?['duration']?.toString() ?? '-';
 
-    final emotionsBreakdown = rawEmotionList.map((item) {
-      final map = Map<String, dynamic>.from(item as Map);
-      return {
-        'label': map['label']?.toString() ?? 'Emosi',
-        'emoji': map['emoji']?.toString() ?? '😊',
-        'percent': (map['percent'] as num?)?.toDouble() ?? 0.5,
-        'color': _parseHexColor(map['color']),
-      };
-    }).toList();
+    final emotionAnalysisMap =
+        _sessionData?['emotion_analysis'] as Map<String, dynamic>?;
+    final rawEmotionList = (_sessionData?['emotions_breakdown'] ??
+            emotionAnalysisMap?['emotions_breakdown']) as List? ??
+        const [];
 
-    final rawTranscript = _sessionData?['transcript'] as List? ?? [
-      {
-        'role': 'user',
-        'content': 'Halo Eva, aku merasa cemas sekali dengan beban pekerjaanku hari ini.',
-        'time': '09:15 AM',
-        'emotionTag': 'fear (68%)',
-        'emotionEmoji': '😨',
-      },
-      {
-        'role': 'assistant',
-        'content': 'Halo! Aku di sini mendengarkanmu. Ceritakan padaku apa yang membuatmu merasa cemas hari ini?',
-        'time': '09:15 AM',
-      },
-    ];
+    final emotionsBreakdown = rawEmotionList
+        .whereType<Map>()
+        .map((item) {
+          final map = Map<String, dynamic>.from(item);
+          return {
+            'label': map['label']?.toString() ?? 'Emosi',
+            'emoji': map['emoji']?.toString() ?? '🙂',
+            'percent': (map['percent'] as num?)?.toDouble() ?? 0.0,
+            'color': _parseHexColor(map['color']),
+          };
+        })
+        .toList();
 
-    final transcriptList = rawTranscript.map((item) {
-      final map = Map<String, dynamic>.from(item as Map);
-      return {
-        'role': map['role']?.toString() ?? 'user',
-        'content': map['content']?.toString() ?? '',
-        'time': map['time']?.toString() ?? '09:15 AM',
-        'emotionTag': map['emotionTag']?.toString(),
-        'emotionEmoji': map['emotionEmoji']?.toString(),
-      };
-    }).toList();
+    final rawTranscript = _sessionData?['transcript'] as List? ?? const [];
+
+    final transcriptList = rawTranscript
+        .whereType<Map>()
+        .map((item) {
+          final map = Map<String, dynamic>.from(item);
+          return {
+            'role': map['role']?.toString() ?? 'user',
+            'content': map['content']?.toString() ?? '',
+            'time': map['time']?.toString() ?? '',
+            'emotionTag': map['emotionTag']?.toString(),
+            'emotionEmoji': map['emotionEmoji']?.toString(),
+          };
+        })
+        .toList();
 
     return Scaffold(
       body: Container(
@@ -374,58 +365,92 @@ class _VoiceSessionDetailScreenState extends ConsumerState<VoiceSessionDetailScr
                             GlassCard(
                               width: double.infinity,
                               padding: const EdgeInsets.all(20),
-                              child: Column(
-                                children: [
-                                  ...emotionsBreakdown.map((emo) {
-                                    final double pct = (emo['percent'] as double).clamp(0.0, 1.0);
-                                    final int pctInt = (pct * 100).round();
-                                    return Padding(
-                                      padding: const EdgeInsets.only(bottom: 14.0),
-                                      child: Column(
-                                        children: [
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  Text(emo['emoji'].toString(), style: const TextStyle(fontSize: 16)),
-                                                  const SizedBox(width: 8),
-                                                  Text(
-                                                    emo['label'].toString(),
-                                                    style: GoogleFonts.inter(
-                                                      fontSize: 13,
-                                                      fontWeight: FontWeight.w600,
-                                                      color: AppColors.textPrimary,
+                              child: emotionsBreakdown.isEmpty
+                                  ? Text(
+                                      'Distribusi emosi sesi belum tersedia.',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 13,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    )
+                                  : Column(
+                                      children: [
+                                        ...emotionsBreakdown.map((emo) {
+                                          final double pct =
+                                              (emo['percent'] as double)
+                                                  .clamp(0.0, 1.0);
+                                          final int pctInt =
+                                              (pct * 100).round();
+                                          return Padding(
+                                            padding: const EdgeInsets.only(
+                                                bottom: 14.0),
+                                            child: Column(
+                                              children: [
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    Row(
+                                                      children: [
+                                                        Text(
+                                                          emo['emoji']
+                                                              .toString(),
+                                                          style: const TextStyle(
+                                                              fontSize: 16),
+                                                        ),
+                                                        const SizedBox(
+                                                            width: 8),
+                                                        Text(
+                                                          emo['label']
+                                                              .toString(),
+                                                          style:
+                                                              GoogleFonts.inter(
+                                                            fontSize: 13,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            color: AppColors
+                                                                .textPrimary,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    Text(
+                                                      '$pctInt%',
+                                                      style: GoogleFonts.inter(
+                                                        fontSize: 13,
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                        color: AppColors
+                                                            .textPrimary,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 8),
+                                                ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          999),
+                                                  child:
+                                                      LinearProgressIndicator(
+                                                    value: pct,
+                                                    minHeight: 8,
+                                                    backgroundColor:
+                                                        const Color(0xFFE2E4F0),
+                                                    valueColor:
+                                                        AlwaysStoppedAnimation<
+                                                            Color>(
+                                                      emo['color'] as Color,
                                                     ),
                                                   ),
-                                                ],
-                                              ),
-                                              Text(
-                                                '$pctInt%',
-                                                style: GoogleFonts.inter(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w800,
-                                                  color: AppColors.textPrimary,
                                                 ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 8),
-                                          ClipRRect(
-                                            borderRadius: BorderRadius.circular(999),
-                                            child: LinearProgressIndicator(
-                                              value: pct,
-                                              minHeight: 8,
-                                              backgroundColor: const Color(0xFFE2E4F0),
-                                              valueColor: AlwaysStoppedAnimation<Color>(emo['color'] as Color),
+                                              ],
                                             ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  }),
-                                ],
-                              ),
+                                          );
+                                        }),
+                                      ],
+                                    ),
                             ),
                           ],
                         ),
@@ -485,73 +510,56 @@ class _VoiceSessionDetailScreenState extends ConsumerState<VoiceSessionDetailScr
                                     final entry = await diaryRepo.getTodayDiary() ?? await diaryRepo.generateTodayDiary();
 
                                     if (context.mounted) {
-                                      final Map<String, dynamic> diaryArgs = entry != null
-                                          ? {
-                                              'id': entry.id,
-                                              'title': entry.title,
-                                              'date': entry.date,
-                                              'sessionCount': entry.sessionCount,
-                                              'lastSessionTime': entry.lastSessionTime,
-                                              'moodTag': entry.moodTag,
-                                              'moodEmoji': entry.moodEmoji,
-                                              'summary': entry.summary,
-                                              'riskWarning': entry.riskWarning != null
-                                                  ? {
-                                                      'detected': entry.riskWarning!.detected,
-                                                      'type': entry.riskWarning!.type,
-                                                      'title': entry.riskWarning!.title,
-                                                      'level': entry.riskWarning!.level,
-                                                      'message': entry.riskWarning!.message,
-                                                    }
-                                                  : null,
-                                              'aiInsight': entry.aiInsight,
-                                              'importantEvents': entry.importantEvents,
-                                              'emotionalReflection': entry.emotionalReflection,
-                                              'sessions': entry.sessions
-                                                  .map((s) => {
-                                                        'id': s.id,
-                                                        'title': s.title,
-                                                        'time': s.time,
-                                                        'moodTag': s.moodTag,
-                                                        'moodEmoji': s.moodEmoji,
-                                                      })
-                                                  .toList(),
-                                            }
-                                          : {
-                                              'id': 'today_default',
-                                              'title': 'Refleksi Harian EVA',
-                                              'date': 'Hari ini',
-                                              'sessionCount': 1,
-                                              'lastSessionTime': '09:15 AM',
-                                              'moodTag': 'Tenang 🌿',
-                                              'moodEmoji': '🌿',
-                                              'summary': 'Sesi percakapan harian berhasil disintesis oleh EVA AI.',
-                                              'aiInsight': 'Pengguna merasa lebih lega setelah berdialog dengan EVA AI.',
-                                              'emotionalReflection': 'Respon emosional terpantau positif dan stabil.',
-                                              'importantEvents': ['[Hari ini] Percakapan Suara EVA AI'],
-                                              'sessions': [],
-                                            };
+                                      if (entry == null) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Ringkasan jurnal harian belum tersedia.'),
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      final Map<String, dynamic> diaryArgs = {
+                                        'id': entry.id,
+                                        'title': entry.title,
+                                        'date': entry.date,
+                                        'sessionCount': entry.sessionCount,
+                                        'lastSessionTime': entry.lastSessionTime,
+                                        'moodTag': entry.moodTag,
+                                        'moodEmoji': entry.moodEmoji,
+                                        'summary': entry.summary,
+                                        'riskWarning': entry.riskWarning != null
+                                            ? {
+                                                'detected': entry.riskWarning!.detected,
+                                                'type': entry.riskWarning!.type,
+                                                'title': entry.riskWarning!.title,
+                                                'level': entry.riskWarning!.level,
+                                                'message': entry.riskWarning!.message,
+                                              }
+                                            : null,
+                                        'aiInsight': entry.aiInsight,
+                                        'importantEvents': entry.importantEvents,
+                                        'emotionalReflection': entry.emotionalReflection,
+                                        'sessions': entry.sessions
+                                            .map((s) => {
+                                                  'id': s.id,
+                                                  'title': s.title,
+                                                  'time': s.time,
+                                                  'moodTag': s.moodTag,
+                                                  'moodEmoji': s.moodEmoji,
+                                                })
+                                            .toList(),
+                                      };
 
                                       Navigator.pushNamed(context, '/diary_detail', arguments: diaryArgs);
                                     }
                                   } catch (e, stack) {
                                     debugPrint('⚠️ [DIARY DETAIL NAV EXCEPTION]: $e\n$stack');
                                     if (context.mounted) {
-                                      final fallbackArgs = {
-                                        'id': 'today_fallback',
-                                        'title': 'Jurnal Harian EVA AI',
-                                        'date': 'Hari ini',
-                                        'sessionCount': 1,
-                                        'lastSessionTime': 'Hari ini',
-                                        'moodTag': 'Tenang 🌿',
-                                        'moodEmoji': '🌿',
-                                        'summary': 'Sesi percakapan harian berhasil disintesis oleh EVA AI.',
-                                        'aiInsight': 'Pengguna merasa lebih lega setelah berdialog dengan EVA AI.',
-                                        'emotionalReflection': 'Respon emosional terpantau positif dan stabil.',
-                                        'importantEvents': ['[Hari ini] Sesi Percakapan Suara EVA AI'],
-                                        'sessions': [],
-                                      };
-                                      Navigator.pushNamed(context, '/diary_detail', arguments: fallbackArgs);
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Gagal memuat detail jurnal harian.'),
+                                        ),
+                                      );
                                     }
                                   }
                                 },
@@ -631,6 +639,24 @@ class _VoiceSessionDetailScreenState extends ConsumerState<VoiceSessionDetailScr
 
                       Builder(
                         builder: (context) {
+                          if (transcriptList.isEmpty) {
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Text(
+                                'Belum ada transkrip percakapan untuk sesi ini.',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            );
+                          }
                           final int totalCount = transcriptList.length;
                           final int displayCount = totalCount.clamp(0, _infiniteLimit);
                           final pageItems = transcriptList.sublist(0, displayCount);

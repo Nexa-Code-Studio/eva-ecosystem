@@ -3,6 +3,49 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:eva_mobile/features/home/presentation/screens/home_screen.dart';
+import 'package:eva_mobile/features/recommendations/domain/entities/recommendation_entity.dart';
+import 'package:eva_mobile/features/recommendations/domain/repositories/recommendation_repository.dart';
+import 'package:eva_mobile/features/recommendations/presentation/providers/recommendation_provider.dart';
+
+class _TestRecommendationRepository implements RecommendationRepository {
+  @override
+  Future<List<RecommendationEntity>> getRecommendations() async => const [];
+
+  @override
+  Future<Map<String, dynamic>> getTodayRecommendation() async => {
+        'conditionLabel': 'Fokus: Relaksasi & Perawatan Diri',
+        'conditionReason': 'Menjaga ritme emosi dan ketenangan pikiran harian',
+        'severityLevel': 'Normal',
+        'isCrisis': false,
+        'todayActivity': {
+          'id': '1',
+          'title': 'Latihan Pernapasan 4-7-8',
+          'category': 'Mindfulness',
+          'targetCondition': 'stress',
+          'duration': '3 menit',
+          'difficulty': 'Pemula',
+          'description': 'Tarik napas dalam 4 detik, tahan 7 detik, lalu hembuskan 8 detik.',
+          'instructions': ['Duduk dengan nyaman dan punggung tegak.'],
+          'rationale': 'Mengaktifkan respons relaksasi parasimpatik.',
+          'isCompleted': false,
+        },
+        'alternatives': [
+          {
+            'id': '2',
+            'title': 'Teknik Grounding 5-4-3-2-1',
+            'category': 'CBT',
+            'targetCondition': 'anxiety',
+            'duration': '5 menit',
+            'difficulty': 'Pemula',
+            'description': 'Sadarilah 5 hal yang kamu lihat.',
+            'isCompleted': false,
+          },
+        ],
+      };
+
+  @override
+  Future<void> markAsCompleted(String id) async {}
+}
 
 void main() {
   testWidgets(
@@ -19,6 +62,11 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          recommendationRepositoryProvider.overrideWithValue(
+            _TestRecommendationRepository(),
+          ),
+        ],
         child: MaterialApp(
           routes: {
             '/chat': (context) => const Scaffold(body: Text('Chat Screen')),

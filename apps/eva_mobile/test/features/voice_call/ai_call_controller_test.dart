@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:eva_mobile/features/voice_call/data/datasources/voice_call_ws_client.dart';
 import 'package:eva_mobile/features/voice_call/data/services/ai_audio_playback_service.dart';
 import 'package:eva_mobile/features/voice_call/data/services/single_audio_capture_service.dart';
+import 'package:eva_mobile/features/voice_call/data/services/stateless_synthesis_service.dart';
 import 'package:eva_mobile/features/voice_call/domain/entities/call_state.dart';
 import 'package:eva_mobile/features/voice_call/presentation/controllers/ai_call_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -501,5 +502,118 @@ void main() {
       expect(activeController.state.currentBilledMinute, 1);
       expect(activeController.state.remainingSecondsInCycle, 60);
     });
+
+    test('accumulates multi-chunk ai.transcript_chunk and deduplicates voice_session_summary', () async {
+      final synthesisFake = _FakeStatelessSynthesisService();
+      final ctrl = AiCallController(
+        audioCaptureService: fakeCapture,
+        audioPlaybackService: fakePlayback,
+        wsClient: fakeWs,
+        synthesisService: synthesisFake,
+      );
+      addTearDown(ctrl.dispose);
+
+      await ctrl.startCall(customCallId: 'call_chunk_test');
+
+      fakeWs.eventController.add({
+        'type': 'user.transcript_final',
+        'text': 'Halo selamat pagi',
+        'user_turn_id': 1,
+      });
+      fakeWs.eventController.add({
+        'type': 'ai.transcript_chunk',
+        'text': 'Pagi, Samsul. ',
+        'assistant_turn_id': 1,
+      });
+      fakeWs.eventController.add({
+        'type': 'ai.transcript_chunk',
+        'text': 'Gimana',
+        'assistant_turn_id': 1,
+      });
+      await pumpEventQueue();
+
+      expect(ctrl.state.aiTranscript, 'Pagi, Samsul. Gimana');
+
+      fakeWs.eventController.add({
+        'type': 'voice_session_summary',
+        'transcript': [
+          {'role': 'user', 'content': 'Halo selamat pagi'},
+          {'role': 'assistant', 'content': 'Syukur kalau gitu.'},
+        ],
+        'turn_id': 1,
+        'emotion_analysis': {
+          'dominant_emotion': 'happy',
+          'emotions_breakdown': [
+            {'label': 'Bahagia', 'percent': 0.8},
+          ],
+        },
+      });
+      await pumpEventQueue();
+
+      expect(ctrl.state.aiTranscript, '');
+      expect(ctrl.state.activeEmotionsBreakdown.first['label'], 'Bahagia');
+      final occurrences =
+          'Syukur kalau gitu.'.allMatches(ctrl.state.accumulatedTranscript).length;
+      expect(occurrences, 1);
+    });
+
+    test('endCall flushes turns and marks session pending without wiping journal link', () async {
+      final synthesisFake = _FakeStatelessSynthesisService();
+      final ctrl = AiCallController(
+        audioCaptureService: fakeCapture,
+        audioPlaybackService: fakePlayback,
+        wsClient: fakeWs,
+        synthesisService: synthesisFake,
+      );
+      addTearDown(ctrl.dispose);
+
+      await ctrl.startCall(customCallId: 'call_end_flush');
+      fakeWs.eventController.add({
+        'type': 'ai.transcript_chunk',
+        'text': 'Terima kasih sudah berbagi hari ini.',
+        'assistant_turn_id': 2,
+      });
+      await pumpEventQueue();
+
+      await ctrl.endCall();
+
+      expect(synthesisFake.markPendingCalls, 1);
+      expect(synthesisFake.lastPendingSessionId, 'call_end_flush');
+      expect(
+        fakeWs.sentEvents.any((e) => e['type'] == 'session_finalize_v1'),
+        isTrue,
+      );
+    });
   });
+}
+
+class _FakeStatelessSynthesisService extends Fake
+    implements StatelessSynthesisService {
+  int markPendingCalls = 0;
+  String? lastPendingSessionId;
+  final List<Map<String, dynamic>> recordedTurns = [];
+
+  @override
+  Future<void> recordTurn({
+    required String sessionId,
+    required int turnId,
+    required String role,
+    required String transcript,
+  }) async {
+    recordedTurns.add({
+      'sessionId': sessionId,
+      'turnId': turnId,
+      'role': role,
+      'transcript': transcript,
+    });
+  }
+
+  @override
+  Future<void> markSessionPending({
+    required String sessionId,
+    String initialSummary = '',
+  }) async {
+    markPendingCalls++;
+    lastPendingSessionId = sessionId;
+  }
 }
