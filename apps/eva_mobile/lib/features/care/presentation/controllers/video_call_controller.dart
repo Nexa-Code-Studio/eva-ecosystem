@@ -18,6 +18,7 @@ class VideoCallController extends StateNotifier<VideoCallStateEntity>
   final VideoCallRepository repository;
   final IWebRtcPeerManager _peerManager;
   final IWebRtcSignalingService _signalingService;
+  final bool isPreviewMode;
 
   Timer? _callTimer;
   StreamSubscription? _signalingSub;
@@ -32,12 +33,13 @@ class VideoCallController extends StateNotifier<VideoCallStateEntity>
     required ConsultationSessionEntity initialSession,
     IWebRtcPeerManager? peerManager,
     IWebRtcSignalingService? signalingService,
+    this.isPreviewMode = false,
   })  : _peerManager = peerManager ??
-            (AppConfig.useMockData
+            ((isPreviewMode || AppConfig.useMockData)
                 ? MockWebRtcPeerManager()
                 : WebRtcPeerManager()),
         _signalingService = signalingService ??
-            (AppConfig.useMockData
+            ((isPreviewMode || AppConfig.useMockData)
                 ? MockSignalingService()
                 : WebRtcSignalingService()),
         super(VideoCallStateEntity(
@@ -52,8 +54,10 @@ class VideoCallController extends StateNotifier<VideoCallStateEntity>
   }
 
   Future<void> _initializeCall(ConsultationSessionEntity session) async {
+    final useSimulatedCall = isPreviewMode || AppConfig.useMockData;
+
     // 1. Request camera and microphone permissions (browsers prompt via getUserMedia)
-    if (!AppConfig.useMockData && !kIsWeb) {
+    if (!useSimulatedCall && !kIsWeb) {
       try {
         final camStatus = await Permission.camera.request();
         final micStatus = await Permission.microphone.request();
@@ -171,14 +175,14 @@ class VideoCallController extends StateNotifier<VideoCallStateEntity>
     }
 
     // 10. Enable Wakelock
-    if (!AppConfig.useMockData) {
+    if (!useSimulatedCall) {
       try {
         await WakelockPlus.enable();
       } catch (_) {}
     }
 
-    // If running in Mock mode, automatically simulate connected state after short delay
-    if (AppConfig.useMockData) {
+    // In mock or UI preview mode, simulate connected state after short delay
+    if (useSimulatedCall) {
       Timer(const Duration(milliseconds: 300), () {
         if (!mounted) return;
         state = state.copyWith(
@@ -465,7 +469,7 @@ class VideoCallController extends StateNotifier<VideoCallStateEntity>
     await _peerIceCandidateSub?.cancel();
     await _iceStateSub?.cancel();
 
-    if (!AppConfig.useMockData) {
+    if (!isPreviewMode && !AppConfig.useMockData) {
       try {
         await WakelockPlus.disable();
       } catch (_) {}

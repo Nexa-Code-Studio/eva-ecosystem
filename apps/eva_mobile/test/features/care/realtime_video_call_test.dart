@@ -352,6 +352,56 @@ void main() {
         await tester.pumpAndSettle();
       });
     });
+
+    testWidgets(
+        'Preview session connects and exits cleanly without backend calls when useMockData is false',
+        (tester) async {
+      final previousUseMockData = AppConfig.useMockData;
+      AppConfig.useMockData = false;
+      addTearDown(() => AppConfig.useMockData = previousUseMockData);
+
+      final previewSession = ConsultationSessionEntity(
+        id: 'preview-video-call',
+        psychologist: dummyPsychologist,
+        sessionDateTime: DateTime.now(),
+        status: ConsultationStatus.upcoming,
+        isPreview: true,
+      );
+
+      runWithMockImages(() async {
+        tester.view.physicalSize = const Size(800, 1600);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            child: MaterialApp(
+              home: MediaQuery(
+                data: const MediaQueryData(disableAnimations: true),
+                child: PsychologistVideoCallScreen(session: previewSession),
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        expect(find.byType(PsychologistVideoCallScreen), findsOneWidget);
+        expect(find.text('Dr. Sarah Wilson, M.Psi'), findsOneWidget);
+        expect(find.text('Terhubung • Sesi #1'), findsOneWidget);
+
+        await tester.tap(find.byIcon(Icons.call_end_rounded));
+        await tester.pump(const Duration(milliseconds: 400));
+        await tester.tap(find.text('Ya, Selesaikan'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ConsultationResultBottomSheet), findsOneWidget);
+        await tester.tap(find.text('Selesai & Tutup Saran Sesi'));
+        await tester.pumpAndSettle();
+      });
+    });
   });
 }
 
