@@ -753,39 +753,34 @@ class _ConsultationScheduleScreenState
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isUpcoming
-                      ? AppColors.successContainer
-                      : isCompleted
-                          ? AppColors.primaryContainer
+              if (!isUpcoming)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isCompleted
+                        ? AppColors.primaryContainer
+                        : isMissed
+                            ? AppColors.warningContainer
+                            : AppColors.surfaceLow,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    isCompleted
+                        ? 'Selesai'
+                        : isMissed
+                            ? 'Terlewat'
+                            : 'Dibatalkan',
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: isCompleted
+                          ? AppColors.onPrimaryContainer
                           : isMissed
-                              ? AppColors.warningContainer
-                              : AppColors.surfaceLow,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  isUpcoming
-                      ? 'Online Video'
-                      : isCompleted
-                          ? 'Selesai'
-                          : isMissed
-                              ? 'Terlewat'
-                              : 'Dibatalkan',
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: isUpcoming
-                        ? AppColors.successDark
-                        : isCompleted
-                            ? AppColors.onPrimaryContainer
-                            : isMissed
-                                ? AppColors.warningDark
-                                : AppColors.textSecondary,
+                              ? AppColors.warningDark
+                              : AppColors.textSecondary,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
 
