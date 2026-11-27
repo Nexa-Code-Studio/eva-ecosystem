@@ -55,6 +55,7 @@ import type {
   PortalDatabase,
   PortalSession,
   Psychologist,
+  PsychologistCoinTransaction,
   PsychologistLevelConfig,
   SubmitBoothFeedbackPayload,
   SubmitBoothFeedbackResult,
@@ -102,6 +103,7 @@ function hydrateMockDb(parsed: Partial<PortalDatabase>): {
       yearsOfExperience: p.yearsOfExperience ?? seedPsy?.yearsOfExperience ?? 1,
       isOnline: p.isOnline ?? (normalizedStatus === 'verified'),
       bufferTimeMinutes: p.bufferTimeMinutes ?? 10,
+      coinBalance: p.coinBalance ?? seedPsy?.coinBalance ?? 0,
       submittedAt: p.submittedAt || seedPsy?.submittedAt || '2026-11-17',
       verificationStatus: normalizedStatus,
       documents,
@@ -261,6 +263,35 @@ export class MockPortalDataSource implements IPortalDataSource {
 
   async fetchAdminPsychologists(): Promise<Psychologist[]> {
     return this.loadSnapshot().psychologists
+  }
+
+  async fetchAdminPsychologistTransactions(
+    psychologistId: string,
+  ): Promise<PsychologistCoinTransaction[]> {
+    const psy = this.loadSnapshot().psychologists.find((p) => p.id === psychologistId)
+    if (!psy || psy.coinBalance <= 0) {
+      return []
+    }
+    return [
+      {
+        id: `ctx-${psychologistId}-1`,
+        description: 'Honorarium Sesi Telekonsultasi Selesai (SOAP Terverifikasi)',
+        transactionType: 'EARNING',
+        amount: Math.min(150, psy.coinBalance),
+        status: 'COMPLETED',
+        date: new Date(Date.now() - 86_400_000).toISOString(),
+        referenceId: 'EVA-2026-SESS-01',
+      },
+      {
+        id: `ctx-${psychologistId}-2`,
+        description: 'Honorarium Sesi Telekonsultasi + Perpanjangan 30 Menit',
+        transactionType: 'EARNING',
+        amount: Math.max(0, psy.coinBalance - Math.min(150, psy.coinBalance)),
+        status: 'COMPLETED',
+        date: new Date(Date.now() - 3 * 86_400_000).toISOString(),
+        referenceId: 'EVA-2026-SESS-02',
+      },
+    ].filter((tx) => tx.amount > 0)
   }
 
   async togglePsychologistDocumentVerified(

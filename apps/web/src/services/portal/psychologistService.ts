@@ -9,7 +9,11 @@ import type {
   SubmitPsychologistApplicationResultDto,
   VerifyPsychologistRequestDto,
 } from '@/types/api/contracts'
-import type { Psychologist, PsychologistStatus } from '@/types/domain/portal'
+import type {
+  Psychologist,
+  PsychologistCoinTransaction,
+  PsychologistStatus,
+} from '@/types/domain/portal'
 
 export function simulateMobilePsychologistSubmission(
   input: SimulateMobilePsychologistInput,
@@ -87,6 +91,12 @@ export function resubmitPsychologistApplication(
 
 export async function fetchAdminPsychologists(): Promise<Psychologist[]> {
   return getActivePortalDataSource().fetchAdminPsychologists()
+}
+
+export async function fetchAdminPsychologistTransactions(
+  psychologistId: string,
+): Promise<PsychologistCoinTransaction[]> {
+  return getActivePortalDataSource().fetchAdminPsychologistTransactions(psychologistId)
 }
 
 export async function reviewPsychologistVerification(

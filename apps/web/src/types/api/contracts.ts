@@ -88,6 +88,7 @@ export interface BackendPsychologistProfileResponseDto {
   verified_at?: string | null
   is_online: boolean
   buffer_time_minutes: number
+  wallet_balance?: number
   created_at: string
 }
 

@@ -44,11 +44,22 @@ export interface Psychologist {
   verifiedAt?: string | null
   isOnline: boolean
   bufferTimeMinutes: number
+  coinBalance: number
   practiceSchedule?: string
   status: PsychologistStatus
   submittedAt: string
   reviewedAt?: string
   documents?: PsychologistCertificate[]
+}
+
+export interface PsychologistCoinTransaction {
+  id: string
+  description: string
+  transactionType: string
+  amount: number
+  status: string
+  date: string
+  referenceId?: string | null
 }
 
 export interface PlatformPricingConfig {

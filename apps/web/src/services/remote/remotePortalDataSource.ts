@@ -94,6 +94,7 @@ import type {
   PortalDatabase,
   PortalSession,
   Psychologist,
+  PsychologistCoinTransaction,
   PsychologistLevelConfig,
   SubmitBoothFeedbackPayload,
   SubmitBoothFeedbackResult,
@@ -346,6 +347,33 @@ export class RemotePortalDataSource implements IPortalDataSource {
     } catch {
       return this.loadSnapshot().psychologists
     }
+  }
+
+  async fetchAdminPsychologistTransactions(
+    psychologistId: string,
+  ): Promise<PsychologistCoinTransaction[]> {
+    const list = await this.requestJson<
+      Array<{
+        id: string
+        patient_name: string
+        session_type: string
+        date: string
+        amount: number
+        status: string
+        transaction_type?: string | null
+        reference_id?: string | null
+      }>
+    >(`/admin/counselors/${encodeURIComponent(psychologistId)}/transactions`)
+
+    return list.map((item) => ({
+      id: item.id,
+      description: item.patient_name,
+      transactionType: item.transaction_type ?? item.session_type,
+      amount: item.amount,
+      status: item.status,
+      date: item.date,
+      referenceId: item.reference_id ?? null,
+    }))
   }
 
   async togglePsychologistDocumentVerified(

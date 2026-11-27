@@ -41,6 +41,7 @@ import type {
   PortalDatabase,
   PortalSession,
   Psychologist,
+  PsychologistCoinTransaction,
   PsychologistLevelConfig,
   SubmitBoothFeedbackPayload,
   SubmitBoothFeedbackResult,
@@ -65,6 +66,7 @@ export interface IPortalDataSource {
   getAdminAccount(): AdminCredentialConfig
   registerPsychologist(payload: RegisterPsychologistRequestDto): Promise<Psychologist>
   fetchAdminPsychologists(): Promise<Psychologist[]>
+  fetchAdminPsychologistTransactions(psychologistId: string): Promise<PsychologistCoinTransaction[]>
   togglePsychologistDocumentVerified(
     psychologistId: string,
     docIdOrType: string,

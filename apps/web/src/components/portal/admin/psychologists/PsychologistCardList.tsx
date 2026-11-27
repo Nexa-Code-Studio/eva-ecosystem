@@ -1,4 +1,4 @@
-import { Eye, FileCheck2, Stethoscope } from 'lucide-react'
+import { Coins, Eye, FileCheck2, Stethoscope } from 'lucide-react'
 import {
   PsychologistShieldBadge,
   VerificationBadge,
@@ -98,6 +98,14 @@ export function PsychologistCardList({
                 <span className="text-ink-muted">SIP / SIPP:</span>
                 <span className="font-mono text-ink-soft">
                   {psy.sipNumber ?? 'Belum dilampirkan'}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-ink-muted">Saldo Koin:</span>
+                <span className="inline-flex items-center gap-1 rounded-[6px] bg-[#EEF0FF] px-2 py-0.5 text-[11px] font-bold text-primary">
+                  <Coins className="size-3" aria-hidden="true" />
+                  {(psy.coinBalance ?? 0).toLocaleString('id-ID')} Koin
                 </span>
               </div>
 
