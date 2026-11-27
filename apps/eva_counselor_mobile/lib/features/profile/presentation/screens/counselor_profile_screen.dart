@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/services/google_drive_service.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/top_toast.dart';
-import '../../../auth/domain/entities/psychologist_user_entity.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../dashboard/presentation/screens/counselor_main_shell_screen.dart';
 import '../../../finances/presentation/providers/finance_provider.dart';
@@ -13,7 +10,6 @@ import '../widgets/counselor_bank_account_modal.dart';
 import '../widgets/counselor_certificates_modal.dart';
 import '../widgets/counselor_edit_profile_modal.dart';
 import '../widgets/counselor_guidelines_modal.dart';
-import '../widgets/counselor_profile_drive_card.dart';
 import '../widgets/counselor_profile_header_card.dart';
 import '../widgets/counselor_profile_menu_card.dart';
 import '../widgets/counselor_rate_modal.dart';
@@ -31,71 +27,6 @@ class CounselorProfileScreen extends ConsumerStatefulWidget {
 class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen> {
   final Set<String> _activeDays = const {'Sen', 'Sel', 'Rab', 'Kam', 'Jum'};
   static const String _workingHours = '09:00 - 17:00 WIB';
-  bool _isBackingUp = false;
-  String _backupFrequency = 'Harian';
-  bool _backupWifiOnly = true;
-
-  void _handleBackupNow(PsychologistUserEntity? user) async {
-    final targetEmail = user?.effectiveGoogleDriveEmail ?? user?.email ?? '';
-    setState(() => _isBackingUp = true);
-    try {
-      final driveService = ref.read(googleDriveServiceProvider);
-      final result = await driveService.uploadEncryptedBackup(
-        email: targetEmail,
-        data: {'session_count': 12, 'timestamp': DateTime.now().toIso8601String()},
-      );
-
-      if (!mounted) return;
-      ref.read(authStateProvider.notifier).syncDriveBackup(
-            email: targetEmail,
-            frequency: _backupFrequency,
-          );
-
-      TopToast.show(
-        context,
-        title: 'Pencadangan Berhasil',
-        message:
-            '${result.formattedSizeMb} data rekam SOAP & audio transkrip terenkripsi aman di Google Drive Anda ($targetEmail).',
-        type: ToastType.success,
-      );
-    } catch (e) {
-      if (!mounted) return;
-      TopToast.show(
-        context,
-        title: 'Gagal Mencadangkan',
-        message: e.toString(),
-        type: ToastType.error,
-      );
-    } finally {
-      if (mounted) setState(() => _isBackingUp = false);
-    }
-  }
-
-  void _handleRestoreDrive() async {
-    final user = ref.read(authStateProvider).value;
-    final targetEmail = user?.effectiveGoogleDriveEmail ?? user?.email ?? '';
-    try {
-      final driveService = ref.read(googleDriveServiceProvider);
-      await driveService.restoreEncryptedBackup(email: targetEmail);
-
-      if (!mounted) return;
-      TopToast.show(
-        context,
-        title: 'Cadangan Google Drive Sinkron',
-        message:
-            'Data rekam medis lokal terverifikasi sinkron dengan cadangan Google Drive ($targetEmail).',
-        type: ToastType.info,
-      );
-    } catch (e) {
-      if (!mounted) return;
-      TopToast.show(
-        context,
-        title: 'Gagal Memeriksa Cadangan',
-        message: e.toString(),
-        type: ToastType.error,
-      );
-    }
-  }
 
   Widget _buildSectionHeader(String title, IconData icon) {
     return Padding(
@@ -202,50 +133,7 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
               ),
               const SizedBox(height: 16),
 
-              // 4. Pencadangan Google Drive
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: _buildSectionHeader('Pencadangan Rekam Medis', Icons.cloud_sync_outlined),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.verifiedBg,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text('E2EE 256-bit', style: TextStyle(color: AppColors.verifiedGreen, fontWeight: FontWeight.bold, fontSize: 10)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Rekam SOAP dan transkrip tersimpan lokal (E2EE). Cadangkan ke Google Drive pribadi Anda.',
-                style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
-              ),
-              const SizedBox(height: 10),
-              CounselorProfileDriveCard(
-                user: user,
-                backupFrequency: _backupFrequency,
-                backupWifiOnly: _backupWifiOnly,
-                isBackingUp: _isBackingUp,
-                onSettingsSaved: (freq, wifi) {
-                  setState(() {
-                    _backupFrequency = freq;
-                    _backupWifiOnly = wifi;
-                  });
-                  ref.read(authStateProvider.notifier).syncDriveBackup(
-                        email: user?.effectiveGoogleDriveEmail ?? user?.email ?? '',
-                        frequency: freq,
-                      );
-                },
-                onBackupNow: () => _handleBackupNow(user),
-                onRestore: _handleRestoreDrive,
-              ),
-              const SizedBox(height: 16),
-
-              // 5. Sertifikasi Eva
+              // 4. Sertifikasi Eva
               _buildSectionHeader('Pencapaian & Sertifikasi Eva', Icons.military_tech_rounded),
               CounselorProfileMenuCard(
                 icon: Icons.workspace_premium_rounded,
@@ -321,7 +209,7 @@ class _CounselorProfileScreenState extends ConsumerState<CounselorProfileScreen>
                   ),
                 ),
               ),
-              SizedBox(height: MediaQuery.paddingOf(context).bottom + 104),
+              const SizedBox(height: 72),
             ],
           ),
         ),

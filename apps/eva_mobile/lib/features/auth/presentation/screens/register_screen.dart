@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -108,14 +109,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (_isEmailAvailable == true) {
       return const Icon(
         Icons.check_circle_rounded,
-        color: Color(0xFF2E7D32),
+        color: AppColors.successDark,
         size: 20,
       );
     }
     if (_isEmailAvailable == false) {
       return const Icon(
         Icons.cancel_rounded,
-        color: Color(0xFFD32F2F),
+        color: AppColors.error,
         size: 20,
       );
     }
@@ -268,9 +269,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                               color: _isEmailAvailable == true
-                                  ? const Color(0xFF2E7D32)
+                                  ? AppColors.successDark
                                   : (_isEmailAvailable == false
-                                      ? const Color(0xFFD32F2F)
+                                      ? AppColors.error
                                       : AppColors.textSecondary),
                             ),
                           ),
@@ -288,13 +289,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Terms and Conditions Checkbox
+                    // Terms and Conditions Checkbox (>= 44x44 tap target + real route)
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         SizedBox(
-                          height: 24,
-                          width: 24,
+                          height: 44,
+                          width: 44,
                           child: Checkbox(
                             value: _agreeTerms,
                             activeColor: AppColors.primary,
@@ -302,7 +303,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             side: const BorderSide(
-                              color: Color(0xFFC7D2FE),
+                              color: AppColors.borderSubtle,
                               width: 1.5,
                             ),
                             onChanged: (val) {
@@ -312,29 +313,35 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             },
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 4),
                         Expanded(
                           child: Text.rich(
                             TextSpan(
                               text: 'Saya menyetujui ',
                               style: GoogleFonts.inter(
-                                fontSize: 12,
+                                fontSize: 12.5,
                                 color: AppColors.textSecondary,
                               ),
                               children: [
                                 TextSpan(
                                   text: 'Syarat & Ketentuan',
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () => Navigator.pushNamed(context, '/terms_disclaimer'),
                                   style: GoogleFonts.inter(
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.primary,
+                                    decoration: TextDecoration.underline,
                                   ),
                                 ),
                                 const TextSpan(text: ' serta '),
                                 TextSpan(
                                   text: 'Kebijakan Privasi',
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () => Navigator.pushNamed(context, '/terms_disclaimer'),
                                   style: GoogleFonts.inter(
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.primary,
+                                    decoration: TextDecoration.underline,
                                   ),
                                 ),
                               ],
@@ -359,18 +366,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     // Or Divider
                     const Row(
                       children: [
-                        Expanded(child: Divider(color: Color(0xFFD6DCF5))),
+                        Expanded(child: Divider(color: AppColors.borderSoft)),
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 12.0),
                           child: Text(
                             'atau daftar dengan',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.textLight,
+                              color: AppColors.textSecondary,
                             ),
                           ),
                         ),
-                        Expanded(child: Divider(color: Color(0xFFD6DCF5))),
+                        Expanded(child: Divider(color: AppColors.borderSoft)),
                       ],
                     ),
                     const SizedBox(height: 16),

@@ -27,7 +27,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('Pesan Primary'), findsOneWidget);
-      expect(find.byIcon(Icons.auto_awesome_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.info_outline_rounded), findsOneWidget);
 
       final snackBar = tester.widget<SnackBar>(find.byType(SnackBar));
       expect(snackBar.behavior, SnackBarBehavior.floating);
@@ -74,7 +74,7 @@ void main() {
       expect(find.text('Peringatan Form'), findsOneWidget);
       expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
       snackBar = tester.widget<SnackBar>(find.byType(SnackBar));
-      expect(snackBar.backgroundColor, const Color(0xFFF59E0B));
+      expect(snackBar.backgroundColor, AppColors.warningDark);
 
       // Test Danger
       await tester.tap(find.text('Danger'));
@@ -82,7 +82,7 @@ void main() {
       expect(find.text('Terjadi Kesalahan'), findsOneWidget);
       expect(find.byIcon(Icons.error_outline_rounded), findsOneWidget);
       snackBar = tester.widget<SnackBar>(find.byType(SnackBar));
-      expect(snackBar.backgroundColor, const Color(0xFFDC2626));
+      expect(snackBar.backgroundColor, AppColors.error);
     });
 
     testWidgets('supports custom leading widget and showWithMessenger', (tester) async {

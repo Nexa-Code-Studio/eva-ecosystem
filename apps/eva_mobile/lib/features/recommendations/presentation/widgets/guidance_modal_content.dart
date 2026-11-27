@@ -1,10 +1,12 @@
-import "dart:async";
 import "package:flutter/material.dart";
 import "package:google_fonts/google_fonts.dart";
 
+import "../../../../core/routes/app_route_transitions.dart";
 import "../../../../theme/app_colors.dart";
+import "../../../coping/exercises/breathing/breathing.dart";
+import "../../../coping/shared/domain/coping_session_result.dart";
 
-class GuidanceModalContent extends StatefulWidget {
+class GuidanceModalContent extends StatelessWidget {
   final String actId;
   final String title;
   final String category;
@@ -32,51 +34,15 @@ class GuidanceModalContent extends StatefulWidget {
     required this.onComplete,
   });
 
-  @override
-  State<GuidanceModalContent> createState() => GuidanceModalContentState();
-}
-
-class GuidanceModalContentState extends State<GuidanceModalContent> {
-  bool _isBreathPacerActive = false;
-  int _breathTimerSec = 0;
-  String _breathPhase = 'Tarik Napas';
-  Timer? _breathTimer;
-
-  @override
-  void dispose() {
-    _breathTimer?.cancel();
-    super.dispose();
-  }
-
-  void _toggleBreathPacer() {
-    if (_isBreathPacerActive) {
-      _breathTimer?.cancel();
-      setState(() {
-        _isBreathPacerActive = false;
-        _breathTimerSec = 0;
-        _breathPhase = 'Selesai';
-      });
-    } else {
-      setState(() {
-        _isBreathPacerActive = true;
-        _breathTimerSec = 0;
-        _breathPhase = 'Tarik Napas (4 dtk)';
-      });
-
-      _breathTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (!mounted) return;
-        setState(() {
-          _breathTimerSec++;
-          final cycle = _breathTimerSec % 19;
-          if (cycle < 4) {
-            _breathPhase = 'Tarik Napas Perlahan (4s)';
-          } else if (cycle < 11) {
-            _breathPhase = 'Tahan Napas di Dada (7s)';
-          } else {
-            _breathPhase = 'Hembuskan Napas Rileks (8s)';
-          }
-        });
-      });
+  Future<void> _openGuidedBreathing(BuildContext context) async {
+    final result = await Navigator.of(context).push<CopingSessionResult>(
+      AppRouteTransitions.modalSlideUpRoute<CopingSessionResult>(
+        page: const BreathingExperiencePage(),
+      ),
+    );
+    if (!context.mounted) return;
+    if (result != null && result.isCompleted && !isCompleted) {
+      onComplete();
     }
   }
 
@@ -84,7 +50,7 @@ class GuidanceModalContentState extends State<GuidanceModalContent> {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: const EdgeInsets.fromLTRB(22, 14, 22, 24),
@@ -95,13 +61,12 @@ class GuidanceModalContentState extends State<GuidanceModalContent> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Drag handle
           Center(
             child: Container(
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: AppColors.borderSubtle,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -118,7 +83,7 @@ class GuidanceModalContentState extends State<GuidanceModalContent> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  widget.category.toUpperCase(),
+                  category.toUpperCase(),
                   style: GoogleFonts.inter(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
@@ -128,7 +93,7 @@ class GuidanceModalContentState extends State<GuidanceModalContent> {
               ),
               const SizedBox(width: 8),
               Text(
-                '•  ${widget.duration}  •  ${widget.difficulty}',
+                '•  $duration  •  $difficulty',
                 style: GoogleFonts.inter(
                   fontSize: 11,
                   color: AppColors.textSecondary,
@@ -146,7 +111,7 @@ class GuidanceModalContentState extends State<GuidanceModalContent> {
 
           // Title
           Text(
-            widget.title,
+            title,
             style: GoogleFonts.inter(
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -155,7 +120,7 @@ class GuidanceModalContentState extends State<GuidanceModalContent> {
           ),
           const SizedBox(height: 6),
           Text(
-            widget.description,
+            description,
             style: GoogleFonts.inter(
               fontSize: 13,
               color: AppColors.textSecondary,
@@ -170,14 +135,16 @@ class GuidanceModalContentState extends State<GuidanceModalContent> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 1. Rationale Card
-                  if (widget.rationale.isNotEmpty) ...[
+                  if (rationale.isNotEmpty) ...[
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF5F3FF),
+                        color: AppColors.primaryContainer.withValues(
+                          alpha: 0.6,
+                        ),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFDDD6FE)),
+                        border: Border.all(color: AppColors.borderSoft),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,7 +152,7 @@ class GuidanceModalContentState extends State<GuidanceModalContent> {
                           const Icon(
                             Icons.lightbulb_outline,
                             size: 18,
-                            color: Color(0xFF7C3AED),
+                            color: AppColors.primary,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -197,16 +164,16 @@ class GuidanceModalContentState extends State<GuidanceModalContent> {
                                   style: GoogleFonts.inter(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
-                                    color: const Color(0xFF5B21B6),
+                                    color: AppColors.onPrimaryContainer,
                                   ),
                                 ),
                                 const SizedBox(height: 3),
                                 Text(
-                                  widget.rationale,
+                                  rationale,
                                   style: GoogleFonts.inter(
                                     fontSize: 11.5,
                                     height: 1.4,
-                                    color: const Color(0xFF6D28D9),
+                                    color: AppColors.textPrimary,
                                   ),
                                 ),
                               ],
@@ -218,97 +185,83 @@ class GuidanceModalContentState extends State<GuidanceModalContent> {
                     const SizedBox(height: 16),
                   ],
 
-                  // 2. Interactive Breath Pacer (if relevant)
-                  if (widget.isBreathingActivity) ...[
+                  // 2. Immersive Guided Breathing Entry
+                  if (isBreathingActivity) ...[
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
+                        gradient: const LinearGradient(
                           colors: [
-                            const Color(0xFFEEF2FF),
-                            const Color(0xFFE0E7FF),
+                            AppColors.primaryContainer,
+                            AppColors.surfaceLow,
                           ],
                         ),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFC7D2FE)),
+                        border: Border.all(color: AppColors.borderSoft),
                       ),
-                      child: Column(
+                      child: Row(
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(Icons.air, size: 16, color: Color(0xFF4F46E5)),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'Pemandu Irama Napas',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: const Color(0xFF3730A3),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              GestureDetector(
-                                onTap: _toggleBreathPacer,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _isBreathPacerActive
-                                        ? const Color(0xFFEF4444)
-                                        : const Color(0xFF4F46E5),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    _isBreathPacerActive ? 'Hentikan' : 'Mulai Pemandu',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: AppColors.surface,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.air_rounded,
+                              size: 18,
+                              color: AppColors.primary,
+                            ),
                           ),
-                          if (_isBreathPacerActive) ...[
-                            const SizedBox(height: 14),
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 700),
-                              width: _breathPhase.contains('Tarik') ? 80 : 65,
-                              height: _breathPhase.contains('Tarik') ? 80 : 65,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(0xFF6366F1).withValues(alpha: 0.2),
-                                border: Border.all(color: const Color(0xFF4F46E5), width: 2),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  '${_breathTimerSec}s',
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Pemandu Napas Layar Penuh',
                                   style: GoogleFonts.inter(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF3730A3),
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.onPrimaryContainer,
                                   ),
                                 ),
-                              ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Ikuti lingkaran dan visual napas tenang 4 detik tarik / 4 detik hembus.',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _breathPhase,
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () => _openGuidedBreathing(context),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(88, 44),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              'Mulai Sesi',
                               style: GoogleFonts.inter(
-                                fontSize: 13,
+                                fontSize: 11.5,
                                 fontWeight: FontWeight.w700,
-                                color: const Color(0xFF4338CA),
                               ),
                             ),
-                          ],
+                          ),
                         ],
                       ),
                     ),
@@ -328,7 +281,7 @@ class GuidanceModalContentState extends State<GuidanceModalContent> {
                   ListView.separated(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: widget.instructions.length,
+                    itemCount: instructions.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, idx) {
                       return Row(
@@ -338,7 +291,7 @@ class GuidanceModalContentState extends State<GuidanceModalContent> {
                             width: 22,
                             height: 22,
                             alignment: Alignment.center,
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               color: AppColors.primaryContainer,
                               shape: BoxShape.circle,
                             ),
@@ -354,7 +307,7 @@ class GuidanceModalContentState extends State<GuidanceModalContent> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              widget.instructions[idx],
+                              instructions[idx],
                               style: GoogleFonts.inter(
                                 fontSize: 13,
                                 height: 1.4,
@@ -377,14 +330,14 @@ class GuidanceModalContentState extends State<GuidanceModalContent> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: widget.onComplete,
+              onPressed: onComplete,
               icon: Icon(
-                widget.isCompleted ? Icons.check_circle : Icons.check,
+                isCompleted ? Icons.check_circle : Icons.check,
                 color: Colors.white,
                 size: 18,
               ),
               label: Text(
-                widget.isCompleted
+                isCompleted
                     ? 'Sudah Diselesaikan Hari Ini'
                     : 'Saya Sudah Melakukan Latihan Ini',
                 style: GoogleFonts.inter(
@@ -394,9 +347,10 @@ class GuidanceModalContentState extends State<GuidanceModalContent> {
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: widget.isCompleted
-                    ? const Color(0xFF10B981)
+                backgroundColor: isCompleted
+                    ? AppColors.successDark
                     : AppColors.primary,
+                minimumSize: const Size.fromHeight(48),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -410,4 +364,3 @@ class GuidanceModalContentState extends State<GuidanceModalContent> {
     );
   }
 }
-

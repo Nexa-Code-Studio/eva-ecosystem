@@ -165,7 +165,7 @@ class _VoiceSessionDetailScreenState extends ConsumerState<VoiceSessionDetailScr
           width: 200,
           height: 18,
           decoration: BoxDecoration(
-            color: Colors.grey.shade300,
+            color: AppColors.borderSoft,
             borderRadius: BorderRadius.circular(8),
           ),
         ),
@@ -174,7 +174,7 @@ class _VoiceSessionDetailScreenState extends ConsumerState<VoiceSessionDetailScr
           width: 130,
           height: 12,
           decoration: BoxDecoration(
-            color: Colors.grey.shade200,
+            color: AppColors.surfaceHigh,
             borderRadius: BorderRadius.circular(6),
           ),
         ),
@@ -362,7 +362,7 @@ class _VoiceSessionDetailScreenState extends ConsumerState<VoiceSessionDetailScr
                             ),
                             const SizedBox(height: 10),
 
-                            GlassCard(
+                            GlassCard.surface(
                               width: double.infinity,
                               padding: const EdgeInsets.all(20),
                               child: emotionsBreakdown.isEmpty
@@ -563,19 +563,15 @@ class _VoiceSessionDetailScreenState extends ConsumerState<VoiceSessionDetailScr
                                     }
                                   }
                                 },
-                                icon: const Icon(Icons.auto_awesome, size: 18),
-                                label: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'Lihat Jurnal Harian AI Hari Ini',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                      ),
+                                icon: const Icon(Icons.menu_book_rounded, size: 18),
+                                label: Center(
+                                  child: Text(
+                                    'Lihat Jurnal Harian AI Hari Ini',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
                                     ),
-                                    const Icon(Icons.arrow_forward_rounded, size: 18),
-                                  ],
+                                  ),
                                 ),
                               ),
                         ),
@@ -646,7 +642,7 @@ class _VoiceSessionDetailScreenState extends ConsumerState<VoiceSessionDetailScr
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.grey.shade200),
+                                border: Border.all(color: AppColors.borderSoft),
                               ),
                               child: Text(
                                 'Belum ada transkrip percakapan untuk sesi ini.',
@@ -681,7 +677,7 @@ class _VoiceSessionDetailScreenState extends ConsumerState<VoiceSessionDetailScr
                                       border: Border.all(
                                         color: isUser
                                             ? AppColors.primary.withValues(alpha: 0.25)
-                                            : Colors.grey.shade200,
+                                            : AppColors.borderSoft,
                                       ),
                                       boxShadow: [
                                         BoxShadow(
@@ -747,7 +743,7 @@ class _VoiceSessionDetailScreenState extends ConsumerState<VoiceSessionDetailScr
                                               item['time']?.toString() ?? '',
                                               style: GoogleFonts.inter(
                                                 fontSize: 11,
-                                                color: AppColors.textLight,
+                                                color: AppColors.textSecondary,
                                               ),
                                             ),
                                           ),

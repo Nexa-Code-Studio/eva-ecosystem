@@ -119,7 +119,7 @@ class HomeQuickActions extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.inter(
                     fontSize: 12,
-                    color: AppColors.textLight,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -129,7 +129,7 @@ class HomeQuickActions extends StatelessWidget {
           const Icon(
             Icons.chevron_right,
             size: 20,
-            color: AppColors.textLight,
+            color: AppColors.textSecondary,
           ),
         ],
       ),

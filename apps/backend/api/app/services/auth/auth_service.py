@@ -1,6 +1,7 @@
 import logging
 import uuid
 
+from email_validator import EmailNotValidError, validate_email
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,13 +36,23 @@ class AuthService:
         self.db = db
 
     async def check_email(self, email: str) -> EmailCheckResponse:
-        """Check if an email is valid and available for registration."""
+        """Check if an email is valid and available for registration with DNS MX deliverability verification."""
         clean_email = email.strip().lower()
         if not clean_email or "@" not in clean_email or "." not in clean_email:
             return EmailCheckResponse(
                 available=False,
                 email=clean_email,
                 message="Format email tidak valid",
+            )
+
+        try:
+            val = validate_email(clean_email, check_deliverability=True)
+            clean_email = val.normalized
+        except EmailNotValidError as e:
+            return EmailCheckResponse(
+                available=False,
+                email=clean_email,
+                message=f"Domain email tidak valid atau tidak menerima email ({e})",
             )
 
         query = select(User).where(User.email == clean_email)
@@ -94,6 +105,15 @@ class AuthService:
     async def register(self, payload: RegisterRequest) -> TokenResponse:
         """Register a new user, commit to database, and return initial JWT tokens."""
         clean_email = payload.email.strip().lower()
+        try:
+            val = validate_email(clean_email, check_deliverability=True)
+            clean_email = val.normalized
+        except EmailNotValidError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Domain email tidak valid atau tidak menerima email ({e})",
+            )
+
         query = select(User).where(User.email == clean_email)
         res = await self.db.execute(query)
         existing = res.scalar_one_or_none()

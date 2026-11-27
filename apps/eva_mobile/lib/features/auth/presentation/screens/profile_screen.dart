@@ -4,11 +4,14 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:eva_mobile/config/app_config.dart';
 import 'package:eva_mobile/theme/app_colors.dart';
+import 'package:eva_mobile/theme/app_typography.dart';
 import 'package:eva_mobile/widgets/app_back_button.dart';
 import 'package:eva_mobile/widgets/app_snack_bar.dart';
 import 'package:eva_mobile/widgets/custom_button.dart';
 import 'package:eva_mobile/widgets/glass_card.dart';
+import 'package:eva_mobile/features/chat/presentation/providers/chat_provider.dart';
 import 'package:eva_mobile/features/coin/presentation/providers/coin_provider.dart';
+import 'package:eva_mobile/features/diary/presentation/providers/diary_provider.dart';
 import '../providers/auth_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -21,12 +24,14 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class ProfileScreenState extends ConsumerState<ProfileScreen> {
   String _userName = 'Pengguna EVA';
   String _userEmail = '';
-  String _userPhone = '+62 812-3456-7890';
-  String _userGender = 'Laki-laki';
-  String _userBirthDate = '18 Agustus 2002';
-  final String _userLocation = 'Jakarta, Indonesia';
+  String _userPhone = '';
+  String _userGender = '';
+  String _userBirthDate = '';
   String? _emergencyContactName;
   String? _emergencyContactPhone;
+  int _sessionCount = 0;
+  int _diaryCount = 0;
+  String _latestMoodLabel = 'Belum ada';
 
   void refresh() {
     _loadProfileData();
@@ -112,6 +117,23 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
         }
       }
     } catch (_) {}
+
+    // 4. Fetch real conversation & diary counts (no fabricated metrics)
+    try {
+      final conversations = await ref.read(chatRepositoryProvider).getConversations();
+      final diaries = await ref.read(diaryRepositoryProvider).getDiaryEntries();
+      if (mounted) {
+        setState(() {
+          _sessionCount = conversations.length;
+          _diaryCount = diaries.length;
+          if (diaries.isNotEmpty && diaries.first.moodTag.trim().isNotEmpty) {
+            _latestMoodLabel = diaries.first.moodTag.split(' ').first;
+          } else {
+            _latestMoodLabel = 'Belum ada';
+          }
+        });
+      }
+    } catch (_) {}
   }
 
   void _showEditProfileModal() {
@@ -147,7 +169,7 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE2E8F0),
+                          color: AppColors.borderSoft,
                           borderRadius: BorderRadius.circular(999),
                         ),
                       ),
@@ -187,11 +209,11 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
                         fillColor: const Color(0xFFF8F9FE),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          borderSide: const BorderSide(color: AppColors.borderSoft),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          borderSide: const BorderSide(color: AppColors.borderSoft),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -223,11 +245,11 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
                         fillColor: const Color(0xFFF8F9FE),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          borderSide: const BorderSide(color: AppColors.borderSoft),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          borderSide: const BorderSide(color: AppColors.borderSoft),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -358,8 +380,8 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
               child: Text(
                 'Batal',
                 style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textLight,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ),
@@ -493,7 +515,7 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ],
                       ),
                       const SizedBox(width: 16),
-                      Expanded(
+                          Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -503,35 +525,18 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
                               overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.inter(
                                 fontSize: 18,
-                                fontWeight: FontWeight.w800,
+                                fontWeight: FontWeight.w700,
                                 color: AppColors.textPrimary,
                               ),
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              _userEmail.isNotEmpty ? _userEmail : AppConfig.demoEmail,
+                              _userEmail.isNotEmpty ? _userEmail : 'Email belum diatur',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.inter(
                                 fontSize: 13,
                                 color: AppColors.textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryContainer,
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                'ANGGOTA PREMIUM PRO',
-                                style: GoogleFonts.inter(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.primary,
-                                  letterSpacing: 0.5,
-                                ),
                               ),
                             ),
                           ],
@@ -641,69 +646,67 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                 const SizedBox(height: 18),
 
-                // 3. Wellness Activity Summary Overview
+                // 3. Wellness Activity Summary Overview (Live/local real data)
                 Row(
                   children: [
                     _buildStatCard(
                       icon: Icons.mic_none_rounded,
-                      title: '14 Sesi',
+                      title: '$_sessionCount Sesi',
                       subtitle: 'Sesi Curhat Suara',
                     ),
                     const SizedBox(width: 10),
                     _buildStatCard(
                       icon: Icons.auto_stories_outlined,
-                      title: '28 Entri',
+                      title: '$_diaryCount Entri',
                       subtitle: 'Refleksi Jurnal',
                     ),
                     const SizedBox(width: 10),
                     _buildStatCard(
                       icon: Icons.sentiment_satisfied_alt_rounded,
-                      title: 'Stabil',
-                      subtitle: 'Status Emosi',
+                      title: _latestMoodLabel,
+                      subtitle: 'Emosi Terakhir',
                     ),
                   ],
                 ),
 
                 const SizedBox(height: 24),
 
-                // 3. Section: INFORMASI PRIBADI
+                // 4. Section: Informasi Pribadi
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'INFORMASI PRIBADI',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textLight,
-                        letterSpacing: 0.8,
-                      ),
+                      'Informasi Pribadi',
+                      style: AppTypography.sectionTitle,
                     ),
                     GestureDetector(
                       onTap: _showEditProfileModal,
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.edit_outlined,
-                            size: 14,
-                            color: AppColors.primary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Edit Profil',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.edit_outlined,
+                              size: 15,
                               color: AppColors.primary,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 4),
+                            Text(
+                              'Edit Profil',
+                              style: GoogleFonts.inter(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
-                GlassCard(
+                const SizedBox(height: 8),
+                GlassCard.surface(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: Column(
@@ -713,51 +716,46 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
                         label: 'Nama Lengkap',
                         value: _userName,
                       ),
-                      const Divider(height: 16, thickness: 0.6, color: Color(0xFFF1F5F9)),
+                      const Divider(height: 16, thickness: 0.6, color: AppColors.divider),
                       _buildInfoRow(
                         icon: Icons.mail_outline_rounded,
                         label: 'Alamat Email',
-                        value: _userEmail.isNotEmpty ? _userEmail : AppConfig.demoEmail,
-                        badge: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFECFDF5),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: const Color(0xFFA7F3D0)),
-                          ),
-                          child: Text(
-                            'Terverifikasi',
-                            style: GoogleFonts.inter(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF059669),
-                            ),
-                          ),
-                        ),
+                        value: _userEmail.isNotEmpty ? _userEmail : 'Belum diatur',
+                        badge: _userEmail.isNotEmpty
+                            ? Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.successContainer,
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  'Terverifikasi',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.successDark,
+                                  ),
+                                ),
+                              )
+                            : null,
                       ),
-                      const Divider(height: 16, thickness: 0.6, color: Color(0xFFF1F5F9)),
+                      const Divider(height: 16, thickness: 0.6, color: AppColors.divider),
                       _buildInfoRow(
                         icon: Icons.phone_outlined,
                         label: 'Nomor Telepon',
-                        value: _userPhone,
+                        value: _userPhone.isNotEmpty ? _userPhone : 'Belum diatur',
                       ),
-                      const Divider(height: 16, thickness: 0.6, color: Color(0xFFF1F5F9)),
+                      const Divider(height: 16, thickness: 0.6, color: AppColors.divider),
                       _buildInfoRow(
                         icon: Icons.cake_outlined,
                         label: 'Tanggal Lahir',
-                        value: _userBirthDate,
+                        value: _userBirthDate.isNotEmpty ? _userBirthDate : 'Belum diatur',
                       ),
-                      const Divider(height: 16, thickness: 0.6, color: Color(0xFFF1F5F9)),
+                      const Divider(height: 16, thickness: 0.6, color: AppColors.divider),
                       _buildInfoRow(
                         icon: Icons.face_outlined,
                         label: 'Jenis Kelamin',
-                        value: _userGender,
-                      ),
-                      const Divider(height: 16, thickness: 0.6, color: Color(0xFFF1F5F9)),
-                      _buildInfoRow(
-                        icon: Icons.location_on_outlined,
-                        label: 'Domisili',
-                        value: _userLocation,
+                        value: _userGender.isNotEmpty ? _userGender : 'Belum diatur',
                       ),
                     ],
                   ),
@@ -765,18 +763,13 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                 const SizedBox(height: 24),
 
-                // 4. Section: AI & PRIVASI
+                // 5. Section: AI & Privasi Memori
                 Text(
-                  'AI & PRIVASI MEMORI',
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textLight,
-                    letterSpacing: 0.8,
-                  ),
+                  'AI & Privasi Memori',
+                  style: AppTypography.sectionTitle,
                 ),
                 const SizedBox(height: 10),
-                GlassCard(
+                GlassCard.surface(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -785,10 +778,10 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
                       Row(
                         children: [
                           Container(
-                            width: 36,
-                            height: 36,
+                            width: 38,
+                            height: 38,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE2DAFF),
+                              color: AppColors.secondary,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(
@@ -826,7 +819,7 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
                       CustomPillButton(
                         text: 'Hapus Catatan Memori Lokal AI',
                         isOutline: true,
-                        height: 44,
+                        height: 46,
                         onPressed: _showDeleteMemoryConfirmationDialog,
                       ),
                     ],
@@ -835,33 +828,28 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                 const SizedBox(height: 24),
 
-                // 5. Section: RENCANA KESELAMATAN KRISIS
+                // 6. Section: Rencana Keselamatan Krisis
                 Text(
-                  'RENCANA KESELAMATAN KRISIS',
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textLight,
-                    letterSpacing: 0.8,
-                  ),
+                  'Rencana Keselamatan Krisis',
+                  style: AppTypography.sectionTitle,
                 ),
                 const SizedBox(height: 10),
-                GlassCard(
+                GlassCard.surface(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Material(
                     color: Colors.transparent,
                     child: ListTile(
                       leading: Container(
-                        width: 36,
-                        height: 36,
+                        width: 38,
+                        height: 38,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFDCDD),
+                          color: AppColors.errorContainer,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(
                           Icons.contact_phone_outlined,
-                          color: Color(0xFFD32F2F),
+                          color: AppColors.error,
                           size: 20,
                         ),
                       ),
@@ -881,15 +869,13 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.inter(
                           fontSize: 12,
-                          color: _emergencyContactName != null
-                              ? AppColors.textSecondary
-                              : AppColors.textLight,
+                          color: AppColors.textSecondary,
                         ),
                       ),
                       trailing: const Icon(
                         Icons.arrow_forward_ios,
                         size: 16,
-                        color: AppColors.textLight,
+                        color: AppColors.textSecondary,
                       ),
                       onTap: () async {
                         await Navigator.pushNamed(context, '/emergency_contacts');
@@ -903,26 +889,21 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                 const SizedBox(height: 24),
 
-                // 6. Section: PENGATURAN APLIKASI
+                // 7. Section: Pengaturan Aplikasi
                 Text(
-                  'PENGATURAN APLIKASI',
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textLight,
-                    letterSpacing: 0.8,
-                  ),
+                  'Pengaturan Aplikasi',
+                  style: AppTypography.sectionTitle,
                 ),
                 const SizedBox(height: 10),
-                GlassCard(
+                GlassCard.surface(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Material(
                     color: Colors.transparent,
                     child: ListTile(
                       leading: Container(
-                        width: 36,
-                        height: 36,
+                        width: 38,
+                        height: 38,
                         decoration: BoxDecoration(
                           color: AppColors.primaryContainer,
                           borderRadius: BorderRadius.circular(12),
@@ -951,7 +932,7 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
                       trailing: const Icon(
                         Icons.arrow_forward_ios,
                         size: 16,
-                        color: AppColors.textLight,
+                        color: AppColors.textSecondary,
                       ),
                       onTap: () => Navigator.pushNamed(context, '/settings'),
                     ),
@@ -1009,7 +990,7 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
     required String subtitle,
   }) {
     return Expanded(
-      child: GlassCard(
+      child: GlassCard.surface(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
         child: Column(
           children: [
@@ -1017,9 +998,11 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
             const SizedBox(height: 6),
             Text(
               title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.inter(
                 fontSize: 14,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
               ),
             ),
@@ -1029,7 +1012,7 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.inter(
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: FontWeight.w500,
                 color: AppColors.textSecondary,
               ),
@@ -1068,16 +1051,16 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Text(
                   label,
                   style: GoogleFonts.inter(
-                    fontSize: 11,
+                    fontSize: 11.5,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textLight,
+                    color: AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 1),
                 Text(
                   value,
                   style: GoogleFonts.inter(
-                    fontSize: 13,
+                    fontSize: 13.5,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
                   ),

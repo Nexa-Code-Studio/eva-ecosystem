@@ -309,7 +309,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                         _buildVoiceChoiceTile(
                                           title: 'Eva - Laura Muda & Enerjik',
                                           subtitle: 'Suara perempuan muda, cerdas, artikulatif, dan dinamis (Laura + Happily)',
-                                          icon: Icons.bolt_rounded,
+                                          icon: Icons.record_voice_over_rounded,
                                           isSelected: _selectedVoiceMode == 'mode_7',
                                           isPlayingPreview: _playingPreviewModeId == 'mode_7',
                                           onPreviewTap: () => _toggleAudioPreview('mode_7', 'assets/audio/mode_7_laura_enerjik.mp3'),
@@ -376,9 +376,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                         Row(
                                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
-                                            Text('Lambat (0.8x)', style: GoogleFonts.inter(fontSize: 10, color: AppColors.textLight)),
-                                            Text('Normal (1.0x)', style: GoogleFonts.inter(fontSize: 10, color: AppColors.textLight)),
-                                            Text('Cepat (1.2x)', style: GoogleFonts.inter(fontSize: 10, color: AppColors.textLight)),
+                                            Text('Lambat (0.8x)', style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textSecondary)),
+                                            Text('Normal (1.0x)', style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textSecondary)),
+                                            Text('Cepat (1.2x)', style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textSecondary)),
                                           ],
                                         ),
                                         const SizedBox(height: 16),
@@ -510,7 +510,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                         _buildActionTile(
                                           icon: Icons.psychology_outlined,
                                           iconColor: AppColors.primary,
-                                          title: 'Kelola Memori Personal Luna',
+                                          title: 'Kelola Memori Personal EVA',
                                           subtitle: 'Tinjau, aktifkan, atau nonaktifkan fakta ingatan AI lokal',
                                           onTap: () => Navigator.push(
                                             context,
@@ -633,15 +633,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFD1FAE5),
+                                          color: AppColors.primaryContainer,
                                           borderRadius: BorderRadius.circular(999),
                                         ),
                                          child: Text(
                                            'Terbaru',
                                            style: GoogleFonts.inter(
-                                             fontSize: 10,
+                                             fontSize: 10.5,
                                              fontWeight: FontWeight.w700,
-                                             color: const Color(0xFF047857),
+                                             color: AppColors.onPrimaryContainer,
                                            ),
                                          ),
                                        ),
@@ -702,10 +702,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFF0FDF4) : Colors.white.withValues(alpha: 0.7),
-            borderRadius: BorderRadius.circular(12),
+            color: isSelected
+                ? AppColors.primaryContainer.withValues(alpha: 0.45)
+                : AppColors.surface.withValues(alpha: 0.8),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isSelected ? const Color(0xFF10B981) : const Color(0xFFE2E8F0),
+              color: isSelected ? AppColors.primary : AppColors.borderSoft,
               width: isSelected ? 1.5 : 1.0,
             ),
           ),
@@ -714,13 +716,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               Container(
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFFD1FAE5) : const Color(0xFFF1F5F9),
+                  color: isSelected ? AppColors.primaryContainer : AppColors.surfaceLow,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   icon,
                   size: 16,
-                  color: isSelected ? const Color(0xFF047857) : AppColors.textLight,
+                  color: isSelected ? AppColors.primary : AppColors.textSecondary,
                 ),
               ),
               const SizedBox(width: 10),
@@ -743,18 +745,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         if (isDefault) ...[
                           const SizedBox(width: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFD1FAE5),
-                              borderRadius: BorderRadius.circular(4),
+                              color: AppColors.primaryContainer,
+                              borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               'DEFAULT',
                               style: GoogleFonts.inter(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF047857),
-                                letterSpacing: 0.4,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.onPrimaryContainer,
+                                letterSpacing: 0.3,
                               ),
                             ),
                           ),
@@ -765,7 +767,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     Text(
                       subtitle,
                       style: GoogleFonts.inter(
-                        fontSize: 11,
+                        fontSize: 11.5,
                         color: AppColors.textSecondary,
                       ),
                     ),
@@ -777,18 +779,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onPressed: onPreviewTap,
                   icon: Icon(
                     isPlayingPreview ? Icons.stop_circle_rounded : Icons.play_circle_fill_rounded,
-                    color: isPlayingPreview ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                    color: isPlayingPreview ? AppColors.error : AppColors.primary,
                     size: 26,
                   ),
                   tooltip: isPlayingPreview ? 'Hentikan sampel' : 'Dengarkan sampel',
-                  constraints: const BoxConstraints(),
+                  constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
                   padding: const EdgeInsets.symmetric(horizontal: 6),
                 ),
               ],
               Icon(
                 isSelected ? Icons.check_circle_rounded : Icons.radio_button_off_rounded,
                 size: 20,
-                color: isSelected ? const Color(0xFF10B981) : AppColors.textLight,
+                color: isSelected ? AppColors.primary : AppColors.borderSubtle,
               ),
             ],
           ),
@@ -840,8 +842,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         Switch.adaptive(
           value: value,
-          activeThumbColor: const Color(0xFF10B981),
-          activeTrackColor: const Color(0xFFD1FAE5),
+          activeThumbColor: AppColors.primary,
+          activeTrackColor: AppColors.primaryContainer,
           onChanged: onChanged,
         ),
       ],
@@ -903,7 +905,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right, size: 18, color: AppColors.textLight),
+                const Icon(Icons.chevron_right, size: 18, color: AppColors.textSecondary),
               ],
             ),
           ),

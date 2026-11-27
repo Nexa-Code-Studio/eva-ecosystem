@@ -51,7 +51,7 @@ class DiaryInsightCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
-                    Icons.auto_awesome,
+                    Icons.insights_rounded,
                     color: Colors.white,
                     size: 20,
                   ),
@@ -72,8 +72,8 @@ class DiaryInsightCard extends StatelessWidget {
                       ),
                       Text(
                         isSingleSession
-                            ? '✨ Ringkasan cerdas percakapan sesi suara bersama EVA'
-                            : '✨ Diperbarui setelah Sesi #$sessionCount (${lastSessionTime ?? 'Hari ini'})',
+                            ? 'Ringkasan cerdas percakapan sesi suara bersama EVA'
+                            : 'Diperbarui setelah Sesi #$sessionCount (${lastSessionTime ?? 'Hari ini'})',
                         style: GoogleFonts.inter(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -118,7 +118,7 @@ class DiaryInsightCard extends StatelessWidget {
                     'Ringkasan percakapan belum berhasil dimuat.',
                     style: GoogleFonts.inter(
                       fontSize: 13,
-                      color: AppColors.textLight,
+                      color: AppColors.textSecondary,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -137,10 +137,10 @@ class DiaryInsightCard extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.auto_awesome, size: 14, color: AppColors.primary),
+                            const Icon(Icons.refresh_rounded, size: 14, color: AppColors.primary),
                             const SizedBox(width: 6),
                             Text(
-                              '✨ Generate Ringkasan',
+                              'Buat Ringkasan',
                               style: GoogleFonts.inter(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,

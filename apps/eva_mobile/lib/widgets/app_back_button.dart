@@ -2,13 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:eva_mobile/theme/app_colors.dart';
 
-/// Standardized Circular Frosted Back Button for Eva Mobile.
-///
-/// Follows the signature glassmorphic design established in SettingsScreen:
-/// - Translucent circular badge (`BoxShape.circle`)
-/// - Subtle border (`#E2E8F0` on light surfaces)
-/// - Rounded back chevron (`Icons.arrow_back_rounded`)
-/// - Automatic `Navigator.maybePop(context)` fallback when [onPressed] is omitted.
+/// Standardized Circular Frosted Back Button for Eva Mobile (>= 44px touch target).
 class AppBackButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool isDark;
@@ -26,7 +20,7 @@ class AppBackButton extends StatelessWidget {
     this.isDark = false,
     this.icon = Icons.arrow_back_rounded,
     this.iconSize = 20.0,
-    this.size = 40.0,
+    this.size = 44.0,
     this.tooltip = 'Kembali',
     this.backgroundColor,
     this.borderColor,
@@ -39,7 +33,7 @@ class AppBackButton extends StatelessWidget {
     this.onPressed,
     this.icon = Icons.arrow_back_rounded,
     this.iconSize = 20.0,
-    this.size = 40.0,
+    this.size = 44.0,
     this.tooltip = 'Kembali',
     this.backgroundColor,
     this.borderColor,
@@ -49,11 +43,13 @@ class AppBackButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effectiveBgColor = backgroundColor ??
-        (isDark ? Colors.white.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.8));
+        (isDark
+            ? Colors.white.withValues(alpha: 0.15)
+            : Colors.white.withValues(alpha: 0.9));
     final effectiveBorderColor = borderColor ??
-        (isDark ? Colors.white.withValues(alpha: 0.25) : const Color(0xFFE2E8F0));
-    final effectiveIconColor = iconColor ??
-        (isDark ? Colors.white : AppColors.textPrimary);
+        (isDark ? Colors.white.withValues(alpha: 0.25) : AppColors.borderSoft);
+    final effectiveIconColor =
+        iconColor ?? (isDark ? Colors.white : AppColors.textPrimary);
 
     return Container(
       width: size,

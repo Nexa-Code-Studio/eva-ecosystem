@@ -103,7 +103,7 @@ class _PsychologistCertificateCarouselState
                 Expanded(
                   child: Text(
                     title,
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.inter(
                       color: Colors.white,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -134,7 +134,7 @@ class _PsychologistCertificateCarouselState
                       padding: const EdgeInsets.all(16),
                       child: Text(
                         title,
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.inter(
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
                         ),
@@ -148,7 +148,7 @@ class _PsychologistCertificateCarouselState
             const SizedBox(height: 8),
             Text(
               'Cubit / geser untuk memperbesar foto',
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 color: Colors.white70,
                 fontSize: 11,
               ),
@@ -167,21 +167,21 @@ class _PsychologistCertificateCarouselState
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
+          color: AppColors.surfaceLow,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: AppColors.borderSoft),
         ),
         child: Row(
           children: [
             const Icon(
               Icons.info_outline_rounded,
               size: 18,
-              color: AppColors.textLight,
+              color: AppColors.textSecondary,
             ),
             const SizedBox(width: 8),
             Text(
               'Belum ada data sertifikasi.',
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 fontSize: 12,
                 color: AppColors.textSecondary,
               ),
@@ -208,7 +208,7 @@ class _PsychologistCertificateCarouselState
                 const SizedBox(width: 6),
                 Text(
                   'Sertifikat & Lisensi',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
@@ -219,12 +219,12 @@ class _PsychologistCertificateCarouselState
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: AppColors.surfaceHigh,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 '${_currentIndex + 1} / ${items.length}',
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textSecondary,
@@ -265,13 +265,13 @@ class _PsychologistCertificateCarouselState
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: _currentIndex > 0
-                      ? const Color(0xFFF1F5F9)
-                      : const Color(0xFFF8FAFC),
+                      ? AppColors.surfaceHigh
+                      : AppColors.surfaceLow,
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: _currentIndex > 0
-                        ? const Color(0xFFCBD5E1)
-                        : const Color(0xFFE2E8F0),
+                        ? AppColors.borderSubtle
+                        : AppColors.borderSoft,
                   ),
                 ),
                 child: Icon(
@@ -279,7 +279,7 @@ class _PsychologistCertificateCarouselState
                   size: 18,
                   color: _currentIndex > 0
                       ? AppColors.textPrimary
-                      : AppColors.textLight.withValues(alpha: 0.35),
+                      : AppColors.textSecondary.withValues(alpha: 0.35),
                 ),
               ),
             ),
@@ -305,7 +305,7 @@ class _PsychologistCertificateCarouselState
                     decoration: BoxDecoration(
                       color: isActive
                           ? AppColors.primary
-                          : const Color(0xFFCBD5E1),
+                          : AppColors.borderSubtle,
                       borderRadius: BorderRadius.circular(3),
                     ),
                   ),
@@ -321,13 +321,13 @@ class _PsychologistCertificateCarouselState
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: _currentIndex < items.length - 1
-                      ? const Color(0xFFF1F5F9)
-                      : const Color(0xFFF8FAFC),
+                      ? AppColors.surfaceHigh
+                      : AppColors.surfaceLow,
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: _currentIndex < items.length - 1
-                        ? const Color(0xFFCBD5E1)
-                        : const Color(0xFFE2E8F0),
+                        ? AppColors.borderSubtle
+                        : AppColors.borderSoft,
                   ),
                 ),
                 child: Icon(
@@ -335,7 +335,7 @@ class _PsychologistCertificateCarouselState
                   size: 18,
                   color: _currentIndex < items.length - 1
                       ? AppColors.textPrimary
-                      : AppColors.textLight.withValues(alpha: 0.35),
+                      : AppColors.textSecondary.withValues(alpha: 0.35),
                 ),
               ),
             ),
@@ -351,7 +351,7 @@ class _PsychologistCertificateCarouselState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.borderSoft),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -376,7 +376,7 @@ class _PsychologistCertificateCarouselState
                       cert.imageUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) => Container(
-                        color: const Color(0xFFF8FAFC),
+                        color: AppColors.surfaceLow,
                         child: Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -384,12 +384,12 @@ class _PsychologistCertificateCarouselState
                               const Icon(
                                 Icons.workspace_premium_rounded,
                                 size: 36,
-                                color: Color(0xFF94A3B8),
+                                color: AppColors.textSecondary,
                               ),
                               const SizedBox(height: 6),
                               Text(
                                 'Dokumen Sertifikat',
-                                style: GoogleFonts.plusJakartaSans(
+                                style: GoogleFonts.inter(
                                   fontSize: 11,
                                   color: AppColors.textSecondary,
                                 ),
@@ -421,7 +421,7 @@ class _PsychologistCertificateCarouselState
                             const SizedBox(width: 4),
                             Text(
                               'Perbesar',
-                              style: GoogleFonts.plusJakartaSans(
+                              style: GoogleFonts.inter(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
@@ -442,7 +442,7 @@ class _PsychologistCertificateCarouselState
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
             child: Text(
               cert.title,
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,

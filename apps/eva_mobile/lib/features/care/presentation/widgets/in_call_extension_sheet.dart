@@ -29,7 +29,7 @@ class InCallExtensionBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withValues(alpha: 0.94),
+        color: const Color(0xFF1E224F).withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.65)),
         boxShadow: [
@@ -62,7 +62,7 @@ class InCallExtensionBanner extends StatelessWidget {
               children: [
                 Text(
                   'Sisa waktu ${_formatRemaining(remainingSeconds)}',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -70,7 +70,7 @@ class InCallExtensionBanner extends StatelessWidget {
                 ),
                 Text(
                   'Butuh waktu lebih? Tambah +30 menit tanpa putus',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 10.5,
                     color: Colors.white70,
                   ),
@@ -102,7 +102,7 @@ class InCallExtensionBanner extends StatelessWidget {
                   )
                 : Text(
                     'Tambah Sesi (+30 Menit)',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.inter(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                     ),
@@ -143,7 +143,7 @@ class InCallExtensionConfirmDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: Text(
         'Tambah Sesi (+30 Menit)',
-        style: GoogleFonts.plusJakartaSans(
+        style: GoogleFonts.inter(
           fontSize: 17,
           fontWeight: FontWeight.w800,
           color: AppColors.textPrimary,
@@ -155,7 +155,7 @@ class InCallExtensionConfirmDialog extends StatelessWidget {
         children: [
           Text(
             'Jadwal 30 menit berikutnya tersedia. Sesi akan langsung diperpanjang menjadi 60 menit tanpa memutus video call.',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 13,
               color: AppColors.textSecondary,
               height: 1.45,
@@ -165,9 +165,9 @@ class InCallExtensionConfirmDialog extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: AppColors.surfaceLow,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: AppColors.borderSoft),
             ),
             child: Column(
               children: [
@@ -176,14 +176,14 @@ class InCallExtensionConfirmDialog extends StatelessWidget {
                   children: [
                     Text(
                       'Biaya Perpanjangan',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 12,
                         color: AppColors.textSecondary,
                       ),
                     ),
                     Text(
                       '$requiredCoins Koin EVA',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
                         color: AppColors.primary,
@@ -197,14 +197,14 @@ class InCallExtensionConfirmDialog extends StatelessWidget {
                   children: [
                     Text(
                       'Saldo Koin Kamu',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 12,
                         color: AppColors.textSecondary,
                       ),
                     ),
                     Text(
                       '$currentBalance Koin EVA',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
                         color: hasEnoughCoins
@@ -221,7 +221,7 @@ class InCallExtensionConfirmDialog extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               'Saldo koin belum mencukupi untuk perpanjangan sesi.',
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w600,
                 color: AppColors.error,
@@ -235,7 +235,7 @@ class InCallExtensionConfirmDialog extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
           child: Text(
             'Batal',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontWeight: FontWeight.w600,
               color: AppColors.textSecondary,
             ),
@@ -257,7 +257,7 @@ class InCallExtensionConfirmDialog extends StatelessWidget {
             ),
             child: Text(
               'Konfirmasi & Perpanjang',
-              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
             ),
           )
         else
@@ -275,7 +275,7 @@ class InCallExtensionConfirmDialog extends StatelessWidget {
             ),
             child: Text(
               'Top Up Koin',
-              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
             ),
           ),
       ],
@@ -320,7 +320,7 @@ class InCallExtensionBusySheet extends StatelessWidget {
               width: 44,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: AppColors.borderSubtle,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -344,7 +344,7 @@ class InCallExtensionBusySheet extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Mohon maaf, psikolog memiliki janji konsultasi lain setelah ini',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
@@ -358,7 +358,7 @@ class InCallExtensionBusySheet extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               availability.reason!,
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 fontSize: 12.5,
                 color: AppColors.textSecondary,
                 height: 1.4,
@@ -369,7 +369,7 @@ class InCallExtensionBusySheet extends StatelessWidget {
             const SizedBox(height: 14),
             Text(
               'Slot kosong berikutnya hari ini:',
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
@@ -392,7 +392,7 @@ class InCallExtensionBusySheet extends StatelessWidget {
                       ),
                       child: Text(
                         _formatSlot(slot),
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.inter(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w700,
                           color: AppColors.primary,
@@ -415,7 +415,7 @@ class InCallExtensionBusySheet extends StatelessWidget {
               icon: const Icon(Icons.calendar_month_rounded, size: 18),
               label: Text(
                 'Jadwalkan Sesi Berikutnya',
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w700,
                 ),

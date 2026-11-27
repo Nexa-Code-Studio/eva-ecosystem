@@ -326,11 +326,11 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
                               shape: BoxShape.circle,
                               gradient: const SweepGradient(
                                 colors: [
-                                  Color(0xFFFFB6C1),
-                                  Color(0xFFE2DAFF),
-                                  Color(0xFFA7E6FF),
-                                  Color(0xFF8B93FF),
-                                  Color(0xFFFFB6C1),
+                                  AppColors.secondary,
+                                  AppColors.tertiary,
+                                  AppColors.primaryLight,
+                                  AppColors.primary,
+                                  AppColors.secondary,
                                 ],
                               ),
                               boxShadow: [
@@ -422,7 +422,7 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
                             style: GoogleFonts.inter(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.textLight,
+                              color: AppColors.textSecondary,
                               letterSpacing: 0.8,
                             ),
                           ),
@@ -458,11 +458,11 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          const Icon(Icons.forum_outlined, size: 44, color: AppColors.textLight),
+                                          const Icon(Icons.forum_outlined, size: 44, color: AppColors.textSecondary),
                                           const SizedBox(height: 12),
                                           Text(
                                             'Belum ada riwayat sesi suara',
-                                            style: GoogleFonts.plusJakartaSans(
+                                            style: GoogleFonts.inter(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,
                                               color: AppColors.textSecondary,
@@ -472,9 +472,9 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
                                           Text(
                                             'Mulai panggilan suara bersama EVA untuk menyimpan sesi percakapanmu.',
                                             textAlign: TextAlign.center,
-                                            style: GoogleFonts.plusJakartaSans(
+                                            style: GoogleFonts.inter(
                                               fontSize: 12,
-                                              color: AppColors.textLight,
+                                              color: AppColors.textSecondary,
                                             ),
                                           ),
                                         ],
@@ -623,7 +623,7 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
     required String dominantEmoji,
     required VoidCallback onTap,
   }) {
-    return GlassCard(
+    return GlassCard.surface(
       width: double.infinity,
       onTap: onTap,
       padding: const EdgeInsets.all(16),
@@ -662,7 +662,7 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
                   '$date • $duration',
                   style: GoogleFonts.inter(
                     fontSize: 12,
-                    color: AppColors.textLight,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -671,7 +671,7 @@ class _AiConversationScreenState extends ConsumerState<AiConversationScreen> {
           const SizedBox(width: 8),
           const Icon(
             Icons.chevron_right,
-            color: AppColors.textLight,
+            color: AppColors.textSecondary,
             size: 20,
           ),
         ],

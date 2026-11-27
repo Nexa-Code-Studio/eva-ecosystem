@@ -80,6 +80,9 @@ void main() {
     // Generate AI button is present in the top bar
     expect(find.byIcon(Icons.auto_awesome), findsOneWidget);
 
+    // Mode Koreksi Mandiri banner is removed from today's DASS-21 screen
+    expect(find.textContaining('Mode Koreksi Mandiri'), findsNothing);
+
     // Old refresh button is NOT present in top bar
     expect(find.byIcon(Icons.refresh_rounded), findsNothing);
 

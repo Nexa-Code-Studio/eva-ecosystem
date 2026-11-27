@@ -12,48 +12,50 @@ void main() {
 
   group('MainShellScreen Tutorial Integration', () {
     testWidgets(
-        'displays spotlight overlay on center button and navigates when center button is tapped',
-        (tester) async {
-      tester.view.physicalSize = const Size(400, 800);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+      'displays spotlight overlay on center button and navigates when center button is tapped',
+      (tester) async {
+        tester.view.physicalSize = const Size(400, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
 
-      bool chatRoutePushed = false;
+        bool chatRoutePushed = false;
 
-      await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            routes: {
-              '/chat': (context) {
-                chatRoutePushed = true;
-                return const Scaffold(body: Text('Chat Screen Destination'));
+        await tester.pumpWidget(
+          ProviderScope(
+            child: MaterialApp(
+              routes: {
+                '/chat': (context) {
+                  chatRoutePushed = true;
+                  return const Scaffold(body: Text('Chat Screen Destination'));
+                },
               },
-            },
-            home: const MainShellScreen(initialIndex: 0),
+              home: const MainShellScreen(initialIndex: 0),
+            ),
           ),
-        ),
-      );
+        );
 
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
 
-      // 1. Overlay is visible with Eva tutorial card
-      expect(find.byType(InteractiveSpotlightOverlay), findsOneWidget);
-      expect(find.text('Cerita ke Eva, yuk!'), findsOneWidget);
-      expect(find.text('REKOMENDASI EVA'), findsOneWidget);
+        // 1. Overlay is visible with Eva tutorial card
+        expect(find.byType(InteractiveSpotlightOverlay), findsOneWidget);
+        expect(find.text('Cerita ke Eva, yuk!'), findsOneWidget);
+        expect(find.text('REKOMENDASI EVA'), findsOneWidget);
 
-      // 2. Tap the central action button (Icons.auto_awesome) directly through the spotlight cutout
-      await tester.tap(find.byIcon(Icons.auto_awesome).last);
-      await tester.pumpAndSettle();
+        // 2. Tap the central action button (Icons.auto_awesome) directly through the spotlight cutout
+        await tester.tap(find.byIcon(Icons.auto_awesome).last);
+        await tester.pumpAndSettle();
 
-      // 3. Navigation was triggered
-      expect(chatRoutePushed, isTrue);
-      expect(find.text('Chat Screen Destination'), findsOneWidget);
-    });
+        // 3. Navigation was triggered
+        expect(chatRoutePushed, isTrue);
+        expect(find.text('Chat Screen Destination'), findsOneWidget);
+      },
+    );
 
-    testWidgets('dismisses spotlight overlay when Lewati is tapped',
-        (tester) async {
+    testWidgets('dismisses spotlight overlay when Lewati is tapped', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -61,9 +63,7 @@ void main() {
 
       await tester.pumpWidget(
         const ProviderScope(
-          child: MaterialApp(
-            home: MainShellScreen(initialIndex: 0),
-          ),
+          child: MaterialApp(home: MainShellScreen(initialIndex: 0)),
         ),
       );
 

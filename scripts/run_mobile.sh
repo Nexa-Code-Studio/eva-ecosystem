@@ -116,19 +116,23 @@ else
     exit 1
 fi
 
-# Locate ADB binary
+# Locate ADB binary (only required for USB or Emulator mode)
 ADB_BIN=""
-if command -v adb &>/dev/null; then
-    ADB_BIN="$(command -v adb)"
-elif [ -x "${HOME}/Android/sdk/platform-tools/adb" ]; then
-    ADB_BIN="${HOME}/Android/sdk/platform-tools/adb"
-elif [ -x "/home/mashupsoat/Android/sdk/platform-tools/adb" ]; then
-    ADB_BIN="/home/mashupsoat/Android/sdk/platform-tools/adb"
-elif [ -x "/usr/bin/adb" ]; then
-    ADB_BIN="/usr/bin/adb"
-else
-    echo -e "${RED}${BOLD}[ERROR]${NC} adb binary tidak ditemukan. Pastikan Android SDK platform-tools terpasang."
-    exit 1
+if [ "${MODE}" = "usb" ] || [ "${MODE}" = "emu" ]; then
+    if command -v adb &>/dev/null; then
+        ADB_BIN="$(command -v adb)"
+    elif [ -x "${HOME}/Android/Sdk/platform-tools/adb" ]; then
+        ADB_BIN="${HOME}/Android/Sdk/platform-tools/adb"
+    elif [ -x "${HOME}/Android/sdk/platform-tools/adb" ]; then
+        ADB_BIN="${HOME}/Android/sdk/platform-tools/adb"
+    elif [ -x "/home/mashupsoat/Android/sdk/platform-tools/adb" ]; then
+        ADB_BIN="/home/mashupsoat/Android/sdk/platform-tools/adb"
+    elif [ -x "/usr/bin/adb" ]; then
+        ADB_BIN="/usr/bin/adb"
+    else
+        echo -e "${RED}${BOLD}[ERROR]${NC} adb binary tidak ditemukan. Pastikan Android SDK platform-tools terpasang."
+        exit 1
+    fi
 fi
 
 APP_TARGET="${APP:-eva_mobile}"

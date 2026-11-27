@@ -91,7 +91,7 @@ class BrandedGuidanceCard extends StatelessWidget {
                           width: 14,
                           height: 14,
                           errorBuilder: (context, error, stackTrace) => const Icon(
-                            Icons.auto_awesome,
+                            Icons.graphic_eq_rounded,
                             size: 13,
                             color: AppColors.primary,
                           ),
@@ -121,7 +121,7 @@ class BrandedGuidanceCard extends StatelessWidget {
                         style: GoogleFonts.inter(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w500,
-                          color: AppColors.textLight,
+                          color: AppColors.textSecondary,
                         ),
                       ),
                     ),

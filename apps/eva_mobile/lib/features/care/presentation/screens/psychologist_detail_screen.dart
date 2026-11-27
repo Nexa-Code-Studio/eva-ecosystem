@@ -9,7 +9,7 @@ import '../../../../widgets/glass_card.dart';
 import '../../../../widgets/safe_network_avatar.dart';
 import '../../domain/entities/psychologist_entity.dart';
 import '../providers/care_provider.dart';
-import '../widgets/booking_consultation_sheet.dart';
+import 'booking_consultation_screen.dart';
 import '../widgets/psychologist_certificate_carousel.dart';
 
 /// Comprehensive profile detail screen for Psychologists and Volunteers.
@@ -75,7 +75,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                       children: [
                         Text(
                           'Profil Konselor',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
                             color: AppColors.textPrimary,
@@ -83,7 +83,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                         ),
                         Text(
                           activePsy.typeLabel,
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: typeColor,
@@ -156,7 +156,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.borderSoft),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -215,12 +215,12 @@ class PsychologistDetailScreen extends ConsumerWidget {
                                 const Icon(
                                   Icons.volunteer_activism_rounded,
                                   size: 11,
-                                  color: Color(0xFF0EA5E9),
+                                  color: AppColors.tertiaryDark,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
                                   'Relawan',
-                                  style: GoogleFonts.plusJakartaSans(
+                                  style: GoogleFonts.inter(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
                                     color: const Color(0xFF0369A1),
@@ -248,7 +248,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                                 const SizedBox(width: 4),
                                 Text(
                                   'Profesional',
-                                  style: GoogleFonts.plusJakartaSans(
+                                  style: GoogleFonts.inter(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
                                     color: const Color(0xFF3730A3),
@@ -277,7 +277,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                                 const SizedBox(width: 4),
                                 Text(
                                   activePsy.levelName!,
-                                  style: GoogleFonts.plusJakartaSans(
+                                  style: GoogleFonts.inter(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
                                     color: const Color(0xFF92400E),
@@ -291,7 +291,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                     const SizedBox(height: 6),
                     Text(
                       activePsy.name,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                         color: AppColors.textPrimary,
@@ -300,7 +300,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                     const SizedBox(height: 2),
                     Text(
                       activePsy.title,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 12,
                         color: AppColors.textSecondary,
                       ),
@@ -313,7 +313,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             activePsy.registrationNumber,
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.inter(
                               fontSize: 11,
                               color: AppColors.primary,
                               fontWeight: FontWeight.w600,
@@ -330,7 +330,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 16),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const Divider(height: 1, color: AppColors.surfaceHigh),
           const SizedBox(height: 14),
 
           // Stats Overview
@@ -339,18 +339,18 @@ class PsychologistDetailScreen extends ConsumerWidget {
             children: [
               _buildStatItem(
                 icon: Icons.star_rounded,
-                iconColor: const Color(0xFFF59E0B),
+                iconColor: AppColors.warningDark,
                 title: activePsy.rating.toStringAsFixed(1),
                 subtitle: '${activePsy.reviewCount} Ulasan',
               ),
-              Container(width: 1, height: 28, color: const Color(0xFFE2E8F0)),
+              Container(width: 1, height: 28, color: AppColors.borderSoft),
               _buildStatItem(
                 icon: Icons.work_outline_rounded,
                 iconColor: AppColors.primary,
                 title: '${activePsy.experienceYears} Thn',
                 subtitle: 'Pengalaman',
               ),
-              Container(width: 1, height: 28, color: const Color(0xFFE2E8F0)),
+              Container(width: 1, height: 28, color: AppColors.borderSoft),
               _buildStatItem(
                 icon: Icons.timer_outlined,
                 iconColor: const Color(0xFF0D9488),
@@ -379,7 +379,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
             const SizedBox(width: 4),
             Text(
               title,
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textPrimary,
@@ -390,7 +390,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
         const SizedBox(height: 2),
         Text(
           subtitle,
-          style: GoogleFonts.plusJakartaSans(
+          style: GoogleFonts.inter(
             fontSize: 11,
             color: AppColors.textSecondary,
           ),
@@ -402,7 +402,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
   Widget _buildPatientStatsSection(PsychologistEntity activePsy) {
     final stats = activePsy.patientStats;
 
-    return GlassCard(
+    return GlassCard.surface(
       padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -412,7 +412,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEEF2FF),
+                  color: AppColors.primaryContainer,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
@@ -428,7 +428,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                   children: [
                     Text(
                       'Statistik Pasien Dirawat',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w800,
                         color: AppColors.textPrimary,
@@ -436,7 +436,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                     ),
                     Text(
                       'Berdasarkan riwayat konsultasi & pemulihan klinis',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 11,
                         color: AppColors.textSecondary,
                       ),
@@ -452,9 +452,9 @@ class PsychologistDetailScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: AppColors.surfaceLow,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: AppColors.borderSoft),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -465,14 +465,14 @@ class PsychologistDetailScreen extends ConsumerWidget {
                   icon: Icons.people_outline_rounded,
                   accentColor: AppColors.primary,
                 ),
-                Container(width: 1, height: 32, color: const Color(0xFFE2E8F0)),
+                Container(width: 1, height: 32, color: AppColors.borderSoft),
                 _buildStatMetricItem(
                   value: '${stats.satisfactionRate.toStringAsFixed(1)}%',
                   label: 'Tingkat Puas',
                   icon: Icons.sentiment_very_satisfied_rounded,
                   accentColor: const Color(0xFF16A34A),
                 ),
-                Container(width: 1, height: 32, color: const Color(0xFFE2E8F0)),
+                Container(width: 1, height: 32, color: AppColors.borderSoft),
                 _buildStatMetricItem(
                   value: '${stats.avgRecoverySessions.toStringAsFixed(1)} Sesi',
                   label: 'Rata-rata Selesai',
@@ -505,7 +505,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                       const SizedBox(width: 6),
                       Text(
                         '${stats.positiveReviewRate.toStringAsFixed(0)}% Ulasan Positif',
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.inter(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w700,
                           color: const Color(0xFF15803D),
@@ -526,7 +526,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                       const SizedBox(width: 6),
                       Text(
                         '${stats.negativeReviewRate.toStringAsFixed(0)}% Catatan / Masukan',
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.inter(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w700,
                           color: const Color(0xFFB91C1C),
@@ -581,7 +581,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     stats.recoveryDescription,
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.inter(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFF15803D),
@@ -613,7 +613,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
             const SizedBox(width: 4),
             Text(
               value,
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textPrimary,
@@ -624,7 +624,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
         const SizedBox(height: 2),
         Text(
           label,
-          style: GoogleFonts.plusJakartaSans(
+          style: GoogleFonts.inter(
             fontSize: 10.5,
             fontWeight: FontWeight.w500,
             color: AppColors.textSecondary,
@@ -642,7 +642,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
         ? activePsy.effectiveCertificateItems
         : activePsy.certificateItems;
 
-    return GlassCard(
+    return GlassCard.surface(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -660,7 +660,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
@@ -674,7 +674,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
             activePsy.bio.isNotEmpty
                 ? activePsy.bio
                 : 'Konselor terverifikasi Eva siap mendampingi sesi telekonseling Anda.',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 12.5,
               color: AppColors.textSecondary,
               height: 1.5,
@@ -686,9 +686,9 @@ class PsychologistDetailScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+                color: AppColors.surfaceLow,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: AppColors.borderSoft),
               ),
               child: Row(
                 children: [
@@ -705,7 +705,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                       activePsy.clinicAffiliation != null
                           ? 'Mitra Praktik: ${activePsy.clinicAffiliation}'
                           : 'Kredensial Terdaftar: ${activePsy.registrationNumber}',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,
@@ -718,7 +718,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
           ],
 
           const SizedBox(height: 14),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const Divider(height: 1, color: AppColors.surfaceHigh),
           const SizedBox(height: 12),
 
           if (certItems.isNotEmpty)
@@ -729,10 +729,10 @@ class PsychologistDetailScreen extends ConsumerWidget {
               children: [
                 Text(
                   'KREDENSIAL & LISENSI',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textLight,
+                    color: AppColors.textSecondary,
                     letterSpacing: 0.7,
                   ),
                 ),
@@ -747,7 +747,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             cert,
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.inter(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: AppColors.textPrimary,
@@ -786,10 +786,10 @@ class PsychologistDetailScreen extends ConsumerWidget {
               children: [
                 Text(
                   'TESTIMONI PASIEN',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textLight,
+                    color: AppColors.textSecondary,
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -802,7 +802,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                   ),
                   child: Text(
                     '${allTestimonials.length}',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.inter(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       color: AppColors.primary,
@@ -822,7 +822,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                     children: [
                       Text(
                         'Lihat Semua',
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.inter(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: AppColors.primary,
@@ -854,7 +854,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     'Gagal memuat ulasan pasien dari server.',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.inter(
                       fontSize: 12,
                       color: AppColors.error,
                     ),
@@ -875,11 +875,11 @@ class PsychologistDetailScreen extends ConsumerWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: AppColors.borderSoft),
             ),
             child: Text(
               'Belum ada ulasan pasien terverifikasi untuk konselor ini.',
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 fontSize: 12,
                 color: AppColors.textSecondary,
               ),
@@ -888,7 +888,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
         else ...[
           Text(
             '${displayedFive.length} ulasan pengalaman konseling pasien terverifikasi:',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 11.5,
               color: AppColors.textSecondary,
             ),
@@ -913,7 +913,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.borderSoft),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -945,7 +945,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                   children: [
                     Text(
                       item.patientName,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
@@ -959,14 +959,14 @@ class PsychologistDetailScreen extends ConsumerWidget {
                             return Icon(
                               fill ? Icons.star_rounded : Icons.star_half_rounded,
                               size: 12,
-                              color: const Color(0xFFF59E0B),
+                              color: AppColors.warningDark,
                             );
                           }),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           item.rating.toStringAsFixed(1),
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 10.5,
                             fontWeight: FontWeight.w700,
                             color: const Color(0xFFD97706),
@@ -975,7 +975,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                         const SizedBox(width: 6),
                         Text(
                           '•  ${item.timeAgo}',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 10.5,
                             color: AppColors.textSecondary,
                           ),
@@ -1022,7 +1022,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                       item.label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         color: sentimentText,
@@ -1042,13 +1042,13 @@ class PsychologistDetailScreen extends ConsumerWidget {
               const Icon(
                 Icons.format_quote_rounded,
                 size: 18,
-                color: Color(0xFF94A3B8),
+                color: AppColors.textSecondary,
               ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   item.description,
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 12,
                     fontStyle: FontStyle.italic,
                     color: AppColors.textPrimary,
@@ -1104,7 +1104,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                     width: 36,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFCBD5E1),
+                      color: AppColors.borderSubtle,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -1121,7 +1121,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                             children: [
                               Text(
                                 'Semua Testimoni Pasien',
-                                style: GoogleFonts.plusJakartaSans(
+                                style: GoogleFonts.inter(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w800,
                                   color: AppColors.textPrimary,
@@ -1130,7 +1130,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                               const SizedBox(height: 2),
                               Text(
                                 '${allTestimonials.length} Ulasan Terverifikasi • ${activePsy.name}',
-                                style: GoogleFonts.plusJakartaSans(
+                                style: GoogleFonts.inter(
                                   fontSize: 11.5,
                                   color: AppColors.textSecondary,
                                 ),
@@ -1178,7 +1178,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                     ),
                   ),
 
-                  const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                  const Divider(height: 1, color: AppColors.borderSoft),
 
                   // Testimonial List
                   Expanded(
@@ -1186,7 +1186,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                         ? Center(
                             child: Text(
                               'Tidak ada ulasan pada kategori ini.',
-                              style: GoogleFonts.plusJakartaSans(
+                              style: GoogleFonts.inter(
                                 fontSize: 12,
                                 color: AppColors.textSecondary,
                               ),
@@ -1224,12 +1224,12 @@ class PsychologistDetailScreen extends ConsumerWidget {
           color: isActive ? activeColor : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isActive ? activeColor : const Color(0xFFE2E8F0),
+            color: isActive ? activeColor : AppColors.borderSoft,
           ),
         ),
         child: Text(
           label,
-          style: GoogleFonts.plusJakartaSans(
+          style: GoogleFonts.inter(
             fontSize: 11.5,
             fontWeight: FontWeight.w700,
             color: isActive ? Colors.white : AppColors.textSecondary,
@@ -1244,7 +1244,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: const Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
+        border: const Border(top: BorderSide(color: AppColors.borderSoft, width: 1)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -1262,7 +1262,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
               children: [
                 Text(
                   'Biaya Konsultasi',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 11,
                     color: AppColors.textSecondary,
                   ),
@@ -1280,7 +1280,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
                     ],
                     Text(
                       _formatCoinFee(activePsy.coinsPerSession),
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
                         color: activePsy.coinsPerSession > 0
@@ -1296,7 +1296,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
           const SizedBox(width: 16),
           ElevatedButton(
             onPressed: () {
-              BookingConsultationSheet.show(context, activePsy);
+              BookingConsultationScreen.open(context, activePsy);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
@@ -1309,7 +1309,7 @@ class PsychologistDetailScreen extends ConsumerWidget {
             ),
             child: Text(
               'Jadwalkan Konsultasi',
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
               ),

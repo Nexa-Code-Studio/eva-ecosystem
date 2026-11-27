@@ -65,7 +65,7 @@ class _CommunityPaywallSheetState extends ConsumerState<CommunityPaywallSheet> {
             const SizedBox(height: 16),
             Text(
               'Selamat Bergabung!',
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
@@ -75,7 +75,7 @@ class _CommunityPaywallSheetState extends ConsumerState<CommunityPaywallSheet> {
             Text(
               'Akses Server Komunitas dan 1 Bulan VIP Event Trial Anda telah aktif. Tautan undangan telah disiapkan.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 fontSize: 13,
                 color: AppColors.textSecondary,
                 height: 1.4,
@@ -94,7 +94,7 @@ class _CommunityPaywallSheetState extends ConsumerState<CommunityPaywallSheet> {
                 icon: const Icon(Icons.forum, color: Colors.white, size: 18),
                 label: Text(
                   'Buka Discord Sekarang',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
@@ -130,7 +130,7 @@ class _CommunityPaywallSheetState extends ConsumerState<CommunityPaywallSheet> {
                 width: 44,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: AppColors.borderSubtle,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -155,7 +155,7 @@ class _CommunityPaywallSheetState extends ConsumerState<CommunityPaywallSheet> {
                     children: [
                       Text(
                         'Eva Safe Space Community',
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.inter(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textPrimary,
@@ -163,7 +163,7 @@ class _CommunityPaywallSheetState extends ConsumerState<CommunityPaywallSheet> {
                       ),
                       Text(
                         'Komunitas Discord Pendukung Kesehatan Mental',
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.inter(
                           fontSize: 12,
                           color: AppColors.textSecondary,
                         ),
@@ -217,9 +217,9 @@ class _CommunityPaywallSheetState extends ConsumerState<CommunityPaywallSheet> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+                color: AppColors.surfaceLow,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: AppColors.borderSoft),
               ),
               child: Row(
                 children: [
@@ -228,7 +228,7 @@ class _CommunityPaywallSheetState extends ConsumerState<CommunityPaywallSheet> {
                     children: [
                       Text(
                         'Tiket Masuk + 1 Bln VIP Pass',
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.inter(
                           fontSize: 12,
                           color: AppColors.textSecondary,
                         ),
@@ -238,7 +238,7 @@ class _CommunityPaywallSheetState extends ConsumerState<CommunityPaywallSheet> {
                         children: [
                           Text(
                             'Rp 49.000',
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.inter(
                               fontSize: 20,
                               fontWeight: FontWeight.w800,
                               color: AppColors.textPrimary,
@@ -253,7 +253,7 @@ class _CommunityPaywallSheetState extends ConsumerState<CommunityPaywallSheet> {
                             ),
                             child: Text(
                               'Sekali Bayar',
-                              style: GoogleFonts.plusJakartaSans(
+                              style: GoogleFonts.inter(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                                 color: const Color(0xFF166534),
@@ -296,7 +296,7 @@ class _CommunityPaywallSheetState extends ConsumerState<CommunityPaywallSheet> {
                         children: [
                           Text(
                             'Gabung Sekarang (Rp 49.000)',
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.inter(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                             ),
@@ -311,9 +311,9 @@ class _CommunityPaywallSheetState extends ConsumerState<CommunityPaywallSheet> {
             Center(
               child: Text(
                 'Pembayaran aman via QRIS, GoPay, OVO, & Transfer Bank',
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 11,
-                  color: AppColors.textLight,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ),
@@ -346,7 +346,7 @@ class _CommunityPaywallSheetState extends ConsumerState<CommunityPaywallSheet> {
             children: [
               Text(
                 title,
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
@@ -355,7 +355,7 @@ class _CommunityPaywallSheetState extends ConsumerState<CommunityPaywallSheet> {
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 11.5,
                   color: AppColors.textSecondary,
                   height: 1.35,

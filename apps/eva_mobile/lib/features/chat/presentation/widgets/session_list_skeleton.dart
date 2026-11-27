@@ -57,7 +57,7 @@ class _SessionListSkeletonState extends State<SessionListSkeleton>
             final titleWidth = _titleWidthFactors[index % _titleWidthFactors.length];
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: GlassCard(
+              child: GlassCard.surface(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 child: Row(
@@ -91,7 +91,7 @@ class _SessionListSkeletonState extends State<SessionListSkeleton>
                             child: Container(
                               height: 11,
                               decoration: BoxDecoration(
-                                color: AppColors.textLight.withValues(alpha: opacity * 0.14),
+                                color: AppColors.textSecondary.withValues(alpha: opacity * 0.14),
                                 borderRadius: BorderRadius.circular(5),
                               ),
                             ),
@@ -104,7 +104,7 @@ class _SessionListSkeletonState extends State<SessionListSkeleton>
                       width: 14,
                       height: 14,
                       decoration: BoxDecoration(
-                        color: AppColors.textLight.withValues(alpha: opacity * 0.14),
+                        color: AppColors.textSecondary.withValues(alpha: opacity * 0.14),
                         shape: BoxShape.circle,
                       ),
                     ),

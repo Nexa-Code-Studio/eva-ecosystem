@@ -3,8 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:eva_mobile/core/routes/app_route_transitions.dart';
+import 'package:eva_mobile/features/coping/catalog/coping_exercise_registry.dart';
+import 'package:eva_mobile/features/coping/exercises/breathing/breathing.dart';
+import 'package:eva_mobile/features/coping/shared/domain/coping_exercise_definition.dart';
+import 'package:eva_mobile/features/coping/shared/domain/coping_exercise_id.dart';
+import 'package:eva_mobile/features/coping/shared/domain/coping_session_result.dart';
+import 'package:eva_mobile/features/coping/shared/domain/coping_tutorial_data.dart';
+import 'package:eva_mobile/features/coping/shared/presentation/coping_guidance_sheet.dart';
 import 'package:eva_mobile/features/recommendations/presentation/providers/recommendation_provider.dart';
-import 'package:eva_mobile/features/recommendations/presentation/widgets/guidance_modal_content.dart';
 import 'package:eva_mobile/features/recommendations/presentation/widgets/recommendation_skeleton_loader.dart';
 import 'package:eva_mobile/services/daily_progress_local_service.dart';
 import 'package:eva_mobile/theme/app_colors.dart';
@@ -17,7 +24,8 @@ class RecommendationScreen extends ConsumerStatefulWidget {
   const RecommendationScreen({super.key});
 
   @override
-  ConsumerState<RecommendationScreen> createState() => _RecommendationScreenState();
+  ConsumerState<RecommendationScreen> createState() =>
+      _RecommendationScreenState();
 }
 
 class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
@@ -36,7 +44,7 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
         'Tarik napas perlahan lewat hidung selama 4 detik.',
         'Tahan napas di rongga dada selama 7 detik.',
         'Hembuskan napas perlahan lewat mulut selama 8 detik hingga dada terasa rileks.',
-        'Ulangi siklus ini sebanyak 4 hingga 5 kali.'
+        'Ulangi siklus ini sebanyak 4 hingga 5 kali.',
       ],
       'rationale':
           'Mengaktifkan saraf parasimpatik (vagus nerve) untuk menurunkan denyut jantung dan meredakan ketegangan fisiologis.',
@@ -57,7 +65,7 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
         'Sentuh benda di dekatmu: Rasakan 4 tekstur berbeda (pakaian, meja, jari tangan).',
         'Dengarkan secara saksama: Sadari 3 suara di sekitarmu (kipas, kendaraan, napas).',
         'Hirup udara: Sadari 2 aroma di sekitarmu.',
-        'Rasakan mulutmu: Sadari 1 rasa di lidahmu saat ini.'
+        'Rasakan mulutmu: Sadari 1 rasa di lidahmu saat ini.',
       ],
       'rationale':
           'Mengalihkan fokus otak dari overthinking dan badai cemas kembali ke realitas fisik saat ini.',
@@ -77,7 +85,7 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
         'Ambil buku catatan kecil atau gunakan catatan di ponselmu.',
         'Pikirkan 1 hingga 3 hal kecil yang terjadi hari ini (misal: secangkir teh hangat, udara sejuk).',
         'Tuliskan secara singkat mengapa hal itu terasa bermakna bagimu.',
-        'Rasakan sensasi lega dan hangat di dalam hatimu sejenak.'
+        'Rasakan sensasi lega dan hangat di dalam hatimu sejenak.',
       ],
       'rationale':
           'Mengimbangi bias negatif kognitif pada suasana hati murung dengan melatih fokus pada hal positif.',
@@ -97,7 +105,7 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
         'Ketika pikiran cemas muncul, berhenti sejenak tanpa menghakiminya.',
         'Katakan pada diri sendiri: "Aku sedang menyadari pikiran bahwa..."',
         'Ingat bahwa pikiran hanyalah kata-kata atau gambaran mental, bukan fakta pasti.',
-        'Bernapas perlahan dan biarkan pikiran tersebut berlalu seperti awan di langit.'
+        'Bernapas perlahan dan biarkan pikiran tersebut berlalu seperti awan di langit.',
       ],
       'rationale':
           'Membantu defusi kognitif agar kamu tidak larut dan terseret oleh lingkaran pikiran cemas.',
@@ -116,7 +124,7 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
       'instructions': [
         'STOP: Berhenti sejenak dari aktivitasmu, letakkan ponsel, dan ambil satu napas panjang.',
         'THINK: Uraikan apa yang sebenarnya sedang terjadi dan apa yang bisa kamu kendalikan saat ini.',
-        'GO: Pilih 1 tindakan terkecil yang bisa kamu lakukan sekarang tanpa perlu menyelesaikan semuanya sekaligus.'
+        'GO: Pilih 1 tindakan terkecil yang bisa kamu lakukan sekarang tanpa perlu menyelesaikan semuanya sekaligus.',
       ],
       'rationale':
           'Mencegah respon panik atau impulsif ketika merasa kewalahan dengan memecah masalah menjadi langkah mikro.',
@@ -136,7 +144,7 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
         'Berdiri tegak, rilekskan bahu dan rahangmu.',
         'Mulai melangkah dengan ritme santai dan perlahan.',
         'Fokuskan perhatian pada telapak kakimu yang menyentuh tanah pada setiap langkah.',
-        'Jika pikiranmu melayang, dengan lembut bawa kembali perhatianmu pada langkah kaki.'
+        'Jika pikiranmu melayang, dengan lembut bawa kembali perhatianmu pada langkah kaki.',
       ],
       'rationale':
           'Menggabungkan gerakan fisik ringan dengan perhatian sadar untuk memulihkan energi dan kejernihan pikiran.',
@@ -145,10 +153,6 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
     },
   ];
 
-  String _conditionLabel = 'Fokus: Relaksasi & Perawatan Diri';
-  String _conditionReason =
-      'Berikut beberapa panduan terstruktur untuk membantumu meredakan ketegangan dan menjaga ketenangan hari ini.';
-  String _severityLevel = 'Normal';
   bool _isCrisis = false;
   String _crisisHotline = 'Kemenkes 119 ext 8 / LISA 0811-3855-472';
   String _crisisGuidance =
@@ -185,14 +189,18 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
 
       if (data.isNotEmpty) {
         final rawToday = data['todayActivity'] as Map<String, dynamic>?;
-        final rawAll = (data['allRecommendations'] as List<dynamic>?) ??
+        final rawAll =
+            (data['allRecommendations'] as List<dynamic>?) ??
             (data['alternatives'] as List<dynamic>?) ??
             [];
 
         Map<String, dynamic>? mappedToday;
         if (rawToday != null) {
           final tId = rawToday['id']?.toString() ?? '';
-          mappedToday = _normalizeActivity(rawToday, localProgress.isActivityCompleted(tId));
+          mappedToday = _normalizeActivity(
+            rawToday,
+            localProgress.isActivityCompleted(tId),
+          );
         }
 
         final List<Map<String, dynamic>> mappedList = [];
@@ -204,19 +212,22 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
           if (item is Map<String, dynamic>) {
             final aId = item['id']?.toString() ?? '';
             if (mappedToday != null && aId == mappedToday['id']) continue;
-            mappedList.add(_normalizeActivity(item, localProgress.isActivityCompleted(aId)));
+            mappedList.add(
+              _normalizeActivity(item, localProgress.isActivityCompleted(aId)),
+            );
           }
         }
 
         setState(() {
-          _conditionLabel = data['conditionLabel']?.toString() ?? 'Fokus: Perawatan Diri';
-          _conditionReason = data['conditionReason']?.toString() ?? '';
-          _severityLevel = data['severityLevel']?.toString() ?? 'Normal';
           _isCrisis = data['isCrisis'] == true;
           _crisisHotline = data['crisisHotline']?.toString() ?? _crisisHotline;
-          _crisisGuidance = data['crisisGuidance']?.toString() ?? _crisisGuidance;
-          _todayActivity = mappedToday ?? (mappedList.isNotEmpty ? mappedList.first : null);
-          _recommendations = mappedList.isNotEmpty ? mappedList : _defaultRecommendations;
+          _crisisGuidance =
+              data['crisisGuidance']?.toString() ?? _crisisGuidance;
+          _todayActivity =
+              mappedToday ?? (mappedList.isNotEmpty ? mappedList.first : null);
+          _recommendations = mappedList.isNotEmpty
+              ? mappedList
+              : _defaultRecommendations;
         });
       } else {
         _useFallbackData(localProgress);
@@ -244,7 +255,10 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
     });
   }
 
-  Map<String, dynamic> _normalizeActivity(Map<String, dynamic> raw, bool isDone) {
+  Map<String, dynamic> _normalizeActivity(
+    Map<String, dynamic> raw,
+    bool isDone,
+  ) {
     final actId = raw['id']?.toString() ?? '';
     final instructionsRaw = raw['instructions'];
     List<String> instructions = [];
@@ -258,7 +272,8 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
       'category': raw['category']?.toString() ?? 'Mindfulness',
       'targetCondition': raw['targetCondition']?.toString() ?? 'general',
       'duration': raw['duration']?.toString() ?? '5 Menit',
-      'difficulty': raw['difficulty']?.toString() ?? raw['level']?.toString() ?? 'Pemula',
+      'difficulty':
+          raw['difficulty']?.toString() ?? raw['level']?.toString() ?? 'Pemula',
       'description': raw['description']?.toString() ?? '',
       'instructions': instructions,
       'rationale': raw['rationale']?.toString() ?? '',
@@ -269,14 +284,17 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
 
   Future<void> _completeRecommendation(String id) async {
     final idx = _recommendations.indexWhere((r) => r['id'] == id);
-    final bool alreadyDone = (idx != -1 && _recommendations[idx]['isCompleted'] == true) ||
-        (_todayActivity != null && _todayActivity!['id'] == id && _todayActivity!['isCompleted'] == true);
+    final bool alreadyDone =
+        (idx != -1 && _recommendations[idx]['isCompleted'] == true) ||
+        (_todayActivity != null &&
+            _todayActivity!['id'] == id &&
+            _todayActivity!['isCompleted'] == true);
 
     if (alreadyDone) {
       if (mounted) {
         AppSnackBar.showPrimary(
           context,
-          'Kamu sudah menyelesaikan latihan ini hari ini! Kerja bagus, istirahatlah sejenak dan lanjutkan kembali besok 🌿',
+          'Kamu sudah menyelesaikan latihan ini hari ini! Kerja bagus, istirahatlah sejenak dan lanjutkan kembali besok.',
           icon: Icons.info_outline,
         );
       }
@@ -332,36 +350,53 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
     }
     final cat = (category ?? '').toLowerCase();
     if (cat.contains('mindful') || cat.contains('napas')) return Icons.air;
-    if (cat.contains('refleksi') || cat.contains('self-care') || cat.contains('syukur')) return Icons.edit_note;
-    if (cat.contains('cbt') || cat.contains('problem') || cat.contains('kognitif')) return Icons.psychology;
-    if (cat.contains('somatis') || cat.contains('fisik') || cat.contains('aktivasi') || cat.contains('jalan')) return Icons.directions_walk;
-    if (cat.contains('krisis') || cat.contains('darurat')) return Icons.emergency;
+    if (cat.contains('refleksi') ||
+        cat.contains('self-care') ||
+        cat.contains('syukur')) {
+      return Icons.edit_note;
+    }
+    if (cat.contains('cbt') ||
+        cat.contains('problem') ||
+        cat.contains('kognitif')) {
+      return Icons.psychology;
+    }
+    if (cat.contains('somatis') ||
+        cat.contains('fisik') ||
+        cat.contains('aktivasi') ||
+        cat.contains('jalan')) {
+      return Icons.directions_walk;
+    }
+    if (cat.contains('krisis') || cat.contains('darurat')) {
+      return Icons.emergency;
+    }
     return Icons.self_improvement;
   }
 
   Color _getCategoryColor(String? category) {
     final cat = (category ?? '').toLowerCase();
-    if (cat.contains('mindful') || cat.contains('napas')) return const Color(0xFF6366F1);
-    if (cat.contains('refleksi') || cat.contains('self-care') || cat.contains('syukur')) return const Color(0xFF8B5CF6);
-    if (cat.contains('cbt') || cat.contains('problem') || cat.contains('kognitif')) return const Color(0xFF0EA5E9);
-    if (cat.contains('somatis') || cat.contains('fisik') || cat.contains('aktivasi') || cat.contains('jalan')) return const Color(0xFF10B981);
-    if (cat.contains('krisis') || cat.contains('darurat')) return const Color(0xFFEF4444);
-    return AppColors.primary;
-  }
-
-  Color _getSeverityColor(String severity) {
-    switch (severity.toLowerCase()) {
-      case 'berat':
-      case 'sangat berat':
-      case 'krisis / darurat':
-        return const Color(0xFFEF4444);
-      case 'sedang':
-        return const Color(0xFFF59E0B);
-      case 'ringan':
-        return const Color(0xFF10B981);
-      default:
-        return const Color(0xFF6366F1);
+    if (cat.contains('mindful') || cat.contains('napas')) {
+      return AppColors.primary;
     }
+    if (cat.contains('refleksi') ||
+        cat.contains('self-care') ||
+        cat.contains('syukur')) {
+      return AppColors.onPrimaryContainer;
+    }
+    if (cat.contains('cbt') ||
+        cat.contains('problem') ||
+        cat.contains('kognitif')) {
+      return AppColors.tertiaryDark;
+    }
+    if (cat.contains('somatis') ||
+        cat.contains('fisik') ||
+        cat.contains('aktivasi') ||
+        cat.contains('jalan')) {
+      return AppColors.successDark;
+    }
+    if (cat.contains('krisis') || cat.contains('darurat')) {
+      return AppColors.error;
+    }
+    return AppColors.primary;
   }
 
   bool _matchesCategory(String? category, String selected) {
@@ -369,13 +404,25 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
     final cat = (category ?? '').toLowerCase();
     switch (selected) {
       case 'Mindfulness':
-        return cat.contains('mindful') || cat.contains('napas') || cat.contains('breath');
+        return cat.contains('mindful') ||
+            cat.contains('napas') ||
+            cat.contains('breath');
       case 'CBT':
-        return cat.contains('cbt') || cat.contains('kognitif') || cat.contains('problem') || cat.contains('unhooking');
+        return cat.contains('cbt') ||
+            cat.contains('kognitif') ||
+            cat.contains('problem') ||
+            cat.contains('unhooking');
       case 'Refleksi':
-        return cat.contains('refleksi') || cat.contains('syukur') || cat.contains('self-care') || cat.contains('catatan');
+        return cat.contains('refleksi') ||
+            cat.contains('syukur') ||
+            cat.contains('self-care') ||
+            cat.contains('catatan');
       case 'Fisik & Gerak':
-        return cat.contains('fisik') || cat.contains('gerak') || cat.contains('somatis') || cat.contains('aktivasi') || cat.contains('jalan');
+        return cat.contains('fisik') ||
+            cat.contains('gerak') ||
+            cat.contains('somatis') ||
+            cat.contains('aktivasi') ||
+            cat.contains('jalan');
       default:
         return cat.contains(selected.toLowerCase());
     }
@@ -383,7 +430,9 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
 
   int _getCategoryCount(String category) {
     if (category == 'Semua') return _recommendations.length;
-    return _recommendations.where((r) => _matchesCategory(r['category']?.toString(), category)).length;
+    return _recommendations
+        .where((r) => _matchesCategory(r['category']?.toString(), category))
+        .length;
   }
 
   @override
@@ -391,8 +440,13 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
     final filteredRecommendations = _selectedCategory == 'Semua'
         ? _recommendations
         : _recommendations
-            .where((r) => _matchesCategory(r['category']?.toString(), _selectedCategory))
-            .toList();
+              .where(
+                (r) => _matchesCategory(
+                  r['category']?.toString(),
+                  _selectedCategory,
+                ),
+              )
+              .toList();
 
     return Scaffold(
       body: Container(
@@ -400,11 +454,7 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xFFF7F9FD),
-              Color(0xFFEFF3FD),
-              Color(0xFFF7F8FE),
-            ],
+            colors: [Color(0xFFF7F9FD), Color(0xFFEFF3FD), Color(0xFFF7F8FE)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -412,10 +462,7 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              StaggeredEntrance(
-                index: 0,
-                child: _buildTopBar(),
-              ),
+              StaggeredEntrance(index: 0, child: _buildTopBar()),
               Expanded(
                 child: _isLoading
                     ? const RecommendationSkeletonLoader()
@@ -423,7 +470,12 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
                         onRefresh: _fetchRecommendations,
                         child: SingleChildScrollView(
                           physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(20.0, 8.0, 20.0, 80.0),
+                          padding: const EdgeInsets.fromLTRB(
+                            20.0,
+                            8.0,
+                            20.0,
+                            80.0,
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -433,19 +485,13 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
                                 const SizedBox(height: 18),
                               ],
 
-                              // 2. Clinically Tailored Condition Header Card
-                              StaggeredEntrance(
-                                index: 1,
-                                child: _buildConditionContextCard(),
-                              ),
-                              const SizedBox(height: 20),
-
-                              // 3. Featured Activity of the Day
+                              // 2. Featured Activity of the Day
                               if (_todayActivity != null) ...[
                                 StaggeredEntrance(
-                                  index: 2,
+                                  index: 1,
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Aktivitas Utama Hari Ini',
@@ -471,9 +517,9 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
                                 const SizedBox(height: 24),
                               ],
 
-                              // 4. Category Filter Chips
+                              // 3. Category Filter Chips
                               StaggeredEntrance(
-                                index: 3,
+                                index: 2,
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -500,17 +546,19 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
                               ),
                               const SizedBox(height: 14),
 
-                              // 5. List of Recommended Activities
+                              // 4. List of Recommended Activities
                               if (filteredRecommendations.isEmpty)
                                 _buildEmptyState()
                               else
                                 StaggeredEntrance(
-                                  index: 4,
+                                  index: 3,
                                   child: Column(
                                     children: [
                                       for (final rec in filteredRecommendations)
                                         Padding(
-                                          padding: const EdgeInsets.only(bottom: 12.0),
+                                          padding: const EdgeInsets.only(
+                                            bottom: 12.0,
+                                          ),
                                           child: _buildActivityCard(rec),
                                         ),
                                     ],
@@ -551,28 +599,33 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
             ),
             const SizedBox(width: 8),
           ],
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Panduan Ketenangan',
-                style: GoogleFonts.inter(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Panduan Ketenangan',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
-              ),
-              Text(
-                'Latihan & Pemulihan Mandiri',
-                style: GoogleFonts.inter(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary,
+                Text(
+                  'Latihan & Pemulihan Mandiri',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const Spacer(),
           IconButton(
             tooltip: 'Perbarui Panduan',
             icon: const Icon(Icons.refresh, size: 22),
@@ -660,7 +713,11 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
                   onPressed: () {
                     Navigator.pushNamed(context, '/support');
                   },
-                  icon: const Icon(Icons.support_agent, size: 18, color: Colors.white),
+                  icon: const Icon(
+                    Icons.support_agent,
+                    size: 18,
+                    color: Colors.white,
+                  ),
                   label: Text(
                     'Pusat Bantuan & Hotline',
                     style: GoogleFonts.inter(
@@ -685,110 +742,6 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
     );
   }
 
-  Widget _buildConditionContextCard() {
-    final sevColor = _getSeverityColor(_severityLevel);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF5358CB).withValues(alpha: 0.06),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.insights_rounded,
-                      size: 13,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(width: 5),
-                    Flexible(
-                      child: Text(
-                        _conditionLabel.toUpperCase(),
-                        style: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primary,
-                          letterSpacing: 0.4,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: sevColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: sevColor,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      'Level: $_severityLevel',
-                      style: GoogleFonts.inter(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: sevColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            _conditionReason.isNotEmpty
-                ? _conditionReason
-                : 'Panduan ini dipilih agar kamu tahu apa yang harus dilakukan tanpa bingung, langkah demi langkah.',
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              height: 1.45,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildFeaturedTodayCard(Map<String, dynamic> act) {
     final isDone = act['isCompleted'] == true;
     final title = act['title']?.toString() ?? 'Latihan Relaksasi';
@@ -803,11 +756,7 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
         gradient: const LinearGradient(
-          colors: [
-            Color(0xFF4F46E5),
-            Color(0xFF6366F1),
-            Color(0xFF818CF8),
-          ],
+          colors: [Color(0xFF4F46E5), Color(0xFF6366F1), Color(0xFF818CF8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -828,7 +777,10 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
@@ -843,19 +795,31 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
                     ),
                   ),
                 ),
-                Row(
-                  children: [
-                    const Icon(Icons.schedule, size: 12, color: Colors.white70),
-                    const SizedBox(width: 4),
-                    Text(
-                      '$duration • $difficulty',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.schedule,
+                        size: 12,
                         color: Colors.white70,
-                        fontWeight: FontWeight.w500,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          '$duration • $difficulty',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -882,14 +846,21 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
             if (rationale.isNotEmpty) ...[
               const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.lightbulb, size: 13, color: Colors.amberAccent),
+                    const Icon(
+                      Icons.lightbulb,
+                      size: 13,
+                      color: Colors.amberAccent,
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -913,7 +884,11 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () => _showGuidanceModal(context, act),
-                    icon: const Icon(Icons.play_circle_fill, size: 18, color: Color(0xFF4F46E5)),
+                    icon: const Icon(
+                      Icons.play_circle_fill,
+                      size: 18,
+                      color: Color(0xFF4F46E5),
+                    ),
                     label: Text(
                       'Buka Panduan Langkah',
                       style: GoogleFonts.inter(
@@ -935,15 +910,18 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
                 GestureDetector(
                   onTap: () => _completeRecommendation(act['id'].toString()),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: isDone
-                          ? const Color(0xFF10B981)
+                          ? AppColors.successDark
                           : Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: isDone
-                            ? const Color(0xFF10B981)
+                            ? AppColors.successDark
                             : Colors.white.withValues(alpha: 0.4),
                       ),
                     ),
@@ -951,7 +929,9 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          isDone ? Icons.check_circle : Icons.check_circle_outline,
+                          isDone
+                              ? Icons.check_circle
+                              : Icons.check_circle_outline,
                           size: 16,
                           color: Colors.white,
                         ),
@@ -978,7 +958,7 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
 
   Widget _buildCategorySelector() {
     return SizedBox(
-      height: 36,
+      height: 44,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _categories.length,
@@ -990,12 +970,12 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
           return GestureDetector(
             onTap: () => setState(() => _selectedCategory = cat),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: isSelected ? AppColors.primary : Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(999),
                 border: Border.all(
-                  color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
+                  color: isSelected ? AppColors.primary : AppColors.borderSoft,
                 ),
                 boxShadow: isSelected
                     ? [
@@ -1014,18 +994,25 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
                     cat,
                     style: GoogleFonts.inter(
                       fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: isSelected ? Colors.white : AppColors.textSecondary,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      color: isSelected
+                          ? Colors.white
+                          : AppColors.textSecondary,
                     ),
                   ),
                   if (count > 0) ...[
                     const SizedBox(width: 5),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 1,
+                      ),
                       decoration: BoxDecoration(
                         color: isSelected
                             ? Colors.white.withValues(alpha: 0.25)
-                            : const Color(0xFFF1F5F9),
+                            : AppColors.surfaceHigh,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -1033,7 +1020,9 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
                         style: GoogleFonts.inter(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: isSelected ? Colors.white : AppColors.textSecondary,
+                          color: isSelected
+                              ? Colors.white
+                              : AppColors.textSecondary,
                         ),
                       ),
                     ),
@@ -1056,7 +1045,7 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
     final catColor = _getCategoryColor(category);
     final icon = _getIconForActivity(act['iconName']?.toString(), category);
 
-    return GlassCard(
+    return GlassCard.surface(
       width: double.infinity,
       onTap: () => _showGuidanceModal(context, act),
       padding: const EdgeInsets.all(16),
@@ -1067,12 +1056,14 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: isDone ? Colors.grey.shade400 : catColor.withValues(alpha: 0.15),
+              color: isDone
+                  ? AppColors.surfaceHigh
+                  : catColor.withValues(alpha: 0.14),
               shape: BoxShape.circle,
             ),
             child: Icon(
               isDone ? Icons.check : icon,
-              color: isDone ? Colors.white : catColor,
+              color: isDone ? AppColors.textSecondary : catColor,
               size: 22,
             ),
           ),
@@ -1081,10 +1072,16 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: catColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
@@ -1098,12 +1095,11 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
                     Text(
                       '•  $duration',
                       style: GoogleFonts.inter(
                         fontSize: 11,
-                        color: AppColors.textLight,
+                        color: AppColors.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -1115,7 +1111,9 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: isDone ? AppColors.textSecondary : AppColors.textPrimary,
+                    color: isDone
+                        ? AppColors.textSecondary
+                        : AppColors.textPrimary,
                     decoration: isDone ? TextDecoration.lineThrough : null,
                   ),
                 ),
@@ -1137,7 +1135,7 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
           IconButton(
             icon: Icon(
               isDone ? Icons.check_circle : Icons.chevron_right,
-              color: isDone ? const Color(0xFF10B981) : AppColors.textLight,
+              color: isDone ? AppColors.successDark : AppColors.textSecondary,
               size: 22,
             ),
             onPressed: () => _showGuidanceModal(context, act),
@@ -1153,7 +1151,11 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
         padding: const EdgeInsets.symmetric(vertical: 36),
         child: Column(
           children: [
-            const Icon(Icons.self_improvement, size: 48, color: Color(0xFFCBD5E1)),
+            const Icon(
+              Icons.self_improvement,
+              size: 48,
+              color: AppColors.borderSubtle,
+            ),
             const SizedBox(height: 12),
             Text(
               'Belum ada panduan di kategori ini',
@@ -1166,7 +1168,10 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
             const SizedBox(height: 4),
             Text(
               'Silakan pilih kategori "Semua" untuk melihat latihan lainnya.',
-              style: GoogleFonts.inter(fontSize: 12, color: AppColors.textLight),
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),
@@ -1174,8 +1179,12 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
     );
   }
 
-  /// Interactive step-by-step guidance bottom sheet
-  void _showGuidanceModal(BuildContext context, Map<String, dynamic> act) {
+  /// Navigates to the exercise page first, opens the tutorial modal,
+  /// and starts the interactive session once the user taps "Mulai Sesi".
+  Future<void> _showGuidanceModal(
+    BuildContext context,
+    Map<String, dynamic> act,
+  ) async {
     final actId = act['id']?.toString() ?? '';
     final title = act['title']?.toString() ?? 'Latihan Relaksasi';
     final category = act['category']?.toString() ?? 'Mindfulness';
@@ -1183,47 +1192,78 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
     final difficulty = act['difficulty']?.toString() ?? 'Pemula';
     final description = act['description']?.toString() ?? '';
     final rationale = act['rationale']?.toString() ?? '';
+    final isDone = act['isCompleted'] == true;
 
     List<String> instructions = [];
     if (act['instructions'] is List) {
-      instructions = (act['instructions'] as List).map((e) => e.toString()).toList();
+      instructions = (act['instructions'] as List)
+          .map((e) => e.toString())
+          .toList();
     }
     if (instructions.isEmpty) {
-      // Fallback instructions if missing
       instructions = [
         'Cari posisi duduk yang santai dan nyaman.',
         'Tarik napas dalam perlahan dan hembuskan perlahan.',
         'Lakukan langkah latihan ini secara tenang selama $duration.',
-        'Rasakan perubahan sensasi rileks di tubuhmu setelah selesai.'
+        'Rasakan perubahan sensasi rileks di tubuhmu setelah selesai.',
       ];
     }
 
-    final isBreathingActivity = title.toLowerCase().contains('napas') ||
-        title.toLowerCase().contains('breathing') ||
-        category.toLowerCase() == 'mindfulness';
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return GuidanceModalContent(
-          actId: actId,
-          title: title,
-          category: category,
-          duration: duration,
-          difficulty: difficulty,
-          description: description,
-          rationale: rationale,
-          instructions: instructions,
-          isBreathingActivity: isBreathingActivity,
-          isCompleted: act['isCompleted'] == true,
-          onComplete: () {
-            _completeRecommendation(actId);
-            Navigator.pop(ctx);
-          },
-        );
-      },
+    final tutorial = CopingTutorialData(
+      title: title,
+      category: category,
+      duration: duration,
+      difficulty: difficulty,
+      description: description,
+      rationale: rationale,
+      instructions: instructions,
+      isCompleted: isDone,
     );
+
+    final matched = CopingExerciseRegistry.findByRawRecommendation(
+      rawId: actId,
+      category: category,
+      title: title,
+    );
+    final isBreathing =
+        matched?.id == CopingExerciseId.breathing ||
+        title.toLowerCase().contains('napas') ||
+        title.toLowerCase().contains('breathing');
+
+    final Widget targetPage;
+    if (isBreathing) {
+      targetPage = BreathingExperiencePage(tutorial: tutorial);
+    } else {
+      final definition =
+          matched ??
+          CopingExerciseDefinition(
+            id: actId.isNotEmpty ? actId : 'custom_coping',
+            routeName: '/coping',
+            title: title,
+            subtitle: description,
+            category: category,
+            estimatedDurationLabel: duration,
+            icon: _getIconForActivity(act['iconName']?.toString(), category),
+            defaultInstructions: instructions,
+            defaultRationale: rationale,
+          );
+      targetPage = CopingStepExercisePage(
+        exercise: definition,
+        tutorial: tutorial,
+        customInstructions: instructions,
+        customRationale: rationale,
+        initialCompleted: isDone,
+      );
+    }
+
+    final result = await Navigator.of(context).push<CopingSessionResult>(
+      AppRouteTransitions.modalSlideUpRoute<CopingSessionResult>(
+        page: targetPage,
+      ),
+    );
+    if (!context.mounted) return;
+    if (result != null && result.isCompleted) {
+      await _completeRecommendation(actId);
+    }
   }
 }

@@ -415,7 +415,7 @@ class HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObser
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Halo, $_userName! 👋',
+                                'Halo, $_userName!',
                                 style: GoogleFonts.inter(
                                   fontSize: 24,
                                   fontWeight: FontWeight.w800,
@@ -618,7 +618,7 @@ class HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObser
             if (isDone) {
               AppSnackBar.showPrimary(
                 context,
-                'Kamu sudah menyelesaikan latihan ini hari ini! Kerja bagus, istirahatlah sejenak dan lanjutkan kembali besok 🌿',
+                'Kamu sudah menyelesaikan latihan ini hari ini! Kerja bagus, istirahatlah sejenak dan lanjutkan kembali besok.',
                 icon: Icons.info_outline,
               );
               Navigator.pop(ctx);

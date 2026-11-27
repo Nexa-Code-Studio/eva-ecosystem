@@ -1,11 +1,13 @@
-import "dart:async";
 import "package:flutter/material.dart";
 import "package:google_fonts/google_fonts.dart";
 
+import "../../../../core/routes/app_route_transitions.dart";
 import "../../../../theme/app_colors.dart";
+import "../../../coping/exercises/breathing/breathing.dart";
+import "../../../coping/shared/domain/coping_session_result.dart";
 
-/// Modal bottom sheet content for home screen with rationale, steps, and breath pacer
-class HomeActivityModalContent extends StatefulWidget {
+/// Modal bottom sheet content for home screen with rationale, steps, and coping launch
+class HomeActivityModalContent extends StatelessWidget {
   final Map<String, dynamic> activity;
   final String conditionReason;
   final bool isCompleted;
@@ -19,74 +21,55 @@ class HomeActivityModalContent extends StatefulWidget {
     required this.onComplete,
   });
 
-  @override
-  State<HomeActivityModalContent> createState() =>
-      HomeActivityModalContentState();
-}
-
-class HomeActivityModalContentState extends State<HomeActivityModalContent> {
-  bool _isBreathPacerActive = false;
-  int _breathTimerSec = 0;
-  String _breathPhase = 'Tarik Napas';
-  Timer? _breathTimer;
-
-  @override
-  void dispose() {
-    _breathTimer?.cancel();
-    super.dispose();
-  }
-
-  void _toggleBreathPacer() {
-    if (_isBreathPacerActive) {
-      _breathTimer?.cancel();
-      setState(() {
-        _isBreathPacerActive = false;
-        _breathTimerSec = 0;
-        _breathPhase = 'Selesai';
-      });
-    } else {
-      setState(() {
-        _isBreathPacerActive = true;
-        _breathTimerSec = 0;
-        _breathPhase = 'Tarik Napas (4 dtk)';
-      });
-
-      _breathTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (!mounted) return;
-        setState(() {
-          _breathTimerSec++;
-          final cycle = _breathTimerSec % 19;
-          if (cycle < 4) {
-            _breathPhase = 'Tarik Napas Perlahan (4s)';
-          } else if (cycle < 11) {
-            _breathPhase = 'Tahan Napas di Dada (7s)';
-          } else {
-            _breathPhase = 'Hembuskan Napas Rileks (8s)';
-          }
-        });
-      });
+  Future<void> _openGuidedBreathing(BuildContext context) async {
+    final result = await Navigator.of(context).push<CopingSessionResult>(
+      AppRouteTransitions.modalSlideUpRoute<CopingSessionResult>(
+        page: const BreathingExperiencePage(),
+      ),
+    );
+    if (!context.mounted) return;
+    if (result != null && result.isCompleted && !isCompleted) {
+      onComplete();
     }
   }
 
   String _normalizeCategory(String? raw) {
     final cat = (raw ?? '').toLowerCase();
-    if (cat.contains('mindful') || cat.contains('napas') || cat.contains('breath')) return 'Mindfulness';
-    if (cat.contains('cbt') || cat.contains('kognitif') || cat.contains('problem')) return 'CBT';
-    if (cat.contains('refleksi') || cat.contains('syukur') || cat.contains('self-care')) return 'Refleksi';
-    if (cat.contains('fisik') || cat.contains('gerak') || cat.contains('somatis') || cat.contains('aktivasi') || cat.contains('jalan')) return 'Fisik & Gerak';
+    if (cat.contains('mindful') ||
+        cat.contains('napas') ||
+        cat.contains('breath')) {
+      return 'Mindfulness';
+    }
+    if (cat.contains('cbt') ||
+        cat.contains('kognitif') ||
+        cat.contains('problem')) {
+      return 'CBT';
+    }
+    if (cat.contains('refleksi') ||
+        cat.contains('syukur') ||
+        cat.contains('self-care')) {
+      return 'Refleksi';
+    }
+    if (cat.contains('fisik') ||
+        cat.contains('gerak') ||
+        cat.contains('somatis') ||
+        cat.contains('aktivasi') ||
+        cat.contains('jalan')) {
+      return 'Fisik & Gerak';
+    }
     return raw?.isNotEmpty == true ? raw! : 'Self-Care';
   }
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.activity['title']?.toString() ?? 'Latihan Relaksasi';
-    final rawCat = widget.activity['category']?.toString() ?? 'Self-Care';
+    final title = activity['title']?.toString() ?? 'Latihan Relaksasi';
+    final rawCat = activity['category']?.toString() ?? 'Self-Care';
     final category = _normalizeCategory(rawCat);
-    final duration = widget.activity['duration']?.toString() ?? '5 menit';
-    final difficulty = widget.activity['difficulty']?.toString() ?? 'Pemula';
-    final description = widget.activity['description']?.toString() ?? '';
-    final rationale = widget.activity['rationale']?.toString() ?? '';
-    final rawInstructions = widget.activity['instructions'];
+    final duration = activity['duration']?.toString() ?? '5 menit';
+    final difficulty = activity['difficulty']?.toString() ?? 'Pemula';
+    final description = activity['description']?.toString() ?? '';
+    final rationale = activity['rationale']?.toString() ?? '';
+    final rawInstructions = activity['instructions'];
     List<String> instructions = rawInstructions is List
         ? List<String>.from(rawInstructions.map((e) => e.toString()))
         : <String>[];
@@ -96,20 +79,20 @@ class HomeActivityModalContentState extends State<HomeActivityModalContent> {
         'Cari posisi duduk yang santai dan nyaman.',
         'Tarik napas dalam perlahan dan hembuskan perlahan.',
         'Lakukan langkah latihan ini secara tenang selama $duration.',
-        'Rasakan perubahan sensasi rileks di tubuhmu setelah selesai.'
+        'Rasakan perubahan sensasi rileks di tubuhmu setelah selesai.',
       ];
     }
 
-    final displayRationale =
-        rationale.isNotEmpty ? rationale : widget.conditionReason;
+    final displayRationale = rationale.isNotEmpty ? rationale : conditionReason;
 
-    final isBreathingActivity = title.toLowerCase().contains('napas') ||
+    final isBreathingActivity =
+        title.toLowerCase().contains('napas') ||
         title.toLowerCase().contains('breath') ||
         category.toLowerCase() == 'mindfulness';
 
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: const EdgeInsets.fromLTRB(22, 14, 22, 24),
@@ -120,13 +103,12 @@ class HomeActivityModalContentState extends State<HomeActivityModalContent> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Drag handle
           Center(
             child: Container(
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: AppColors.borderSubtle,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -197,15 +179,16 @@ class HomeActivityModalContentState extends State<HomeActivityModalContent> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. Rationale Card
                   if (displayRationale.isNotEmpty) ...[
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF5F3FF),
+                        color: AppColors.primaryContainer.withValues(
+                          alpha: 0.6,
+                        ),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFDDD6FE)),
+                        border: Border.all(color: AppColors.borderSoft),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,7 +196,7 @@ class HomeActivityModalContentState extends State<HomeActivityModalContent> {
                           const Icon(
                             Icons.lightbulb_outline,
                             size: 18,
-                            color: Color(0xFF7C3AED),
+                            color: AppColors.primary,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -225,7 +208,7 @@ class HomeActivityModalContentState extends State<HomeActivityModalContent> {
                                   style: GoogleFonts.inter(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
-                                    color: const Color(0xFF5B21B6),
+                                    color: AppColors.onPrimaryContainer,
                                   ),
                                 ),
                                 const SizedBox(height: 3),
@@ -234,7 +217,7 @@ class HomeActivityModalContentState extends State<HomeActivityModalContent> {
                                   style: GoogleFonts.inter(
                                     fontSize: 11.5,
                                     height: 1.4,
-                                    color: const Color(0xFF6D28D9),
+                                    color: AppColors.textPrimary,
                                   ),
                                 ),
                               ],
@@ -246,7 +229,6 @@ class HomeActivityModalContentState extends State<HomeActivityModalContent> {
                     const SizedBox(height: 16),
                   ],
 
-                  // 2. Interactive Breath Pacer (if relevant)
                   if (isBreathingActivity) ...[
                     Container(
                       width: double.infinity,
@@ -254,101 +236,81 @@ class HomeActivityModalContentState extends State<HomeActivityModalContent> {
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [
-                            Color(0xFFEEF2FF),
-                            Color(0xFFE0E7FF),
+                            AppColors.primaryContainer,
+                            AppColors.surfaceLow,
                           ],
                         ),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFC7D2FE)),
+                        border: Border.all(color: AppColors.borderSoft),
                       ),
-                      child: Column(
+                      child: Row(
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(Icons.air,
-                                      size: 16, color: Color(0xFF4F46E5)),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'Pemandu Irama Napas',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: const Color(0xFF3730A3),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              GestureDetector(
-                                onTap: _toggleBreathPacer,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _isBreathPacerActive
-                                        ? const Color(0xFFEF4444)
-                                        : const Color(0xFF4F46E5),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    _isBreathPacerActive
-                                        ? 'Hentikan'
-                                        : 'Mulai Pemandu',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: AppColors.surface,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.air_rounded,
+                              size: 18,
+                              color: AppColors.primary,
+                            ),
                           ),
-                          if (_isBreathPacerActive) ...[
-                            const SizedBox(height: 14),
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 700),
-                              width: _breathPhase.contains('Tarik') ? 80 : 65,
-                              height: _breathPhase.contains('Tarik') ? 80 : 65,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(0xFF6366F1)
-                                    .withValues(alpha: 0.2),
-                                border: Border.all(
-                                    color: const Color(0xFF4F46E5), width: 2),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  '${_breathTimerSec}s',
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Pemandu Napas Layar Penuh',
                                   style: GoogleFonts.inter(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF3730A3),
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.onPrimaryContainer,
                                   ),
                                 ),
-                              ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Ikuti lingkaran dan visual napas tenang 4 detik tarik / 4 detik hembus.',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _breathPhase,
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () => _openGuidedBreathing(context),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(88, 44),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              'Mulai Sesi',
                               style: GoogleFonts.inter(
-                                fontSize: 13,
+                                fontSize: 11.5,
                                 fontWeight: FontWeight.w700,
-                                color: const Color(0xFF4338CA),
                               ),
                             ),
-                          ],
+                          ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 16),
                   ],
 
-                  // 3. Step-by-step instructions
                   Text(
                     'Langkah-Langkah yang Perlu Dilakukan:',
                     style: GoogleFonts.inter(
@@ -371,7 +333,7 @@ class HomeActivityModalContentState extends State<HomeActivityModalContent> {
                             width: 22,
                             height: 22,
                             alignment: Alignment.center,
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               color: AppColors.primaryContainer,
                               shape: BoxShape.circle,
                             ),
@@ -405,19 +367,18 @@ class HomeActivityModalContentState extends State<HomeActivityModalContent> {
             ),
           ),
 
-          // Completion Button CTA
           const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: widget.onComplete,
+              onPressed: onComplete,
               icon: Icon(
-                widget.isCompleted ? Icons.check_circle : Icons.check,
+                isCompleted ? Icons.check_circle : Icons.check,
                 color: Colors.white,
                 size: 18,
               ),
               label: Text(
-                widget.isCompleted
+                isCompleted
                     ? 'Sudah Diselesaikan Hari Ini'
                     : 'Saya Sudah Melakukan Latihan Ini',
                 style: GoogleFonts.inter(
@@ -427,9 +388,10 @@ class HomeActivityModalContentState extends State<HomeActivityModalContent> {
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: widget.isCompleted
-                    ? const Color(0xFF10B981)
+                backgroundColor: isCompleted
+                    ? AppColors.successDark
                     : AppColors.primary,
+                minimumSize: const Size.fromHeight(48),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),

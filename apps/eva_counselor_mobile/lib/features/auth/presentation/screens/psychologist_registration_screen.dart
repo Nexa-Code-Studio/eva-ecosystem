@@ -1,7 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/services/google_drive_service.dart';
 import '../../../../core/storage/schedule_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -129,41 +128,6 @@ class _PsychologistRegistrationScreenState
     _strExpiryCtrl.dispose();
     _sipExpiryCtrl.dispose();
     super.dispose();
-  }
-
-  void _handleGooglePrefill() async {
-    setState(() => _isLoading = true);
-    try {
-      final driveService = ref.read(googleDriveServiceProvider);
-      final account = await driveService.signInWithGoogle();
-      if (account != null) {
-        setState(() {
-          _emailCtrl.text = account.email;
-          if (account.displayName != null && account.displayName!.isNotEmpty) {
-            _fullNameCtrl.text = account.displayName!;
-          }
-        });
-        if (!mounted) return;
-        TopToast.show(
-          context,
-          title: 'Akun Google Terhubung',
-          message:
-              'Email & nama otomatis terisi dari Google (${account.email}). Notifikasi verifikasi akan dikirimkan ke email ini.',
-          type: ToastType.success,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        TopToast.show(
-          context,
-          title: 'Gagal Menghubungkan Google',
-          message: e.toString(),
-          type: ToastType.error,
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
   }
 
   Future<void> _handlePickStrExpiryDate() async {
@@ -851,55 +815,6 @@ class _PsychologistRegistrationScreenState
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 14),
-
-                // FAST GOOGLE PREFILL BUTTON
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      side: const BorderSide(color: Color(0xFFE2E8F0)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                    ),
-                    icon: Image.asset(
-                      'assets/images/google_logo.png',
-                      width: 18,
-                      height: 18,
-                      errorBuilder: (context, error, stackTrace) => const Icon(
-                        Icons.g_mobiledata_rounded,
-                        size: 24,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    label: const Text(
-                      'Daftar Cepat dengan Akun Google',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    onPressed: _isLoading ? null : _handleGooglePrefill,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                const Row(
-                  children: [
-                    Expanded(child: Divider(color: Color(0xFFE2E8F0))),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 10),
-                      child: Text(
-                        'atau lengkapi formulir pendaftaran',
-                        style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                      ),
-                    ),
-                    Expanded(child: Divider(color: Color(0xFFE2E8F0))),
-                  ],
                 ),
                 const SizedBox(height: 16),
 

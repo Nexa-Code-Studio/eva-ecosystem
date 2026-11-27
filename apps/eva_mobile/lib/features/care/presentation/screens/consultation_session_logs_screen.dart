@@ -10,7 +10,7 @@ import '../../domain/entities/consultation_session_entity.dart';
 import '../../domain/entities/psychologist_entity.dart';
 import '../../domain/entities/psychologist_rating_review.dart';
 import '../providers/care_provider.dart';
-import '../widgets/booking_consultation_sheet.dart';
+import 'booking_consultation_screen.dart';
 import 'consultation_rating_screen.dart';
 import 'psychologist_detail_screen.dart';
 
@@ -145,7 +145,7 @@ class _ConsultationSessionLogsScreenState
                       children: [
                         Text(
                           'Log & Saran Sesi',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
                             color: AppColors.textPrimary,
@@ -153,7 +153,7 @@ class _ConsultationSessionLogsScreenState
                         ),
                         Text(
                           'Catatan klinis & rekomendasi per sesi',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 12,
                             color: AppColors.textSecondary,
                           ),
@@ -229,7 +229,7 @@ class _ConsultationSessionLogsScreenState
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: AppColors.borderSoft),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
@@ -268,7 +268,7 @@ class _ConsultationSessionLogsScreenState
                   children: [
                     Text(
                       widget.psychologist.name,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
                         color: AppColors.textPrimary,
@@ -279,7 +279,7 @@ class _ConsultationSessionLogsScreenState
                     const SizedBox(height: 2),
                     Text(
                       widget.psychologist.title,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 12,
                         color: AppColors.textSecondary,
                       ),
@@ -287,11 +287,11 @@ class _ConsultationSessionLogsScreenState
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.star_rounded, size: 14, color: Color(0xFFF59E0B)),
+                        const Icon(Icons.star_rounded, size: 14, color: AppColors.warningDark),
                         const SizedBox(width: 3),
                         Text(
                           '${widget.psychologist.rating}',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary,
@@ -300,7 +300,7 @@ class _ConsultationSessionLogsScreenState
                         const SizedBox(width: 6),
                         Text(
                           '•  $totalSessionsCount Sesi Dijalani',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: AppColors.primary,
@@ -315,7 +315,7 @@ class _ConsultationSessionLogsScreenState
               const Icon(
                 Icons.chevron_right_rounded,
                 size: 22,
-                color: AppColors.textLight,
+                color: AppColors.textSecondary,
               ),
             ],
           ),
@@ -344,7 +344,7 @@ class _ConsultationSessionLogsScreenState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.borderSoft),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -363,7 +363,7 @@ class _ConsultationSessionLogsScreenState
             ),
             child: const Icon(
               Icons.star_rounded,
-              color: Color(0xFFF59E0B),
+              color: AppColors.warningDark,
               size: 24,
             ),
           ),
@@ -374,7 +374,7 @@ class _ConsultationSessionLogsScreenState
               children: [
                 Text(
                   'Beri Penilaian Sesi',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
@@ -383,7 +383,7 @@ class _ConsultationSessionLogsScreenState
                 const SizedBox(height: 2),
                 Text(
                   'Bagikan pengalamanmu bersama $counselorFirstName',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 11,
                     color: AppColors.textSecondary,
                   ),
@@ -407,7 +407,7 @@ class _ConsultationSessionLogsScreenState
             onPressed: () => _openRatingScreen(targetSession: targetSession),
             child: Text(
               'Beri Rating',
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w700,
               ),
@@ -430,7 +430,7 @@ class _ConsultationSessionLogsScreenState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.borderSoft),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -461,7 +461,7 @@ class _ConsultationSessionLogsScreenState
                   children: [
                     Text(
                       'Ulasan Anda',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
@@ -477,7 +477,7 @@ class _ConsultationSessionLogsScreenState
                             final isFilled = (index + 1) <= userRating.rating.floor();
                             return Icon(
                               isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
-                              color: isFilled ? const Color(0xFFF59E0B) : const Color(0xFFCBD5E1),
+                              color: isFilled ? AppColors.warningDark : AppColors.borderSubtle,
                               size: 13,
                             );
                           }),
@@ -485,7 +485,7 @@ class _ConsultationSessionLogsScreenState
                         const SizedBox(width: 4),
                         Text(
                           userRating.rating.toStringAsFixed(1),
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
                             color: const Color(0xFFD97706),
@@ -518,7 +518,7 @@ class _ConsultationSessionLogsScreenState
                         const SizedBox(width: 3),
                         Text(
                           'Ubah',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                             color: AppColors.primary,
@@ -554,7 +554,7 @@ class _ConsultationSessionLogsScreenState
                       userRating.label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
                         color: AppColors.primary,
@@ -575,13 +575,13 @@ class _ConsultationSessionLogsScreenState
                 const Icon(
                   Icons.format_quote_rounded,
                   size: 16,
-                  color: Color(0xFF94A3B8),
+                  color: AppColors.textSecondary,
                 ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     userRating.description,
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.inter(
                       fontSize: 12,
                       fontStyle: FontStyle.italic,
                       color: AppColors.textPrimary,
@@ -623,7 +623,7 @@ class _ConsultationSessionLogsScreenState
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: _selectedDate != null ? AppColors.primary : const Color(0xFFE2E8F0),
+                  color: _selectedDate != null ? AppColors.primary : AppColors.borderSoft,
                 ),
               ),
               child: Row(
@@ -653,13 +653,13 @@ class _ConsultationSessionLogsScreenState
             onSelected: (_) => setState(() => _selectedDate = null),
             selectedColor: AppColors.primary,
             backgroundColor: Colors.white,
-            labelStyle: GoogleFonts.plusJakartaSans(
+            labelStyle: GoogleFonts.inter(
               fontSize: 11.5,
               fontWeight: FontWeight.w700,
               color: _selectedDate == null ? Colors.white : AppColors.textPrimary,
             ),
             side: BorderSide(
-              color: _selectedDate == null ? AppColors.primary : const Color(0xFFE2E8F0),
+              color: _selectedDate == null ? AppColors.primary : AppColors.borderSoft,
             ),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
@@ -678,13 +678,13 @@ class _ConsultationSessionLogsScreenState
                 }),
                 selectedColor: AppColors.primary,
                 backgroundColor: Colors.white,
-                labelStyle: GoogleFonts.plusJakartaSans(
+                labelStyle: GoogleFonts.inter(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w700,
                   color: isSelected ? Colors.white : AppColors.textPrimary,
                 ),
                 side: BorderSide(
-                  color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
+                  color: isSelected ? AppColors.primary : AppColors.borderSoft,
                 ),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
@@ -702,7 +702,7 @@ class _ConsultationSessionLogsScreenState
                 onSelected: (_) => setState(() => _selectedDate = null),
                 selectedColor: AppColors.primary,
                 backgroundColor: Colors.white,
-                labelStyle: GoogleFonts.plusJakartaSans(
+                labelStyle: GoogleFonts.inter(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
@@ -760,7 +760,7 @@ class _ConsultationSessionLogsScreenState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.borderSoft),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -786,7 +786,7 @@ class _ConsultationSessionLogsScreenState
                     ),
                     child: Text(
                       'Sesi #${session.sessionNumber}',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         color: AppColors.primary,
@@ -797,7 +797,7 @@ class _ConsultationSessionLogsScreenState
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
+                      color: AppColors.surfaceHigh,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Row(
@@ -811,7 +811,7 @@ class _ConsultationSessionLogsScreenState
                         const SizedBox(width: 4),
                         Text(
                           'Video Call',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 10.5,
                             fontWeight: FontWeight.w600,
                             color: AppColors.textSecondary,
@@ -825,12 +825,12 @@ class _ConsultationSessionLogsScreenState
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
+                  color: AppColors.surfaceHigh,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   '${session.durationMinutes} Menit',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textSecondary,
@@ -853,7 +853,7 @@ class _ConsultationSessionLogsScreenState
               const SizedBox(width: 6),
               Text(
                 '${_formatDate(session.sessionDateTime)} • ${_formatTime(session.sessionDateTime)} WIB',
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
@@ -863,17 +863,17 @@ class _ConsultationSessionLogsScreenState
           ),
 
           const SizedBox(height: 12),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const Divider(height: 1, color: AppColors.surfaceHigh),
           const SizedBox(height: 12),
 
           // 1. Initial Complaint / Keluhan Pasien
           if (session.notes != null && session.notes!.isNotEmpty) ...[
             Text(
               'TOPIK & KELUHAN AWAL',
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 fontSize: 10.5,
                 fontWeight: FontWeight.w800,
-                color: AppColors.textLight,
+                color: AppColors.textSecondary,
                 letterSpacing: 0.6,
               ),
             ),
@@ -882,9 +882,9 @@ class _ConsultationSessionLogsScreenState
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+                color: AppColors.surfaceLow,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFF1F5F9)),
+                border: Border.all(color: AppColors.surfaceHigh),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -892,13 +892,13 @@ class _ConsultationSessionLogsScreenState
                   const Icon(
                     Icons.format_quote_rounded,
                     size: 16,
-                    color: Color(0xFF94A3B8),
+                    color: AppColors.textSecondary,
                   ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       '"${session.notes}"',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 12,
                         fontStyle: FontStyle.italic,
                         color: AppColors.textPrimary,
@@ -916,10 +916,10 @@ class _ConsultationSessionLogsScreenState
           if (session.diagnosisSummary != null && session.diagnosisSummary!.isNotEmpty) ...[
             Text(
               'RINGKASAN EVALUASI PSIKOLOG',
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 fontSize: 10.5,
                 fontWeight: FontWeight.w800,
-                color: AppColors.textLight,
+                color: AppColors.textSecondary,
                 letterSpacing: 0.6,
               ),
             ),
@@ -944,7 +944,7 @@ class _ConsultationSessionLogsScreenState
                   Expanded(
                     child: Text(
                       session.diagnosisSummary!,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,
@@ -981,7 +981,7 @@ class _ConsultationSessionLogsScreenState
                       const SizedBox(width: 6),
                       Text(
                         'Saran & Rekomendasi Psikolog:',
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.inter(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w800,
                           color: AppColors.successDark,
@@ -1008,7 +1008,7 @@ class _ConsultationSessionLogsScreenState
                             child: Center(
                               child: Text(
                                 '${entry.key + 1}',
-                                style: GoogleFonts.plusJakartaSans(
+                                style: GoogleFonts.inter(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
                                   color: AppColors.successDark,
@@ -1020,7 +1020,7 @@ class _ConsultationSessionLogsScreenState
                           Expanded(
                             child: Text(
                               entry.value,
-                              style: GoogleFonts.plusJakartaSans(
+                              style: GoogleFonts.inter(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
                                 color: AppColors.textPrimary,
@@ -1042,10 +1042,10 @@ class _ConsultationSessionLogsScreenState
           if (session.actionItems.isNotEmpty) ...[
             Text(
               'LATIHAN MANDIRI (ACTION ITEMS)',
-              style: GoogleFonts.plusJakartaSans(
+              style: GoogleFonts.inter(
                 fontSize: 10.5,
                 fontWeight: FontWeight.w800,
-                color: AppColors.textLight,
+                color: AppColors.textSecondary,
                 letterSpacing: 0.6,
               ),
             ),
@@ -1065,7 +1065,7 @@ class _ConsultationSessionLogsScreenState
                     Expanded(
                       child: Text(
                         item,
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.inter(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: AppColors.textPrimary,
@@ -1085,7 +1085,7 @@ class _ConsultationSessionLogsScreenState
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: AppColors.surfaceHigh,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
@@ -1099,7 +1099,7 @@ class _ConsultationSessionLogsScreenState
                   Expanded(
                     child: Text(
                       'Perubahan Kondisi Emosional: ${session.moodBefore ?? '-'} ➔ ${session.moodAfter ?? 'Membaik'}',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,
@@ -1127,14 +1127,14 @@ class _ConsultationSessionLogsScreenState
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.star_rounded, size: 16, color: Color(0xFFF59E0B)),
+                        const Icon(Icons.star_rounded, size: 16, color: AppColors.warningDark),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             'Ulasan Sesi #${session.sessionNumber}: ${sessionReview.rating.toStringAsFixed(1)} • ${sessionReview.label}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.inter(
                               fontSize: 11.5,
                               fontWeight: FontWeight.w700,
                               color: const Color(0xFF92400E),
@@ -1160,7 +1160,7 @@ class _ConsultationSessionLogsScreenState
                     icon: const Icon(Icons.star_outline_rounded, size: 16),
                     label: Text(
                       'Ulas Sesi #${session.sessionNumber}',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
                       ),
@@ -1183,21 +1183,21 @@ class _ConsultationSessionLogsScreenState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.borderSoft),
       ),
       child: Column(
         children: [
           const Icon(
             Icons.event_busy_rounded,
             size: 40,
-            color: Color(0xFF94A3B8),
+            color: AppColors.textSecondary,
           ),
           const SizedBox(height: 10),
           Text(
             _selectedDate != null
                 ? 'Tidak ada catatan sesi pada ${_formatShortDate(_selectedDate!)}'
                 : 'Tidak ada catatan sesi yang ditemukan',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 13.5,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
@@ -1209,7 +1209,7 @@ class _ConsultationSessionLogsScreenState
               onPressed: () => setState(() => _selectedDate = null),
               child: Text(
                 'Tampilkan Semua Tanggal',
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: AppColors.primary,
@@ -1229,7 +1229,7 @@ class _ConsultationSessionLogsScreenState
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: const Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+        border: const Border(top: BorderSide(color: AppColors.borderSoft)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -1251,12 +1251,12 @@ class _ConsultationSessionLogsScreenState
             ),
           ),
           onPressed: () {
-            BookingConsultationSheet.show(context, widget.psychologist);
+            BookingConsultationScreen.open(context, widget.psychologist);
           },
           icon: const Icon(Icons.event_available_rounded, size: 18),
           label: Text(
             'Jadwalkan Sesi Baru Bersama $counselorFirstName',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 13,
               fontWeight: FontWeight.w800,
             ),
