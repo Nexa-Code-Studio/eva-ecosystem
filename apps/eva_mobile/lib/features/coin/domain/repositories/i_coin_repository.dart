@@ -26,5 +26,7 @@ abstract class ICoinRepository {
 
   Future<CoinTopupOrderEntity> refreshTopupOrder(String topupId);
 
+  Future<CoinTopupOrderEntity> simulateTopupPayment(String topupId);
+
   Future<Uint8List> fetchTopupQrBytes(String topupId);
 }

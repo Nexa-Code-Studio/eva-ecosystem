@@ -1,7 +1,6 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-import json
 from types import SimpleNamespace
 import uuid
 
@@ -10,25 +9,20 @@ import httpx
 import pytest
 from sqlalchemy import select
 
-from app.api.dependencies import get_coin_topup_service, get_db_session
+from app.api.dependencies import get_coin_topup_service
 from app.api.routes.coins import router as coins_router
 from app.api.routes.user import router as user_router
 from app.api.routes.webhooks import router as webhooks_router
 from app.core.security import create_access_token
 from app.db.session import AsyncSessionLocal, engine
 from app.models.coin import CoinPackage, CoinTransaction
-from app.models.counselor import ConsultationSession, CounselorTransaction, PlatformPricingConfig, PsychologistProfile
+from app.models.counselor import PlatformPricingConfig, PsychologistProfile
 from app.models.enums import (
     CoinTransactionType,
-    ConsultationSessionStatus,
     PricingConfigStatus,
     PsychologistVerificationStatus,
-    ReconciliationStatus,
     TopupOrderStatus,
-    TransactionStatus,
-    WebhookProcessStatus,
 )
-from app.models.payment import CoinTopupOrder, PaymentWebhookInbox
 from app.models.user import User
 from app.schemas.coin import CreateCoinTopupRequest
 from app.schemas.session import BookSessionRequest
@@ -459,4 +453,51 @@ async def test_c2_and_c6_http_routes_end_to_end():
         assert list_res.status_code == 200
         assert list_res.json()["total"] == 1
         assert list_res.json()["items"][0]["status"] == "paid"
+
+        # Sandbox simulation endpoint settles pending order once and rejects in production
+        sim_create = await client.post(
+            "/api/v1/coins/topups",
+            headers={"Authorization": f"Bearer {token}", "Idempotency-Key": f"idem-sim-{suffix}"},
+            json={"package_id": str(pkg.id)},
+        )
+        assert sim_create.status_code == 201
+        sim_id = sim_create.json()["id"]
+
+        sim_paid = await client.post(
+            f"/api/v1/coins/topups/{sim_id}/simulate-paid",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert sim_paid.status_code == 200
+        assert sim_paid.json()["status"] == "paid"
+
+        # Verify coins credited exactly once (80 + 55 = 135)
+        bal_after_sim = await client.get(
+            "/api/v1/users/coins",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert bal_after_sim.json()["coin_balance"] == 135
+
+        # Fail closed if MIDTRANS_IS_PRODUCTION=True
+        prod_app = FastAPI()
+        prod_app.include_router(coins_router, prefix="/api/v1")
+
+        async def override_prod_service():
+            async with AsyncSessionLocal() as db:
+                yield CoinTopupService(
+                    db,
+                    gateway=gateway,
+                    config=_test_settings(MIDTRANS_IS_PRODUCTION=True, APP_ENV="production"),
+                )
+
+        prod_app.dependency_overrides[get_coin_topup_service] = override_prod_service
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=prod_app),
+            base_url="http://testserver",
+        ) as prod_client:
+            denied = await prod_client.post(
+                f"/api/v1/coins/topups/{sim_id}/simulate-paid",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            assert denied.status_code == 403
+            assert denied.json()["detail"]["code"] == "SANDBOX_ONLY"
 

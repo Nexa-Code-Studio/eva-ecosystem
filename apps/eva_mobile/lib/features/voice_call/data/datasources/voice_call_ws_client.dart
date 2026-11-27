@@ -9,6 +9,9 @@ class VoiceCallWsClient {
   WebSocketChannel? _channel;
   StreamSubscription? _subscription;
   bool _isConnected = false;
+  int _droppedAudioChunks = 0;
+
+  int get droppedAudioChunks => _droppedAudioChunks;
 
   final StreamController<Map<String, dynamic>> _eventController =
       StreamController<Map<String, dynamic>>.broadcast();
@@ -99,12 +102,15 @@ class VoiceCallWsClient {
   }
 
   void sendAudioChunk(Uint8List audioBytes) {
-    if (_channel != null && _isConnected) {
-      try {
-        _channel!.sink.add(audioBytes);
-      } catch (e) {
-        debugPrint('⚠️ [WS CLIENT AUDIO SEND ERROR]: $e');
-      }
+    if (_channel == null || !_isConnected) {
+      _droppedAudioChunks++;
+      return;
+    }
+    try {
+      _channel!.sink.add(audioBytes);
+    } catch (e) {
+      _droppedAudioChunks++;
+      debugPrint('⚠️ [WS CLIENT AUDIO SEND ERROR] (dropped=$_droppedAudioChunks): $e');
     }
   }
 

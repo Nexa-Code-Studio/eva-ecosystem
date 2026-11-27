@@ -83,6 +83,8 @@ class ONNXEmotionEngine:
         self.normalize_layer = normalize_layer
 
         self._session: Any = None
+        self._funasr_model: Any = None
+        self._active_backend: str = self.backend
         self._input_name: str = ""
         self._ready: bool = False
 
@@ -92,22 +94,74 @@ class ONNXEmotionEngine:
 
     @property
     def runtime_name(self) -> str:
-        return "mock" if self.backend == "mock" else "onnxruntime"
+        if self._active_backend == "mock":
+            return "mock"
+        if self._active_backend == "funasr":
+            return "funasr"
+        return "onnxruntime"
 
     @property
     def precision_name(self) -> str:
-        return "mock" if self.backend == "mock" else os.getenv("EMOTION_MODEL_PRECISION", "int8")
+        if self._active_backend == "mock":
+            return "mock"
+        if self._active_backend == "funasr":
+            return "fp32"
+        return os.getenv("EMOTION_MODEL_PRECISION", "int8")
+
+    def _load_funasr_base(self) -> None:
+        from funasr import AutoModel
+
+        hub = os.getenv("EMOTION_FUNASR_HUB", "ms").strip() or "ms"
+        hf_or_ms_model = os.getenv("EMOTION_FUNASR_MODEL", "iic/emotion2vec_plus_base").strip()
+        start_t = time.perf_counter()
+        logger.info("[EMOTION ENGINE] Loading local dev FunASR model '%s' (hub=%s)...", hf_or_ms_model, hub)
+        self._funasr_model = AutoModel(
+            model=hf_or_ms_model,
+            hub=hub,
+            disable_update=True,
+        )
+        self._active_backend = "funasr"
+        self.model_name = "emotion2vec_plus_base"
+        self.model_revision = f"funasr-{hub}"
+        load_ms = (time.perf_counter() - start_t) * 1000.0
+        self._ready = True
+        logger.info("[EMOTION ENGINE] Loaded FunASR '%s' in %.1fms", hf_or_ms_model, load_ms)
 
     def load(self) -> None:
-        """Warm-load singleton InferenceSession during service lifespan startup."""
+        """Warm-load singleton inference engine during service lifespan startup."""
         if self._ready:
             return
 
-        if self.backend == "mock":
+        requested = self.backend
+        if requested == "auto":
+            if self.model_path.is_file():
+                requested = "onnxruntime"
+            elif self.app_env == "production":
+                raise FileNotFoundError(
+                    f"Production requires pinned ONNX INT8 model at '{self.model_path}'"
+                )
+            else:
+                try:
+                    import funasr  # noqa: F401
+                    requested = "funasr"
+                except ImportError:
+                    logger.warning(
+                        "[EMOTION ENGINE] Neither ONNX model nor FunASR found in dev; falling back to mock."
+                    )
+                    requested = "mock"
+
+        if requested == "mock":
             if self.app_env == "production":
                 raise RuntimeError("EMOTION_ENGINE_BACKEND='mock' is prohibited in production")
+            self._active_backend = "mock"
             logger.warning("[EMOTION ENGINE] Starting in non-production MOCK backend mode.")
             self._ready = True
+            return
+
+        if requested == "funasr":
+            if self.app_env == "production":
+                raise RuntimeError("EMOTION_ENGINE_BACKEND='funasr' is for local dev only; use onnxruntime in production")
+            self._load_funasr_base()
             return
 
         if not self.model_path.is_file():
@@ -137,6 +191,7 @@ class ONNXEmotionEngine:
         if not inputs:
             raise RuntimeError("ONNX model exposes zero inputs")
         self._input_name = inputs[0].name
+        self._active_backend = "onnxruntime"
         load_ms = (time.perf_counter() - start_t) * 1000.0
         self._ready = True
         logger.info(
@@ -158,18 +213,32 @@ class ONNXEmotionEngine:
         if not self._ready:
             raise RuntimeError("ONNXEmotionEngine is not ready")
 
-        waveform = pcm16le_to_float32(pcm_bytes, normalize_layer=self.normalize_layer)
+        # Keep raw float32 [-1, 1] for FunASR, layer-normalized for ONNX
+        raw_waveform = pcm16le_to_float32(pcm_bytes, normalize_layer=False)
         start_t = time.perf_counter()
 
-        if self.backend == "mock":
-            # Deterministic energy-responsive mock distribution for local/CI HTTP contract tests
-            energy = float(np.sqrt(np.mean(waveform**2))) if waveform.size else 0.0
+        if self._active_backend == "mock":
+            energy = float(np.sqrt(np.mean(raw_waveform**2))) if raw_waveform.size else 0.0
             base = np.array([0.02, 0.01, 0.06, 0.08, 0.56, 0.02, 0.21, 0.02, 0.02], dtype=np.float32)
-            if energy > 0.5:
+            if energy > 0.2:
                 base[6] += 0.15
                 base[4] -= 0.15
             probs = base / np.sum(base)
+        elif self._active_backend == "funasr":
+            raw_res = self._funasr_model.generate(
+                input=raw_waveform,
+                fs=16000,
+                granularity="utterance",
+                extract_embedding=False,
+            )
+            if not raw_res or "scores" not in raw_res[0]:
+                raise ValueError(f"Unexpected FunASR output: {raw_res}")
+            vec = np.asarray(raw_res[0]["scores"], dtype=np.float32).reshape(-1)
+            if vec.shape[0] != len(EMOTION_CLASSES):
+                raise ValueError(f"Expected {len(EMOTION_CLASSES)} emotion classes, got {vec.shape[0]}")
+            probs = vec / np.sum(vec) if float(np.sum(vec)) > 0 else _softmax(vec)
         else:
+            waveform = pcm16le_to_float32(pcm_bytes, normalize_layer=self.normalize_layer)
             input_tensor = np.expand_dims(waveform, axis=0)  # shape (1, num_samples)
             raw_outputs = self._session.run(None, {self._input_name: input_tensor})
             vec = np.asarray(raw_outputs[0], dtype=np.float32).reshape(-1)

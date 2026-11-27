@@ -172,6 +172,11 @@ class MockCoinDataSource implements CoinDataSource {
   }
 
   @override
+  Future<CoinTopupOrderModel> simulateTopupPayment(String topupId) {
+    return refreshTopupOrder(topupId);
+  }
+
+  @override
   Future<Uint8List> fetchTopupQrBytes(String topupId) async {
     return _mockQrPngBytes;
   }
