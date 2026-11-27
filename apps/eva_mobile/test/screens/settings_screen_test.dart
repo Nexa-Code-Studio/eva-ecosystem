@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:eva_mobile/config/app_config.dart';
+import 'package:eva_mobile/core/routes/app_router.dart';
 import 'package:eva_mobile/features/auth/presentation/screens/settings_screen.dart';
+import 'package:eva_mobile/features/care/presentation/screens/psychologist_video_call_screen.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -84,6 +88,54 @@ void main() {
       expect(find.text('Eva - Laura Muda & Enerjik'), findsOneWidget);
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getString('settings_voice_mode'), 'mode_7');
+    });
+  });
+
+  group('SettingsScreen Video Call UI Preview Tests', () {
+    testWidgets('opens PsychologistVideoCallScreen preview without booking even in live mode',
+        (tester) async {
+      final previousUseMockData = AppConfig.useMockData;
+      AppConfig.useMockData = false;
+      addTearDown(() => AppConfig.useMockData = previousUseMockData);
+
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            onGenerateRoute: AppRouter.onGenerateRoute,
+            home: MediaQuery(
+              data: MediaQueryData(disableAnimations: true),
+              child: SettingsScreen(),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      final previewTile = find.byKey(const Key('settings_video_call_preview_tile'));
+      expect(previewTile, findsOneWidget);
+      expect(find.text('Pratinjau Layar Video Call'), findsOneWidget);
+
+      await tester.ensureVisible(previewTile);
+      await tester.pump();
+      await tester.tap(previewTile);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(find.byType(PsychologistVideoCallScreen), findsOneWidget);
+      expect(find.text('Dr. Eva Pratinjau, M.Psi.'), findsOneWidget);
+      expect(find.byIcon(Icons.call_end_rounded), findsOneWidget);
+
+      // Dispose video call route cleanly to cancel active timers
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
     });
   });
 }

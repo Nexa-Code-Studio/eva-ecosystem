@@ -34,6 +34,7 @@ class ConsultationSessionEntity {
   final bool isExtended;
   final bool hasReview;
   final PsychologistRatingReview? myReview;
+  final bool isPreview;
 
   const ConsultationSessionEntity({
     required this.id,
@@ -55,6 +56,7 @@ class ConsultationSessionEntity {
     this.isExtended = false,
     this.hasReview = false,
     this.myReview,
+    this.isPreview = false,
   });
 
   bool get isUpcoming => status == ConsultationStatus.upcoming;
@@ -83,6 +85,7 @@ class ConsultationSessionEntity {
     bool? isExtended,
     bool? hasReview,
     PsychologistRatingReview? myReview,
+    bool? isPreview,
   }) {
     return ConsultationSessionEntity(
       id: id ?? this.id,
@@ -104,6 +107,7 @@ class ConsultationSessionEntity {
       isExtended: isExtended ?? this.isExtended,
       hasReview: hasReview ?? this.hasReview,
       myReview: myReview ?? this.myReview,
+      isPreview: isPreview ?? this.isPreview,
     );
   }
 }
