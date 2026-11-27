@@ -34,6 +34,7 @@ class _VideoConsultationScreenState
     extends ConsumerState<VideoConsultationScreen>
     with WidgetsBindingObserver {
   final _quickNoteCtrl = TextEditingController();
+  bool _isLeaving = false;
 
   @override
   void initState() {
@@ -65,7 +66,13 @@ class _VideoConsultationScreenState
     // Matikan kamera, mikrofon, dan koneksi media seketika saat konselor keluar dari ruang VC
     try {
       final session = ref.read(videoCallControllerProvider(widget.sessionId));
-      if (session.status != VideoCallStatus.ended) {
+      // Only end the session on the backend when a call is actually live.
+      // Leaving the waiting room must NOT end the consultation; provider
+      // autoDispose releases camera, mic, and signaling on its own.
+      final isLiveSession = session.status == VideoCallStatus.connecting ||
+          session.status == VideoCallStatus.connected ||
+          session.status == VideoCallStatus.reconnecting;
+      if (isLiveSession && !_isLeaving) {
         ref.read(videoCallControllerProvider(widget.sessionId).notifier).endCall();
       }
     } catch (_) {}
@@ -261,6 +268,25 @@ class _VideoConsultationScreenState
   @override
   Widget build(BuildContext context) {
     final session = ref.watch(videoCallControllerProvider(widget.sessionId));
+    ref.listen<VideoCallSessionEntity>(
+      videoCallControllerProvider(widget.sessionId),
+      (previous, next) {
+        if (_isLeaving) return;
+        if (previous?.status != VideoCallStatus.ended &&
+            next.status == VideoCallStatus.ended) {
+          _isLeaving = true;
+          TopToast.show(
+            context,
+            title: 'Sesi Berakhir',
+            message: 'Pasien telah mengakhiri sesi konsultasi.',
+            type: ToastType.info,
+          );
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop(true);
+          }
+        }
+      },
+    );
     final controller =
         ref.read(videoCallControllerProvider(widget.sessionId).notifier);
     final isPatientConnected =
@@ -754,6 +780,7 @@ class _VideoConsultationScreenState
                       label: 'Akhiri Panggilan Konsultasi',
                       child: GestureDetector(
                         onTap: () {
+                          _isLeaving = true;
                           controller.endCall();
                           Navigator.of(context).pop(true);
                         },

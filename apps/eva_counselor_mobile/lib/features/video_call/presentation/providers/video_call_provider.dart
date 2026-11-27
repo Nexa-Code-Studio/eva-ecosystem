@@ -21,7 +21,7 @@ final videoCallRepositoryProvider = Provider<IVideoCallRepository>((ref) {
   return VideoCallRepositoryImpl(dataSource: ds);
 });
 
-final webrtcPeerManagerProvider = Provider<IWebRtcPeerManager>((ref) {
+final webrtcPeerManagerProvider = Provider.autoDispose<IWebRtcPeerManager>((ref) {
   if (AppConfig.useMockData) {
     return MockWebRtcPeerManager();
   }
@@ -29,14 +29,14 @@ final webrtcPeerManagerProvider = Provider<IWebRtcPeerManager>((ref) {
 });
 
 final webrtcSignalingServiceProvider =
-    Provider<IWebRtcSignalingService>((ref) {
+    Provider.autoDispose<IWebRtcSignalingService>((ref) {
   if (AppConfig.useMockData) {
     return MockSignalingService();
   }
   return WebRtcSignalingService();
 });
 
-final videoCallControllerProvider = StateNotifierProvider.family<
+final videoCallControllerProvider = StateNotifierProvider.autoDispose.family<
     VideoCallController, VideoCallSessionEntity, String>(
   (ref, sessionId) {
     final repo = ref.watch(videoCallRepositoryProvider);

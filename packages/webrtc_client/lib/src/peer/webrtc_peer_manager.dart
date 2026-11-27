@@ -51,6 +51,7 @@ class WebRtcPeerManager implements IWebRtcPeerManager {
   final List<RTCIceCandidate> _pendingRemoteCandidates = [];
   bool _isRemoteDescriptionSet = false;
   bool _isInitialized = false;
+  bool _isDisposed = false;
 
   final _iceConnectionStateController = StreamController<RTCIceConnectionState>.broadcast();
   final _onLocalIceCandidateController = StreamController<RTCIceCandidate>.broadcast();
@@ -129,6 +130,12 @@ class WebRtcPeerManager implements IWebRtcPeerManager {
       _iceConnectionStateController.add(state);
       _handleIceStateChange(state);
     };
+
+    if (_localStream != null) {
+      for (final track in _localStream!.getTracks()) {
+        await _peerConnection!.addTrack(track, _localStream!);
+      }
+    }
   }
 
   void _handleIceStateChange(RTCIceConnectionState state) {
@@ -171,7 +178,17 @@ class WebRtcPeerManager implements IWebRtcPeerManager {
           : false,
     };
 
-    _localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+    try {
+      _localStream =
+          await navigator.mediaDevices.getUserMedia(mediaConstraints);
+    } catch (e) {
+      debugPrint(
+          '[WebRtcPeerManager] getUserMedia with ${quality.name} constraints failed ($e), retrying with relaxed constraints');
+      _localStream = await navigator.mediaDevices.getUserMedia({
+        'audio': audio,
+        'video': video ? {'facingMode': 'user'} : false,
+      });
+    }
     _localRenderer.srcObject = _localStream;
 
     if (_peerConnection != null) {
@@ -321,6 +338,9 @@ class WebRtcPeerManager implements IWebRtcPeerManager {
 
   @override
   Future<void> dispose() async {
+    if (_isDisposed) return;
+    _isDisposed = true;
+
     _iceFailureDebounceTimer?.cancel();
     _isRemoteDescriptionSet = false;
     _pendingRemoteCandidates.clear();
@@ -345,13 +365,29 @@ class WebRtcPeerManager implements IWebRtcPeerManager {
     await _peerConnection?.dispose();
     _peerConnection = null;
 
-    await _localRenderer.dispose();
-    await _remoteRenderer.dispose();
-    _isInitialized = false;
+    if (_isInitialized) {
+      _isInitialized = false;
+      try {
+        await _localRenderer.dispose();
+      } catch (e) {
+        debugPrint('[WebRtcPeerManager] _localRenderer.dispose ignored: $e');
+      }
+      try {
+        await _remoteRenderer.dispose();
+      } catch (e) {
+        debugPrint('[WebRtcPeerManager] _remoteRenderer.dispose ignored: $e');
+      }
+    }
 
-    await _iceConnectionStateController.close();
-    await _onLocalIceCandidateController.close();
-    await _onRemoteStreamController.close();
+    if (!_iceConnectionStateController.isClosed) {
+      await _iceConnectionStateController.close();
+    }
+    if (!_onLocalIceCandidateController.isClosed) {
+      await _onLocalIceCandidateController.close();
+    }
+    if (!_onRemoteStreamController.isClosed) {
+      await _onRemoteStreamController.close();
+    }
   }
 }
 

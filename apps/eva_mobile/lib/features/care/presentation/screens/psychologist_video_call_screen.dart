@@ -39,6 +39,7 @@ class _PsychologistVideoCallScreenState
     with SingleTickerProviderStateMixin {
   final List<Map<String, String>> _sessionNotes = [];
   final TextEditingController _notesController = TextEditingController();
+  bool _isEnding = false;
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
@@ -243,6 +244,8 @@ class _PsychologistVideoCallScreenState
   }
 
   Future<void> _completeAndExitCall() async {
+    if (_isEnding) return;
+    _isEnding = true;
     await ref
         .read(videoCallControllerProvider(widget.session).notifier)
         .endCall();
@@ -883,6 +886,20 @@ class _PsychologistVideoCallScreenState
   Widget build(BuildContext context) {
     final psychologist = widget.session.psychologist;
     final callState = ref.watch(videoCallControllerProvider(widget.session));
+    ref.listen<VideoCallStateEntity>(
+      videoCallControllerProvider(widget.session),
+      (previous, next) {
+        if (_isEnding) return;
+        if (previous?.connectionState != VideoCallConnectionState.ended &&
+            next.connectionState == VideoCallConnectionState.ended) {
+          AppSnackBar.showWarning(
+            context,
+            'Psikolog mengakhiri sesi konsultasi.',
+          );
+          _completeAndExitCall();
+        }
+      },
+    );
     final controller =
         ref.read(videoCallControllerProvider(widget.session).notifier);
     final disableAnimations = MediaQuery.disableAnimationsOf(context);

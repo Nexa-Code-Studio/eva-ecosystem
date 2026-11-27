@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
@@ -51,8 +52,8 @@ class VideoCallController extends StateNotifier<VideoCallStateEntity>
   }
 
   Future<void> _initializeCall(ConsultationSessionEntity session) async {
-    // 1. Request camera and microphone permissions
-    if (!AppConfig.useMockData) {
+    // 1. Request camera and microphone permissions (browsers prompt via getUserMedia)
+    if (!AppConfig.useMockData && !kIsWeb) {
       try {
         final camStatus = await Permission.camera.request();
         final micStatus = await Permission.microphone.request();
@@ -81,6 +82,12 @@ class VideoCallController extends StateNotifier<VideoCallStateEntity>
       }
     } catch (e) {
       debugPrint('[VideoCallController] startLocalStream error: $e');
+      if (kIsWeb) {
+        state = state.copyWith(
+          isCameraPermissionGranted: false,
+          isMicPermissionGranted: false,
+        );
+      }
     }
 
     // 4. Join room and fetch session credentials & ICE servers
@@ -128,6 +135,7 @@ class VideoCallController extends StateNotifier<VideoCallStateEntity>
           clearCounselorStatusMessage: true,
         );
         _startCallTimer();
+        _peerManager.setSpeakerphoneOn(state.isSpeakerOn);
       } else if (iceState ==
               RTCIceConnectionState.RTCIceConnectionStateDisconnected ||
           iceState == RTCIceConnectionState.RTCIceConnectionStateFailed) {
@@ -152,10 +160,12 @@ class VideoCallController extends StateNotifier<VideoCallStateEntity>
     final token = state.token ?? 'mock-token';
     final targetWsUrl = state.wsUrl ??
         '${AppConfig.wsCareBaseUrl}/${state.session.id}?token=$token';
+    // Subscribe BEFORE connecting so an immediate `room_ready` is never missed.
+    await _signalingSub?.cancel();
+    _signalingSub =
+        _signalingService.messageStream.listen(_handleSignalingMessage);
     try {
       await _signalingService.connect(targetWsUrl);
-      _signalingSub =
-          _signalingService.messageStream.listen(_handleSignalingMessage);
     } catch (e) {
       debugPrint('[VideoCallController] Signaling connect error: $e');
     }
@@ -242,6 +252,16 @@ class VideoCallController extends StateNotifier<VideoCallStateEntity>
           isCounselorReconnecting: false,
           clearCounselorStatusMessage: true,
         );
+        break;
+
+      case 'ws_reconnected':
+        final iceAfterReconnect = _peerManager.iceConnectionState;
+        if (iceAfterReconnect ==
+                RTCIceConnectionState.RTCIceConnectionStateDisconnected ||
+            iceAfterReconnect ==
+                RTCIceConnectionState.RTCIceConnectionStateFailed) {
+          sendIceRestartRequest();
+        }
         break;
 
       case 'media_state':

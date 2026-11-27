@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
@@ -38,8 +39,8 @@ class VideoCallController extends StateNotifier<VideoCallSessionEntity> {
         super(initial);
 
   Future<void> initializeCall() async {
-    // 1. Request OS camera and microphone permissions
-    if (!AppConfig.useMockData) {
+    // 1. Request OS camera and microphone permissions (browsers prompt via getUserMedia)
+    if (!AppConfig.useMockData && !kIsWeb) {
       try {
         final camStatus = await Permission.camera.request();
         final micStatus = await Permission.microphone.request();
@@ -66,6 +67,12 @@ class VideoCallController extends StateNotifier<VideoCallSessionEntity> {
       }
     } catch (e) {
       debugPrint('[VideoCallController] startLocalStream error: $e');
+      if (kIsWeb) {
+        state = state.copyWith(
+          isCameraPermissionGranted: false,
+          isMicPermissionGranted: false,
+        );
+      }
     }
 
     // 4. Fetch session credentials & ICE servers
@@ -117,6 +124,7 @@ class VideoCallController extends StateNotifier<VideoCallSessionEntity> {
           clearPatientStatusMessage: true,
         );
         _startDurationTimer();
+        _peerManager.setSpeakerphoneOn(state.isSpeakerOn);
       } else if (iceState ==
               RTCIceConnectionState.RTCIceConnectionStateDisconnected ||
           iceState == RTCIceConnectionState.RTCIceConnectionStateFailed) {
@@ -140,10 +148,12 @@ class VideoCallController extends StateNotifier<VideoCallSessionEntity> {
     final token = state.signalingToken ?? 'mock-token';
     final targetWsUrl = state.wsUrl ??
         '${AppConfig.wsCareBaseUrl}/${state.sessionId}?token=$token';
+    // Subscribe BEFORE connecting so an immediate `room_ready` is never missed.
+    await _signalingSub?.cancel();
+    _signalingSub =
+        _signalingService.messageStream.listen(_handleSignalingMessage);
     try {
       await _signalingService.connect(targetWsUrl);
-      _signalingSub =
-          _signalingService.messageStream.listen(_handleSignalingMessage);
     } catch (e) {
       debugPrint('[VideoCallController] Signaling connect error: $e');
     }
@@ -208,11 +218,29 @@ class VideoCallController extends StateNotifier<VideoCallSessionEntity> {
         break;
 
       case 'ice_restart_needed':
+        state = state.copyWith(
+          isPatientReconnecting: true,
+          patientStatusMessage: 'Pasien sedang menghubungkan ulang...',
+        );
+        // Counselor is the deterministic offerer: re-offer with ICE restart.
+        await restartIce();
+        break;
+
       case 'peer_reconnecting':
         state = state.copyWith(
           isPatientReconnecting: true,
           patientStatusMessage: 'Pasien sedang menghubungkan ulang...',
         );
+        break;
+
+      case 'ws_reconnected':
+        final iceAfterReconnect = _peerManager.iceConnectionState;
+        if (iceAfterReconnect ==
+                RTCIceConnectionState.RTCIceConnectionStateDisconnected ||
+            iceAfterReconnect ==
+                RTCIceConnectionState.RTCIceConnectionStateFailed) {
+          await restartIce();
+        }
         break;
 
       case 'peer_reconnected':
