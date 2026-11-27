@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../theme/app_colors.dart';
+import '../../../../widgets/safe_network_avatar.dart';
 import '../../domain/entities/psychologist_entity.dart';
 import '../../domain/entities/consultation_session_entity.dart';
 import '../../domain/entities/counselor_timeline_entity.dart';
@@ -357,18 +358,9 @@ class _BookingConsultationSheetState extends ConsumerState<BookingConsultationSh
             // Psychologist Summary Header
             Row(
               children: [
-                CircleAvatar(
+                SafeNetworkAvatar(
+                  imageUrl: widget.psychologist.avatarUrl,
                   radius: 26,
-                  backgroundColor: AppColors.primaryContainer,
-                  backgroundImage: NetworkImage(widget.psychologist.avatarUrl),
-                  onBackgroundImageError: (exception, stackTrace) {},
-                  child: Text(
-                    widget.psychologist.name.substring(0, 2).toUpperCase(),
-                    style: GoogleFonts.plusJakartaSans(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
-                    ),
-                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

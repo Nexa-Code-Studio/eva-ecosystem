@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../config/app_config.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_back_button.dart';
+import '../../../../widgets/safe_network_avatar.dart';
 import '../../domain/entities/consultation_session_entity.dart';
 import '../../domain/entities/psychologist_entity.dart';
 import '../../domain/entities/psychologist_rating_review.dart';
@@ -241,9 +242,9 @@ class _ConsultationSessionLogsScreenState
             children: [
               Stack(
                 children: [
-                  CircleAvatar(
+                  SafeNetworkAvatar(
+                    imageUrl: widget.psychologist.avatarUrl,
                     radius: 26,
-                    backgroundImage: NetworkImage(widget.psychologist.avatarUrl),
                   ),
                   Positioned(
                     bottom: 0,
