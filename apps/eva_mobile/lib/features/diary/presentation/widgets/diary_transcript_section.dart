@@ -133,7 +133,7 @@ class _DiaryTranscriptSectionState extends State<DiaryTranscriptSection> {
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
-                                  isUser ? Icons.person : Icons.auto_awesome,
+                                  isUser ? Icons.person : Icons.chat_bubble_outline_rounded,
                                   size: 13,
                                   color: isUser ? Colors.white : AppColors.primary,
                                 ),

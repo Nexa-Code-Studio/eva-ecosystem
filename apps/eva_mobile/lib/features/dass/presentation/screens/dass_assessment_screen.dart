@@ -244,11 +244,13 @@ class _DASSAssessmentScreenState extends ConsumerState<DASSAssessmentScreen> {
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                             children: [
-                              StaggeredEntrance(
-                                index: 2,
-                                child: _buildModeBanner(isEditable),
-                              ),
-                              const SizedBox(height: 16),
+                              if (!isEditable) ...[
+                                StaggeredEntrance(
+                                  index: 2,
+                                  child: _buildArchiveBanner(),
+                                ),
+                                const SizedBox(height: 16),
+                              ],
                               StaggeredEntrance(
                                 index: 3,
                                 child: DassSubscalesCard(
@@ -554,35 +556,7 @@ class _DASSAssessmentScreenState extends ConsumerState<DASSAssessmentScreen> {
     );
   }
 
-  Widget _buildModeBanner(bool isEditable) {
-    if (isEditable) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: const Color(0xFFEFF6FF),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFBFDBFE)),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.edit_note_rounded, color: Color(0xFF2563EB), size: 20),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Mode Koreksi Mandiri: Anda dapat menyesuaikan skor DASS-21 hasil sintesis AI hari ini.',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF1E40AF),
-                  height: 1.35,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
+  Widget _buildArchiveBanner() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(

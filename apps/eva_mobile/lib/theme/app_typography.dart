@@ -1,106 +1,64 @@
 import 'package:flutter/material.dart';
-
 import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 
-
-
+/// Typography scale aligned with docs/DESIGN.md (Inter exclusively).
 class AppTypography {
-
   static TextStyle displayLarge = GoogleFonts.inter(
-
-    fontSize: 28,
-
+    fontSize: 32,
     fontWeight: FontWeight.w700,
-
     color: AppColors.textPrimary,
-
-    height: 1.3,
-
+    height: 1.25,
+    letterSpacing: -0.64,
   );
-
-
 
   static TextStyle headlineMedium = GoogleFonts.inter(
-
     fontSize: 22,
-
     fontWeight: FontWeight.w700,
-
     color: AppColors.textPrimary,
-
     height: 1.3,
-
+    letterSpacing: -0.22,
   );
-
-
 
   static TextStyle titleMedium = GoogleFonts.inter(
-
     fontSize: 16,
-
     fontWeight: FontWeight.w600,
-
     color: AppColors.textPrimary,
-
     height: 1.4,
-
   );
-
-
 
   static TextStyle bodyLarge = GoogleFonts.inter(
-
-    fontSize: 15,
-
+    fontSize: 16,
     fontWeight: FontWeight.w400,
-
     color: AppColors.textSecondary,
-
-    height: 1.5,
-
+    height: 1.6,
   );
-
-
 
   static TextStyle bodyMedium = GoogleFonts.inter(
-
     fontSize: 14,
-
     fontWeight: FontWeight.w400,
-
     color: AppColors.textSecondary,
-
-    height: 1.5,
-
+    height: 1.55,
   );
-
-
 
   static TextStyle labelSmall = GoogleFonts.inter(
-
     fontSize: 12,
-
     fontWeight: FontWeight.w600,
-
-    color: AppColors.textLight,
-
-    letterSpacing: 0.5,
-
+    color: AppColors.textSecondary,
+    letterSpacing: 0.2,
   );
 
-
+  static TextStyle sectionTitle = GoogleFonts.inter(
+    fontSize: 13,
+    fontWeight: FontWeight.w700,
+    color: AppColors.textSecondary,
+    height: 1.35,
+  );
 
   static TextStyle buttonText = GoogleFonts.inter(
-
-    fontSize: 16,
-
+    fontSize: 15,
     fontWeight: FontWeight.w600,
-
     color: Colors.white,
-
   );
-
 }
-

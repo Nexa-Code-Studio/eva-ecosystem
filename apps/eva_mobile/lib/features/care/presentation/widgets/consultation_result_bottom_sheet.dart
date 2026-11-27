@@ -78,7 +78,7 @@ class ConsultationResultBottomSheet extends StatelessWidget {
             width: 44,
             height: 4,
             decoration: BoxDecoration(
-              color: const Color(0xFFCBD5E1),
+              color: AppColors.borderSubtle,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -108,7 +108,7 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                     children: [
                       Text(
                         'Hasil & Saran Sesi Konsultasi',
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.inter(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textPrimary,
@@ -116,7 +116,7 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                       ),
                       Text(
                         '${session.psychologist.name} • ${session.psychologist.title}',
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.inter(
                           fontSize: 12,
                           color: AppColors.textSecondary,
                         ),
@@ -127,7 +127,7 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded, color: AppColors.textLight),
+                  icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
                   onPressed: () {
                     Navigator.pop(context);
                     if (onClose != null) onClose!();
@@ -138,7 +138,7 @@ class ConsultationResultBottomSheet extends StatelessWidget {
           ),
 
           const SizedBox(height: 10),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const Divider(height: 1, color: AppColors.surfaceHigh),
 
           // Scrollable Content
           Expanded(
@@ -159,7 +159,7 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                         ),
                         child: Text(
                           'Sesi #${session.sessionNumber} Selesai',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
                             color: AppColors.primary,
@@ -170,12 +170,12 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
+                          color: AppColors.surfaceHigh,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           'Durasi: ${session.durationMinutes} Menit',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: AppColors.textSecondary,
@@ -190,10 +190,10 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                   // 1. Rangkuman Hasil Konsultasi (Summary)
                   Text(
                     'RANGKUMAN HASIL KONSULTASI',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.inter(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textLight,
+                      color: AppColors.textSecondary,
                       letterSpacing: 0.8,
                     ),
                   ),
@@ -202,9 +202,9 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
+                      color: AppColors.surfaceLow,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(color: AppColors.borderSoft),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -218,7 +218,7 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                         Expanded(
                           child: Text(
                             summary,
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.inter(
                               fontSize: 12.5,
                               color: AppColors.textPrimary,
                               height: 1.45,
@@ -235,10 +235,10 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                   if (hasMoodProgress) ...[
                     Text(
                       'EVALUASI KONDISI EMOSI PASIEN',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textLight,
+                        color: AppColors.textSecondary,
                         letterSpacing: 0.8,
                       ),
                     ),
@@ -248,7 +248,7 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        border: Border.all(color: AppColors.borderSoft),
                       ),
                       child: Row(
                         children: [
@@ -258,7 +258,7 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                               children: [
                                 Text(
                                   'Sebelum Sesi',
-                                  style: GoogleFonts.plusJakartaSans(
+                                  style: GoogleFonts.inter(
                                     fontSize: 10.5,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textSecondary,
@@ -268,7 +268,7 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                                 Text(
                                   session.moodBefore ??
                                       (AppConfig.useMockData ? 'Cemas Tinggi (8/10)' : '-'),
-                                  style: GoogleFonts.plusJakartaSans(
+                                  style: GoogleFonts.inter(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                     color: const Color(0xFFEF4444),
@@ -280,7 +280,7 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                           const Icon(
                             Icons.arrow_forward_rounded,
                             size: 18,
-                            color: Color(0xFF94A3B8),
+                            color: AppColors.textSecondary,
                           ),
                           Expanded(
                             child: Column(
@@ -288,7 +288,7 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                               children: [
                                 Text(
                                   'Sesudah Sesi',
-                                  style: GoogleFonts.plusJakartaSans(
+                                  style: GoogleFonts.inter(
                                     fontSize: 10.5,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textSecondary,
@@ -298,7 +298,7 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                                 Text(
                                   session.moodAfter ??
                                       (AppConfig.useMockData ? 'Lebih Tenang (4/10)' : '-'),
-                                  style: GoogleFonts.plusJakartaSans(
+                                  style: GoogleFonts.inter(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                     color: const Color(0xFF16A34A),
@@ -319,15 +319,15 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                       const Icon(
                         Icons.lightbulb_outline_rounded,
                         size: 16,
-                        color: Color(0xFFF59E0B),
+                        color: AppColors.warningDark,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         'SARAN & REKOMENDASI PSIKOLOG',
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.inter(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.textLight,
+                          color: AppColors.textSecondary,
                           letterSpacing: 0.8,
                         ),
                       ),
@@ -339,7 +339,7 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Text(
                         'Belum ada saran tertulis dari konselor untuk sesi ini.',
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.inter(
                           fontSize: 12,
                           color: AppColors.textSecondary,
                         ),
@@ -363,13 +363,13 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                               width: 20,
                               height: 20,
                               decoration: const BoxDecoration(
-                                color: Color(0xFFF59E0B),
+                                color: AppColors.warningDark,
                                 shape: BoxShape.circle,
                               ),
                               child: Center(
                                 child: Text(
                                   '${idx + 1}',
-                                  style: GoogleFonts.plusJakartaSans(
+                                  style: GoogleFonts.inter(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w800,
                                     color: Colors.white,
@@ -381,7 +381,7 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 advice[idx],
-                                style: GoogleFonts.plusJakartaSans(
+                                style: GoogleFonts.inter(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: const Color(0xFF78350F),
@@ -408,10 +408,10 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                       const SizedBox(width: 6),
                       Text(
                         'LATIHAN MANDIRI (ACTION ITEMS)',
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.inter(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.textLight,
+                          color: AppColors.textSecondary,
                           letterSpacing: 0.8,
                         ),
                       ),
@@ -421,7 +421,7 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                   if (actionItems.isEmpty)
                     Text(
                       'Belum ada latihan mandiri yang tercatat.',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 12,
                         color: AppColors.textSecondary,
                       ),
@@ -448,7 +448,7 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 item,
-                                style: GoogleFonts.plusJakartaSans(
+                                style: GoogleFonts.inter(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: const Color(0xFF3730A3),
@@ -472,7 +472,7 @@ class ConsultationResultBottomSheet extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: const BoxDecoration(
               color: Colors.white,
-              border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
+              border: Border(top: BorderSide(color: AppColors.surfaceHigh)),
             ),
             child: SizedBox(
               width: double.infinity,
@@ -492,7 +492,7 @@ class ConsultationResultBottomSheet extends StatelessWidget {
                 },
                 child: Text(
                   'Selesai & Tutup Saran Sesi',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),

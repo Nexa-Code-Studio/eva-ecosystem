@@ -349,7 +349,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Segera Hadir'), findsOneWidget);
+      expect(find.text('Layanan Top Up QRIS Belum Aktif'), findsOneWidget);
     });
 
     testWidgets('QrisPaymentScreen renders pending QR and updates to paid', (tester) async {

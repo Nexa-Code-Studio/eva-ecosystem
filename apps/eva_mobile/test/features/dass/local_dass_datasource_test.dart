@@ -123,5 +123,115 @@ void main() {
       expect(updated.stressScore, equals(28));
       expect(updated.stressSeverity, equals('Severe'));
     });
+
+    test('Score-only updateAssessment preserves all 21 official questions, scales, and AI citations', () async {
+      final testDbPath = '${tempDir.path}/dass_test.db';
+      await localDb.open(localAccountKey: 'test_user', customPath: testDbPath);
+
+      await dassDataSource.saveExtractedAssessment(
+        sessionId: 'session_call_202',
+        dassAssessmentPayload: {
+          'stress_score': 4,
+          'anxiety_score': 2,
+          'depression_score': 0,
+          'items': [
+            {
+              'item_id': 1,
+              'scale': 'stress',
+              'question_text': 'Old text ignored',
+              'score': 2,
+              'evidence': 'User: "Saya gampang marah hal sepele"',
+              'reason': 'Indikasi stres ringan-sedang.',
+              'confidence': 0.88,
+              'is_user_edited': false,
+            },
+            {
+              'item_id': 2,
+              'scale': 'anxiety',
+              'question_text': 'Old text 2',
+              'score': 1,
+              'evidence': 'User: "Bibir kering terus"',
+              'reason': 'Gejala otonomik kecemasan.',
+              'confidence': 0.75,
+              'is_user_edited': false,
+            },
+          ],
+        },
+      );
+
+      // Simulate DASSAssessmentNotifier.saveAssessment() payload (only item_id and score)
+      final scoreOnlyPayload = List.generate(
+        21,
+        (i) => {'item_id': i + 1, 'score': i == 0 ? 3 : (i == 1 ? 1 : 0)},
+      );
+
+      final updated = await dassDataSource.updateAssessment(scoreOnlyPayload);
+      expect(updated.items.length, equals(21));
+
+      final item1 = updated.items.firstWhere((it) => it.itemId == 1);
+      expect(
+        item1.questionText,
+        equals('Saya merasa bahwa diri saya menjadi marah karena hal-hal sepele.'),
+      );
+      expect(item1.scale, equals('stress'));
+      expect(item1.score, equals(3));
+      expect(item1.evidence, equals('User: "Saya gampang marah hal sepele"'));
+      expect(item1.reason, equals('Indikasi stres ringan-sedang.'));
+      expect(item1.confidence, equals(0.88));
+      expect(item1.isUserEdited, isTrue);
+
+      final item2 = updated.items.firstWhere((it) => it.itemId == 2);
+      expect(item2.questionText, equals('Saya merasa bibir saya sering kering.'));
+      expect(item2.scale, equals('anxiety'));
+      expect(item2.score, equals(1));
+      expect(item2.evidence, equals('User: "Bibir kering terus"'));
+      expect(item2.reason, equals('Gejala otonomik kecemasan.'));
+      expect(item2.confidence, equals(0.75));
+      expect(item2.isUserEdited, isFalse);
+
+      // Re-reading from SQLite also preserves all 21 official questions and citations
+      final reloaded = await dassDataSource.getTodayAssessment();
+      expect(reloaded.items.length, equals(21));
+      expect(reloaded.stressScore, equals(6));
+      expect(reloaded.anxietyScore, equals(2));
+      expect(reloaded.items.first.evidence, equals('User: "Saya gampang marah hal sepele"'));
+    });
+
+    test('Recovers official 21 questions and scales from corrupted score-only SQLite row', () async {
+      final testDbPath = '${tempDir.path}/dass_test.db';
+      final db = await localDb.open(localAccountKey: 'test_user', customPath: testDbPath);
+      final now = DateTime.now();
+      final today =
+          '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+      await db.insert('local_dass_assessments', {
+        'id': 'dass_test_user_$today',
+        'local_account_key': 'test_user',
+        'assessment_date': today,
+        'stress_score': 6,
+        'anxiety_score': 0,
+        'depression_score': 0,
+        'stress_category': 'Normal',
+        'anxiety_category': 'Normal',
+        'depression_category': 'Normal',
+        'items_json': '[{"item_id":2,"score":2},{"item_id":3,"score":1}]',
+        'is_user_verified': 1,
+        'created_at': now.toIso8601String(),
+        'updated_at': now.toIso8601String(),
+      });
+
+      final recovered = await dassDataSource.getTodayAssessment();
+      expect(recovered.items.length, equals(21));
+      expect(recovered.anxietyScore, equals(4));
+      expect(recovered.depressionScore, equals(2));
+      expect(
+        recovered.items.firstWhere((it) => it.itemId == 2).questionText,
+        equals('Saya merasa bibir saya sering kering.'),
+      );
+      expect(
+        recovered.items.firstWhere((it) => it.itemId == 21).questionText,
+        equals('Saya merasa bahwa hidup tidak bermanfaat.'),
+      );
+    });
   });
 }

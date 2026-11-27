@@ -23,9 +23,9 @@ class AppSnackBar {
       case SnackBarVariant.success:
         return AppColors.success;
       case SnackBarVariant.warning:
-        return const Color(0xFFF59E0B); // Amber
+        return AppColors.warningDark;
       case SnackBarVariant.danger:
-        return const Color(0xFFDC2626); // Crimson
+        return AppColors.error;
     }
   }
 
@@ -33,7 +33,7 @@ class AppSnackBar {
   static IconData getDefaultIcon(SnackBarVariant variant) {
     switch (variant) {
       case SnackBarVariant.primary:
-        return Icons.auto_awesome_rounded;
+        return Icons.info_outline_rounded;
       case SnackBarVariant.success:
         return Icons.check_circle_outline_rounded;
       case SnackBarVariant.warning:

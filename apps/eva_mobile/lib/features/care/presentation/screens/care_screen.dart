@@ -9,7 +9,7 @@ import '../../../home/presentation/widgets/profile_dropdown_modal.dart';
 import '../providers/care_provider.dart';
 import '../widgets/care_quick_actions.dart';
 import '../widgets/psychologist_card.dart';
-import '../widgets/booking_consultation_sheet.dart';
+import 'booking_consultation_screen.dart';
 import 'psychologist_detail_screen.dart';
 
 class CareScreen extends ConsumerStatefulWidget {
@@ -165,7 +165,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
                         children: [
                           Text(
                             'Layanan Konseling',
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.inter(
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
                               color: AppColors.textPrimary,
@@ -174,7 +174,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
                           const SizedBox(height: 2),
                           Text(
                             'Konseling psikolog klinis berlisensi & terverifikasi',
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.inter(
                               fontSize: 12.5,
                               color: AppColors.textSecondary,
                             ),
@@ -202,7 +202,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
                           child: Center(
                             child: Text(
                               _userInitials,
-                              style: GoogleFonts.plusJakartaSans(
+                              style: GoogleFonts.inter(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.primary,
@@ -234,7 +234,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
                     children: [
                       Text(
                         'Temukan Psikolog',
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.inter(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
@@ -250,9 +250,9 @@ class CareScreenState extends ConsumerState<CareScreen> {
                         },
                         decoration: InputDecoration(
                           hintText: 'Cari nama psikolog, keahlian, atau ulasan...',
-                          hintStyle: GoogleFonts.plusJakartaSans(
+                          hintStyle: GoogleFonts.inter(
                             fontSize: 13,
-                            color: AppColors.textLight,
+                            color: AppColors.textSecondary,
                           ),
                           prefixIcon: const Icon(Icons.search, color: AppColors.primary),
                           suffixIcon: _searchController.text.isNotEmpty
@@ -269,11 +269,11 @@ class CareScreenState extends ConsumerState<CareScreen> {
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            borderSide: const BorderSide(color: AppColors.borderSoft),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            borderSide: const BorderSide(color: AppColors.borderSoft),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
@@ -295,7 +295,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
                               'Saat Ini',
                               'available_now',
                               activeAvailability,
-                              leadingDotColor: const Color(0xFF10B981),
+                              leadingDotColor: AppColors.success,
                             ),
                             const SizedBox(width: 8),
                             _buildAvailabilityChip('Hari Ini', 'available_today', activeAvailability),
@@ -305,7 +305,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
                             Container(
                               width: 1,
                               height: 22,
-                              color: const Color(0xFFE2E8F0),
+                              color: AppColors.borderSoft,
                             ),
                             const SizedBox(width: 10),
                             _buildRatingSortChip(activeSortBy == 'rating'),
@@ -359,7 +359,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
                                 );
                               },
                               onBookTap: () {
-                                BookingConsultationSheet.show(context, psychologist);
+                                BookingConsultationScreen.open(context, psychologist);
                               },
                             ),
                           );
@@ -391,7 +391,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
                           const SizedBox(height: 10),
                           Text(
                             'Gagal Memuat Daftar Konselor',
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.inter(
                               fontSize: 14.5,
                               fontWeight: FontWeight.w700,
                               color: AppColors.textPrimary,
@@ -403,7 +403,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
                             textAlign: TextAlign.center,
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.inter(
                               fontSize: 12,
                               color: AppColors.textSecondary,
                             ),
@@ -471,7 +471,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
       },
       selectedColor: AppColors.primary,
       backgroundColor: Colors.white,
-      labelStyle: GoogleFonts.plusJakartaSans(
+      labelStyle: GoogleFonts.inter(
         fontSize: 12,
         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
         color: isSelected ? Colors.white : AppColors.textPrimary,
@@ -479,7 +479,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
         side: BorderSide(
-          color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
+          color: isSelected ? AppColors.primary : AppColors.borderSoft,
         ),
       ),
     );
@@ -493,7 +493,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
           Icon(
             Icons.star_rounded,
             size: 15,
-            color: isSelected ? Colors.white : const Color(0xFFF59E0B),
+            color: isSelected ? Colors.white : AppColors.warningDark,
           ),
           const SizedBox(width: 4),
           const Text('Rating Terbaik'),
@@ -507,7 +507,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
       },
       selectedColor: AppColors.primary,
       backgroundColor: Colors.white,
-      labelStyle: GoogleFonts.plusJakartaSans(
+      labelStyle: GoogleFonts.inter(
         fontSize: 12,
         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
         color: isSelected ? Colors.white : AppColors.textPrimary,
@@ -515,7 +515,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
         side: BorderSide(
-          color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
+          color: isSelected ? AppColors.primary : AppColors.borderSoft,
         ),
       ),
     );
@@ -551,7 +551,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
       onPressed: () => _showLevelPickerSheet(activeTier, options),
       backgroundColor: isSelected ? AppColors.primary : Colors.white,
       side: BorderSide(
-        color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
+        color: isSelected ? AppColors.primary : AppColors.borderSoft,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
@@ -567,7 +567,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
           const SizedBox(width: 4),
           Text(
             labelText,
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               color: isSelected ? Colors.white : AppColors.textPrimary,
@@ -604,7 +604,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: AppColors.borderSubtle,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -612,7 +612,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
               const SizedBox(height: 14),
               Text(
                 'Filter Level Psikolog',
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
@@ -624,7 +624,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
                 leading: const Icon(Icons.layers_clear_rounded, color: AppColors.primary),
                 title: Text(
                   'Semua Level',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 13.5,
                     fontWeight: activeTier == null ? FontWeight.w700 : FontWeight.w500,
                   ),
@@ -637,7 +637,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
                   Navigator.pop(ctx);
                 },
               ),
-              const Divider(height: 1, color: Color(0xFFF1F5F9)),
+              const Divider(height: 1, color: AppColors.surfaceHigh),
               ...sortedTiers.map((tier) {
                 final selected = activeTier == tier;
                 return ListTile(
@@ -647,7 +647,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
                     backgroundColor: const Color(0xFFFEF3C7),
                     child: Text(
                       'L$tier',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         color: const Color(0xFFB45309),
@@ -656,7 +656,7 @@ class CareScreenState extends ConsumerState<CareScreen> {
                   ),
                   title: Text(
                     levelOptions[tier] ?? 'Level $tier',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.inter(
                       fontSize: 13.5,
                       fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                     ),
@@ -684,11 +684,11 @@ class CareScreenState extends ConsumerState<CareScreen> {
         child: Center(
           child: Column(
             children: [
-              const Icon(Icons.search_off_rounded, size: 48, color: Color(0xFF94A3B8)),
+              const Icon(Icons.search_off_rounded, size: 48, color: AppColors.textSecondary),
               const SizedBox(height: 12),
               Text(
                 message,
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textSecondary,

@@ -111,7 +111,7 @@ class CareQuickActions extends ConsumerWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: AppColors.borderSoft),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.02),
@@ -144,7 +144,7 @@ class CareQuickActions extends ConsumerWidget {
                       Flexible(
                         child: Text(
                           title,
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary,
@@ -163,7 +163,7 @@ class CareQuickActions extends ConsumerWidget {
                           ),
                           child: Text(
                             badge,
-                            style: GoogleFonts.plusJakartaSans(
+                            style: GoogleFonts.inter(
                               fontSize: 9,
                               fontWeight: FontWeight.w800,
                               color: Colors.white,
@@ -176,7 +176,7 @@ class CareQuickActions extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.inter(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
                       color: AppColors.textSecondary,
@@ -190,7 +190,7 @@ class CareQuickActions extends ConsumerWidget {
             const Icon(
               Icons.chevron_right_rounded,
               size: 16,
-              color: Color(0xFFCBD5E1),
+              color: AppColors.borderSubtle,
             ),
           ],
         ),
@@ -219,7 +219,7 @@ class CareQuickActions extends ConsumerWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE2E8F0),
+                    color: AppColors.borderSoft,
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
@@ -231,7 +231,7 @@ class CareQuickActions extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Text(
                     'Panduan Layanan Konseling',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.inter(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
@@ -298,7 +298,7 @@ class CareQuickActions extends ConsumerWidget {
             children: [
               Text(
                 title,
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
@@ -307,7 +307,7 @@ class CareQuickActions extends ConsumerWidget {
               const SizedBox(height: 2),
               Text(
                 desc,
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 11.5,
                   color: AppColors.textSecondary,
                   height: 1.35,

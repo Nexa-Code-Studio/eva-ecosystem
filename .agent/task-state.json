@@ -228,5 +228,12 @@
     "updated_at": 1795751612,
     "evidence_summary": "Evidence accepted: PR and test verification documented.",
     "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/160"
+  },
+  "171": {
+    "issue": 171,
+    "branch": "refactor/171-eva-mobile-ui-antislop",
+    "state": "In Progress",
+    "updated_at": 1795771373,
+    "evidence_summary": "Evidence accepted: active task branch verified."
   }
 }

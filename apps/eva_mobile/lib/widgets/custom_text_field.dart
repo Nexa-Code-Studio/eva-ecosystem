@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-
 import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_colors.dart';
-
-
 
 class CustomPillTextField extends StatefulWidget {
   final String hintText;
@@ -26,38 +23,21 @@ class CustomPillTextField extends StatefulWidget {
     this.onChanged,
   });
 
-
-
   @override
-
   State<CustomPillTextField> createState() => _CustomPillTextFieldState();
-
 }
 
-
-
 class _CustomPillTextFieldState extends State<CustomPillTextField> {
-
   bool _obscureText = true;
 
-
-
   @override
-
   Widget build(BuildContext context) {
-
     return Container(
-
       decoration: BoxDecoration(
-
-        color: Colors.white,
-
-        borderRadius: BorderRadius.circular(999),
-
-        border: Border.all(color: Colors.grey.shade300, width: 1.2),
-
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.borderSubtle, width: 1.2),
       ),
-
       child: TextField(
         controller: widget.controller,
         obscureText: widget.isPassword ? _obscureText : false,
@@ -71,7 +51,7 @@ class _CustomPillTextFieldState extends State<CustomPillTextField> {
           hintText: widget.hintText,
           hintStyle: GoogleFonts.inter(
             fontSize: 15,
-            color: AppColors.textLight,
+            color: AppColors.textSecondary.withValues(alpha: 0.78),
           ),
           prefixIcon: Icon(
             widget.prefixIcon,
@@ -80,6 +60,7 @@ class _CustomPillTextFieldState extends State<CustomPillTextField> {
           ),
           suffixIcon: widget.isPassword
               ? IconButton(
+                  tooltip: _obscureText ? 'Tampilkan kata sandi' : 'Sembunyikan kata sandi',
                   icon: Icon(
                     _obscureText
                         ? Icons.visibility_off_outlined
@@ -94,24 +75,13 @@ class _CustomPillTextFieldState extends State<CustomPillTextField> {
                   },
                 )
               : widget.suffixIcon,
-
           border: InputBorder.none,
-
           contentPadding: const EdgeInsets.symmetric(
-
             horizontal: 20,
-
             vertical: 16,
-
           ),
-
         ),
-
       ),
-
     );
-
   }
-
 }
-

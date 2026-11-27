@@ -174,8 +174,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 const Icon(
-                                  Icons.auto_awesome_rounded,
-                                  size: 14,
+                                  Icons.person_pin_outlined,
+                                  size: 16,
                                   color: AppColors.primary,
                                 ),
                                 const SizedBox(width: 4),
@@ -209,18 +209,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     // Or Divider
                     const Row(
                       children: [
-                        Expanded(child: Divider(color: Color(0xFFD6DCF5))),
+                        Expanded(child: Divider(color: AppColors.borderSoft)),
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 12.0),
                           child: Text(
                             'atau masuk dengan',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.textLight,
+                              color: AppColors.textSecondary,
                             ),
                           ),
                         ),
-                        Expanded(child: Divider(color: Color(0xFFD6DCF5))),
+                        Expanded(child: Divider(color: AppColors.borderSoft)),
                       ],
                     ),
                     const SizedBox(height: 20),

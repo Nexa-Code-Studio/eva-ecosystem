@@ -129,7 +129,7 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
                           'Pembayaran QRIS',
                           style: GoogleFonts.inter(
                             fontSize: 18,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary,
                           ),
                         ),
@@ -167,14 +167,14 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
       width: 228,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1.2),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.16),
+            color: AppColors.glassShadow,
             blurRadius: 16,
-            offset: const Offset(0, 6),
+            offset: Offset(0, 6),
           ),
         ],
       ),
@@ -203,7 +203,8 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
           const SizedBox(height: 8),
           CustomButton(
             text: 'Simulasikan Bayar',
-            height: 36,
+            height: 44,
+            borderRadius: 12,
             isLoading: flow.isRefreshing,
             onPressed: flow.isRefreshing
                 ? null
@@ -221,7 +222,7 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.qr_code_2_rounded, size: 56, color: AppColors.textLight),
+            const Icon(Icons.qr_code_2_rounded, size: 56, color: AppColors.textSecondary),
             const SizedBox(height: 12),
             Text(
               'Tidak ada pesanan QRIS aktif.',
@@ -234,7 +235,7 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
             const SizedBox(height: 16),
             CustomButton(
               text: 'Kembali ke Paket Koin',
-              height: 40,
+              height: 46,
               width: 220,
               onPressed: () => Navigator.pop(context),
             ),
@@ -283,7 +284,7 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFF7ED),
+                      color: AppColors.warningContainer,
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
@@ -293,7 +294,7 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
                       style: GoogleFonts.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFFC2410C),
+                        color: AppColors.warningDark,
                       ),
                     ),
                   ),
@@ -304,7 +305,7 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
                 order.formattedAmountIdr,
                 style: GoogleFonts.inter(
                   fontSize: 26,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                   color: AppColors.primary,
                 ),
               ),
@@ -319,15 +320,15 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
               const SizedBox(height: 16),
               Builder(
                 builder: (context) {
-                  final qrSize = (MediaQuery.sizeOf(context).width - 80).clamp(260.0, 320.0);
+                  final qrSize = (MediaQuery.sizeOf(context).width - 80).clamp(240.0, 320.0);
                   return Container(
                     width: qrSize,
                     height: qrSize,
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(color: AppColors.borderSoft),
                     ),
                     child: _buildQrContent(flow, order),
                   );
@@ -349,7 +350,7 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
                 ),
               CustomButton(
                 text: 'Cek Status Pembayaran',
-                height: 40,
+                height: 46,
                 width: 230,
                 isOutline: true,
                 isLoading: flow.isRefreshing,
@@ -363,7 +364,7 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
           ),
         ),
         const SizedBox(height: 16),
-        GlassCard(
+        GlassCard.surface(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -372,7 +373,7 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
                 'Cara Bayar QRIS',
                 style: GoogleFonts.inter(
                   fontSize: 14,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
                 ),
               ),
@@ -383,7 +384,7 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
                 '3. Jika aplikasi bank ada di ponsel ini, ambil screenshot QR lalu unggah dari galeri pada menu Scan QR, atau scan langsung menggunakan perangkat kedua.\n'
                 '4. Saldo koin otomatis bertambah begitu pembayaran terkonfirmasi.',
                 style: GoogleFonts.inter(
-                  fontSize: 12,
+                  fontSize: 12.5,
                   height: 1.5,
                   color: AppColors.textSecondary,
                 ),
@@ -397,7 +398,7 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
 
   Widget _buildQrContent(TopupFlowState flow, CoinTopupOrderEntity order) {
     if (order.status == CoinTopupStatus.creating || flow.isLoadingQr) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
     }
     if (flow.qrBytes != null && flow.qrBytes!.isNotEmpty) {
       return Image.memory(flow.qrBytes!, fit: BoxFit.contain);
@@ -405,11 +406,11 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(Icons.wifi_off_rounded, size: 36, color: AppColors.textLight),
+        const Icon(Icons.wifi_off_rounded, size: 36, color: AppColors.textSecondary),
         const SizedBox(height: 8),
         Text(
           'QR belum termuat',
-          style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary),
+          style: GoogleFonts.inter(fontSize: 12.5, color: AppColors.textSecondary),
         ),
         TextButton(
           onPressed: () => ref.read(topupFlowProvider.notifier).loadQrImage(order.id),
@@ -420,17 +421,17 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
   }
 
   Widget _buildSuccessCard(BuildContext context, CoinTopupOrderEntity order, int coinBalance) {
-    return GlassCard(
+    return GlassCard.surface(
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          const Icon(Icons.check_circle_rounded, size: 64, color: Color(0xFF10B981)),
+          const Icon(Icons.check_circle_rounded, size: 64, color: AppColors.successDark),
           const SizedBox(height: 14),
           Text(
             'Pembelian Berhasil!',
             style: GoogleFonts.inter(
               fontSize: 20,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
             ),
           ),
@@ -452,7 +453,7 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
           const SizedBox(height: 20),
           CustomButton(
             text: 'Selesai',
-            height: 40,
+            height: 46,
             width: 180,
             onPressed: () {
               ref.read(topupFlowProvider.notifier).resetForNewOrder();
@@ -466,7 +467,7 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
 
   Widget _buildFailureOrExpiredCard(BuildContext context, CoinTopupOrderEntity order) {
     final isExpired = order.status == CoinTopupStatus.expired;
-    return GlassCard(
+    return GlassCard.surface(
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
@@ -480,7 +481,7 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
             isExpired ? 'QRIS Kedaluwarsa' : 'Pembayaran Gagal / Dibatalkan',
             style: GoogleFonts.inter(
               fontSize: 18,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
             ),
           ),
@@ -495,7 +496,7 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
           const SizedBox(height: 20),
           CustomButton(
             text: 'Pilih Paket Lagi',
-            height: 40,
+            height: 46,
             width: 200,
             onPressed: () {
               ref.read(topupFlowProvider.notifier).resetForNewOrder();
@@ -508,17 +509,17 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
   }
 
   Widget _buildRefundOrReviewCard(BuildContext context, CoinTopupOrderEntity order) {
-    return GlassCard(
+    return GlassCard.surface(
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          const Icon(Icons.info_outline_rounded, size: 56, color: Color(0xFFF59E0B)),
+          const Icon(Icons.info_outline_rounded, size: 56, color: AppColors.warningDark),
           const SizedBox(height: 14),
           Text(
             'Status Pesanan: ${order.status.apiValue}',
             style: GoogleFonts.inter(
               fontSize: 17,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
             ),
           ),
@@ -531,7 +532,7 @@ class _QrisPaymentScreenState extends ConsumerState<QrisPaymentScreen>
           const SizedBox(height: 20),
           CustomButton(
             text: 'Kembali',
-            height: 40,
+            height: 46,
             width: 180,
             onPressed: () => Navigator.pop(context),
           ),

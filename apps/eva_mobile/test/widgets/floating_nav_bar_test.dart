@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:eva_mobile/widgets/floating_nav_bar.dart';
 
 void main() {
-  testWidgets('FloatingNavBar renders 4 navigation items and central FAB', (tester) async {
+  testWidgets('FloatingNavBar renders 4 navigation items and central FAB', (
+    tester,
+  ) async {
     int tappedIndex = -1;
 
     await tester.pumpWidget(
@@ -60,24 +62,23 @@ void main() {
     final pillBox = tester.getRect(find.byType(AnimatedPositioned));
     final iconBox = tester.getRect(find.byIcon(Icons.volunteer_activism));
     final textBox = tester.getRect(find.text('Layanan'));
-    
+
     // Verify vertical centering of item column inside sliding pill
     final pillCenterY = pillBox.center.dy;
     final contentCenterY = (iconBox.top + textBox.bottom) / 2;
     expect((pillCenterY - contentCenterY).abs(), lessThan(1.0));
   });
 
-  testWidgets('FloatingNavBar moves sliding pill across slots smoothly', (tester) async {
+  testWidgets('FloatingNavBar moves sliding pill across slots smoothly', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: SizedBox(
             width: 500,
             height: 100,
-            child: FloatingNavBar(
-              currentIndex: 0,
-              onTap: (_) {},
-            ),
+            child: FloatingNavBar(currentIndex: 0, onTap: (_) {}),
           ),
         ),
       ),
@@ -85,7 +86,9 @@ void main() {
 
     await tester.pump();
 
-    final pill0 = tester.widget<AnimatedPositioned>(find.byType(AnimatedPositioned));
+    final pill0 = tester.widget<AnimatedPositioned>(
+      find.byType(AnimatedPositioned),
+    );
     final left0 = pill0.left!;
 
     // Re-render with index 1 (Slot 1)
@@ -95,17 +98,16 @@ void main() {
           body: SizedBox(
             width: 500,
             height: 100,
-            child: FloatingNavBar(
-              currentIndex: 1,
-              onTap: (_) {},
-            ),
+            child: FloatingNavBar(currentIndex: 1, onTap: (_) {}),
           ),
         ),
       ),
     );
 
     await tester.pump();
-    final pill1 = tester.widget<AnimatedPositioned>(find.byType(AnimatedPositioned));
+    final pill1 = tester.widget<AnimatedPositioned>(
+      find.byType(AnimatedPositioned),
+    );
     final left1 = pill1.left!;
     expect(left1, greaterThan(left0)); // Moved right
 
@@ -116,17 +118,16 @@ void main() {
           body: SizedBox(
             width: 500,
             height: 100,
-            child: FloatingNavBar(
-              currentIndex: 2,
-              onTap: (_) {},
-            ),
+            child: FloatingNavBar(currentIndex: 2, onTap: (_) {}),
           ),
         ),
       ),
     );
 
     await tester.pump();
-    final pill2 = tester.widget<AnimatedPositioned>(find.byType(AnimatedPositioned));
+    final pill2 = tester.widget<AnimatedPositioned>(
+      find.byType(AnimatedPositioned),
+    );
     final left2 = pill2.left!;
     expect(left2, greaterThan(left1));
 

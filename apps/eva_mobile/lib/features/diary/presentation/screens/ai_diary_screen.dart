@@ -501,7 +501,7 @@ class AiDiaryScreenState extends ConsumerState<AiDiaryScreen> {
 
 
 
-                            return GlassCard(
+                            return GlassCard.surface(
                               key: index == 0 ? firstJournalCardKey : null,
                               width: double.infinity,
 
@@ -686,7 +686,7 @@ class AiDiaryScreenState extends ConsumerState<AiDiaryScreen> {
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
-                                        'Lihat Detail Sesi →',
+                                        'Lihat Detail Sesi',
                                         style: GoogleFonts.inter(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w700,
@@ -734,7 +734,7 @@ class _DiaryListSkeleton extends StatelessWidget {
           3,
           (index) => Padding(
             padding: const EdgeInsets.only(bottom: 14.0),
-            child: GlassCard(
+            child: GlassCard.surface(
               key: index == 0 ? firstCardKey : null,
               width: double.infinity,
               padding: const EdgeInsets.all(18),

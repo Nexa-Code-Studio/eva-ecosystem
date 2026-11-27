@@ -58,11 +58,11 @@ class _ConsultationRatingScreenState
   }
 
   String _getRatingFeedbackLabel(double rating) {
-    if (rating >= 5.0) return 'Luar Biasa Memuaskan & Bermanfaat! 🌟';
-    if (rating >= 4.0) return 'Sangat Baik & Sangat Membantu 👍';
-    if (rating >= 3.0) return 'Cukup Baik & Bermanfaat 🙂';
-    if (rating >= 2.0) return 'Kurang Sesuai Harapan 😕';
-    return 'Pengalaman Belum Memuaskan 🙁';
+    if (rating >= 5.0) return 'Luar Biasa Memuaskan & Bermanfaat!';
+    if (rating >= 4.0) return 'Sangat Baik & Sangat Membantu';
+    if (rating >= 3.0) return 'Cukup Baik & Bermanfaat';
+    if (rating >= 2.0) return 'Kurang Sesuai Harapan';
+    return 'Pengalaman Belum Memuaskan';
   }
 
   Future<void> _handleSubmit() async {
@@ -166,7 +166,7 @@ class _ConsultationRatingScreenState
                       children: [
                         Text(
                           'Beri Penilaian Sesi',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
                             color: AppColors.textPrimary,
@@ -174,7 +174,7 @@ class _ConsultationRatingScreenState
                         ),
                         Text(
                           'Ulasan & evaluasi bersama $counselorFirstName',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: GoogleFonts.inter(
                             fontSize: 12,
                             color: AppColors.textSecondary,
                           ),
@@ -232,7 +232,7 @@ class _ConsultationRatingScreenState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.borderSoft),
       ),
       child: Row(
         children: [
@@ -247,7 +247,7 @@ class _ConsultationRatingScreenState
               children: [
                 Text(
                   widget.psychologist.name,
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
@@ -258,7 +258,7 @@ class _ConsultationRatingScreenState
                 const SizedBox(height: 2),
                 Text(
                   widget.psychologist.title,
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 11.5,
                     color: AppColors.textSecondary,
                   ),
@@ -272,7 +272,7 @@ class _ConsultationRatingScreenState
                   ),
                   child: Text(
                     'Sesi Konseling Selesai',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.inter(
                       fontSize: 10.5,
                       fontWeight: FontWeight.w700,
                       color: AppColors.primary,
@@ -295,7 +295,7 @@ class _ConsultationRatingScreenState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.borderSoft),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -308,7 +308,7 @@ class _ConsultationRatingScreenState
         children: [
           Text(
             '1. Nilai Pengalaman Sesi (Star)',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 14.5,
               fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,
@@ -317,7 +317,7 @@ class _ConsultationRatingScreenState
           const SizedBox(height: 4),
           Text(
             'Pilih skala bintang 1.0 sampai 5.0',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 12,
               color: AppColors.textSecondary,
             ),
@@ -343,7 +343,7 @@ class _ConsultationRatingScreenState
                     duration: const Duration(milliseconds: 180),
                     child: Icon(
                       isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
-                      color: isFilled ? const Color(0xFFF59E0B) : const Color(0xFFCBD5E1),
+                      color: isFilled ? AppColors.warningDark : AppColors.borderSubtle,
                       size: 38,
                     ),
                   ),
@@ -365,7 +365,7 @@ class _ConsultationRatingScreenState
               ),
               child: Text(
                 _getRatingFeedbackLabel(_rating),
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: const Color(0xFFB45309),
@@ -386,7 +386,7 @@ class _ConsultationRatingScreenState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.borderSoft),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -400,7 +400,7 @@ class _ConsultationRatingScreenState
                   const SizedBox(width: 6),
                   Text(
                     '2. Ulasan Singkat',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.inter(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
@@ -410,10 +410,10 @@ class _ConsultationRatingScreenState
               ),
               Text(
                 'Maks. 50 Karakter',
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textLight,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
@@ -421,7 +421,7 @@ class _ConsultationRatingScreenState
           const SizedBox(height: 4),
           Text(
             'Tuliskan satu kalimat ulasan singkat atau kesan utama sesimu',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 11.5,
               color: AppColors.textSecondary,
             ),
@@ -433,31 +433,31 @@ class _ConsultationRatingScreenState
             controller: _labelController,
             maxLength: 50,
             onChanged: (_) => setState(() {}),
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 12.5,
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
             decoration: InputDecoration(
               hintText: 'Contoh: Sangat Sabar & Solutif',
-              hintStyle: GoogleFonts.plusJakartaSans(
+              hintStyle: GoogleFonts.inter(
                 fontSize: 12,
-                color: AppColors.textLight,
+                color: AppColors.textSecondary,
               ),
               filled: true,
-              fillColor: const Color(0xFFF8FAFC),
+              fillColor: AppColors.surfaceLow,
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              counterStyle: GoogleFonts.plusJakartaSans(
+              counterStyle: GoogleFonts.inter(
                 fontSize: 10.5,
-                color: AppColors.textLight,
+                color: AppColors.textSecondary,
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                borderSide: const BorderSide(color: AppColors.borderSoft),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                borderSide: const BorderSide(color: AppColors.borderSoft),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -478,7 +478,7 @@ class _ConsultationRatingScreenState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.borderSoft),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -488,7 +488,7 @@ class _ConsultationRatingScreenState
             children: [
               Text(
                 '3. Deskripsi Ulasan',
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textPrimary,
@@ -496,10 +496,10 @@ class _ConsultationRatingScreenState
               ),
               Text(
                 'Opsional',
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textLight,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
@@ -507,7 +507,7 @@ class _ConsultationRatingScreenState
           const SizedBox(height: 4),
           Text(
             'Ceritakan pengalaman, cara konselor membantumu, atau saran perbaikan',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 11.5,
               color: AppColors.textSecondary,
             ),
@@ -517,7 +517,7 @@ class _ConsultationRatingScreenState
             controller: _descriptionController,
             minLines: 3,
             maxLines: 5,
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 12.5,
               color: AppColors.textPrimary,
               height: 1.4,
@@ -525,20 +525,20 @@ class _ConsultationRatingScreenState
             decoration: InputDecoration(
               hintText:
                   'Contoh: Konselor sangat sabar mendengarkan tanpa menghakimi. Teknik grounding yang diajarkan sangat membantu meredakan rasa cemas sehari-hari.',
-              hintStyle: GoogleFonts.plusJakartaSans(
+              hintStyle: GoogleFonts.inter(
                 fontSize: 12,
-                color: AppColors.textLight,
+                color: AppColors.textSecondary,
               ),
               filled: true,
-              fillColor: const Color(0xFFF8FAFC),
+              fillColor: AppColors.surfaceLow,
               contentPadding: const EdgeInsets.all(12),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                borderSide: const BorderSide(color: AppColors.borderSoft),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                borderSide: const BorderSide(color: AppColors.borderSoft),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -557,7 +557,7 @@ class _ConsultationRatingScreenState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.borderSoft),
       ),
       child: Row(
         children: [
@@ -580,7 +580,7 @@ class _ConsultationRatingScreenState
               children: [
                 Text(
                   'Kirim Ulasan Secara Anonim',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
@@ -589,7 +589,7 @@ class _ConsultationRatingScreenState
                 const SizedBox(height: 2),
                 Text(
                   'Nama & profil Anda tidak diperlihatkan ke publik demi privasi medis.',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 10.5,
                     color: AppColors.textSecondary,
                     height: 1.3,
@@ -613,7 +613,7 @@ class _ConsultationRatingScreenState
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: const Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+        border: const Border(top: BorderSide(color: AppColors.borderSoft)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -653,7 +653,7 @@ class _ConsultationRatingScreenState
                       widget.initialRating != null
                           ? 'Perbarui Penilaian'
                           : 'Kirim Penilaian & Ulasan',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w800,
                       ),

@@ -29,9 +29,9 @@ class SessionDurationStepper extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: AppColors.surfaceLow,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.borderSoft),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -47,7 +47,7 @@ class SessionDurationStepper extends StatelessWidget {
                     const SizedBox(width: 6),
                     Text(
                       '$sessionCount Sesi ($totalMinutes Menit)',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
@@ -60,7 +60,7 @@ class SessionDurationStepper extends StatelessWidget {
                   coinsPerSession > 0
                       ? 'Total Biaya: $totalCoins Koin EVA ($coinsPerSession/sesi)'
                       : 'Konsultasi Gratis (Didanai Komunitas)',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w500,
                     color: coinsPerSession > 0 ? AppColors.primary : AppColors.success,
@@ -84,7 +84,7 @@ class SessionDurationStepper extends StatelessWidget {
                 alignment: Alignment.center,
                 child: Text(
                   '$sessionCount',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
@@ -120,13 +120,13 @@ class SessionDurationStepper extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(8),
           child: Container(
-            width: 36,
-            height: 36,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: isEnabled ? Colors.white : const Color(0xFFF1F5F9),
+              color: isEnabled ? Colors.white : AppColors.surfaceHigh,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isEnabled ? const Color(0xFFCBD5E1) : const Color(0xFFE2E8F0),
+                color: isEnabled ? AppColors.borderSubtle : AppColors.borderSoft,
               ),
               boxShadow: isEnabled
                   ? [
@@ -141,7 +141,7 @@ class SessionDurationStepper extends StatelessWidget {
             child: Icon(
               icon,
               size: 18,
-              color: isEnabled ? AppColors.textPrimary : const Color(0xFF94A3B8),
+              color: isEnabled ? AppColors.textPrimary : AppColors.textSecondary,
             ),
           ),
         ),

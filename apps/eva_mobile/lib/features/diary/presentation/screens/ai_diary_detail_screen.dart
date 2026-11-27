@@ -388,7 +388,7 @@ class _AiDiaryDetailScreenState extends ConsumerState<AiDiaryDetailScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9FB),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -448,15 +448,15 @@ class _AiDiaryDetailScreenState extends ConsumerState<AiDiaryDetailScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFF0F2),
+                            color: AppColors.errorContainer,
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(
-                              color: const Color(0xFFE57373).withValues(alpha: 0.4),
+                              color: AppColors.error.withValues(alpha: 0.35),
                               width: 1.5,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFFE57373).withValues(alpha: 0.1),
+                                color: AppColors.error.withValues(alpha: 0.08),
                                 blurRadius: 16,
                                 offset: const Offset(0, 4),
                               ),
@@ -470,7 +470,7 @@ class _AiDiaryDetailScreenState extends ConsumerState<AiDiaryDetailScreen> {
                                   Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFE57373),
+                                      color: AppColors.error,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: const Icon(Icons.crisis_alert, color: Colors.white, size: 20),

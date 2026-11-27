@@ -90,7 +90,7 @@ class MonitoringScreenState extends ConsumerState<MonitoringScreen>
         return const [Color(0xFFFFEBEE), Color(0xFFFFCDD2)];
       case 0:
       default:
-        return const [Color(0xFFF1F5F9), Color(0xFFE2E8F0)];
+        return const [AppColors.surfaceHigh, AppColors.borderSoft];
     }
   }
 
@@ -247,7 +247,7 @@ class MonitoringScreenState extends ConsumerState<MonitoringScreen>
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(
                 fontSize: 13,
-                color: AppColors.textLight,
+                color: AppColors.textSecondary,
                 height: 1.45,
               ),
             ),
@@ -287,7 +287,7 @@ class MonitoringScreenState extends ConsumerState<MonitoringScreen>
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
-                      Icons.auto_awesome,
+                      Icons.insights_rounded,
                       size: 16,
                       color: AppColors.primary,
                     ),
@@ -538,7 +538,7 @@ class MonitoringScreenState extends ConsumerState<MonitoringScreen>
         const SizedBox(height: 16),
 
         // 5. STACKED BAR CHART RITEM SUASANA HATI (7 Emosi)
-        GlassCard(
+        GlassCard.surface(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -620,7 +620,7 @@ class MonitoringScreenState extends ConsumerState<MonitoringScreen>
                       style: GoogleFonts.inter(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textLight,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   );
@@ -628,7 +628,7 @@ class MonitoringScreenState extends ConsumerState<MonitoringScreen>
               ),
               const SizedBox(height: 18),
 
-              const Divider(height: 1, color: Color(0xFFEBECEF)),
+              const Divider(height: 1, color: AppColors.borderSoft),
               const SizedBox(height: 14),
 
               // Legend Key for 7 Emotions
@@ -637,7 +637,7 @@ class MonitoringScreenState extends ConsumerState<MonitoringScreen>
                 style: GoogleFonts.inter(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textLight,
+                  color: AppColors.textSecondary,
                   letterSpacing: 0.8,
                 ),
               ),
@@ -654,7 +654,7 @@ class MonitoringScreenState extends ConsumerState<MonitoringScreen>
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: const Color(0xFFE2E8F0),
+                        color: AppColors.borderSoft,
                         width: 1,
                       ),
                     ),
@@ -789,12 +789,12 @@ class MonitoringScreenState extends ConsumerState<MonitoringScreen>
   }
 
   Widget _buildErrorState(Object error) {
-    return GlassCard(
+    return GlassCard.surface(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          const Icon(Icons.insights_rounded, size: 48, color: AppColors.textLight),
+          const Icon(Icons.insights_rounded, size: 48, color: AppColors.textSecondary),
           const SizedBox(height: 12),
           Text(
             'Belum Ada Data Tren Emosional',

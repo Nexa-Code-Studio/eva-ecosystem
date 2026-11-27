@@ -35,7 +35,7 @@ class HomeDailyProgressCard extends StatelessWidget {
     String progressMotivation;
     if (completedCount == 3) {
       progressMotivation =
-          'Luar biasa! Semua target perawatan dirimu tercapai hari ini 🌟';
+          'Luar biasa! Semua target perawatan dirimu tercapai hari ini.';
     } else if (completedCount == 2) {
       progressMotivation =
           'Tinggal 1 langkah lagi untuk melengkapi rutinitas terapeutikmu.';
@@ -61,15 +61,17 @@ class HomeDailyProgressCard extends StatelessWidget {
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: completedCount == 3
-                          ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                          ? AppColors.success.withValues(alpha: 0.14)
                           : AppColors.primary.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      completedCount == 3 ? Icons.stars_rounded : Icons.spa_rounded,
+                      completedCount == 3
+                          ? Icons.verified_rounded
+                          : Icons.spa_rounded,
                       size: 16,
                       color: completedCount == 3
-                          ? const Color(0xFF10B981)
+                          ? AppColors.successDark
                           : AppColors.primary,
                     ),
                   ),
@@ -93,12 +95,12 @@ class HomeDailyProgressCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
               decoration: BoxDecoration(
                 color: completedCount == 3
-                    ? const Color(0xFFD1FAE5)
+                    ? AppColors.successContainer
                     : AppColors.primaryContainer,
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(
                   color: completedCount == 3
-                      ? const Color(0xFF10B981).withValues(alpha: 0.3)
+                      ? AppColors.success.withValues(alpha: 0.3)
                       : AppColors.primary.withValues(alpha: 0.15),
                   width: 1,
                 ),
@@ -110,7 +112,7 @@ class HomeDailyProgressCard extends StatelessWidget {
                     const Icon(
                       Icons.check_circle_rounded,
                       size: 13,
-                      color: Color(0xFF047857),
+                      color: AppColors.successDark,
                     ),
                     const SizedBox(width: 4),
                   ],
@@ -120,7 +122,7 @@ class HomeDailyProgressCard extends StatelessWidget {
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: completedCount == 3
-                          ? const Color(0xFF047857)
+                          ? AppColors.successDark
                           : AppColors.primary,
                     ),
                   ),
@@ -161,13 +163,13 @@ class HomeDailyProgressCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
                   color: completedCount == 3
-                      ? const Color(0xFFF0FDF4)
-                      : const Color(0xFFF8FAFC),
+                      ? AppColors.successContainer
+                      : AppColors.surfaceLow,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: completedCount == 3
-                        ? const Color(0xFF86EFAC).withValues(alpha: 0.5)
-                        : const Color(0xFFE2E8F0),
+                        ? AppColors.success.withValues(alpha: 0.35)
+                        : AppColors.borderSoft,
                     width: 1,
                   ),
                 ),
@@ -176,10 +178,10 @@ class HomeDailyProgressCard extends StatelessWidget {
                     Icon(
                       completedCount == 3
                           ? Icons.emoji_events_rounded
-                          : Icons.auto_awesome,
+                          : Icons.track_changes_rounded,
                       size: 16,
                       color: completedCount == 3
-                          ? const Color(0xFF10B981)
+                          ? AppColors.successDark
                           : AppColors.primary,
                     ),
                     const SizedBox(width: 8),
@@ -190,7 +192,7 @@ class HomeDailyProgressCard extends StatelessWidget {
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                           color: completedCount == 3
-                              ? const Color(0xFF065F46)
+                              ? AppColors.successDark
                               : AppColors.textSecondary,
                           height: 1.35,
                         ),
@@ -204,7 +206,7 @@ class HomeDailyProgressCard extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: completedCount == 3
-                            ? const Color(0xFF10B981)
+                            ? AppColors.successDark
                             : AppColors.primary,
                         borderRadius: BorderRadius.circular(999),
                       ),
@@ -268,7 +270,7 @@ class HomeDailyProgressCard extends StatelessWidget {
       duration: const Duration(milliseconds: 300),
       height: 6,
       decoration: BoxDecoration(
-        color: isActive ? AppColors.primary : const Color(0xFFE2E8F0),
+        color: isActive ? AppColors.primary : AppColors.borderSoft,
         borderRadius: BorderRadius.circular(999),
       ),
     );
@@ -291,12 +293,12 @@ class HomeDailyProgressCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: isCompleted
                 ? AppColors.primaryContainer.withValues(alpha: 0.35)
-                : const Color(0xFFF8FAFC),
+                : AppColors.surfaceLow,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isCompleted
                   ? AppColors.primary.withValues(alpha: 0.35)
-                  : const Color(0xFFE2E8F0),
+                  : AppColors.borderSoft,
               width: 1,
             ),
           ),
@@ -310,7 +312,7 @@ class HomeDailyProgressCard extends StatelessWidget {
                   color: isCompleted ? AppColors.primary : Colors.white,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isCompleted ? AppColors.primary : const Color(0xFFCBD5E1),
+                    color: isCompleted ? AppColors.primary : AppColors.borderSubtle,
                     width: 1.5,
                   ),
                 ),
@@ -340,7 +342,7 @@ class HomeDailyProgressCard extends StatelessWidget {
                       subtitle,
                       style: GoogleFonts.inter(
                         fontSize: 11,
-                        color: AppColors.textLight,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -350,7 +352,7 @@ class HomeDailyProgressCard extends StatelessWidget {
               Icon(
                 icon,
                 size: 18,
-                color: isCompleted ? AppColors.primary : const Color(0xFF94A3B8),
+                color: isCompleted ? AppColors.primary : AppColors.textSecondary,
               ),
             ],
           ),

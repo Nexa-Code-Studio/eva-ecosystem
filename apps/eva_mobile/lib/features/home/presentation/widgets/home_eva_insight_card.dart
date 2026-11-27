@@ -18,11 +18,10 @@ class HomeEvaInsightCard extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           colors: [
-            Color(0xFFEDE9FE),
-            Color(0xFFF3E8FF),
-            Color(0xFFE0E7FF),
+            AppColors.secondary.withValues(alpha: 0.5),
+            AppColors.primaryContainer,
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -52,7 +51,7 @@ class HomeEvaInsightCard extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.auto_awesome,
+                  Icons.format_quote_rounded,
                   size: 15,
                   color: AppColors.primary,
                 ),
@@ -77,7 +76,7 @@ class HomeEvaInsightCard extends StatelessWidget {
               fontStyle: FontStyle.italic,
               height: 1.5,
               fontWeight: FontWeight.w500,
-              color: const Color(0xFF333878),
+              color: AppColors.onPrimaryContainer,
             ),
           ),
         ],

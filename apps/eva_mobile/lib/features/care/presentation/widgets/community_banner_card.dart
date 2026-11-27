@@ -68,7 +68,7 @@ class CommunityBannerCard extends StatelessWidget {
                     const SizedBox(width: 6),
                     Text(
                       'KOMUNITAS SAFE SPACE',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -87,7 +87,7 @@ class CommunityBannerCard extends StatelessWidget {
                 ),
                 child: Text(
                   '1 Bln VIP Trial',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
                     color: const Color(0xFF854D0E),
@@ -99,7 +99,7 @@ class CommunityBannerCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'Ruang Aman untuk Saling Bercerita & Berproses Bersama',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 17,
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -109,7 +109,7 @@ class CommunityBannerCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             'Sekali bayar untuk masuk server seumur hidup. Nikmati bonus 1 bulan gratis tiket live sharing session & webinar bersama psikolog.',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 13,
               fontWeight: FontWeight.w400,
               color: Colors.white.withValues(alpha: 0.9),
@@ -124,14 +124,14 @@ class CommunityBannerCard extends StatelessWidget {
                 children: [
                   Text(
                     'Biaya Masuk',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.inter(
                       fontSize: 11,
                       color: Colors.white.withValues(alpha: 0.75),
                     ),
                   ),
                   Text(
                     'Rp 49.000',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.inter(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
@@ -154,7 +154,7 @@ class CommunityBannerCard extends StatelessWidget {
                 icon: const Icon(Icons.star, size: 16, color: Color(0xFFEAB308)),
                 label: Text(
                   'Gabung Sekarang',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                   ),
@@ -206,7 +206,7 @@ class CommunityBannerCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       'VIP EVENT AKTIF',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         color: const Color(0xFF713F12),
@@ -224,7 +224,7 @@ class CommunityBannerCard extends StatelessWidget {
                 ),
                 child: Text(
                   'Sisa ${status.vipRemainingDays} Hari',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -236,7 +236,7 @@ class CommunityBannerCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'Kamu adalah Bagian dari Eva Safe Space',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -245,7 +245,7 @@ class CommunityBannerCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Tiket VIP Event aktif: kamu dapat bergabung di webinar mingguan dan room sharing bersama psikolog di Discord.',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 12.5,
               color: Colors.white.withValues(alpha: 0.9),
             ),
@@ -266,7 +266,7 @@ class CommunityBannerCard extends StatelessWidget {
               icon: const Icon(Icons.forum_outlined, size: 18),
               label: Text(
                 'Buka Komunitas Discord',
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
@@ -306,7 +306,7 @@ class CommunityBannerCard extends StatelessWidget {
                 ),
                 child: Text(
                   'Member Server Aktif',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.inter(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: AppColors.primary,
@@ -316,9 +316,9 @@ class CommunityBannerCard extends StatelessWidget {
               const Spacer(),
               Text(
                 'VIP Trial Berakhir',
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.inter(
                   fontSize: 11,
-                  color: AppColors.textLight,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
@@ -326,7 +326,7 @@ class CommunityBannerCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Ingin Ikut Live Webinar Psikolog Bulan Ini?',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 14.5,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
@@ -335,7 +335,7 @@ class CommunityBannerCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Akses server Discord tetap berlaku seumur hidup. Perpanjang VIP Event Pass untuk join sesi tanya jawab langsung.',
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.inter(
               fontSize: 12,
               color: AppColors.textSecondary,
             ),
@@ -348,14 +348,14 @@ class CommunityBannerCard extends StatelessWidget {
                   onPressed: onOpenDiscord,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.textPrimary,
-                    side: BorderSide(color: Colors.grey.shade300),
+                    side: BorderSide(color: AppColors.borderSubtle),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                   child: Text(
                     'Buka Discord',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.inter(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
                     ),
@@ -376,7 +376,7 @@ class CommunityBannerCard extends StatelessWidget {
                   ),
                   child: Text(
                     'Perpanjang VIP',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.inter(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w700,
                     ),

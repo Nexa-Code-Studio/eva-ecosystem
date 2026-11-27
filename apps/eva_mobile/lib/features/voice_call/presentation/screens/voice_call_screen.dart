@@ -149,10 +149,10 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
                 height: 64,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFFFFE0E3),
+                  color: AppColors.errorContainer,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFE57373).withValues(alpha: 0.25),
+                      color: AppColors.error.withValues(alpha: 0.25),
                       blurRadius: 20,
                       offset: const Offset(0, 6),
                     ),
@@ -160,7 +160,7 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
                 ),
                 child: const Icon(
                   Icons.favorite,
-                  color: Color(0xFFE57373),
+                  color: AppColors.error,
                   size: 32,
                 ),
               ),
@@ -168,7 +168,7 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
 
               // Title
               Text(
-                'Deteksi Beban Emosional Berat 🍃',
+                'Deteksi Beban Emosional Berat',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   fontSize: 18,
@@ -194,17 +194,17 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF5F5),
+                  color: AppColors.errorContainer,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: const Color(0xFFE57373).withValues(alpha: 0.3),
+                    color: AppColors.error.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
                   children: [
                     const Icon(
                       Icons.air_rounded,
-                      color: Color(0xFFE57373),
+                      color: AppColors.error,
                       size: 20,
                     ),
                     const SizedBox(width: 10),
@@ -214,7 +214,7 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
                         style: GoogleFonts.inter(
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
-                          color: const Color(0xFF881337),
+                          color: AppColors.errorDark,
                           height: 1.35,
                         ),
                       ),
@@ -224,13 +224,14 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
               ),
               const SizedBox(height: 20),
 
-              // Action 1: Open Crisis Support (Pink/Rose button)
+              // Action 1: Open Crisis Support
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE57373),
+                    backgroundColor: AppColors.error,
                     foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(48),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -259,7 +260,8 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.textSecondary,
-                    side: const BorderSide(color: Color(0xFFE2E8F0)),
+                    minimumSize: const Size.fromHeight(44),
+                    side: const BorderSide(color: AppColors.borderSoft),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -351,7 +353,7 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: AppColors.borderSubtle,
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
@@ -376,7 +378,7 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Sesi Suara Selesai 🍃',
+                        'Sesi Suara Selesai',
                         style: GoogleFonts.inter(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -402,23 +404,23 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
                   width: double.infinity,
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF0F2),
+                    color: AppColors.errorContainer,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: const Color(0xFFE57373).withValues(alpha: 0.4),
+                      color: AppColors.error.withValues(alpha: 0.35),
                     ),
                   ),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFFDCDD),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.14),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
                           Icons.favorite,
-                          color: Color(0xFFE57373),
+                          color: AppColors.error,
                           size: 18,
                         ),
                       ),
@@ -432,7 +434,7 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
                               style: GoogleFonts.inter(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
-                                color: const Color(0xFFD32F2F),
+                                color: AppColors.errorDark,
                               ),
                             ),
                             Text(
@@ -451,11 +453,11 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
                           Navigator.pushNamed(context, '/support');
                         },
                         child: Text(
-                          'Buka →',
+                          'Buka',
                           style: GoogleFonts.inter(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: const Color(0xFFD32F2F),
+                            color: AppColors.errorDark,
                           ),
                         ),
                       ),
@@ -466,7 +468,7 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
               ],
 
               if (hasDassTriggered) ...[
-                GlassCard(
+                GlassCard.surface(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -518,7 +520,7 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
                 ),
                 const SizedBox(height: 10),
               ] else ...[
-                GlassCard(
+                GlassCard.surface(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -532,7 +534,7 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE8F5E9),
+                              color: AppColors.successContainer,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -540,7 +542,7 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
                               style: GoogleFonts.inter(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
-                                color: const Color(0xFF2E7D32),
+                                color: AppColors.successDark,
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -586,7 +588,7 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: isTutorialActive
-                          ? AppColors.textLight.withValues(alpha: 0.35)
+                          ? AppColors.textSecondary.withValues(alpha: 0.4)
                           : AppColors.textSecondary,
                     ),
                   ),
@@ -807,8 +809,8 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Color(0xFF13111C),
-                Color(0xFF0F0E17),
+                Color(0xFF1A1D42),
+                Color(0xFF141633),
               ],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
@@ -1039,7 +1041,7 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: state.isSpeakerOn
-                              ? const Color(0xFF3F51B5)
+                              ? AppColors.primary
                               : Colors.white.withValues(alpha: 0.15),
                         ),
                         child: Icon(
@@ -1101,7 +1103,7 @@ class _VoiceCallScreenState extends ConsumerState<VoiceCallScreen>
       return ElevatedButton.icon(
         onPressed: () => controller.bargeIn(),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFF59E0B),
+          backgroundColor: AppColors.warningDark,
           foregroundColor: Colors.white,
           elevation: 2,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

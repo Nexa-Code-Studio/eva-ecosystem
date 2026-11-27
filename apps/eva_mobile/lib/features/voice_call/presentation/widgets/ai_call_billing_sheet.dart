@@ -30,7 +30,7 @@ Future<bool> showAiCallStartConfirmSheet(
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE2E8F0),
+                  color: AppColors.borderSoft,
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
@@ -165,7 +165,7 @@ Future<void> showAiCallInsufficientCoinSheet(
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE2E8F0),
+                  color: AppColors.borderSoft,
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
