@@ -48,6 +48,10 @@ class ClinicalNoteResponseDto {
   final List<String> recommendedTasks;
   final List<String> points;
   final String narrative;
+  final int coinsAwarded;
+  final int? coinBalance;
+  final String? soapEditDeadline;
+  final bool isSoapEditable;
 
   const ClinicalNoteResponseDto({
     required this.id,
@@ -61,6 +65,10 @@ class ClinicalNoteResponseDto {
     required this.recommendedTasks,
     this.points = const [],
     this.narrative = '',
+    this.coinsAwarded = 0,
+    this.coinBalance,
+    this.soapEditDeadline,
+    this.isSoapEditable = true,
   });
 
   factory ClinicalNoteResponseDto.fromJson(Map<String, dynamic> json) {
@@ -89,6 +97,10 @@ class ClinicalNoteResponseDto {
           [],
       points: points,
       narrative: narrative,
+      coinsAwarded: (json['coins_awarded'] as num?)?.toInt() ?? 0,
+      coinBalance: (json['coin_balance'] as num?)?.toInt(),
+      soapEditDeadline: json['soap_edit_deadline']?.toString(),
+      isSoapEditable: json['is_soap_editable'] as bool? ?? true,
     );
   }
 
@@ -105,6 +117,10 @@ class ClinicalNoteResponseDto {
       recommendedTasks: recommendedTasks,
       points: points,
       narrative: narrative,
+      coinsAwarded: coinsAwarded,
+      coinBalance: coinBalance,
+      soapEditDeadline: soapEditDeadline != null ? DateTime.tryParse(soapEditDeadline!) : null,
+      isSoapEditable: isSoapEditable,
     );
   }
 }

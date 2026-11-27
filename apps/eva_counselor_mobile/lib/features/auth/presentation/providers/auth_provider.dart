@@ -380,6 +380,12 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
     state = AsyncValue.data(current.copyWith(coinBalance: newBalance));
   }
 
+  void syncCoinBalance(int newBalance) {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncValue.data(current.copyWith(coinBalance: newBalance.clamp(0, 9999999)));
+  }
+
   void setVerificationStatus(VerificationStatus status) {
     final current = state.value;
     if (current == null) return;
