@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,6 +37,8 @@ class _EditProfileContentState extends ConsumerState<_EditProfileContent> {
   late TextEditingController _nameCtrl;
   late TextEditingController _degreeCtrl;
   String? _selectedPhotoPath;
+  Uint8List? _pickedBytes;
+  String? _pickedFilename;
   bool _isLoading = false;
 
   @override
@@ -61,21 +63,25 @@ class _EditProfileContentState extends ConsumerState<_EditProfileContent> {
       allowedExtensions: ['jpg', 'jpeg', 'png', 'webp'],
     );
     if (file != null) {
-      String? resolved;
       try {
         final bytes = await file.readAsBytes();
-        final ext = file.extension?.toLowerCase() ?? 'png';
-        final mime = (ext == 'jpg' || ext == 'jpeg') ? 'image/jpeg' : 'image/$ext';
-        resolved = 'data:$mime;base64,${base64Encode(bytes)}';
-      } catch (_) {
-        if (file.path != null && file.path!.isNotEmpty) {
-          resolved = file.path;
+        if (bytes.isNotEmpty && mounted) {
+          final ext = (file.extension?.toLowerCase() ?? 'jpg').replaceAll('jpeg', 'jpg');
+          final safeName = file.name.isNotEmpty ? file.name : 'avatar.$ext';
+          setState(() {
+            _pickedBytes = bytes;
+            _pickedFilename = safeName;
+          });
         }
-      }
-      if (resolved != null && mounted) {
-        setState(() {
-          _selectedPhotoPath = resolved;
-        });
+      } catch (_) {
+        if (mounted) {
+          TopToast.show(
+            context,
+            title: 'Gagal Membaca Berkas',
+            message: 'Tidak dapat membaca berkas gambar yang dipilih.',
+            type: ToastType.error,
+          );
+        }
       }
     }
   }
@@ -97,10 +103,16 @@ class _EditProfileContentState extends ConsumerState<_EditProfileContent> {
     setState(() => _isLoading = true);
 
     try {
+      if (_pickedBytes != null && _pickedFilename != null) {
+        await ref.read(authStateProvider.notifier).uploadAvatar(
+              bytes: _pickedBytes!,
+              filename: _pickedFilename!,
+            );
+      }
+
       await ref.read(authStateProvider.notifier).updateProfile(
             fullName: newName,
             titleDegree: newDegree.isNotEmpty ? newDegree : 'M.Psi., Psikolog',
-            profilePhotoUrl: _selectedPhotoPath,
           );
 
       if (mounted) {
@@ -173,8 +185,11 @@ class _EditProfileContentState extends ConsumerState<_EditProfileContent> {
                   CircleAvatar(
                     radius: 44,
                     backgroundColor: AppColors.primaryContainer,
-                    backgroundImage: getProfileImageProvider(_selectedPhotoPath),
-                    child: getProfileImageProvider(_selectedPhotoPath) == null
+                    backgroundImage: _pickedBytes != null
+                        ? MemoryImage(_pickedBytes!)
+                        : getProfileImageProvider(_selectedPhotoPath),
+                    child: (_pickedBytes == null &&
+                            getProfileImageProvider(_selectedPhotoPath) == null)
                         ? const Icon(Icons.person,
                             size: 44, color: AppColors.primary)
                         : null,

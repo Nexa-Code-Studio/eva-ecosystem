@@ -90,13 +90,33 @@ class AIOrchestrator:
         rag_timeout_seconds: float = 0.4,
     ):
         self.stt_provider = stt_provider
-        self.llm_provider = llm_provider or LLMFactory.get_provider()
-        self.tts_provider = tts_provider or TTSFactory.get_provider()
+        self._llm_provider: Optional[BaseLLMProvider] = llm_provider
+        self._tts_provider: Optional[BaseTTSProvider] = tts_provider
         self.emotion_service = emotion_service or EmotionService()
         self.symptom_service = symptom_service or SymptomService()
         self.risk_service = risk_service or RiskAssessmentService()
         self.safety_gate = safety_gate or SafetyGate()
         self.rag_timeout_seconds = rag_timeout_seconds
+
+    @property
+    def llm_provider(self) -> BaseLLMProvider:
+        if self._llm_provider is None:
+            self._llm_provider = LLMFactory.get_provider()
+        return self._llm_provider
+
+    @llm_provider.setter
+    def llm_provider(self, value: Optional[BaseLLMProvider]) -> None:
+        self._llm_provider = value
+
+    @property
+    def tts_provider(self) -> BaseTTSProvider:
+        if self._tts_provider is None:
+            self._tts_provider = TTSFactory.get_provider()
+        return self._tts_provider
+
+    @tts_provider.setter
+    def tts_provider(self, value: Optional[BaseTTSProvider]) -> None:
+        self._tts_provider = value
 
         # Inisialisasi komponen RAG Qdrant
         if rag_service and embedding_provider:
@@ -692,5 +712,7 @@ class AIOrchestrator:
         self,
         audio_stream: AsyncGenerator[bytes, None],
     ) -> AsyncGenerator[bytes, None]:
-        """Placeholder interface streaming audio murni."""
-        yield b""
+        """Unimplemented streaming-only interface; use prepare_turn instead."""
+        raise NotImplementedError("process_stream_turn is not implemented; use prepare_turn.")
+        if False:
+            yield b""

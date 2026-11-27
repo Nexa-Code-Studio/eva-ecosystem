@@ -209,6 +209,20 @@ class MockAuthDataSource implements AuthDataSource {
   }
 
   @override
+  Future<PsychologistProfileResponseDto> uploadAvatar({
+    required List<int> bytes,
+    required String filename,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final base = _currentProfile ?? await getProfile();
+    final safeName = filename.isNotEmpty ? filename : 'avatar.jpg';
+    _currentProfile = base.copyWith(
+      profilePhotoUrl: 'https://eva-mock.local/api/v1/counselors/avatars/${base.id}-$safeName',
+    );
+    return _currentProfile!;
+  }
+
+  @override
   Future<PsychologistProfileResponseDto> updateBankDetails({
     required String bankName,
     required String accountNumber,

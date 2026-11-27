@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/app_async_state_view.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/api_client.dart';
@@ -210,7 +211,7 @@ class _BankAccountModalContentState
 
       TopToast.show(
         context,
-        title: 'Rekening Tersimpan! 💳',
+        title: 'Rekening Tersimpan',
         message: 'Rekening ${saved.bankName} berhasil diverifikasi dan disimpan sebagai rekening pencairan.',
         type: ToastType.success,
       );
@@ -389,7 +390,7 @@ class _BankAccountModalContentState
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              isVerified ? 'TERVERIFIKASI ✅' : 'BELUM DIVERIFIKASI ⚠️',
+                              isVerified ? 'Terverifikasi' : 'Belum Diverifikasi',
                               style: TextStyle(
                                 color: isVerified
                                     ? const Color(0xFF6EE7B7)
@@ -536,15 +537,16 @@ class _BankAccountModalContentState
                     ],
                   );
                 },
-                loading: () => const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(12),
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
+                loading: () => AppAsyncStateView.loading(
+                  title: 'Memuat daftar bank...',
+                  message: 'Mengambil daftar bank yang didukung.',
+                  compact: true,
                 ),
-                error: (e, _) => Text(
-                  'Gagal memuat daftar bank: $e',
-                  style: const TextStyle(fontSize: 12, color: Colors.red),
+                error: (e, _) => AppAsyncStateView.error(
+                  title: 'Gagal memuat daftar bank',
+                  message: 'Daftar bank belum dapat dimuat saat ini.',
+                  onRetry: () => ref.invalidate(supportedBanksProvider),
+                  compact: true,
                 ),
               ),
               const SizedBox(height: 14),
@@ -684,8 +686,8 @@ class _BankAccountModalContentState
                             ),
                             child: Text(
                               _validationResult!.isVerified
-                                  ? 'TERVERIFIKASI ✅'
-                                  : 'TIDAK VALID ⚠️',
+                                  ? 'Terverifikasi'
+                                  : 'Tidak Valid',
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,

@@ -88,8 +88,8 @@ class CounselorProfileHeaderCard extends ConsumerWidget {
     final metrics = metricsAsync.valueOrNull;
 
     final ratingVal = (metrics != null && metrics.ratingCount > 0)
-        ? '${metrics.averageRating.toStringAsFixed(1)} ⭐'
-        : 'Baru ⭐';
+        ? '${metrics.averageRating.toStringAsFixed(1)} / 5.0'
+        : 'Baru';
     final reviewVal = (metrics != null && metrics.ratingCount > 0)
         ? '${metrics.ratingCount} Ulasan >'
         : '0 Ulasan >';
@@ -103,14 +103,7 @@ class CounselorProfileHeaderCard extends ConsumerWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFECEFF8)),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.04),
-            blurRadius: 18,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: AppColors.cardBorder),
       ),
       child: Column(
         children: [

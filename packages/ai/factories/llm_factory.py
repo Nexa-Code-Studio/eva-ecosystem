@@ -19,7 +19,7 @@ def _is_placeholder(key: str | None) -> bool:
 
 
 class LLMFactory:
-    """Factory for instantiating LLM providers based on environment configuration."""
+    """Factory for instantiating LLM providers with strict fail-fast validation."""
 
     _instances: ClassVar[dict[str, BaseLLMProvider]] = {}
 
@@ -27,38 +27,47 @@ class LLMFactory:
     def get_provider(
         cls, provider_type: str | None = None, force_new: bool = False
     ) -> BaseLLMProvider:
-        target = (provider_type or settings.LLM_PROVIDER or "mock").lower()
+        configured = (settings.LLM_PROVIDER or "").strip().lower()
+        if provider_type is None and configured == "mock":
+            raise RuntimeError(
+                "LLM_PROVIDER='mock' is disabled; configure a real LLM provider "
+                "(deepseek, openai, gemini, ollama)."
+            )
+
+        target = (provider_type or configured or "openai").strip().lower()
 
         if not force_new and target in cls._instances:
             return cls._instances[target]
 
+        is_prod = settings.APP_ENV.lower() == "production"
         logger.info(f"Instantiating LLM Provider: '{target}'")
 
         if target in ("deepseek", "deepseek-chat"):
             if _is_placeholder(settings.LLM_API_KEY):
-                logger.warning("LLM_API_KEY is empty or placeholder in .env. Falling back to MockLLMProvider.")
-                instance = MockLLMProvider()
-            else:
-                instance = DeepSeekLLMProvider()
+                raise RuntimeError("LLM_API_KEY is missing or placeholder for DeepSeek provider.")
+            instance: BaseLLMProvider = DeepSeekLLMProvider()
         elif target == "openai":
             if _is_placeholder(settings.LLM_API_KEY):
-                logger.warning("LLM_API_KEY is empty or placeholder in .env. Falling back to MockLLMProvider.")
-                instance = MockLLMProvider()
-            else:
-                instance = OpenAILLMProvider()
+                raise RuntimeError("LLM_API_KEY is missing or placeholder for OpenAI provider.")
+            instance = OpenAILLMProvider()
         elif target == "gemini":
             if _is_placeholder(settings.GEMINI_API_KEY) and _is_placeholder(settings.LLM_API_KEY):
-                logger.warning("GEMINI_API_KEY is empty or placeholder in .env. Falling back to MockLLMProvider.")
-                instance = MockLLMProvider()
-            else:
-                instance = GeminiLLMProvider()
+                raise RuntimeError("GEMINI_API_KEY or LLM_API_KEY is missing or placeholder for Gemini provider.")
+            instance = GeminiLLMProvider()
         elif target == "ollama":
             instance = OllamaLLMProvider()
         elif target == "mock":
+            if is_prod:
+                raise RuntimeError("LLM_PROVIDER='mock' is prohibited in production.")
             instance = MockLLMProvider()
         else:
-            logger.warning(f"Unknown LLM provider '{target}', falling back to MockLLMProvider.")
-            instance = MockLLMProvider()
+            raise RuntimeError(
+                f"Unsupported LLM_PROVIDER '{target}'. Supported providers: deepseek, openai, gemini, ollama."
+            )
 
         cls._instances[target] = instance
         return instance
+
+    @classmethod
+    def reset(cls) -> None:
+        cls._instances.clear()

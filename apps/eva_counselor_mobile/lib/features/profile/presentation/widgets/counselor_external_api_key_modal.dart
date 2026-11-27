@@ -40,7 +40,7 @@ class _CounselorExternalApiKeySheetState
     Clipboard.setData(ClipboardData(text: text));
     TopToast.show(
       context,
-      title: 'Tersalin ke Clipboard 📋',
+      title: 'Tersalin ke Clipboard',
       message: '$label telah disalin ke clipboard.',
       type: ToastType.success,
     );
@@ -54,7 +54,7 @@ class _CounselorExternalApiKeySheetState
 
     TopToast.show(
       context,
-      title: 'Sinkronisasi Berhasil! 🔄',
+      title: 'Sinkronisasi Berhasil',
       message: '$count slot jadwal offline dari sistem eksternal berhasil diimpor ke jadwal praktik Anda.',
       type: ToastType.success,
     );
@@ -73,7 +73,7 @@ class _CounselorExternalApiKeySheetState
           ],
         ),
         content: const Text(
-          'API Key lama akan langsung tidak berlaku. Sistem eksternal (SIMRS/EHR) Anda harus diperbarui dengan API Key baru agar sinkronisasi jadwal offline tetap berjalan.',
+          'API Key lama langsung nonaktif. Perbarui kunci pada SIMRS/EHR Anda agar sinkronisasi jadwal tetap berjalan.',
           style: TextStyle(fontSize: 12, height: 1.4, color: AppColors.textSecondary),
         ),
         actions: [
@@ -92,7 +92,7 @@ class _CounselorExternalApiKeySheetState
               ref.read(authStateProvider.notifier).generateOrRotateExternalApiKey();
               TopToast.show(
                 context,
-                title: 'API Key Berhasil Dirotasi! 🔑',
+                title: 'API Key Berhasil Dirotasi',
                 message: 'API Key baru telah dibuat. Jangan lupa perbarui header sistem Anda.',
                 type: ToastType.success,
               );
@@ -191,7 +191,7 @@ class _CounselorExternalApiKeySheetState
             ),
             const SizedBox(height: 4),
             const Text(
-              'Gunakan Personal Access Token (API Key) dan NIP Pegawai Anda untuk mengambil serta menyinkronkan jadwal offline dari SIMRS, EHR, atau sistem klinik luar.',
+              'Gunakan API Key dan NIP Pegawai untuk menyinkronkan jadwal offline dari SIMRS atau EHR klinik.',
               style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
             ),
             const SizedBox(height: 16),
@@ -338,7 +338,7 @@ class _CounselorExternalApiKeySheetState
                         ref.read(authStateProvider.notifier).generateOrRotateExternalApiKey();
                         TopToast.show(
                           context,
-                          title: 'API Key Berhasil Dibuat! 🔑',
+                          title: 'API Key Berhasil Dibuat',
                           message: 'Kunci akses jadwal eksternal aktif.',
                           type: ToastType.success,
                         );

@@ -16,7 +16,7 @@ class EvaCounselorApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'EVA Counselor — Portal Psikolog',
+      title: 'EVA Counselor: Portal Psikolog',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       initialRoute: '/counselor-login',

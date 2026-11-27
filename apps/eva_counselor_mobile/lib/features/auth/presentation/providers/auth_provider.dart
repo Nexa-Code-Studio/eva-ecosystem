@@ -392,6 +392,14 @@ class AuthStateNotifier extends StateNotifier<AsyncValue<PsychologistUserEntity?
     state = AsyncValue.data(current.copyWith(verificationStatus: status));
   }
 
+  Future<void> uploadAvatar({
+    required List<int> bytes,
+    required String filename,
+  }) async {
+    final updated = await _repository.uploadAvatar(bytes: bytes, filename: filename);
+    state = AsyncValue.data(updated);
+  }
+
   Future<void> updateProfile({
     String? fullName,
     String? titleDegree,

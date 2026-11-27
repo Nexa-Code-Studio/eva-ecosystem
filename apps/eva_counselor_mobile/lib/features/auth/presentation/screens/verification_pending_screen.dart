@@ -30,7 +30,7 @@ class _VerificationPendingScreenState
       if (user?.verificationStatus == VerificationStatus.verified) {
         TopToast.show(
           context,
-          title: 'Verifikasi Berhasil! 🎉',
+          title: 'Verifikasi Berhasil',
           message: 'Akun profesional Anda telah disetujui. Selamat datang di Eva.',
           type: ToastType.success,
         );
@@ -114,7 +114,7 @@ class _VerificationPendingScreenState
               ),
               const SizedBox(height: 10),
               const Text(
-                'Terima kasih telah mendaftar sebagai Psikolog Profesional Eva. Berkas STR dan SIPP Anda sedang diverifikasi oleh tim kredensial (estimasi maksimal 1x24 jam kerja).',
+                'Berkas STR dan SIPP Anda sedang diverifikasi tim kredensial (maksimal 1x24 jam kerja).',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,

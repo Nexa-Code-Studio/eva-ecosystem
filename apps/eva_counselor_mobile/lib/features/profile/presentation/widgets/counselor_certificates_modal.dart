@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/app_async_state_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/app_config.dart';
@@ -102,11 +103,10 @@ class CounselorCertificatesModal {
                   ctx: ctx,
                   title: 'Sertifikat & Pencapaian',
                   subtitle: 'Memuat data sertifikat resmi...',
-                  body: const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 48),
-                      child: CircularProgressIndicator(),
-                    ),
+                  body: AppAsyncStateView.loading(
+                    title: 'Memuat sertifikat...',
+                    message: 'Mengambil daftar sertifikat dan pencapaian Anda.',
+                    compact: true,
                   ),
                 ),
                 error: (error, _) {
@@ -477,13 +477,7 @@ class CounselorCertificatesModal {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('✦', style: TextStyle(color: Color(0xFFB45309), fontSize: 14)),
-                              Text('✦', style: TextStyle(color: Color(0xFFB45309), fontSize: 14)),
-                            ],
-                          ),
+                          const SizedBox(height: 6),
                           const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -539,7 +533,7 @@ class CounselorCertificatesModal {
                               Container(width: 40, height: 1.2, color: const Color(0xFFD97706)),
                               const Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 6),
-                                child: Text('★', style: TextStyle(color: Color(0xFFD97706), fontSize: 10)),
+                                child: Icon(Icons.workspace_premium_rounded, color: Color(0xFFD97706), size: 14),
                               ),
                               Container(width: 40, height: 1.2, color: const Color(0xFFD97706)),
                             ],
@@ -573,7 +567,7 @@ class CounselorCertificatesModal {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              '★ ${cert.milestoneCriteria} ★',
+                              cert.milestoneCriteria,
                               style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
                             ),
                           ),
@@ -667,13 +661,7 @@ class CounselorCertificatesModal {
                               ),
                             ],
                           ),
-                          const Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('✦', style: TextStyle(color: Color(0xFFB45309), fontSize: 14)),
-                              Text('✦', style: TextStyle(color: Color(0xFFB45309), fontSize: 14)),
-                            ],
-                          ),
+                          const SizedBox(height: 6),
                         ],
                       ),
                     ),
@@ -747,7 +735,7 @@ class CounselorCertificatesModal {
       if (context.mounted) {
         TopToast.show(
           context,
-          title: 'Sertifikat Berhasil Diunduh! 📄',
+          title: 'Sertifikat Berhasil Diunduh',
           message: 'Nomor: ${cert.certificateNumber.replaceAll("/", "_")}.pdf',
           type: ToastType.success,
         );

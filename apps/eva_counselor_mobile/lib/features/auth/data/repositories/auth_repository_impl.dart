@@ -130,6 +130,16 @@ class AuthRepositoryImpl implements IAuthRepository {
   }
 
   @override
+  Future<PsychologistUserEntity> uploadAvatar({
+    required List<int> bytes,
+    required String filename,
+  }) async {
+    final dto = await _dataSource.uploadAvatar(bytes: bytes, filename: filename);
+    await TokenStorage.saveProfileJson(jsonEncode(dto.toJson()));
+    return dto.toEntity();
+  }
+
+  @override
   Future<PsychologistUserEntity> updateBankDetails({
     required String bankName,
     required String accountNumber,

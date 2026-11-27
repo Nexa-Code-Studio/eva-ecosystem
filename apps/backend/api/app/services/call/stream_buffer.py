@@ -4,16 +4,6 @@ from dataclasses import dataclass, field
 logger = logging.getLogger(__name__)
 
 
-async def analyze_audio_placeholder(audio_bytes: bytes) -> dict[str, str | int]:
-    """Placeholder function for future audio/emotion/tone/multimodal analysis."""
-    logger.debug(f"[AudioPlaceholder] Processing {len(audio_bytes)} audio bytes")
-    return {
-        "status": "audio_received",
-        "bytes_len": len(audio_bytes),
-        "emotion_detected": "neutral_placeholder",
-    }
-
-
 @dataclass
 class SessionAudioBuffer:
     session_id: str
@@ -47,8 +37,10 @@ class AudioStreamBufferService:
     async def handle_incoming_audio_chunk(self, session_id: str, chunk: bytes) -> dict[str, str | int]:
         buf = self.get_or_create_buffer(session_id)
         buf.append_chunk(chunk)
-        # Execute placeholder analysis
-        return await analyze_audio_placeholder(chunk)
+        return {
+            "status": "audio_received",
+            "bytes_len": len(chunk),
+        }
 
     def clear_session(self, session_id: str) -> None:
         if session_id in self._buffers:

@@ -216,7 +216,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify 3 Stats from Live Server
-      expect(find.text('4.9 ⭐'), findsOneWidget);
+      expect(find.text('4.9 / 5.0'), findsOneWidget);
       expect(find.text('18 Ulasan >'), findsOneWidget);
       expect(find.text('24 Sesi'), findsOneWidget);
       expect(find.text('12.0 Jam'), findsOneWidget);

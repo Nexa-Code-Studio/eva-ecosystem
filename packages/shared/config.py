@@ -195,7 +195,7 @@ class BaseConfig(BaseSettings):
             )
         return self
 
-    # LLM Settings (openai | gemini | ollama | mock)
+    # LLM Settings (openai | gemini | deepseek | ollama)
     LLM_PROVIDER: str = "openai"
     LLM_API_KEY: str = ""
     LLM_MODEL: str = "gpt-4o"
@@ -206,7 +206,7 @@ class BaseConfig(BaseSettings):
 
     OLLAMA_MODEL: str = "qwen3:1.7B"
 
-    # STT Settings (elevenlabs | mock)
+    # STT Settings (elevenlabs)
     STT_PROVIDER: str = "elevenlabs"
     STT_API_KEY: str = ""
     ELEVENLABS_STT_API_KEY: str = ""
@@ -241,7 +241,7 @@ class BaseConfig(BaseSettings):
 
     # Continuous 3-Second Speech Emotion Orchestration (Issue #143 — default OFF until gates pass)
     EMOTION_STREAMING_ENABLED: bool = False
-    EMOTION_PROVIDER: str = "mock"  # 'mock' | 'remote_http'
+    EMOTION_PROVIDER: str = "remote_http"  # 'remote_http'
     EMOTION_SERVICE_URL: str = ""
     EMOTION_SERVICE_AUTH_MODE: str = "none"  # 'none' | 'gcp_oidc' | 'bearer'
     EMOTION_SERVICE_AUDIENCE: str = ""
