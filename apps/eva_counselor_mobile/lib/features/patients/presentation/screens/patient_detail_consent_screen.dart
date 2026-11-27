@@ -104,6 +104,7 @@ class _PatientDetailConsentScreenState
 
     setState(() => _isSavingNote = true);
     final repo = ref.read(patientRepositoryProvider);
+    final patient = ref.read(patientDetailProvider(widget.patientId)).value;
     final subjFormatted = _clinicalPoints.isNotEmpty
         ? _clinicalPoints.map((p) => '• $p').join('\n')
         : _narrativeCtrl.text.trim();
@@ -111,17 +112,34 @@ class _PatientDetailConsentScreenState
         ? _narrativeCtrl.text.trim()
         : (_clinicalPoints.isNotEmpty ? _clinicalPoints.first : 'Observasi klinis tercatat.');
 
-    await repo.saveClinicalNote(
-      patientId: widget.patientId,
-      sessionId: widget.activeSessionId ?? 'session-manual-${DateTime.now().millisecondsSinceEpoch}',
-      subjective: subjFormatted,
-      objective: 'Observasi klinis langsung psikolog via telekonseling.',
-      assessment: assessFormatted,
-      plan: _planCtrl.text.trim().isNotEmpty ? _planCtrl.text.trim() : 'Latihan relaksasi & psikoedukasi berkala.',
-      recommendedTasks: ['Pernapasan diafragma mandiri', 'Journaling emosi malam'],
-      points: List.from(_clinicalPoints),
-      narrative: _narrativeCtrl.text.trim(),
-    );
+    final targetSessionId = widget.activeSessionId ??
+        patient?.upcomingSchedule?.sessionId ??
+        'session-manual-${DateTime.now().millisecondsSinceEpoch}';
+
+    late final dynamic savedNote;
+    try {
+      savedNote = await repo.saveClinicalNote(
+        patientId: widget.patientId,
+        sessionId: targetSessionId,
+        subjective: subjFormatted,
+        objective: 'Observasi klinis langsung psikolog via telekonseling.',
+        assessment: assessFormatted,
+        plan: _planCtrl.text.trim().isNotEmpty ? _planCtrl.text.trim() : 'Latihan relaksasi & psikoedukasi berkala.',
+        recommendedTasks: ['Pernapasan diafragma mandiri', 'Journaling emosi malam'],
+        points: List.from(_clinicalPoints),
+        narrative: _narrativeCtrl.text.trim(),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSavingNote = false);
+      TopToast.show(
+        context,
+        title: 'Gagal Menyimpan Catatan',
+        message: e.toString().replaceFirst('Exception: ', ''),
+        type: ToastType.error,
+      );
+      return;
+    }
 
     ref.invalidate(patientNotesProvider(widget.patientId));
     ref.invalidate(patientsListProvider);
@@ -137,10 +155,19 @@ class _PatientDetailConsentScreenState
     });
 
     final authUser = ref.read(authStateProvider).value;
-    if (authUser?.isProfessional == true) {
-      final reward = authUser?.coinsPerSession ?? 150;
-      ref.read(authStateProvider.notifier).addCoins(reward);
+    final int awarded = (savedNote.coinsAwarded as int?) ?? 0;
+    final int? syncedBalance = savedNote.coinBalance as int?;
+    if (syncedBalance != null) {
+      ref.read(authStateProvider.notifier).syncCoinBalance(syncedBalance);
+    } else if (authUser?.isProfessional == true && awarded > 0) {
+      ref.read(authStateProvider.notifier).addCoins(awarded);
     }
+
+    final String rewardMessage = awarded > 0
+        ? '\n\n+$awarded Koin honorarium sesi telah dikreditkan ke dompet Anda.'
+        : (authUser?.isProfessional == true
+            ? '\n\nCatatan diperbarui (honorarium sesi sudah dikreditkan sebelumnya).'
+            : '');
 
     showDialog(
       context: context,
@@ -159,7 +186,7 @@ class _PatientDetailConsentScreenState
           ],
         ),
         content: Text(
-          'Rekam medis SOAP telah berhasil difinalisasi dan tersimpan ke riwayat pasien.${authUser?.isProfessional == true ? '\n\n+${authUser?.coinsPerSession ?? 150} Koin honorarium sesi telah dikreditkan ke dompet Anda.' : ''}',
+          'Rekam medis SOAP telah berhasil difinalisasi dan tersimpan ke riwayat pasien.$rewardMessage',
           style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.45),
         ),
         actions: [
@@ -796,7 +823,17 @@ class _PatientDetailConsentScreenState
     final bool isExistingPatient = patient.hasConsent ||
         patient.totalCompletedSessions > 0 ||
         schedule != null;
-    final bool canEditNotes = isExistingPatient || _sessionUnlocked;
+    bool isSoapWindowExpired = false;
+    if (!_sessionUnlocked && schedule == null && patient.lastSessionDate != null) {
+      final parsedLast = DateTime.tryParse(patient.lastSessionDate.toString());
+      if (parsedLast != null) {
+        final wibRef = parsedLast.toUtc().add(const Duration(hours: 7));
+        final deadlineWib = DateTime.utc(wibRef.year, wibRef.month, wibRef.day + 1, 23, 59, 59);
+        final deadlineUtc = deadlineWib.subtract(const Duration(hours: 7));
+        isSoapWindowExpired = DateTime.now().toUtc().isAfter(deadlineUtc);
+      }
+    }
+    final bool canEditNotes = (isExistingPatient || _sessionUnlocked) && !isSoapWindowExpired;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -805,6 +842,45 @@ class _PatientDetailConsentScreenState
         if (schedule != null) ...[
           _buildScheduleGatedSoapCard(patient, schedule),
           const SizedBox(height: 14),
+        ],
+
+        if (isSoapWindowExpired) ...[
+          Container(
+            margin: const EdgeInsets.only(bottom: 14),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFCBD5E1)),
+            ),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.lock_clock_rounded, color: Color(0xFF475569), size: 22),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Batas Waktu Edit SOAP Berakhir (H+1 23:59 WIB)',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12.5,
+                          color: Color(0xFF334155),
+                        ),
+                      ),
+                      SizedBox(height: 3),
+                      Text(
+                        'Sesuai kebijakan klinis, pengisian dan penyuntingan catatan medis SOAP hanya dibuka hingga H+1 pukul 23:59 WIB setelah sesi konsultasi.',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF475569), height: 1.45),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
 
         // 2. UNLOCKED / EDITABLE CLINICAL NOTE FORM

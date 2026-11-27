@@ -10,6 +10,10 @@ class ClinicalNoteEntity {
   final List<String> recommendedTasks;
   final List<String> points;
   final String narrative;
+  final int coinsAwarded;
+  final int? coinBalance;
+  final DateTime? soapEditDeadline;
+  final bool isSoapEditable;
 
   const ClinicalNoteEntity({
     required this.id,
@@ -23,5 +27,9 @@ class ClinicalNoteEntity {
     required this.recommendedTasks,
     this.points = const [],
     this.narrative = '',
+    this.coinsAwarded = 0,
+    this.coinBalance,
+    this.soapEditDeadline,
+    this.isSoapEditable = true,
   });
 }

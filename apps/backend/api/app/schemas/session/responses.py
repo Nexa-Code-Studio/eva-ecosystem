@@ -153,6 +153,10 @@ class ClinicalNoteDetailResponse(BaseModel):
     points: list[str] = []
     narrative: str = ""
     recommended_tasks: list[str] = []
+    coins_awarded: int = 0
+    coin_balance: int | None = None
+    soap_edit_deadline: datetime | None = None
+    is_soap_editable: bool = True
 
 
 class AdminSessionMonitoringResponse(BaseModel):

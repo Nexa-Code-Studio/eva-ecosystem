@@ -758,6 +758,28 @@ class SchedulingService:
             )
         )
 
+    @staticmethod
+    def _compute_soap_edit_deadline(session: ConsultationSession) -> datetime:
+        """Return the H+1 23:59:59 WIB deadline (converted to UTC) from session end date."""
+        wib = timezone(timedelta(hours=7))
+        ref_dt = session.actual_end_time or session.scheduled_end_time
+        if ref_dt.tzinfo is None:
+            ref_dt = ref_dt.replace(tzinfo=UTC)
+        next_day = ref_dt.astimezone(wib).date() + timedelta(days=1)
+        deadline_wib = datetime.combine(next_day, time(23, 59, 59), tzinfo=wib)
+        return deadline_wib.astimezone(UTC)
+
+    @classmethod
+    def _ensure_soap_editable(cls, session: ConsultationSession) -> datetime:
+        """Enforce H+1 23:59:59 WIB deadline for creating or editing SOAP clinical notes."""
+        deadline = cls._compute_soap_edit_deadline(session)
+        if datetime.now(UTC) > deadline:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Batas waktu pengisian/edit catatan SOAP (maksimal H+1 pukul 23:59 WIB) telah berakhir.",
+            )
+        return deadline
+
     async def save_soap_notes(
         self,
         session_id: uuid.UUID,
@@ -786,6 +808,8 @@ class SchedulingService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Sesi konsultasi tidak ditemukan.",
             )
+
+        self._ensure_soap_editable(session)
 
         subj_text = payload.subjective or (payload.narrative if not payload.points else "\n".join(f"• {p}" for p in payload.points))
         assess_text = payload.assessment or payload.narrative or (payload.points[0] if payload.points else "Observasi klinis tercatat.")
@@ -1422,12 +1446,21 @@ class SchedulingService:
         }
 
         if target_session:
+            deadline = self._ensure_soap_editable(target_session)
             target_session.soap_notes = soap_dict
+            target_session.status = ConsultationSessionStatus.COMPLETED.value
             await self.db.commit()
             await self.db.refresh(target_session)
+            released = await self.release_pending_session_earnings(target_session.id)
+            await self.db.refresh(profile)
+            coins_awarded = round(float(released))
+            coin_balance = round(float(profile.wallet_balance))
             session_id_str = str(target_session.id)
             note_id = f"note-{target_session.id}"
         else:
+            deadline = None
+            coins_awarded = 0
+            coin_balance = round(float(profile.wallet_balance))
             session_id_str = payload.session_id or str(uuid.uuid4())
             note_id = f"note-{uuid.uuid4()}"
 
@@ -1443,6 +1476,10 @@ class SchedulingService:
             points=payload.points,
             narrative=payload.narrative,
             recommended_tasks=payload.recommended_tasks,
+            coins_awarded=coins_awarded,
+            coin_balance=coin_balance,
+            soap_edit_deadline=deadline,
+            is_soap_editable=True,
         )
 
     async def request_patient_consent(

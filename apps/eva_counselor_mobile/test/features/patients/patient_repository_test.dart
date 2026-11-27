@@ -79,6 +79,46 @@ void main() {
       expect(note.id.isNotEmpty, true);
       expect(note.subjective, contains('gelisah'));
       expect(note.assessment, contains('Kecemasan performansi'));
+      expect(note.coinsAwarded, 150);
+    });
+
+    test('saveClinicalNote is idempotent for coinsAwarded on repeated saves of same session', () async {
+      final firstSave = await repository.saveClinicalNote(
+        patientId: 'patient-001',
+        sessionId: 'session-idempotent-01',
+        subjective: 'Catatan awal.',
+        objective: 'Observasi awal.',
+        assessment: 'Asesmen awal.',
+        plan: 'Rencana awal.',
+        recommendedTasks: const [],
+      );
+      expect(firstSave.coinsAwarded, 150);
+
+      final secondSave = await repository.saveClinicalNote(
+        patientId: 'patient-001',
+        sessionId: 'session-idempotent-01',
+        subjective: 'Catatan revisi.',
+        objective: 'Observasi revisi.',
+        assessment: 'Asesmen revisi.',
+        plan: 'Rencana revisi.',
+        recommendedTasks: const [],
+      );
+      expect(secondSave.coinsAwarded, 0);
+    });
+
+    test('saveClinicalNote rejects expired H+1 session (lastSessionDate > 1 day ago without upcomingSchedule)', () async {
+      await expectLater(
+        repository.saveClinicalNote(
+          patientId: 'patient-003',
+          sessionId: 'session-expired-01',
+          subjective: 'Terlambat.',
+          objective: 'Observasi.',
+          assessment: 'Asesmen.',
+          plan: 'Rencana.',
+          recommendedTasks: const [],
+        ),
+        throwsException,
+      );
     });
 
     test('synthesizeSoapNote generates structured SOAP fields from transcript via Eva AI', () async {
