@@ -183,6 +183,7 @@ void main() {
 
     expect(find.text('Sesi Aktif (1)'), findsOneWidget);
     expect(find.text('Semua (2)'), findsOneWidget);
+    expect(find.text('Online Video'), findsNothing);
 
     // Locked upcoming dialog in live mode must NOT show simulation bypass button
     await tester.tap(find.text('Belum Waktunya'));
