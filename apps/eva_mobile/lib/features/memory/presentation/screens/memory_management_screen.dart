@@ -91,7 +91,7 @@ class _MemoryManagementScreenState extends ConsumerState<MemoryManagementScreen>
         elevation: 0,
         leading: const Center(child: AppBackButton()),
         title: Text(
-          'Memori Personal Luna',
+          'Memori Personal Eva',
           style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
         ),
         actions: [
@@ -151,7 +151,7 @@ class _MemoryManagementScreenState extends ConsumerState<MemoryManagementScreen>
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Luna hanya mengingat fakta penting atas konfirmasi Anda saat sesi konseling berlangsung.',
+                            'EVA hanya mengingat fakta penting atas konfirmasi Anda saat sesi konseling berlangsung.',
                             textAlign: TextAlign.center,
                             style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary),
                           ),

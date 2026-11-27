@@ -1329,8 +1329,8 @@ class _VoiceNodesMorphPainter extends CustomPainter {
   });
 
   // 5 Color profiles aligned with EVA AI brand & the abstract fluid palette:
-  // Node 0 (Left): Sky Cyan (Luna Tertiary)
-  // Node 1 (Mid-Left): Electric Periwinkle (Luna Primary)
+  // Node 0 (Left): Sky Cyan (EVA Tertiary)
+  // Node 1 (Mid-Left): Electric Periwinkle (EVA Primary)
   // Node 2 (Center): Deep Violet Orchid
   // Node 3 (Mid-Right): Radiant Fuchsia Pink
   // Node 4 (Right): Sunset Coral Rose
@@ -1342,7 +1342,7 @@ class _VoiceNodesMorphPainter extends CustomPainter {
     _NodeColorProfile(Color(0xFFE11D48), Color(0xFFFB7185), Color(0xFFFFE4E6)),
   ];
 
-  static const Color _defaultIndigo = Color(0xFF5358CB); // Luna Primary
+  static const Color _defaultIndigo = Color(0xFF5358CB); // EVA Primary
 
   @override
   void paint(Canvas canvas, Size size) {
