@@ -84,6 +84,7 @@ apps/eva_counselor_mobile/build/
 # Test audio outputs & pitch exploration
 tests/output_*.mp3
 tests/samples_pitch/
+tests/load_test/reports/
 
 # User reference screenshots
 immg/
