@@ -74,6 +74,36 @@ jobs:
             --dart-define=API_BASE_URL="${API_URL}"
           cp web/vercel.json build/web/vercel.json
 
+      - name: Prepare Vercel Build Output (Eva Mobile)
+        run: |
+          set -euo pipefail
+          OUT_DIR="apps/eva_mobile/.vercel/output"
+          rm -rf "$OUT_DIR"
+          mkdir -p "$OUT_DIR/static"
+          cp -r apps/eva_mobile/build/web/. "$OUT_DIR/static/"
+          cat <<'EOF' > "$OUT_DIR/config.json"
+          {
+            "version": 3,
+            "routes": [
+              {
+                "src": "/(.*)",
+                "headers": {
+                  "Cross-Origin-Opener-Policy": "same-origin",
+                  "Cross-Origin-Embedder-Policy": "credentialless"
+                },
+                "continue": true
+              },
+              {
+                "handle": "filesystem"
+              },
+              {
+                "src": "/(.*)",
+                "dest": "/index.html"
+              }
+            ]
+          }
+          EOF
+
       - name: Deploy Eva Mobile to Vercel (Production)
         id: vercel_deploy
         env:
@@ -81,7 +111,10 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_MOBILE }}
         run: |
-          DEPLOY_URL="$(npx --yes vercel deploy apps/eva_mobile/build/web --prod --yes --token="$VERCEL_TOKEN" | tail -n 1 | tr -d '\r')"
+          set -euo pipefail
+          DEPLOY_LOG="$(mktemp)"
+          npx --yes vercel deploy . --prebuilt --prod --yes --token="$VERCEL_TOKEN" | tee "$DEPLOY_LOG"
+          DEPLOY_URL="$(grep -Eo 'https://[^[:space:]]+' "$DEPLOY_LOG" | tail -n 1 | tr -d '\r')"
           echo "url=${DEPLOY_URL}" >> "$GITHUB_OUTPUT"
           echo "Deployed Eva Mobile (User): ${DEPLOY_URL}"
 
@@ -117,6 +150,36 @@ jobs:
             --dart-define=USE_MOCK_DATA=false
           cp vercel.json build/web/vercel.json
 
+      - name: Prepare Vercel Build Output (Eva Counselor)
+        run: |
+          set -euo pipefail
+          OUT_DIR="apps/eva_counselor_mobile/.vercel/output"
+          rm -rf "$OUT_DIR"
+          mkdir -p "$OUT_DIR/static"
+          cp -r apps/eva_counselor_mobile/build/web/. "$OUT_DIR/static/"
+          cat <<'EOF' > "$OUT_DIR/config.json"
+          {
+            "version": 3,
+            "routes": [
+              {
+                "src": "/(.*)",
+                "headers": {
+                  "Cross-Origin-Opener-Policy": "same-origin",
+                  "Cross-Origin-Embedder-Policy": "credentialless"
+                },
+                "continue": true
+              },
+              {
+                "handle": "filesystem"
+              },
+              {
+                "src": "/(.*)",
+                "dest": "/index.html"
+              }
+            ]
+          }
+          EOF
+
       - name: Deploy Eva Counselor to Vercel (Production)
         id: vercel_deploy
         env:
@@ -124,6 +187,9 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_COUNSELOR }}
         run: |
-          DEPLOY_URL="$(npx --yes vercel deploy apps/eva_counselor_mobile/build/web --prod --yes --token="$VERCEL_TOKEN" | tail -n 1 | tr -d '\r')"
+          set -euo pipefail
+          DEPLOY_LOG="$(mktemp)"
+          npx --yes vercel deploy . --prebuilt --prod --yes --token="$VERCEL_TOKEN" | tee "$DEPLOY_LOG"
+          DEPLOY_URL="$(grep -Eo 'https://[^[:space:]]+' "$DEPLOY_LOG" | tail -n 1 | tr -d '\r')"
           echo "url=${DEPLOY_URL}" >> "$GITHUB_OUTPUT"
           echo "Deployed Eva Counselor (Psikolog): ${DEPLOY_URL}"
