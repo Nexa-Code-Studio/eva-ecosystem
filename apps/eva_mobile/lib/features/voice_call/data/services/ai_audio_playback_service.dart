@@ -32,6 +32,7 @@ class AiAudioPlaybackService {
   final Set<int> _cancelledTurnIds = <int>{};
 
   int _currentAssistantTurnId = 0;
+  int _stopEpoch = 0;
   bool _isPlaying = false;
   bool _isStreamFinished = false;
   DateTime? _lastChunkCompletedAt;
@@ -51,6 +52,7 @@ class AiAudioPlaybackService {
 
   void _initPlayerListeners() {
     _player.onPlayerComplete.listen((_) async {
+      final epoch = _stopEpoch;
       _stopEnvelopeTicker();
       _isPlaying = false;
       _lastChunkCompletedAt = DateTime.now();
@@ -60,6 +62,7 @@ class AiAudioPlaybackService {
         await Future.delayed(const Duration(milliseconds: CallConfig.interChunkPauseMs));
       }
 
+      if (epoch != _stopEpoch) return;
       if (!_cancelledTurnIds.contains(_currentAssistantTurnId)) {
         _playNextChunk();
       }
@@ -129,16 +132,20 @@ class AiAudioPlaybackService {
       return;
     }
 
+    final epoch = _stopEpoch;
+
     // Pastikan jeda minimal antar kalimat jika chunk baru tiba terlambat
     if (_lastChunkCompletedAt != null) {
       final elapsed = DateTime.now().difference(_lastChunkCompletedAt!).inMilliseconds;
       if (elapsed < CallConfig.interChunkPauseMs) {
         await Future.delayed(Duration(milliseconds: CallConfig.interChunkPauseMs - elapsed));
-        if (_cancelledTurnIds.contains(nextChunk.assistantTurnId)) {
+        if (epoch != _stopEpoch || _cancelledTurnIds.contains(nextChunk.assistantTurnId)) {
           return;
         }
       }
     }
+
+    if (epoch != _stopEpoch) return;
 
     try {
       _isPlaying = true;
@@ -238,6 +245,7 @@ class AiAudioPlaybackService {
 
   /// Immediately stop playback, flush audio queue, and invalidate current assistant turn
   Future<void> stop() async {
+    _stopEpoch++;
     _stopEnvelopeTicker();
     if (_currentAssistantTurnId > 0) {
       _cancelledTurnIds.add(_currentAssistantTurnId);

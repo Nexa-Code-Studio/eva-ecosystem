@@ -8,6 +8,7 @@ import '../../../../config/app_config.dart';
 class VoiceCallWsClient {
   WebSocketChannel? _channel;
   StreamSubscription? _subscription;
+  Timer? _pingTimer;
   bool _isConnected = false;
   int _droppedAudioChunks = 0;
 
@@ -39,6 +40,7 @@ class VoiceCallWsClient {
     try {
       _channel = WebSocketChannel.connect(uri);
       _isConnected = true;
+      _startPingTimer();
 
       _subscription = _channel!.stream.listen(
         (data) {
@@ -63,6 +65,7 @@ class VoiceCallWsClient {
         },
         onError: (error) {
           debugPrint('❌ [WS CLIENT ERROR]: $error');
+          _stopPingTimer();
           _isConnected = false;
           if (!_eventController.isClosed) {
             _eventController.add({
@@ -73,6 +76,7 @@ class VoiceCallWsClient {
         },
         onDone: () {
           debugPrint('🔌 [WS CLIENT CLOSED]');
+          _stopPingTimer();
           _isConnected = false;
           if (!_eventController.isClosed) {
             _eventController.add({'type': 'disconnected'});
@@ -230,6 +234,22 @@ class VoiceCallWsClient {
     });
   }
 
+  void _startPingTimer() {
+    _stopPingTimer();
+    _pingTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+      sendPing();
+    });
+  }
+
+  void _stopPingTimer() {
+    _pingTimer?.cancel();
+    _pingTimer = null;
+  }
+
+  void sendPing() {
+    _sendJson({'type': 'ping'});
+  }
+
   void sendEndCall(int durationSeconds) {
     _sendJson({
       'type': 'end_call',
@@ -238,6 +258,7 @@ class VoiceCallWsClient {
   }
 
   void disconnect() {
+    _stopPingTimer();
     _subscription?.cancel();
     _subscription = null;
     try {

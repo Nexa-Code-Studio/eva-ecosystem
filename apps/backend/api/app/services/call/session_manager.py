@@ -112,6 +112,7 @@ class CallSession:
         self.billing_started: bool = False
         self.billing_terminated: bool = False
         self.is_crisis_session: bool = False
+        self.finalization_event: asyncio.Event = asyncio.Event()
         self.aggregator = TurnAggregator(call_id=session_id, initial_turn_id=1)
         self.thesis_metrics_log: list[dict[str, Any]] = []
         self.latest_orchestration_turn: OrchestratedTurnResult | None = None
@@ -205,6 +206,7 @@ class CallSessionManager:
         self.emotion_coordinator.cleanup_session(session_id)
         if session_id in self._active_sessions:
             session = self._active_sessions[session_id]
+            session.finalization_event.set()
             session.cancel_billing_task()
             session.cancel_active_ai_task()
             session.cancel_endpoint_timer()
@@ -708,6 +710,7 @@ class CallSessionManager:
                 "status": "closed",
             },
         )
+        session.finalization_event.set()
 
     async def _safe_send_json(self, session: CallSession, data: dict[str, Any]) -> bool:
         try:
@@ -827,6 +830,10 @@ class CallSessionManager:
                 if charge.success:
                     session.billed_minutes = next_minute
                     session.latest_coin_balance = charge.coin_balance
+                    logger.info(
+                        f"🪙 [BILLING MINUTE CHARGED] Session {session.session_id} | "
+                        f"Minute {next_minute} | Balance={charge.coin_balance}"
+                    )
                     await self._safe_send_json(
                         session,
                         {
@@ -840,6 +847,10 @@ class CallSessionManager:
                     )
                     continue
 
+                logger.info(
+                    f"🪙 [BILLING EXHAUSTED] Session {session.session_id} | "
+                    f"Minute {next_minute} | Balance={charge.coin_balance} | Crisis={session.is_crisis_session}"
+                )
                 await self._terminate_session_due_to_billing(session, charge.coin_balance)
                 break
         except asyncio.CancelledError:
@@ -885,7 +896,12 @@ class CallSessionManager:
                 "is_crisis": session.is_crisis_session,
             },
         )
-        await asyncio.sleep(0.2)
+        # Allow client to complete session_finalize_v1 -> session_artifacts_ack_v1 before closing WS
+        finalize_wait_s = min(8.0, max(1.5, float(grace_s)))
+        try:
+            await asyncio.wait_for(session.finalization_event.wait(), timeout=finalize_wait_s)
+        except (TimeoutError, asyncio.CancelledError, Exception):
+            pass
         try:
             await session.websocket.close(code=4002)
         except Exception:
@@ -1414,6 +1430,7 @@ class CallSessionManager:
                 ),
                 temporal_emotion=temporal_emotion,
                 allow_sync_audio_fallback=(not settings.EMOTION_STREAMING_ENABLED),
+                is_crisis_session=session.is_crisis_session,
             )
             session.latest_orchestration_turn = turn
 
@@ -1438,7 +1455,12 @@ class CallSessionManager:
             detected_emo = turn.emotion.primary_emotion if turn.emotion else "neutral"
             confidence = turn.emotion.confidence if turn.emotion else 0.5
             intensity = getattr(turn.emotion, "intensity", 0.5) if turn.emotion else 0.5
-            risk = turn.safety_decision.risk_level if turn.safety_decision else "low"
+            raw_risk = turn.safety_decision.risk_level if turn.safety_decision else "low"
+            risk = (
+                raw_risk
+                if raw_risk in ("high", "critical")
+                else ("high" if session.is_crisis_session else raw_risk)
+            )
             snap_ref = temporal_emotion or getattr(turn.emotion, "temporal_snapshot", None)
 
             dyn_res = resolve_dynamic_voice_style(

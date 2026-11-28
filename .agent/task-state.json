@@ -252,5 +252,13 @@
     "updated_at": 1795811277,
     "evidence_summary": "Evidence accepted: PR and test verification documented.",
     "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/191"
+  },
+  "192": {
+    "issue": 192,
+    "branch": "fix/192-ai-call-emergency-screen",
+    "state": "In Review",
+    "updated_at": 1795823528,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/194"
   }
 }

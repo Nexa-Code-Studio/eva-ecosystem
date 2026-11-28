@@ -80,6 +80,8 @@ class FakeAiAudioPlaybackService extends Fake implements AiAudioPlaybackService 
 
   List<double> lastEnqueuedEnvelope = [];
   Uint8List? lastEnqueuedBytes;
+  int enqueueCount = 0;
+  int stopCount = 0;
 
   @override
   Stream<int> get onPlaybackCompleted => playbackCompletedController.stream;
@@ -100,11 +102,13 @@ class FakeAiAudioPlaybackService extends Fake implements AiAudioPlaybackService 
   }) {
     lastEnqueuedBytes = bytes;
     lastEnqueuedEnvelope = envelope;
+    enqueueCount++;
     isPlaying = true;
   }
 
   @override
   Future<void> stop() async {
+    stopCount++;
     isPlaying = false;
   }
 
@@ -196,6 +200,18 @@ class FakeVoiceCallWsClient extends Fake implements VoiceCallWsClient {
       'client_session_id': clientSessionId,
       'request_id': requestId,
       'duration_seconds': durationSeconds,
+    });
+  }
+
+  @override
+  void sendSessionArtifactsAck({
+    required String requestId,
+    String status = 'committed_locally',
+  }) {
+    sentEvents.add({
+      'type': 'session_artifacts_ack_v1',
+      'request_id': requestId,
+      'status': status,
     });
   }
 
@@ -584,13 +600,131 @@ void main() {
         isTrue,
       );
     });
+
+    test('ai.crisis_escalation sets isCrisisSession while call remains active across minute transitions', () async {
+      await controller.startCall(customCallId: 'call_crisis_continue');
+
+      fakeWs.eventController.add({
+        'type': 'call_started',
+        'voice_mode': 'mode_2',
+        'billing': {
+          'coins_per_minute': 1,
+          'interval_seconds': 60,
+          'warning_seconds': 15,
+          'current_minute': 1,
+          'remaining_balance': 2,
+          'seconds_until_next_charge': 60,
+        },
+      });
+      await pumpEventQueue();
+
+      fakeWs.eventController.add({
+        'type': 'ai.crisis_escalation',
+        'risk_level': 'high',
+        'hotline': 'Kemenkes 119 ext 8',
+      });
+      await pumpEventQueue();
+
+      expect(controller.state.isCrisisSession, isTrue);
+      expect(controller.state.crisisHotline, 'Kemenkes 119 ext 8');
+      expect(controller.state.callState, CallState.listening);
+
+      fakeWs.eventController.add({
+        'type': 'call.billing_charged',
+        'current_minute': 2,
+        'coins_debited': 1,
+        'remaining_balance': 1,
+        'seconds_until_next_charge': 60,
+      });
+      await pumpEventQueue();
+
+      expect(controller.state.currentBilledMinute, 2);
+      expect(controller.state.callState, CallState.listening);
+      expect(controller.state.isCrisisSession, isTrue);
+    });
+
+    test('unexpected disconnected event transitions cleanly out of thinking to error state', () async {
+      await controller.startCall(customCallId: 'call_disconnect_test');
+      await controller.enterThinking();
+      expect(controller.state.callState, CallState.thinking);
+
+      fakeWs.eventController.add({'type': 'disconnected'});
+      await pumpEventQueue();
+
+      expect(controller.state.callState, CallState.error);
+      expect(controller.state.errorMessage, isNotNull);
+      expect(fakeCapture.isCapturing, isFalse);
+    });
+
+    test('endCall blocks late AI audio chunks while background diary/DASS artifacts commit locally', () async {
+      final synthesisFake = _FakeStatelessSynthesisService();
+      int artifactsCommittedCallbacks = 0;
+      final ctrl = AiCallController(
+        audioCaptureService: fakeCapture,
+        audioPlaybackService: fakePlayback,
+        wsClient: fakeWs,
+        synthesisService: synthesisFake,
+        onArtifactsCommitted: () => artifactsCommittedCallbacks++,
+      );
+      addTearDown(ctrl.dispose);
+
+      await ctrl.startCall(customCallId: 'call_audio_block_fin');
+      await ctrl.enterAiSpeaking(1);
+      final enqueuesBeforeEnd = fakePlayback.enqueueCount;
+
+      await ctrl.endCall();
+
+      expect(ctrl.state.callState, CallState.ended);
+      expect(ctrl.state.isFinalizing, isTrue);
+      expect(fakePlayback.stopCount, greaterThanOrEqualTo(1));
+      expect(
+        fakeWs.sentEvents.any((e) => e['type'] == 'assistant.interrupt'),
+        isTrue,
+      );
+
+      // Late audio arriving over still-open finalization WebSocket must be ignored
+      fakeWs.eventController.add({
+        'type': 'ai.audio_chunk',
+        'assistant_turn_id': 1,
+        'sequence': 2,
+        'audio_base64': base64Encode([1, 2, 3, 4]),
+      });
+      fakeWs.audioController.add(Uint8List.fromList([5, 6, 7, 8]));
+      await pumpEventQueue();
+
+      expect(fakePlayback.enqueueCount, enqueuesBeforeEnd);
+      expect(fakePlayback.isPlaying, isFalse);
+      expect(ctrl.state.callState, CallState.ended);
+
+      // Background session_artifacts_v1 must still commit locally to DB
+      fakeWs.eventController.add({
+        'type': 'session_artifacts_v1',
+        'request_id': 'req_bg_1',
+        'session_summary': 'Ringkasan tersimpan aman',
+        'journal_delta': {'title': 'Refleksi'},
+        'memory_candidates': <Map<String, dynamic>>[],
+        'dass_assessment': {'depression': 2, 'anxiety': 4, 'stress': 6},
+      });
+      await pumpEventQueue();
+
+      expect(synthesisFake.commitCalls, 1);
+      expect(synthesisFake.lastCommittedSummary, 'Ringkasan tersimpan aman');
+      expect(artifactsCommittedCallbacks, 1);
+      expect(ctrl.state.isFinalizing, isFalse);
+      expect(
+        fakeWs.sentEvents.any((e) => e['type'] == 'session_artifacts_ack_v1'),
+        isTrue,
+      );
+    });
   });
 }
 
 class _FakeStatelessSynthesisService extends Fake
     implements StatelessSynthesisService {
   int markPendingCalls = 0;
+  int commitCalls = 0;
   String? lastPendingSessionId;
+  String? lastCommittedSummary;
   final List<Map<String, dynamic>> recordedTurns = [];
 
   @override
@@ -615,5 +749,16 @@ class _FakeStatelessSynthesisService extends Fake
   }) async {
     markPendingCalls++;
     lastPendingSessionId = sessionId;
+  }
+
+  @override
+  Future<void> commitArtifactsLocally({
+    required String sessionId,
+    required String sessionSummary,
+    required Map<String, dynamic> journalDelta,
+    Map<String, dynamic>? dassAssessment,
+  }) async {
+    commitCalls++;
+    lastCommittedSummary = sessionSummary;
   }
 }

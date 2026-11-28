@@ -32,12 +32,12 @@ def test_critical_risk_policy(gate):
     decision = gate.evaluate_policy(inp)
 
     assert decision.mode == ResponseMode.CRISIS
-    assert decision.llm_mode == LLMMode.NONE
+    assert decision.llm_mode == LLMMode.BOUNDED_CRISIS
     assert decision.allow_normal_rag is False
     assert decision.requires_crisis_sop is True
     assert decision.requires_human_escalation is True
     assert SafetyAction.NORMAL_RAG in decision.prohibited_actions
-    assert SafetyAction.BOUNDED_LLM in decision.prohibited_actions
+    assert SafetyAction.BOUNDED_LLM in decision.allowed_actions
     assert SafetyAction.CRISIS_TEMPLATE in decision.allowed_actions
     assert decision.resource_category == "emergency_hotline_directory"
 

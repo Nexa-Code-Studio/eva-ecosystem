@@ -66,15 +66,55 @@ async def test_orchestrator_crisis_safeguard():
     assert turn.safety_decision.mode == ResponseMode.CRISIS
     assert turn.rag_items == []
 
-    # Stream should return CRISIS SOP MESSAGE rather than mock LLM
+    # Stream should invoke dynamic LLM with bounded emergency prompt (no static bypass)
+    assert "MODE DARURAT AKTIF" in turn.final_system_prompt
+    assert "grounding" in turn.final_system_prompt
     tokens = []
     async for token in turn.token_stream:
         tokens.append(token)
     full_output = "".join(tokens).strip()
 
+    assert full_output == "Halo, aku mendengar ceritamu dengan baik."
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_crisis_llm_failure_falls_back_to_sop():
+    class FailingLLM(BaseLLMProvider):
+        async def generate_response(self, messages: list[LLMMessage], **kwargs) -> str:
+            raise RuntimeError("LLM offline")
+
+        async def stream_response(self, messages: list[LLMMessage], **kwargs):
+            if False:
+                yield ""
+            raise RuntimeError("LLM offline")
+
+    orchestrator = AIOrchestrator(llm_provider=FailingLLM())
+    turn = await orchestrator.prepare_turn(
+        user_text="Aku capek hidup, pengen mengakhiri semuanya.",
+    )
+    assert turn.is_crisis is True
+    tokens = []
+    async for token in turn.token_stream:
+        tokens.append(token)
+    full_output = "".join(tokens).strip()
     assert "119 ekstensi 8" in full_output
     assert "LISA" in full_output
-    assert "Halo, aku mendengar ceritamu" not in full_output  # LLM must be bypassed!
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_crisis_session_keeps_elevated_care_on_followup():
+    mock_llm = MockLLMProvider()
+    orchestrator = AIOrchestrator(llm_provider=mock_llm)
+
+    turn = await orchestrator.prepare_turn(
+        user_text="Iya, aku lagi di kamar sendirian sekarang.",
+        is_crisis_session=True,
+    )
+
+    assert turn.is_crisis is False
+    assert turn.rag_items == []
+    assert "MODE DARURAT LANJUTAN" in turn.final_system_prompt
+    assert "grounding" in turn.final_system_prompt
 
 
 @pytest.mark.asyncio

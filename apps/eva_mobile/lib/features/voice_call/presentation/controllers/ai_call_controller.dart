@@ -65,6 +65,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
   Timer? _billingGraceTimer;
   bool _isDisposed = false;
   bool _isMockCycleRenewing = false;
+  bool _billingEndedConfirmed = false;
 
   bool get isCallEnded => state.callState == CallState.ended;
 
@@ -83,6 +84,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
 
     _billingGraceTimer?.cancel();
     _isMockCycleRenewing = false;
+    _billingEndedConfirmed = false;
 
     state = state.copyWith(
       callId: callId,
@@ -247,6 +249,9 @@ class AiCallController extends StateNotifier<AiCallViewState> {
 
     // WebSocket Incoming Audio Chunks
     _wsAudioSubscription = _wsClient.audioStream.listen((audioBytes) {
+      if (state.callState == CallState.ended || state.isFinalizing) {
+        return;
+      }
       if (state.callState != CallState.aiSpeaking) {
         enterAiSpeaking(state.assistantTurnId);
       }
@@ -424,7 +429,22 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       );
     } else if (type == 'call.ended_by_billing') {
       _billingGraceTimer?.cancel();
-      unawaited(endCall());
+      _billingEndedConfirmed = true;
+      state = state.copyWith(
+        isBillingEnded: true,
+        isLowBalanceWarning: false,
+        remainingSecondsInCycle: 0,
+        billingEndReason: event['reason'] as String? ?? state.billingEndReason ?? 'insufficient_coins',
+      );
+      if (state.callState == CallState.aiSpeaking) {
+        _billingGraceTimer = Timer(const Duration(seconds: 8), () async {
+          if (!_isDisposed && mounted && state.callState != CallState.ended) {
+            await endCall();
+          }
+        });
+      } else {
+        unawaited(endCall());
+      }
     } else if (type == 'call.billing_insufficient' || type == 'call.auth_error') {
       final coinBal = (event['coin_balance'] as num?)?.toInt();
       if (coinBal != null) {
@@ -467,12 +487,14 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       }
       enterThinking();
     } else if (type == 'ai.thinking' || type == 'ai_thinking') {
+      if (state.callState == CallState.ended || state.isFinalizing) return;
       final turnId = (event['assistant_turn_id'] as num?)?.toInt();
       if (turnId != null) {
         state = state.copyWith(assistantTurnId: turnId);
       }
       enterThinking();
     } else if (type == 'ai.transcript_chunk' || type == 'ai_transcript_chunk') {
+      if (state.callState == CallState.ended || state.isFinalizing) return;
       final text = (event['text'] as String? ?? '').trim();
       if (text.isNotEmpty) {
         final prev = state.aiTranscript.trim();
@@ -481,6 +503,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
         );
       }
     } else if (type == 'ai.audio_chunk' || type == 'ai_audio_chunk') {
+      if (state.callState == CallState.ended || state.isFinalizing) return;
       final turnId = (event['assistant_turn_id'] as num?)?.toInt() ?? state.assistantTurnId;
       final seq = (event['sequence'] as num?)?.toInt() ?? 0;
       final b64 = event['audio_base64'] as String?;
@@ -505,6 +528,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
         }
       }
     } else if (type == 'ai.speech_finished' || type == 'ai_speech_finished') {
+      if (state.callState == CallState.ended || state.isFinalizing) return;
       final turnId = (event['assistant_turn_id'] as num?)?.toInt() ?? state.assistantTurnId;
       if (state.aiTranscript.isNotEmpty) {
         _synthesisService?.recordTurn(
@@ -584,6 +608,21 @@ class AiCallController extends StateNotifier<AiCallViewState> {
         activeEmotionsBreakdown: (breakdown != null && breakdown.isNotEmpty)
             ? breakdown
             : state.activeEmotionsBreakdown,
+      );
+    } else if (type == 'pong') {
+      return;
+    } else if (type == 'disconnected') {
+      if (state.callState == CallState.ended || state.isFinalizing || state.isBillingEnded) {
+        return;
+      }
+      _durationTimer?.cancel();
+      _thinkingWatchdogTimer?.cancel();
+      unawaited(_audioCaptureService.stopCapture());
+      unawaited(_audioPlaybackService.stop());
+      state = state.copyWith(
+        callState: CallState.error,
+        isUserSpeaking: false,
+        errorMessage: 'Koneksi panggilan terputus. Silakan periksa jaringan Anda.',
       );
     } else if (type == 'error') {
       state = state.copyWith(errorMessage: event['message'] as String? ?? 'Terjadi kesalahan sistem');
@@ -674,7 +713,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
 
     if (!_isDisposed && state.callState == CallState.aiSpeaking) {
       if (state.isBillingEnded) {
-        if (_isMockBillingMode) {
+        if (_isMockBillingMode || _billingEndedConfirmed) {
           _billingGraceTimer?.cancel();
           await endCall();
         }
@@ -961,18 +1000,58 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     });
   }
 
+  /// Immediately silence AI & mic audio when user exits VoiceCallScreen without cancelling background synthesis
+  void stopAudioForScreenExit() {
+    _wsAudioSubscription?.cancel();
+    _wsAudioSubscription = null;
+    _audioChunkSubscription?.cancel();
+    _audioChunkSubscription = null;
+    _aiAudioSoundSubscription?.cancel();
+    _aiAudioSoundSubscription = null;
+    _playbackSubscription?.cancel();
+    _playbackSubscription = null;
+    unawaited(_audioPlaybackService.stop());
+    unawaited(_audioCaptureService.stopCapture());
+    if (_wsClient.isConnected &&
+        (state.callState == CallState.aiSpeaking ||
+            state.callState == CallState.thinking)) {
+      _wsClient.sendInterrupt(
+        callId: state.callId,
+        assistantTurnId: state.assistantTurnId,
+        reason: 'screen_exit',
+      );
+    }
+  }
+
   /// End Call & Disconnect (with post-session artifact finalization)
   Future<void> endCall() async {
     if (state.isFinalizing || state.callState == CallState.ended) return;
 
-    // 0. Cancel mic audio chunk sender immediately to stop streaming to VPS
+    final prevState = state.callState;
+
+    // 0. Stop mic and incoming AI audio immediately while keeping event stream open for finalization
     _audioChunkSubscription?.cancel();
     _audioChunkSubscription = null;
+    _wsAudioSubscription?.cancel();
+    _wsAudioSubscription = null;
+    _aiAudioSoundSubscription?.cancel();
+    _aiAudioSoundSubscription = null;
+    _playbackSubscription?.cancel();
+    _playbackSubscription = null;
 
     _durationTimer?.cancel();
     _thinkingWatchdogTimer?.cancel();
     _finalizeWatchdogTimer?.cancel();
     _billingGraceTimer?.cancel();
+
+    if (_wsClient.isConnected &&
+        (prevState == CallState.aiSpeaking || prevState == CallState.thinking)) {
+      _wsClient.sendInterrupt(
+        callId: state.callId,
+        assistantTurnId: state.assistantTurnId,
+        reason: 'call_ended',
+      );
+    }
 
     // 1. Immediately transition to ended state
     state = state.copyWith(
@@ -984,6 +1063,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
 
     await _audioCaptureService.stopCapture();
     await _audioPlaybackService.stop();
+    if (_isDisposed || !mounted) return;
 
     // Flush any uncommitted turns into conversation_turns before synthesis
     if (_synthesisService != null) {
@@ -995,6 +1075,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
           transcript: state.currentTranscript.trim(),
         );
       }
+      if (_isDisposed || !mounted) return;
       if (state.aiTranscript.trim().isNotEmpty) {
         await _synthesisService.recordTurn(
           sessionId: state.callId,
@@ -1003,6 +1084,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
           transcript: state.aiTranscript.trim(),
         );
       }
+      if (_isDisposed || !mounted) return;
       if (state.accumulatedTranscript.trim().isNotEmpty ||
           state.currentTranscript.trim().isNotEmpty ||
           state.aiTranscript.trim().isNotEmpty) {
@@ -1014,6 +1096,7 @@ class AiCallController extends StateNotifier<AiCallViewState> {
     } else {
       await _commitLocalFallbackArtifacts();
     }
+    if (_isDisposed || !mounted) return;
 
     if (_wsClient.isConnected) {
       _wsClient.sendSessionFinalize(
