@@ -7,7 +7,7 @@ from reportlab.platypus import (
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 
-def build_pdf(filename="kumpulan_link_prototyping.pdf"):
+def build_pdf(filename="docs/kumpulan_link_prototyping.pdf"):
     doc = SimpleDocTemplate(
         filename,
         pagesize=A4,
@@ -102,6 +102,12 @@ def build_pdf(filename="kumpulan_link_prototyping.pdf"):
 
     # Header section with Logo & Title
     logo_path = "apps/eva_counselor_mobile/assets/images/luna_logo.png"
+    if not os.path.exists(logo_path):
+        logo_path = "apps/web/public/eva_logo.png"
+    subtitle_text = (
+        "Kompilasi akses landing page resmi serta unduhan aplikasi mobile Android (APK) "
+        "melalui GitHub Releases."
+    )
     if os.path.exists(logo_path):
         logo_img = Image(logo_path, width=1.1 * cm, height=1.1 * cm)
         header_table = Table(
@@ -109,8 +115,8 @@ def build_pdf(filename="kumpulan_link_prototyping.pdf"):
                 [
                     logo_img,
                     [
-                        Paragraph("Direktori Tautan Prototyping Ekosistem EVA", title_style),
-                        Paragraph("Kompilasi akses pengujian aplikasi mobile, simulator peramban, serta portal tata kelola.", subtitle_style)
+                        Paragraph("Direktori Tautan Ekosistem EVA", title_style),
+                        Paragraph(subtitle_text, subtitle_style)
                     ]
                 ]
             ],
@@ -125,8 +131,8 @@ def build_pdf(filename="kumpulan_link_prototyping.pdf"):
         ]))
         story.append(header_table)
     else:
-        story.append(Paragraph("Direktori Tautan Prototyping Ekosistem EVA", title_style))
-        story.append(Paragraph("Kompilasi akses pengujian aplikasi mobile, simulator peramban, serta portal tata kelola.", subtitle_style))
+        story.append(Paragraph("Direktori Tautan Ekosistem EVA", title_style))
+        story.append(Paragraph(subtitle_text, subtitle_style))
 
     story.append(Spacer(1, 0.2 * cm))
     story.append(HRFlowable(width="100%", thickness=1, color=c_card_border, spaceBefore=0, spaceAfter=14))
@@ -135,32 +141,25 @@ def build_pdf(filename="kumpulan_link_prototyping.pdf"):
     # Notice: strictly no hyphen bullet points, no "subheading: explanation", no excessive bold
     items = [
         (
-            "Unduhan Berkas Paket Android APK",
-            "Tersedia di Google Drive",
-            "https://drive.google.com/drive/folders/1y_7M4hG-goOQL82mi48fYCFoHE1xyiYE?usp=drive_link",
-            "drive.google.com/.../eva-apk-builds",
-            "Repositori penyimpanan berkas mentah APK yang dapat diunduh dan dipasang langsung pada gawai Android fisik, mempermudah evaluasi performa lokal, antarmuka layar sentuh, dan verifikasi alur aplikasi secara nyata."
+            "Landing Page & Portal Web EVA",
+            "Web Resmi Aktif",
+            "https://hieva.web.id",
+            "hieva.web.id",
+            "Halaman utama resmi Ekosistem EVA yang memuat informasi layanan, panduan penggunaan, tautan unduhan aplikasi, serta akses menuju portal manajemen web dan mitra profesional."
         ),
         (
-            "Simulator Web Aplikasi Konselor",
-            "Akses Peramban Langsung",
-            "https://nexa-code-studio.github.io/eva-ecosystem/counselor/",
-            "nexa-code-studio.github.io/eva-ecosystem/counselor/",
-            "Lingkungan simulasi peramban untuk aplikasi mobile tenaga psikolog dan konselor tanpa kewajiban instalasi, menyediakan simulasi pengelolaan jadwal praktik, pengaturan tarif sesi, serta penanganan rujukan pasien secara interaktif."
+            "Aplikasi Mobile Pasien (EVA Mobile)",
+            "Android APK · GitHub Release",
+            "https://github.com/Nexa-Code-Studio/eva-ecosystem/releases/latest/download/eva-mobile-release.apk",
+            "github.com/Nexa-Code-Studio/eva-ecosystem/.../eva-mobile-release.apk",
+            "Berkas instalasi Android (.apk) rilis terbaru untuk aplikasi pengguna akhir, mencakup fitur curhat suara bersama EVA AI, skrining kesehatan mental, jurnal reflektif, misi pemulihan harian, dan konsultasi psikolog."
         ),
         (
-            "Simulator Web Aplikasi Pasien",
-            "Web Aktif, Paket APK Dalam Proses",
-            "https://nexa-code-studio.github.io/eva-ecosystem/app/",
-            "nexa-code-studio.github.io/eva-ecosystem/app/",
-            "Simulasi peramban untuk aplikasi mobile pengguna dalam menyampaikan curahan hati, konsultasi awal bersama kecerdasan buatan, serta pemantauan suasana hati, sementara paket build APK instalasi fisik masih dalam tahap finalisasi rilis."
-        ),
-        (
-            "Web Portal Manajemen dan Triage Rujukan",
-            "Aplikasi Web Cloud",
-            "https://eva-web-seven.vercel.app",
-            "eva-web-seven.vercel.app",
-            "Pusat administrasi berbasis web bagi penanggung jawab ekosistem dan mitra profesional, memfasilitasi peninjauan antrean rujukan darurat, verifikasi legalitas tenaga kesehatan, serta pemantauan analitik layanan secara terpadu."
+            "Aplikasi Mobile Konselor (EVA Counselor)",
+            "Android APK · GitHub Release",
+            "https://github.com/Nexa-Code-Studio/eva-ecosystem/releases/latest/download/eva-counselor-mobile-release.apk",
+            "github.com/Nexa-Code-Studio/eva-ecosystem/.../eva-counselor-mobile-release.apk",
+            "Berkas instalasi Android (.apk) rilis terbaru untuk tenaga psikolog dan konselor mitra, mencakup pengelolaan jadwal praktik, pelaksanaan sesi telekonsultasi, dokumentasi klinis, dan pemantauan dompet koin."
         ),
     ]
 
@@ -212,8 +211,8 @@ def build_pdf(filename="kumpulan_link_prototyping.pdf"):
     # Notes section at bottom
     story.append(Spacer(1, 0.2 * cm))
     note_p = Paragraph(
-        "Tautan di atas dapat diklik langsung untuk menuju halaman sasaran, "
-        "sementara pengujian simulator web disarankan menggunakan peramban modern seperti Google Chrome, Safari, atau Microsoft Edge.",
+        "Seluruh tautan di atas dapat diklik langsung untuk membuka halaman web atau mengunduh "
+        "berkas APK rilis terbaru pada perangkat Android Anda.",
         footer_style
     )
     story.append(note_p)
@@ -222,8 +221,4 @@ def build_pdf(filename="kumpulan_link_prototyping.pdf"):
     print(f"PDF successfully built: {filename}")
 
 if __name__ == "__main__":
-    build_pdf("kumpulan_link_prototyping.pdf")
-    # Also write a copy to docs/ for permanent documentation
-    import shutil
-    shutil.copyfile("kumpulan_link_prototyping.pdf", "docs/kumpulan_link_prototyping.pdf")
-    print("Copied to docs/kumpulan_link_prototyping.pdf")
+    build_pdf("docs/kumpulan_link_prototyping.pdf")
