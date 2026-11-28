@@ -1,0 +1,121 @@
+% PIC: @Oktavian19
+\chapter{Panduan Web Portal dan Admin}
+\label{chap:web-portal-admin}
+
+\textbf{Web Portal dan Admin} adalah antarmuka berbasis web (\texttt{apps/web}) yang berfungsi sebagai gerbang informasi publik EVA Ecosystem sekaligus pusat kendali operasional bagi Administrator platform. Seluruh modul admin dapat diakses setelah login melalui rute \texttt{/login} dan terhubung melalui bilah navigasi samping (\textit{Sidebar}) pada rute \texttt{/admin/*}.
+
+\section{Landing Page Publik, Booth Feedback, dan Login}
+
+\subsection{Landing Page Publik (\texttt{/})}
+Halaman utama publik menyajikan informasi ringkas mengenai layanan pendampingan kesehatan mental EVA Ecosystem, fitur EVA AI, direktori layanan telekonseling, serta tautan akses menuju formulir umpan balik dan portal login.
+
+\uifigure[0.92\textwidth]{web/01_landing_page.png}{Tampilan Landing Page Publik EVA Ecosystem (\texttt{/})}{fig:web-landing}
+
+\subsection{Booth Feedback Publik (\texttt{/feedback})}
+Halaman \textit{Booth Feedback} disediakan agar pengguna maupun psikolog dapat mengirimkan masukan, laporan pengalaman penggunaan, atau saran perbaikan layanan secara langsung tanpa harus masuk ke panel admin. Data masukan yang dikirimkan akan masuk ke modul \textbf{Konten \& Platform} untuk ditinjau Administrator.
+
+\uifigure[0.92\textwidth]{web/02_booth_feedback.png}{Formulir Booth Feedback Publik (\texttt{/feedback})}{fig:web-feedback}
+
+\subsection{Portal Login Admin (\texttt{/login})}
+Halaman autentikasi \texttt{/login} digunakan oleh Administrator resmi untuk masuk ke panel kendali \texttt{/admin/dashboard}.
+
+\section{Dashboard Utama Admin (\texttt{/admin/dashboard})}
+Modul \textbf{Dashboard Utama} memberikan ringkasan kondisi operasional ekosistem secara waktu nyata agar Administrator dapat segera memprioritaskan tindakan yang mendesak.
+
+\begin{itemize}[leftmargin=1.4em]
+  \item \textbf{Banner Antrean Mendesak}: Menampilkan jumlah antrean verifikasi psikolog atau pengguna dalam pantauan krisis beserta pintasan langsung ke modul terkait.
+  \item \textbf{Kartu KPI Utama}: Empat kartu metrik ringkas dengan indikator tren (\textit{sparkline}) untuk memantau pertumbuhan dan kesehatan layanan.
+  \item \textbf{Tren Aktivitas Layanan}: Grafik interaktif dengan pilihan metrik \textit{Pengguna Baru}, \textit{Sesi Suara AI}, dan \textit{Sesi Konsultasi} berdasarkan rentang hari yang dipilih.
+  \item \textbf{Distribusi Skrining DASS-21}: Visualisasi proporsi tingkat keparahan skrining pengguna untuk memantau kebutuhan intervensi secara agregat.
+  \item \textbf{Antrean Tindakan Terbaru \& Status Psikolog Mandiri}: Daftar item terbaru yang membutuhkan tindak lanjut serta komposisi status verifikasi psikolog aktif.
+\end{itemize}
+
+\uifigure[0.92\textwidth]{web/03_admin_dashboard.png}{Tampilan Dashboard Utama Admin (\texttt{/admin/dashboard})}{fig:web-dashboard}
+
+\section{Verifikasi Psikolog (\texttt{/admin/psychologists})}
+Modul \textbf{Verifikasi Psikolog} digunakan untuk meninjau pendaftaran konselor baru dari aplikasi EVA Counselor sebelum diizinkan menerima klien.
+
+\subsection{Ringkasan KPI dan Filter Antrean}
+Pada bagian atas modul terdapat empat kartu KPI (\textit{Antrean Verifikasi}, \textit{Semua Psikolog}, \textit{Terverifikasi Aktif}, dan \textit{Ditolak / Nonaktif}) serta tab filter:
+\begin{itemize}[leftmargin=1.4em]
+  \item \textbf{Antrean}: Menampilkan pendaftar baru atau psikolog yang membutuhkan peninjauan ulang.
+  \item \textbf{Semua}: Menampilkan seluruh psikolog mandiri terdaftar beserta kolom \textbf{Saldo Koin} terkini.
+  \item \textbf{Terverifikasi}: Psikolog dengan berkas STR/SIPP yang telah disetujui.
+  \item \textbf{Ditolak}: Pendaftar yang tidak memenuhi persyaratan legalitas atau kelengkapan dokumen.
+\end{itemize}
+
+\subsection{Langkah Peninjauan Berkas STR/SIPP}
+\begin{steplist}
+  \item Buka menu \textbf{Verifikasi Psikolog} dan pilih tab \textbf{Antrean}.
+  \item Klik baris psikolog untuk membuka modal detail profil dan pratinjau dokumen STR/SIPP.
+  \item Periksa kesesuaian nama lengkap, nomor registrasi, masa berlaku izin praktik, serta kejelasan foto dokumen.
+  \item Pilih \textbf{Setujui / Verifikasi} jika seluruh dokumen valid, atau pilih \textbf{Tolak} dan isi alasan penolakan yang jelas agar psikolog dapat memperbaikinya.
+\end{steplist}
+
+\calloutwarn{Kepatuhan Legalitas Praktik}{Jangan menyetujui akun psikolog apabila nomor STR/SIPP tidak terbaca, telah kedaluwarsa, atau tidak sesuai dengan identitas pendaftar.}
+
+\uifigure[0.92\textwidth]{web/04_admin_verifikasi_psikolog.png}{Halaman Verifikasi Psikolog dan Tabel Saldo Koin (\texttt{/admin/psychologists})}{fig:web-psychologists}
+
+\section{Sertifikat Psikolog (\texttt{/admin/certificates})}
+Modul \textbf{Sertifikat Psikolog} mengelola sertifikat resmi mitra konselor EVA Ecosystem melalui dua sub-tab utama:
+\begin{itemize}[leftmargin=1.4em]
+  \item \textbf{Sertifikat Terbit (\texttt{issued})}: Menampilkan daftar sertifikat aktif beserta nomor sertifikat, nama penerima, pratinjau dokumen resmi, serta opsi \textbf{Cabut Sertifikat} apabila mitra melanggar ketentuan atau berhenti praktik.
+  \item \textbf{Templat \& Penerbitan (\texttt{templates})}: Mengelola templat judul dan subjudul sertifikat serta menerbitkan sertifikat secara manual melalui modal penerbitan bagi psikolog yang memenuhi syarat.
+\end{itemize}
+
+\uifigure[0.92\textwidth]{web/05_admin_sertifikat.png}{Manajemen Sertifikat Psikolog (\texttt{/admin/certificates})}{fig:web-certificates}
+
+\section{Monitoring Sesi (\texttt{/admin/monitoring})}
+Modul \textbf{Monitoring Sesi} memungkinkan Administrator memantau status sesi konsultasi video yang sedang berlangsung maupun riwayat sesi terkini (status koneksi, durasi, serta penandaan kendala teknis), tanpa mengakses isi percakapan audio/video atau catatan klinis privat pasien.
+
+\uifigure[0.92\textwidth]{web/06_admin_monitoring_sesi.png}{Halaman Monitoring Sesi Konsultasi (\texttt{/admin/monitoring})}{fig:web-monitoring}
+
+\section{Pengaturan Platform (\texttt{/admin/settings})}
+Modul \textbf{Pengaturan Platform} mengatur parameter ekonomi dan jenjang profesional psikolog melalui tiga sub-tab:
+\begin{enumerate}[leftmargin=1.4em]
+  \item \textbf{Master Tarif \& Skema Bagi Hasil}: Mengatur standar biaya layanan dasar dan persentase pembagian pendapatan antara psikolog dan platform.
+  \item \textbf{Level \& Tarif Psikolog}: Mengelola tingkatan psikolog (ikon jenjang seperti \textit{Award}, \textit{Shield Check}, \textit{Star}, \textit{Crown}, \textit{Sparkles}), batas rentang tarif koin per sesi, dan kriteria kenaikan level.
+  \item \textbf{Katalog Paket Koin}: Menambah, mengubah harga, atau menonaktifkan paket pembelian EVA Coin yang tampil pada aplikasi EVA Mobile.
+\end{enumerate}
+
+\uifigure[0.92\textwidth]{web/07_admin_pengaturan_platform.png}{Pengaturan Tarif, Level Psikolog, dan Katalog Koin (\texttt{/admin/settings})}{fig:web-settings}
+
+\section{Pengguna, Psikolog, dan Koin (\texttt{/admin/users-coins})}
+Modul \textbf{Pengguna \& Koin} memusatkan pengelolaan akun pasien, pemantauan saldo koin psikolog, dan audit transaksi koin dalam tiga sub-tab:
+
+\subsection{Sub-tab Pengguna}
+Menampilkan daftar pengguna EVA Mobile dengan filter status \textbf{Semua}, \textbf{Aktif}, \textbf{Pantauan Krisis}, dan \textbf{Ditangguhkan}. Administrator dapat:
+\begin{itemize}[leftmargin=1.4em]
+  \item Menandai akun dalam pantauan prioritas krisis, menangguhkan akun yang melanggar kebijakan, atau memulihkan akun ke status aktif normal.
+  \item Melakukan \textbf{Top-Up Koin Manual Admin} menggunakan metode \textit{Tunai} maupun \textit{Grant Gratis (Rp0)} untuk kebutuhan kompensasi atau dukungan operasional.
+\end{itemize}
+
+\subsection{Sub-tab Psikolog (Saldo \& Riwayat Mutasi Koin)}
+Menampilkan daftar psikolog beserta saldo koin aktif. Klik tombol riwayat pada baris psikolog untuk membuka modal mutasi koin yang merinci penambahan honorarium sesi, penyesuaian, serta pencairan dana.
+
+\subsection{Sub-tab Transaksi Koin}
+Menampilkan seluruh riwayat pembelian dan mutasi koin pengguna dengan filter status \textbf{Semua}, \textbf{Menunggu}, \textbf{Berhasil}, dan \textbf{Refund/Batal}. Admin dapat mengonfirmasi pelunasan manual, menandai \textit{refund}, atau membatalkan transaksi yang tertunda.
+
+\uifigure[0.92\textwidth]{web/08_admin_pengguna_koin.png}{Manajemen Pengguna, Saldo Koin Psikolog, dan Transaksi Koin (\texttt{/admin/users-coins})}{fig:web-users-coins}
+
+\section{Keuangan dan Rekonsiliasi (\texttt{/admin/finance})}
+Modul \textbf{Keuangan \& Rekonsiliasi} menyediakan pencatatan arus kas dan pencocokan status transaksi terhadap penyedia gerbang pembayaran (\textit{payment gateway}).
+
+\begin{itemize}[leftmargin=1.4em]
+  \item \textbf{Tab Uang Masuk (\textit{Money In})}: Memantau transaksi \textit{QRIS Top-Up} dari pengguna, mencakup metrik \textit{Uang Masuk Lunas (QRIS)} dan \textit{Uang Masuk Tertunda}.
+  \item \textbf{Tab Uang Keluar (\textit{Money Out})}: Memantau arus keluar seperti \textit{Pencairan Psikolog (Payout)}, \textit{Refund Pembayaran}, dan \textit{Reversal Payout}, beserta metrik \textit{Payout Selesai}, \textit{Payout Tertunda}, \textit{Komisi Platform}, \textit{Kewajiban Koin Pengguna}, \textit{Honorarium Psikolog Terutang}, dan \textit{Butuh Rekonsiliasi}.
+  \item \textbf{Status Rekonsiliasi}: Setiap baris transaksi menampilkan status kecocokan (\textit{Cocok}, \textit{Menunggu}, \textit{Selisih}, \textit{Perlu Tinjauan}) serta modal detail transaksi untuk menelusuri referensi penyedia pembayaran.
+\end{itemize}
+
+\callouttip{Audit Harian Rekonsiliasi}{Prioritaskan pemeriksaan transaksi berstatus \textit{Selisih} atau \textit{Perlu Tinjauan} setiap akhir hari agar saldo kewajiban koin pengguna dan honorarium psikolog tetap sinkron dengan mutasi penyedia pembayaran.}
+
+\uifigure[0.92\textwidth]{web/09_admin_keuangan_rekonsiliasi.png}{Modul Keuangan dan Rekonsiliasi (\texttt{/admin/finance})}{fig:web-finance}
+
+\section{Konten dan Platform (\texttt{/admin/content-config})}
+Modul \textbf{Konten \& Platform} mengelola informasi bantuan publik dan umpan balik pengguna melalui dua sub-tab:
+\begin{itemize}[leftmargin=1.4em]
+  \item \textbf{FAQ \& Konfigurasi Krisis}: Menambah, menyunting, atau menghapus pertanyaan umum (FAQ) yang tampil di aplikasi serta memperbarui daftar nomor darurat dan teks panduan krisis \textit{SafetyNet}.
+  \item \textbf{Booth Feedback}: Menampilkan seluruh masukan yang dikirim melalui halaman publik \texttt{/feedback} dengan filter peran (\textit{Semua Peran}, \textit{Pengguna Biasa}, \textit{Psikolog}) untuk bahan evaluasi tim produk.
+\end{itemize}
+
+\uifigure[0.92\textwidth]{web/10_admin_konten_platform.png}{Pengelolaan FAQ, Konfigurasi Krisis, dan Booth Feedback (\texttt{/admin/content-config})}{fig:web-content-config}

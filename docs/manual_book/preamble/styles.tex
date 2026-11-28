@@ -1,0 +1,172 @@
+% ==============================================================================
+% EVA Ecosystem Manual Book - Shared Styles & Macros
+% Palette: EVA Web & Mobile (Periwinkle #5358CB & Slate #191C1F)
+% ==============================================================================
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[indonesian]{babel}
+\usepackage{lmodern}
+\usepackage[a4paper, top=2.2cm, bottom=2.2cm, left=2.2cm, right=2.2cm]{geometry}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{colortbl}
+\usepackage{enumitem}
+\usepackage{parskip}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage[most]{tcolorbox}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, fit}
+\usepackage{hyperref}
+
+% --- EVA Color Tokens ---
+\definecolor{EvaPrimary}{HTML}{5358CB}
+\definecolor{EvaPrimarySoft}{HTML}{E8E9FF}
+\definecolor{EvaInk}{HTML}{191C1F}
+\definecolor{EvaMuted}{HTML}{525466}
+\definecolor{EvaBorder}{HTML}{E2E8F0}
+\definecolor{EvaCanvas}{HTML}{F8F9FE}
+
+\definecolor{EvaSuccess}{HTML}{1E6B3A}
+\definecolor{EvaSuccessBg}{HTML}{E8F5E9}
+\definecolor{EvaWarn}{HTML}{B45309}
+\definecolor{EvaWarnBg}{HTML}{FFF4E5}
+\definecolor{EvaDanger}{HTML}{B91C1C}
+\definecolor{EvaDangerBg}{HTML}{FFEBEE}
+
+% --- Hyperref Configuration ---
+\hypersetup{
+  colorlinks=true,
+  linkcolor=EvaPrimary,
+  urlcolor=EvaPrimary,
+  citecolor=EvaPrimary,
+  pdftitle={Buku Panduan Pengguna EVA Ecosystem},
+  pdfauthor={Nexa Code Studio}
+}
+
+% --- Base Typography & Lists ---
+\color{EvaInk}
+\setlist[itemize]{leftmargin=1.4em, itemsep=3pt, topsep=4pt}
+\setlist[enumerate]{leftmargin=1.6em, itemsep=3pt, topsep=4pt}
+\newlist{steplist}{enumerate}{1}
+\setlist[steplist]{label=\protect\stepbadge{\arabic*}, leftmargin=2.2em, labelsep=0.5em, itemsep=4pt, topsep=4pt}
+
+% --- Chapter & Section Styling ---
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries\color{EvaPrimary}\raggedright}
+  {\small\MakeUppercase{\chaptertitlename}~\thechapter}
+  {4pt}
+  {\Huge\color{EvaInk}\raggedright}
+  [\vspace{6pt}{\color{EvaPrimary}\titlerule[1.5pt]}]
+\titlespacing*{\chapter}{0pt}{-10pt}{18pt}
+
+\titleformat{\section}
+  {\Large\bfseries\color{EvaInk}}
+  {\color{EvaPrimary}\thesection}
+  {0.7em}
+  {}
+\titlespacing*{\section}{0pt}{14pt}{6pt}
+
+\titleformat{\subsection}
+  {\large\bfseries\color{EvaPrimary}}
+  {\thesubsection}
+  {0.6em}
+  {}
+\titlespacing*{\subsection}{0pt}{10pt}{4pt}
+
+% --- Header & Footer ---
+\setlength{\headheight}{22pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{EvaMuted} EVA Ecosystem Manual Book}
+\fancyhead[R]{\small\color{EvaPrimary}\nouppercase{\leftmark}}
+\fancyfoot[C]{\small\color{EvaMuted} Halaman \thepage}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\footrulewidth}{0.5pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{EvaBorder}\leaders\hrule height \headrulewidth\hfill}}
+\renewcommand{\footrule}{\hbox to\headwidth{\color{EvaBorder}\leaders\hrule height \footrulewidth\hfill}}
+
+% --- Callout Boxes ---
+\newcommand{\calloutnote}[2]{%
+  \begin{tcolorbox}[
+    colback=EvaPrimarySoft!55,
+    colframe=EvaPrimary,
+    boxrule=0.8pt,
+    leftrule=3pt,
+    arc=4pt,
+    title={\bfseries\color{EvaPrimary} #1},
+    attach title to upper={\par\vspace{3pt}}
+  ]
+  \small\color{EvaInk} #2
+  \end{tcolorbox}
+}
+
+\newcommand{\callouttip}[2]{%
+  \begin{tcolorbox}[
+    colback=EvaSuccessBg,
+    colframe=EvaSuccess,
+    boxrule=0.8pt,
+    leftrule=3pt,
+    arc=4pt,
+    title={\bfseries\color{EvaSuccess} #1},
+    attach title to upper={\par\vspace{3pt}}
+  ]
+  \small\color{EvaInk} #2
+  \end{tcolorbox}
+}
+
+\newcommand{\calloutwarn}[2]{%
+  \begin{tcolorbox}[
+    colback=EvaWarnBg,
+    colframe=EvaWarn,
+    boxrule=0.8pt,
+    leftrule=3pt,
+    arc=4pt,
+    title={\bfseries\color{EvaWarn} #1},
+    attach title to upper={\par\vspace{3pt}}
+  ]
+  \small\color{EvaInk} #2
+  \end{tcolorbox}
+}
+
+% --- Step Badge ---
+\DeclareRobustCommand{\stepbadge}[1]{%
+  \tikz[baseline=(char.base)]{%
+    \node[shape=circle, fill=EvaPrimary, text=white, inner sep=1.8pt, font=\scriptsize\bfseries] (char) {#1};%
+  }%
+}
+
+% --- Safe UI Figure Macro (with Placeholder Fallback) ---
+% Usage: \uifigure[0.85\textwidth]{web/login.png}{Tampilan Login Portal}{fig:web-login}
+\newcommand{\uifigure}[4][0.85\textwidth]{%
+  \begin{figure}[H]
+    \centering
+    \IfFileExists{figures/#2}{%
+      \includegraphics[width=#1]{figures/#2}%
+    }{%
+      \begin{tcolorbox}[
+        width=#1,
+        colback=EvaCanvas,
+        colframe=EvaBorder,
+        boxrule=1pt,
+        arc=6pt,
+        halign=center,
+        valign=center,
+        height=4.2cm
+      ]
+        {\bfseries\color{EvaPrimary} Placeholder Screenshot}\par\vspace{4pt}
+        {\small\ttfamily\color{EvaMuted} figures/#2}
+      \end{tcolorbox}
+    }%
+    \caption{#3}
+    \label{#4}
+  \end{figure}
+}
+
+% --- Table Defaults ---
+\renewcommand{\arraystretch}{1.3}
+\arrayrulecolor{EvaBorder}

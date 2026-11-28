@@ -1,0 +1,74 @@
+% PIC: Shared (@Oktavian19, @ekyaaa, @KhoirotunNisa25)
+\chapter{Troubleshooting dan Pertanyaan Umum (FAQ)}
+\label{chap:troubleshooting-faq}
+
+\section{Troubleshooting EVA Mobile (Pasien)}
+Tabel~\ref{tab:troubleshooting-mobile} menyajikan ringkasan kendala operasional yang mungkin dialami pasien saat menggunakan aplikasi EVA Mobile beserta solusinya.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Panduan Troubleshooting EVA Mobile (Pasien)}
+  \label{tab:troubleshooting-mobile}
+  \small
+  \begin{tabularx}{\textwidth}{@{}p{4.0cm}p{4.3cm}X@{}}
+    \toprule
+    \textbf{Kendala} & \textbf{Kemungkinan Penyebab} & \textbf{Langkah Penyelesaian} \\
+    \midrule
+    \textbf{Suara AI tidak terdengar pada Voice Call} & Izin mikrofon ditolak sistem operasi atau volume media hening (\textit{muted}). & Periksa perizinan aplikasi di Pengaturan Ponsel $\rightarrow$ Aplikasi $\rightarrow$ EVA Mobile $\rightarrow$ Izin Mikrofon; naikkan volume media perangkat. \\
+    \addlinespace[4pt]
+    \textbf{Saldo EVA Coin belum bertambah pasca-QRIS} & Pembayaran berhasil di m-Banking tetapi jaringan internet ponsel mengalami \textit{packet loss}. & Tarik layar ke bawah (\textit{pull-to-refresh}) di halaman Dompet \& Koin; transaksi akan tersinkronisasi otomatis via verifikasi webhook backend. \\
+    \addlinespace[4pt]
+    \textbf{Video Call tidak tersambung dengan psikolog} & Koneksi WebRTC terhalang firewall jaringan kampus/kantor atau izin kamera nonaktif. & Pastikan izin kamera \& mikrofon aktif; beralih dari Wi-Fi publik ke jaringan seluler pribadi (4G/5G). \\
+    \addlinespace[4pt]
+    \textbf{Riwayat diari emosi tidak tersinkronisasi} & Fitur enkripsi SQLCipher lokal sedang melakukan sinkronisasi aman di latar belakang. & Tunggu proses enkripsi selesai atau klik tombol sinkronisasi manual pada halaman Diari Emosi. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Troubleshooting EVA Counselor (Psikolog)}
+Tabel~\ref{tab:troubleshooting-counselor} merangkum kendala umum yang dihadapi oleh konselor profesional beserta langkah pemecahannya.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Panduan Troubleshooting EVA Counselor (Psikolog)}
+  \label{tab:troubleshooting-counselor}
+  \small
+  \begin{tabularx}{\textwidth}{@{}p{4.0cm}p{4.3cm}X@{}}
+    \toprule
+    \textbf{Kendala} & \textbf{Kemungkinan Penyebab} & \textbf{Langkah Penyelesaian} \\
+    \midrule
+    \textbf{Status akun tertahan di \textit{Pending Review}} & Verifikasi berkas STR/SIPP sedang dalam antrean peninjauan oleh Administrator. & Peninjauan berkas membutuhkan waktu maksimal 1x24 jam kerja. Pastikan nomor kontak aktif untuk verifikasi lanjutan dari tim legal. \\
+    \addlinespace[4pt]
+    \textbf{Pasien tidak muncul di ruang video call} & Pasien mengalami kendala jaringan atau lupa jadwal sesi. & Gunakan tombol \textbf{Kirim Pengingat Sesi} di aplikasi. Jika pasien tidak hadir dalam 10 menit pertama, sesi otomatis ditandai sebagai \textit{No-Show}. \\
+    \addlinespace[4pt]
+    \textbf{Tombol Simpan SOAP dinonaktifkan} & Kolom Subjective, Objective, Assessment, atau Plan belum memenuhi syarat panjang karakter minimal. & Lengkapi seluruh empat pilar diagnosis SOAP secara komprehensif; tombol simpan akan aktif otomatis saat validasi terpenuhi. \\
+    \addlinespace[4pt]
+    \textbf{Permohonan penarikan dana ditolak sistem} & Nama pada rekening bank tidak sesuai dengan nama yang tercantum pada berkas STR KTKI. & Perbarui nomor rekening pada menu \textbf{Rekening Bank} dengan buku tabungan atas nama psikolog sendiri untuk mencegah risiko salah transfer. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Troubleshooting Web Portal dan Admin}
+Tabel~\ref{tab:troubleshooting-web-admin} merangkum kendala operasional yang paling sering ditemui pada Web Portal dan Panel Admin beserta langkah penanganannya.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Panduan Troubleshooting Web Portal dan Panel Admin}
+  \label{tab:troubleshooting-web-admin}
+  \small
+  \begin{tabularx}{\textwidth}{@{}p{4.0cm}p{4.3cm}X@{}}
+    \toprule
+    \textbf{Kendala} & \textbf{Kemungkinan Penyebab} & \textbf{Langkah Penyelesaian} \\
+    \midrule
+    \textbf{Gagal masuk ke \texttt{/admin/dashboard}} & Sesi autentikasi kedaluwarsa atau akun bukan peran Administrator. & Muat ulang halaman \texttt{/login}, masuk kembali dengan akun Admin resmi, lalu pastikan cookie/token sesi tidak terblokir browser. \\
+    \addlinespace[4pt]
+    \textbf{Dokumen STR/SIPP tidak tampil saat verifikasi} & Koneksi ke penyimpanan objek lambat atau format unggahan psikolog tidak didukung. & Buka ulang modal detail psikolog, klik pratinjau dokumen; jika tetap gagal, tolak dengan alasan unggah ulang dokumen berformat JPG/PNG/PDF yang jelas. \\
+    \addlinespace[4pt]
+    \textbf{Transaksi koin pengguna masih berstatus Menunggu} & Callback QRIS tertunda atau pengguna belum menyelesaikan pembayaran. & Cek tab \textbf{Transaksi Koin} di \texttt{/admin/users-coins} dan cocokkan kode invoice pada modul \textbf{Keuangan \& Rekonsiliasi}. Gunakan konfirmasi manual hanya jika bukti bayar valid. \\
+    \addlinespace[4pt]
+    \textbf{Status rekonsiliasi Finance menunjukkan Selisih} & Perbedaan nominal/biaya penyedia atau waktu potong (\textit{cutoff}) UTC vs WIB. & Buka modal detail transaksi pada \texttt{/admin/finance}, periksa referensi provider dan biaya tercatat, lalu tandai untuk tinjauan tim keuangan. \\
+    \addlinespace[4pt]
+    \textbf{Perubahan FAQ atau Crisis Config belum tampil} & Cache aplikasi klien masih menyimpan konfigurasi lama. & Pastikan perubahan pada \texttt{/admin/content-config} telah disimpan, lalu minta pengguna memuat ulang aplikasi. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}

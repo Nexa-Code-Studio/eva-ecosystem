@@ -94,3 +94,13 @@ immg/
 /generate_tam_sam_som_pdf.py
 /reference.csv
 /tam_sam_som_venn_diagram.png
+
+# LaTeX build artifacts for manual book
+docs/manual_book/*.aux
+docs/manual_book/*.log
+docs/manual_book/*.toc
+docs/manual_book/*.lof
+docs/manual_book/*.out
+docs/manual_book/*.fdb_latexmk
+docs/manual_book/*.fls
+docs/manual_book/*.synctex.gz

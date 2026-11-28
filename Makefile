@@ -1,4 +1,4 @@
-.PHONY: help dev dev-d dev-build dev-api dev-mcp dev-worker prod prod-down logs logs-api logs-worker logs-prod ps down db-shell migrate migration-gen db-reset seed mobile-usb mobile-emu mobile-mock mobile-hybrid mobile-usb-hybrid mobile-emu-hybrid mobile-web-hybrid mobile-web-build mobile-vercel mobile-web mobile-usb-cloud mobile-emu-cloud mobile-web-cloud mobile-cloud counselor-usb counselor-emu counselor-web counselor-mock counselor-usb-cloud counselor-emu-cloud counselor-web-cloud counselor-cloud counselor-build-web test-counselor web-dev web-build web-lint test test-backend test-mobile lint format doctor tasks bootstrap test-agentic link-project view-project check-server
+.PHONY: help dev dev-d dev-build dev-api dev-mcp dev-worker prod prod-down logs logs-api logs-worker logs-prod ps down db-shell migrate migration-gen db-reset seed mobile-usb mobile-emu mobile-mock mobile-hybrid mobile-usb-hybrid mobile-emu-hybrid mobile-web-hybrid mobile-web-build mobile-vercel mobile-web mobile-usb-cloud mobile-emu-cloud mobile-web-cloud mobile-cloud counselor-usb counselor-emu counselor-web counselor-mock counselor-usb-cloud counselor-emu-cloud counselor-web-cloud counselor-cloud counselor-build-web test-counselor web-dev web-build web-lint test test-backend test-mobile lint format doctor tasks bootstrap test-agentic link-project view-project check-server manual-pdf manual-clean
 
 help:
 	@echo "EVA Ecosystem Management Commands (Full Docker Environment):"
@@ -276,4 +276,13 @@ view-project:
 
 check-server:
 	@python3 scripts/check_server_resources.py
+
+# ------------------------------------------------------------------------------
+# Documentation & Manual Book (LaTeX PDF)
+# ------------------------------------------------------------------------------
+manual-pdf:
+	cd docs/manual_book && pdflatex -interaction=nonstopmode -halt-on-error -jobname=EVA_Ecosystem_Manual_Book main.tex && pdflatex -interaction=nonstopmode -halt-on-error -jobname=EVA_Ecosystem_Manual_Book main.tex
+
+manual-clean:
+	rm -f docs/manual_book/*.aux docs/manual_book/*.log docs/manual_book/*.toc docs/manual_book/*.lof docs/manual_book/*.out docs/manual_book/*.fdb_latexmk docs/manual_book/*.fls docs/manual_book/*.synctex.gz
 

@@ -1,0 +1,44 @@
+% PIC: @Oktavian19
+\chapter{Pendahuluan}
+\label{chap:pendahuluan}
+
+\section{Gambaran Umum EVA Ecosystem}
+\textbf{EVA Ecosystem} adalah platform kesehatan mental terpadu yang menghubungkan pendampingan kecerdasan buatan (\textbf{EVA AI}), pemantauan kondisi psikologis mandiri, serta layanan telekonseling bersama psikolog berlisensi dalam satu alur kerja yang aman dan berorientasi pada privasi.
+
+Secara arsitektural, ekosistem ini memisahkan pengalaman pengguna sesuai perannya agar setiap aktor memperoleh antarmuka yang fokus, cepat, dan aman:
+\begin{enumerate}[leftmargin=1.4em]
+  \item \textbf{Pendampingan Mandiri Berbasis AI}: Pengguna dapat mengekspresikan kondisi emosional melalui percakapan suara maupun teks bersama EVA AI, menulis diari reflektif, serta melakukan skrining berkala menggunakan instrumen \textbf{DASS-21} (\textit{Depression, Anxiety, and Stress Scale}).
+  \item \textbf{Telekonseling Klinis Terverifikasi}: Pengguna yang membutuhkan pendampingan profesional dapat menelusuri direktori psikolog terverifikasi, memesan jadwal sesi video, serta mengelola persetujuan berbagi ringkasan data klinis melalui \textit{Consent Gate}.
+  \item \textbf{Tata Kelola, Verifikasi, dan Keuangan Terpusat}: Seluruh kredensial psikolog (STR/SIPP), sertifikat keaktifan, konfigurasi tarif, paket koin, pemantauan sesi, serta rekonsiliasi keuangan QRIS dan pencairan honorarium dikelola secara terpusat melalui \textbf{Web Portal dan Admin}.
+\end{enumerate}
+
+\calloutnote{Prinsip Privasi Sejak Rancangan}{Data refleksi pribadi dan catatan klinis diperlakukan dengan pembatasan akses ketat. Psikolog hanya dapat melihat ringkasan pra-sesi apabila pengguna memberikan persetujuan eksplisit pada \textit{Consent Gate}, dan Admin hanya memantau metrik agregat serta status operasional tanpa membaca isi percakapan pribadi pasien.}
+
+\section{Peran Pengguna dalam Ekosistem}
+Ekosistem EVA melayani tiga aktor utama dengan aplikasi dan tanggung jawab yang saling melengkapi, sebagaimana dirangkum pada Tabel~\ref{tab:peran-ekosistem}.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Ringkasan Peran, Platform, dan Tanggung Jawab Utama di EVA Ecosystem}
+  \label{tab:peran-ekosistem}
+  \small
+  \begin{tabularx}{\textwidth}{@{}p{3.0cm}p{3.0cm}XX@{}}
+    \toprule
+    \textbf{Aktor} & \textbf{Aplikasi Utama} & \textbf{Fokus Aktivitas} & \textbf{Batasan Akses \& Privasi} \\
+    \midrule
+    \textbf{Pengguna / Pasien} & EVA Mobile (Android / Web) & Interaksi EVA AI, diari harian, skrining DASS-21, top-up koin, booking \& video telekonseling. & Memiliki kendali penuh atas \textit{Consent Gate} dan pencadangan data terenkripsi. \\
+    \addlinespace[4pt]
+    \textbf{Psikolog / Konselor} & EVA Counselor (Mobile) & Pendaftaran \& unggah STR/SIPP, atur jadwal \& tarif, sesi video call, catatan klinis SOAP, tarik honorarium. & Hanya melihat ringkasan pasien yang menyetujui berbagi data; tidak dapat mengakses diari mentah tanpa izin. \\
+    \addlinespace[4pt]
+    \textbf{Web Admin} & Web Portal \& Admin (\texttt{/admin}) & Verifikasi psikolog, penerbitan sertifikat, monitoring sesi, manajemen koin, keuangan/rekonsiliasi, CMS FAQ \& krisis. & Tidak memiliki akses ke isi diari atau transkrip konseling pribadi; hanya melihat status operasional dan metrik agregat. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Alur Nilai Ekosistem Secara Singkat}
+Keterhubungan antaraktor di EVA Ecosystem berjalan dalam siklus berikut:
+\begin{itemize}[leftmargin=1.4em]
+  \item \textbf{Pra-Konsultasi}: Pengguna memanfaatkan fitur pendampingan harian di \textbf{EVA Mobile}. Jika indikator skrining menunjukkan kebutuhan dukungan lanjutan atau kondisi krisis, sistem mengarahkan pengguna ke layanan \textit{SafetyNet} atau direktori psikolog.
+  \item \textbf{Konsultasi Profesional}: Psikolog yang telah lolos verifikasi di \textbf{Web Admin} menerima pemesanan sesi melalui \textbf{EVA Counselor}, melaksanakan telekonseling video, lalu melengkapi catatan klinis \textbf{SOAP}.
+  \item \textbf{Ekonomi Koin dan Rekonsiliasi}: Pembayaran konsultasi menggunakan \textbf{EVA Coin} yang dibeli pengguna via QRIS. Setelah kewajiban pasca-sesi terpenuhi, honorarium dilepaskan ke saldo psikolog dan dicatat dalam modul \textbf{Keuangan \& Rekonsiliasi} di Web Admin.
+\end{itemize}
