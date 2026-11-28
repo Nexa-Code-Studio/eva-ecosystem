@@ -66,6 +66,16 @@ class AiCallController extends StateNotifier<AiCallViewState> {
   bool _isDisposed = false;
   bool _isMockCycleRenewing = false;
   bool _billingEndedConfirmed = false;
+  Future<void> _audioPipelineQueue = Future<void>.value();
+
+  void _enqueueAudioPipelineTask(Future<void> Function() task) {
+    _audioPipelineQueue = _audioPipelineQueue.then((_) async {
+      if (_isDisposed || !mounted) return;
+      await task();
+    }).catchError((Object err, StackTrace st) {
+      debugPrint('⚠️ [AUDIO PIPELINE QUEUE ERROR]: $err');
+    });
+  }
 
   bool get isCallEnded => state.callState == CallState.ended;
 
@@ -252,14 +262,21 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       if (state.callState == CallState.ended || state.isFinalizing) {
         return;
       }
-      if (state.callState != CallState.aiSpeaking) {
-        enterAiSpeaking(state.assistantTurnId);
-      }
-      _audioPlaybackService.enqueueChunk(
-        bytes: audioBytes,
-        assistantTurnId: state.assistantTurnId,
-        sequence: 0,
-      );
+      final turnId = state.assistantTurnId;
+      _enqueueAudioPipelineTask(() async {
+        if (state.callState == CallState.ended || state.isFinalizing) return;
+        if (state.callState != CallState.aiSpeaking) {
+          await enterAiSpeaking(turnId);
+        }
+        if (_isDisposed || !mounted || state.callState == CallState.ended || state.isFinalizing) {
+          return;
+        }
+        _audioPlaybackService.enqueueChunk(
+          bytes: audioBytes,
+          assistantTurnId: turnId,
+          sequence: 0,
+        );
+      });
     });
 
     // WebSocket Incoming Events
@@ -514,15 +531,29 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       if (b64 != null && b64.isNotEmpty) {
         try {
           final audioBytes = base64Decode(b64);
-          if (state.callState != CallState.aiSpeaking) {
-            enterAiSpeaking(turnId);
-          }
-          _audioPlaybackService.enqueueChunk(
-            bytes: audioBytes,
-            assistantTurnId: turnId,
-            sequence: seq,
-            envelope: envelope,
-          );
+          _enqueueAudioPipelineTask(() async {
+            if (state.callState == CallState.ended ||
+                state.isFinalizing ||
+                state.callState == CallState.interrupting) {
+              return;
+            }
+            if (state.callState != CallState.aiSpeaking) {
+              await enterAiSpeaking(turnId);
+            }
+            if (_isDisposed ||
+                !mounted ||
+                state.callState == CallState.ended ||
+                state.isFinalizing ||
+                state.callState == CallState.interrupting) {
+              return;
+            }
+            _audioPlaybackService.enqueueChunk(
+              bytes: audioBytes,
+              assistantTurnId: turnId,
+              sequence: seq,
+              envelope: envelope,
+            );
+          });
         } catch (e) {
           debugPrint('⚠️ [AI AUDIO DECODE ERROR]: $e');
         }
@@ -538,18 +569,23 @@ class AiCallController extends StateNotifier<AiCallViewState> {
           transcript: state.aiTranscript,
         );
       }
-      if (state.callState == CallState.thinking) {
-        // Backend finished generation but no audio was enqueued/played (TTS fallback/text-only)
-        _thinkingWatchdogTimer?.cancel();
-        Future.delayed(const Duration(milliseconds: 1500), () async {
-          if (!_isDisposed && state.callState == CallState.thinking) {
-            state = state.copyWith(userTurnId: state.userTurnId + 1);
-            await enterListening();
-          }
-        });
-      } else {
-        _audioPlaybackService.markStreamFinished(turnId);
-      }
+      _enqueueAudioPipelineTask(() async {
+        if (_isDisposed || !mounted || state.callState == CallState.ended || state.isFinalizing) {
+          return;
+        }
+        if (state.callState == CallState.thinking) {
+          // Backend finished generation but no audio was enqueued/played (TTS fallback/text-only)
+          _thinkingWatchdogTimer?.cancel();
+          Future.delayed(const Duration(milliseconds: 1500), () async {
+            if (!_isDisposed && state.callState == CallState.thinking) {
+              state = state.copyWith(userTurnId: state.userTurnId + 1);
+              await enterListening();
+            }
+          });
+        } else {
+          _audioPlaybackService.markStreamFinished(turnId);
+        }
+      });
     } else if (type == 'assistant.interrupted_ack' || type == 'interrupted_ack') {
       debugPrint('⚡ [AI CALL CONTROLLER] Interrupted ACK confirmed by server');
     } else if (type == 'call.sync_state') {
@@ -694,8 +730,8 @@ class AiCallController extends StateNotifier<AiCallViewState> {
       isUserSpeaking: false,
       soundLevel: 0.05,
     );
-    _audioPlaybackService.prepareNewAssistantTurn(assistantTurnId);
     await _audioCaptureService.stopCapture();
+    await _audioPlaybackService.prepareNewAssistantTurn(assistantTurnId);
   }
 
   /// Normal Automatic Flow: AI playback finished -> guard delay -> auto LISTENING

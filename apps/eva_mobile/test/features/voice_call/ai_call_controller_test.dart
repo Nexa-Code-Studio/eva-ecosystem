@@ -82,6 +82,7 @@ class FakeAiAudioPlaybackService extends Fake implements AiAudioPlaybackService 
   Uint8List? lastEnqueuedBytes;
   int enqueueCount = 0;
   int stopCount = 0;
+  final List<String> callOrder = [];
 
   @override
   Stream<int> get onPlaybackCompleted => playbackCompletedController.stream;
@@ -89,8 +90,9 @@ class FakeAiAudioPlaybackService extends Fake implements AiAudioPlaybackService 
   Stream<double> get soundLevelStream => soundLevelController.stream;
 
   @override
-  void prepareNewAssistantTurn(int assistantTurnId) {
+  Future<void> prepareNewAssistantTurn(int assistantTurnId) async {
     currentTurn = assistantTurnId;
+    callOrder.add('prepare:$assistantTurnId');
   }
 
   @override
@@ -103,6 +105,7 @@ class FakeAiAudioPlaybackService extends Fake implements AiAudioPlaybackService 
     lastEnqueuedBytes = bytes;
     lastEnqueuedEnvelope = envelope;
     enqueueCount++;
+    callOrder.add('enqueue:$assistantTurnId:$sequence');
     isPlaying = true;
   }
 
@@ -113,7 +116,9 @@ class FakeAiAudioPlaybackService extends Fake implements AiAudioPlaybackService 
   }
 
   @override
-  void markStreamFinished(int assistantTurnId) {}
+  void markStreamFinished(int assistantTurnId) {
+    callOrder.add('finished:$assistantTurnId');
+  }
 
   @override
   void dispose() {
@@ -715,6 +720,27 @@ void main() {
         fakeWs.sentEvents.any((e) => e['type'] == 'session_artifacts_ack_v1'),
         isTrue,
       );
+    });
+
+    test('serializes enterAiSpeaking, enqueueChunk, and markStreamFinished when chunks arrive back-to-back', () async {
+      await controller.startCall(customCallId: 'call_serial_audio');
+      await controller.enterThinking();
+
+      fakeWs.eventController.add({
+        'type': 'ai.audio_chunk',
+        'assistant_turn_id': 1,
+        'sequence': 1,
+        'audio_base64': base64Encode([1, 2, 3, 4]),
+      });
+      fakeWs.eventController.add({
+        'type': 'ai.speech_finished',
+        'assistant_turn_id': 1,
+      });
+      await pumpEventQueue();
+
+      expect(controller.state.callState, CallState.aiSpeaking);
+      expect(fakeCapture.isCapturing, isFalse);
+      expect(fakePlayback.callOrder, ['prepare:1', 'enqueue:1:1', 'finished:1']);
     });
   });
 }
