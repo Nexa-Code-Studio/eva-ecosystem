@@ -260,5 +260,13 @@
     "updated_at": 1795823528,
     "evidence_summary": "Evidence accepted: PR and test verification documented.",
     "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/194"
+  },
+  "197": {
+    "issue": 197,
+    "branch": "fix/197-voice-playback-race",
+    "state": "In Review",
+    "updated_at": 1795828788,
+    "evidence_summary": "Evidence accepted: PR and test verification documented.",
+    "pr_url": "https://github.com/Nexa-Code-Studio/eva-ecosystem/pull/198"
   }
 }
