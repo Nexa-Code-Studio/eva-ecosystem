@@ -34,6 +34,7 @@ class AiAudioPlaybackService {
   int _currentAssistantTurnId = 0;
   int _stopEpoch = 0;
   bool _isPlaying = false;
+  bool _isAdvancingChunk = false;
   bool _isStreamFinished = false;
   DateTime? _lastChunkCompletedAt;
 
@@ -46,6 +47,7 @@ class AiAudioPlaybackService {
   Stream<double> get soundLevelStream => _soundLevelController.stream;
   bool get isPlaying => _isPlaying;
   int get currentAssistantTurnId => _currentAssistantTurnId;
+  bool isTurnCancelled(int assistantTurnId) => _cancelledTurnIds.contains(assistantTurnId);
 
   Timer? _envelopeTimer;
   final Stopwatch _playbackStopwatch = Stopwatch();
@@ -57,25 +59,37 @@ class AiAudioPlaybackService {
       _isPlaying = false;
       _lastChunkCompletedAt = DateTime.now();
 
-      // Tunggu jeda alami antar-kalimat sebelum memainkan chunk berikutnya
-      if (_queue.isNotEmpty) {
-        await Future.delayed(const Duration(milliseconds: CallConfig.interChunkPauseMs));
+      if (_queue.isEmpty) {
+        if (_isStreamFinished &&
+            epoch == _stopEpoch &&
+            !_cancelledTurnIds.contains(_currentAssistantTurnId)) {
+          _notifyCompleted();
+        }
+        return;
       }
 
-      if (epoch != _stopEpoch) return;
-      if (!_cancelledTurnIds.contains(_currentAssistantTurnId)) {
-        _playNextChunk();
+      // Tunggu jeda alami antar-kalimat sebelum memainkan chunk berikutnya tanpa race enqueueChunk
+      _isAdvancingChunk = true;
+      try {
+        await Future.delayed(const Duration(milliseconds: CallConfig.interChunkPauseMs));
+        if (epoch != _stopEpoch || _cancelledTurnIds.contains(_currentAssistantTurnId)) {
+          return;
+        }
+      } finally {
+        _isAdvancingChunk = false;
       }
+      await _playNextChunk();
     });
   }
 
   /// Start a new assistant turn playback context
-  void prepareNewAssistantTurn(int assistantTurnId) {
+  Future<void> prepareNewAssistantTurn(int assistantTurnId) async {
     if (_currentAssistantTurnId != assistantTurnId) {
-      stop();
+      await stop();
       _currentAssistantTurnId = assistantTurnId;
       _isStreamFinished = false;
       _lastChunkCompletedAt = null;
+      _isAdvancingChunk = false;
     }
   }
 
@@ -100,8 +114,8 @@ class AiAudioPlaybackService {
       envelope: envelope,
     ));
 
-    if (!_isPlaying) {
-      _playNextChunk();
+    if (!_isPlaying && !_isAdvancingChunk) {
+      unawaited(_playNextChunk());
     }
   }
 
@@ -109,13 +123,15 @@ class AiAudioPlaybackService {
   void markStreamFinished(int assistantTurnId) {
     if (assistantTurnId == _currentAssistantTurnId) {
       _isStreamFinished = true;
-      if (!_isPlaying && _queue.isEmpty) {
+      if (!_isPlaying && !_isAdvancingChunk && _queue.isEmpty) {
         _notifyCompleted();
       }
     }
   }
 
   Future<void> _playNextChunk() async {
+    if (_isPlaying || _isAdvancingChunk) return;
+
     if (_queue.isEmpty) {
       _isPlaying = false;
       if (_isStreamFinished) {
@@ -128,26 +144,27 @@ class AiAudioPlaybackService {
 
     // Check cancellation once more before playing
     if (_cancelledTurnIds.contains(nextChunk.assistantTurnId)) {
-      _playNextChunk();
+      await _playNextChunk();
       return;
     }
 
     final epoch = _stopEpoch;
-
-    // Pastikan jeda minimal antar kalimat jika chunk baru tiba terlambat
-    if (_lastChunkCompletedAt != null) {
-      final elapsed = DateTime.now().difference(_lastChunkCompletedAt!).inMilliseconds;
-      if (elapsed < CallConfig.interChunkPauseMs) {
-        await Future.delayed(Duration(milliseconds: CallConfig.interChunkPauseMs - elapsed));
-        if (epoch != _stopEpoch || _cancelledTurnIds.contains(nextChunk.assistantTurnId)) {
-          return;
-        }
-      }
-    }
-
-    if (epoch != _stopEpoch) return;
+    _isAdvancingChunk = true;
 
     try {
+      // Pastikan jeda minimal antar kalimat jika chunk baru tiba terlambat
+      if (_lastChunkCompletedAt != null) {
+        final elapsed = DateTime.now().difference(_lastChunkCompletedAt!).inMilliseconds;
+        if (elapsed < CallConfig.interChunkPauseMs) {
+          await Future.delayed(Duration(milliseconds: CallConfig.interChunkPauseMs - elapsed));
+          if (epoch != _stopEpoch || _cancelledTurnIds.contains(nextChunk.assistantTurnId)) {
+            return;
+          }
+        }
+      }
+
+      if (epoch != _stopEpoch) return;
+
       _isPlaying = true;
       debugPrint('🔊 [AUDIO PLAYING CHUNK]: Turn ${nextChunk.assistantTurnId}, Seq ${nextChunk.sequence} (${nextChunk.bytes.length} bytes, ${nextChunk.envelope.length} env points)');
       _playbackStopwatch.reset();
@@ -159,7 +176,11 @@ class AiAudioPlaybackService {
       debugPrint('⚠️ [AUDIO PLAY EXCEPTION]: $e');
       _stopEnvelopeTicker();
       _isPlaying = false;
-      _playNextChunk();
+      _isAdvancingChunk = false;
+      await _playNextChunk();
+      return;
+    } finally {
+      _isAdvancingChunk = false;
     }
   }
 
@@ -252,6 +273,7 @@ class AiAudioPlaybackService {
     }
     _queue.clear();
     _isPlaying = false;
+    _isAdvancingChunk = false;
     _isStreamFinished = false;
     _lastChunkCompletedAt = null;
 
