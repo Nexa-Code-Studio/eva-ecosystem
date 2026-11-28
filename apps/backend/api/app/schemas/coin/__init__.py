@@ -1,4 +1,5 @@
 from app.schemas.coin.requests import (
+    AdminCoinAdjustRequest,
     AdminCoinTopupRequest,
     UpdateCoinEconomyConfigRequest,
     UpsertCoinPackageRequest,
@@ -20,6 +21,7 @@ from app.schemas.coin.topup_responses import (
 )
 
 __all__ = [
+    "AdminCoinAdjustRequest",
     "AdminCoinTopupRequest",
     "CreateCoinTopupRequest",
     "UpsertCoinPackageRequest",

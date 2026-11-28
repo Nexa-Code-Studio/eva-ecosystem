@@ -2,6 +2,8 @@ from datetime import datetime
 from typing import Any
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.finances.responses import TransactionResponse
+
 
 class PsychologistProfileResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -219,4 +221,9 @@ class CounselorReviewsListResponse(BaseModel):
     items: list[CounselorReviewItemResponse] = []
     total: int = 0
     average_rating: float = 5.0
+
+
+class AdminCounselorCoinAdjustResponse(BaseModel):
+    counselor: PsychologistProfileResponse
+    transaction: TransactionResponse
 

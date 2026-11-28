@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field
+from typing import Literal
+from pydantic import BaseModel, Field, model_validator
 
 
 class AdminCoinTopupRequest(BaseModel):
@@ -7,6 +8,20 @@ class AdminCoinTopupRequest(BaseModel):
     payment_method: str = Field(..., min_length=2, max_length=50)
     package_name: str = Field(..., min_length=2, max_length=150)
     admin_notes: str | None = Field(default=None, max_length=500)
+
+
+class AdminCoinAdjustRequest(BaseModel):
+    mode: Literal["deduct", "set"]
+    amount: int = Field(..., ge=0, le=100000)
+    admin_notes: str = Field(..., min_length=3, max_length=500)
+
+    @model_validator(mode="after")
+    def _validate_adjustment(self) -> "AdminCoinAdjustRequest":
+        if self.mode == "deduct" and self.amount < 1:
+            raise ValueError("Nominal pengurangan koin minimal 1.")
+        if len(self.admin_notes.strip()) < 3:
+            raise ValueError("Catatan audit admin minimal 3 karakter.")
+        return self
 
 
 class UpsertCoinPackageRequest(BaseModel):

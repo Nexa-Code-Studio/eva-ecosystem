@@ -133,6 +133,16 @@ class FinanceService:
                 status_str = payout_status
                 bank_info = f"{snap_bank} • Rekening Terverifikasi • {snap_masked}"
                 ref_id = linked_withdrawal.reference_id if linked_withdrawal else t.reference_number
+            elif t.transaction_type == TransactionType.ADMIN_ADJUSTMENT.value:
+                patient_name = "Penyesuaian Admin"
+                session_type = t.description or "Penyesuaian Saldo Koin Admin"
+                amount = int(t.amount)
+                admin_fee = 0
+                net_earnings = int(t.amount)
+                status_str = t.status
+                payout_status = None
+                bank_info = None
+                ref_id = t.reference_number
             else:
                 patient_user = t.session.patient if t.session and t.session.patient else None
                 patient_name = patient_user.email.split("@")[0].capitalize() if patient_user else "Pasien"

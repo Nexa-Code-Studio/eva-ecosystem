@@ -1,9 +1,10 @@
+from datetime import UTC, datetime, time, timedelta, timezone
+from decimal import Decimal
 import logging
 from pathlib import Path
 import re
 from typing import Literal
 import uuid
-from datetime import UTC, datetime, time, timedelta, timezone
 
 from email_validator import EmailNotValidError, validate_email
 from fastapi import HTTPException, UploadFile, status
@@ -26,11 +27,16 @@ from app.models.enums import (
     ConsultationSessionStatus,
     PricingConfigStatus,
     PsychologistVerificationStatus,
+    TransactionStatus,
+    TransactionType,
 )
 from app.models.user import User
+from app.services.coin.adjustment import resolve_coin_adjustment_delta
 from app.services.level import LevelService
 from app.services.session.scheduling_service import SchedulingService
 from app.schemas.counselor import (
+    AdminCounselorCoinAdjustRequest,
+    AdminCounselorCoinAdjustResponse,
     CounselorDocumentItemResponse,
     PsychologistProfileResponse,
     PsychologistPublicDetailResponse,
@@ -911,21 +917,72 @@ class CounselorService:
             .order_by(CounselorTransaction.created_at.desc())
         )
         txs = list(tx_res.scalars().all())
-        return [
-            TransactionResponse(
-                id=str(tx.id),
-                patient_name=tx.description or tx.transaction_type,
-                session_type=tx.transaction_type,
-                date=tx.created_at.isoformat(),
-                amount=round(float(tx.amount)),
-                admin_fee=0,
-                net_earnings=round(float(tx.amount)),
-                status=tx.status,
-                transaction_type=tx.transaction_type,
-                reference_id=str(tx.session_id) if tx.session_id else None,
+        return [self._to_admin_transaction_response(tx) for tx in txs]
+
+    async def adjust_counselor_coins(
+        self,
+        counselor_id: uuid.UUID,
+        admin_user_id: uuid.UUID,
+        payload: AdminCounselorCoinAdjustRequest,
+    ) -> AdminCounselorCoinAdjustResponse:
+        """Add, deduct, or set a psychologist's coin wallet balance with ledger audit."""
+        res = await self.db.execute(
+            select(PsychologistProfile)
+            .where(PsychologistProfile.id == counselor_id)
+            .options(
+                selectinload(PsychologistProfile.user),
+                selectinload(PsychologistProfile.current_level),
             )
-            for tx in txs
-        ]
+            .with_for_update()
+        )
+        profile = res.scalar_one_or_none()
+        if not profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Profil psikolog tidak ditemukan.",
+            )
+
+        current_coins = round(float(profile.wallet_balance or 0))
+        delta, mode_label = resolve_coin_adjustment_delta(
+            payload.mode,
+            payload.amount,
+            current_coins,
+        )
+
+        profile.wallet_balance = (profile.wallet_balance or Decimal("0.00")) + Decimal(delta)
+        tx = CounselorTransaction(
+            counselor_id=profile.id,
+            session_id=None,
+            transaction_type=TransactionType.ADMIN_ADJUSTMENT.value,
+            status=TransactionStatus.COMPLETED.value,
+            amount=Decimal(delta),
+            description=f"[{mode_label}] {payload.admin_notes.strip()}",
+            reference_number=f"EVA-PADJ-{datetime.now(UTC).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}",
+        )
+        self.db.add(tx)
+        await self.db.commit()
+        await self.db.refresh(profile)
+        await self.db.refresh(tx)
+
+        return AdminCounselorCoinAdjustResponse(
+            counselor=self._to_profile_response(profile),
+            transaction=self._to_admin_transaction_response(tx),
+        )
+
+    @staticmethod
+    def _to_admin_transaction_response(tx: CounselorTransaction) -> TransactionResponse:
+        return TransactionResponse(
+            id=str(tx.id),
+            patient_name=tx.description or tx.transaction_type,
+            session_type=tx.transaction_type,
+            date=tx.created_at.isoformat(),
+            amount=round(float(tx.amount)),
+            admin_fee=0,
+            net_earnings=round(float(tx.amount)),
+            status=tx.status,
+            transaction_type=tx.transaction_type,
+            reference_id=tx.reference_number or (str(tx.session_id) if tx.session_id else None),
+        )
 
     _MAX_AVATAR_BYTES = 5 * 1024 * 1024
     _AVATAR_FILENAME_RE = re.compile(r"^[a-f0-9-]+-[a-f0-9]{8}\.(jpg|png|webp)$")

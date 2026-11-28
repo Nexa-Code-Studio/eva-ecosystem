@@ -12,6 +12,7 @@ import type {
   GeneralAppUser,
   PortalDatabase,
   Psychologist,
+  PsychologistCoinTransaction,
   WaitlistEntry,
 } from '@/types/domain/portal'
 
@@ -196,6 +197,44 @@ export interface AdminCoinTopupRequestDto {
 export interface AdminCoinTopupResultDto {
   user: GeneralAppUser
   transaction: CoinTopupTransaction
+}
+
+export type AdminUserCoinAdjustMode = 'deduct' | 'set'
+export type AdminPsychologistCoinAdjustMode = 'add' | 'deduct' | 'set'
+
+export interface AdminUserCoinAdjustRequestDto {
+  userId: string
+  mode: AdminUserCoinAdjustMode
+  amount: number
+  adminNotes: string
+}
+
+export interface AdminPsychologistCoinAdjustRequestDto {
+  psychologistId: string
+  mode: AdminPsychologistCoinAdjustMode
+  amount: number
+  adminNotes: string
+}
+
+export interface AdminPsychologistCoinAdjustResultDto {
+  psychologist: Psychologist
+  transaction: PsychologistCoinTransaction
+}
+
+export interface BackendCounselorTransactionItemDto {
+  id: string
+  patient_name: string
+  session_type: string
+  date: string
+  amount: number
+  status: string
+  transaction_type?: string | null
+  reference_id?: string | null
+}
+
+export interface BackendAdminCounselorCoinAdjustResponseDto {
+  counselor: BackendPsychologistProfileResponseDto
+  transaction: BackendCounselorTransactionItemDto
 }
 
 export interface BackendAdminUserDto {

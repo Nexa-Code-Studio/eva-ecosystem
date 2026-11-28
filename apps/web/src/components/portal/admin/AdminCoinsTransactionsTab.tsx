@@ -455,7 +455,9 @@ export function AdminCoinsTransactionsTab({
                         <p className="font-bold text-ink">
                           {trx.amountIdr > 0
                             ? `Rp${trx.amountIdr.toLocaleString('id-ID')}`
-                            : 'Grant Admin'}
+                            : trx.transactionType === 'admin_adjustment' || trx.coinsGranted < 0
+                              ? 'Penyesuaian Admin'
+                              : 'Grant Admin'}
                         </p>
                         <p className="text-[11px] text-ink-muted">Via {trx.paymentMethod}</p>
                       </div>
@@ -463,8 +465,16 @@ export function AdminCoinsTransactionsTab({
 
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="font-semibold text-ink">{trx.packageName}</span>
-                      <span className="inline-flex items-center gap-1 rounded-[5px] bg-[#EEF0FF] px-2 py-0.5 text-[11px] font-bold text-primary">
-                        <Coins className="size-3" aria-hidden="true" /> +{trx.coinsGranted} Koin
+                      <span
+                        className={cn(
+                          'inline-flex items-center gap-1 rounded-[5px] px-2 py-0.5 text-[11px] font-bold',
+                          trx.coinsGranted < 0
+                            ? 'bg-[#FEF2F2] text-[#B91C1C]'
+                            : 'bg-[#EEF0FF] text-primary',
+                        )}
+                      >
+                        <Coins className="size-3" aria-hidden="true" />{' '}
+                        {trx.coinsGranted > 0 ? `+${trx.coinsGranted}` : trx.coinsGranted} Koin
                       </span>
                     </div>
 
@@ -503,15 +513,26 @@ export function AdminCoinsTransactionsTab({
                         </td>
                         <td className="px-4 py-3.5">
                           <p className="font-semibold text-ink">{trx.packageName}</p>
-                          <span className="mt-0.5 inline-flex items-center gap-1 rounded-[5px] bg-[#EEF0FF] px-2 py-0.5 text-[11px] font-bold text-primary">
-                            <Coins className="size-3" aria-hidden="true" /> +{trx.coinsGranted} Koin ({trx.coinsGranted} mnt)
+                          <span
+                            className={cn(
+                              'mt-0.5 inline-flex items-center gap-1 rounded-[5px] px-2 py-0.5 text-[11px] font-bold',
+                              trx.coinsGranted < 0
+                                ? 'bg-[#FEF2F2] text-[#B91C1C]'
+                                : 'bg-[#EEF0FF] text-primary',
+                            )}
+                          >
+                            <Coins className="size-3" aria-hidden="true" />{' '}
+                            {trx.coinsGranted > 0 ? `+${trx.coinsGranted}` : trx.coinsGranted} Koin (
+                            {Math.abs(trx.coinsGranted)} mnt)
                           </span>
                         </td>
                         <td className="px-4 py-3.5">
                           <p className="font-bold text-ink">
                             {trx.amountIdr > 0
                               ? `Rp${trx.amountIdr.toLocaleString('id-ID')}`
-                              : 'Gratis (Grant Admin)'}
+                              : trx.transactionType === 'admin_adjustment' || trx.coinsGranted < 0
+                                ? 'Penyesuaian Admin'
+                                : 'Gratis (Grant Admin)'}
                           </p>
                           <p className="text-[11px] text-ink-muted">Via {trx.paymentMethod}</p>
                         </td>

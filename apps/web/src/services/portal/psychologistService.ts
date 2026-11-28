@@ -4,6 +4,8 @@ import {
 } from '@/data/mock/psychologists.mock'
 import { getActivePortalDataSource, loadPortalDb, savePortalDb } from './storage'
 import type {
+  AdminPsychologistCoinAdjustRequestDto,
+  AdminPsychologistCoinAdjustResultDto,
   RegisterPsychologistRequestDto,
   SimulateMobilePsychologistInput,
   SubmitPsychologistApplicationResultDto,
@@ -97,6 +99,12 @@ export async function fetchAdminPsychologistTransactions(
   psychologistId: string,
 ): Promise<PsychologistCoinTransaction[]> {
   return getActivePortalDataSource().fetchAdminPsychologistTransactions(psychologistId)
+}
+
+export async function adjustPsychologistCoins(
+  payload: AdminPsychologistCoinAdjustRequestDto,
+): Promise<AdminPsychologistCoinAdjustResultDto> {
+  return getActivePortalDataSource().adjustPsychologistCoins(payload)
 }
 
 export async function reviewPsychologistVerification(

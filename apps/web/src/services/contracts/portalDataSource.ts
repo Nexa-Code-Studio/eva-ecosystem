@@ -1,6 +1,9 @@
 import type {
   AdminCoinTopupRequestDto,
   AdminCoinTopupResultDto,
+  AdminPsychologistCoinAdjustRequestDto,
+  AdminPsychologistCoinAdjustResultDto,
+  AdminUserCoinAdjustRequestDto,
   CreateFaqRequestDto,
   IssueCertificateRequestDto,
   PublicFaqsResultDto,
@@ -67,6 +70,9 @@ export interface IPortalDataSource {
   registerPsychologist(payload: RegisterPsychologistRequestDto): Promise<Psychologist>
   fetchAdminPsychologists(): Promise<Psychologist[]>
   fetchAdminPsychologistTransactions(psychologistId: string): Promise<PsychologistCoinTransaction[]>
+  adjustPsychologistCoins(
+    payload: AdminPsychologistCoinAdjustRequestDto,
+  ): Promise<AdminPsychologistCoinAdjustResultDto>
   togglePsychologistDocumentVerified(
     psychologistId: string,
     docIdOrType: string,
@@ -90,6 +96,7 @@ export interface IPortalDataSource {
   fetchAdminUsers(): Promise<GeneralAppUser[]>
   fetchCoinTransactions(): Promise<CoinTopupTransaction[]>
   topUpUserCoins(payload: AdminCoinTopupRequestDto): Promise<AdminCoinTopupResultDto>
+  adjustUserCoins(payload: AdminUserCoinAdjustRequestDto): Promise<AdminCoinTopupResultDto>
   fetchCoinEconomyConfig(): Promise<CoinEconomyConfig>
   updateCoinEconomyConfig(
     updates: UpdateCoinEconomyConfigRequestDto,

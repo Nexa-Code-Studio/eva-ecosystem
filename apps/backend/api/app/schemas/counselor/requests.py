@@ -1,4 +1,5 @@
 import re
+from typing import Literal
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
 
@@ -134,3 +135,17 @@ class SubmitSessionReviewRequest(BaseModel):
     label: str | None = Field(default=None, max_length=150, description="Short review highlight label")
     review_text: str | None = Field(default=None, max_length=1000, description="Qualitative feedback comments")
     is_anonymous: bool = Field(default=True, description="Whether to hide patient identity")
+
+
+class AdminCounselorCoinAdjustRequest(BaseModel):
+    mode: Literal["add", "deduct", "set"]
+    amount: int = Field(..., ge=0, le=100000)
+    admin_notes: str = Field(..., min_length=3, max_length=500)
+
+    @model_validator(mode="after")
+    def _validate_adjustment(self) -> "AdminCounselorCoinAdjustRequest":
+        if self.mode in ("add", "deduct") and self.amount < 1:
+            raise ValueError("Nominal koin untuk tambah atau kurangi minimal 1.")
+        if len(self.admin_notes.strip()) < 3:
+            raise ValueError("Catatan audit admin minimal 3 karakter.")
+        return self

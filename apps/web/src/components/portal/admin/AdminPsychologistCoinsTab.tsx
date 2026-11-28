@@ -1,24 +1,28 @@
-import { Coins, History, Search, Stethoscope } from 'lucide-react'
+import { Coins, History, Search, SlidersHorizontal, Stethoscope } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { VerificationBadge } from '@/components/portal/PortalBadges'
 import { TablePagination } from '@/components/portal/TablePagination'
 import { useUrlPagination } from '@/hooks/useUrlPagination'
 import { cn } from '@/lib/cn'
 import type { Psychologist, VerificationStatus } from '@/types/portal'
+import { AdminCoinAdjustModal } from './AdminCoinAdjustModal'
 import { PsychologistCoinHistoryModal } from './PsychologistCoinHistoryModal'
 
 interface AdminPsychologistCoinsTabProps {
   psychologists: Psychologist[]
+  onFeedback?: (message: string) => void
 }
 
 type PsyCoinStatusFilter = 'all' | VerificationStatus
 
 export function AdminPsychologistCoinsTab({
   psychologists,
+  onFeedback,
 }: AdminPsychologistCoinsTabProps) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<PsyCoinStatusFilter>('all')
   const [selectedPsy, setSelectedPsy] = useState<Psychologist | null>(null)
+  const [adjustTargetPsy, setAdjustTargetPsy] = useState<Psychologist | null>(null)
   const tableRef = useRef<HTMLDivElement>(null)
 
   const totalCoins = useMemo(
@@ -142,19 +146,29 @@ export function AdminPsychologistCoinsTab({
                     <VerificationBadge status={psy.verificationStatus} />
                   </div>
 
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="inline-flex items-center gap-1 rounded-[6px] bg-[#EEF0FF] px-2.5 py-1 text-xs font-bold text-primary">
                       <Coins className="size-3.5" aria-hidden="true" />
                       {(psy.coinBalance ?? 0).toLocaleString('id-ID')} Koin
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedPsy(psy)}
-                      className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-xs font-semibold text-ink hover:bg-[#F8FAFC]"
-                    >
-                      <History className="size-3.5" aria-hidden="true" />
-                      <span>Riwayat Mutasi</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setAdjustTargetPsy(psy)}
+                        className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-xs font-semibold text-ink hover:bg-[#F8FAFC]"
+                      >
+                        <SlidersHorizontal className="size-3.5" aria-hidden="true" />
+                        <span>Sesuaikan</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPsy(psy)}
+                        className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-xs font-semibold text-ink hover:bg-[#F8FAFC]"
+                      >
+                        <History className="size-3.5" aria-hidden="true" />
+                        <span>Riwayat Mutasi</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -194,14 +208,24 @@ export function AdminPsychologistCoinsTab({
                         </span>
                       </td>
                       <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedPsy(psy)}
-                          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-[6px] border border-primary/30 bg-[#EEF0FF] px-3 text-xs font-semibold text-primary transition-colors hover:bg-primary hover:text-white"
-                        >
-                          <History className="size-3.5" aria-hidden="true" />
-                          <span>Riwayat Mutasi</span>
-                        </button>
+                        <div className="inline-flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setAdjustTargetPsy(psy)}
+                            className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-[6px] border border-[#CBD5E1] bg-white px-3 text-xs font-semibold text-ink transition-colors hover:bg-[#F8FAFC]"
+                          >
+                            <SlidersHorizontal className="size-3.5" aria-hidden="true" />
+                            <span>Sesuaikan</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPsy(psy)}
+                            className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-[6px] border border-primary/30 bg-[#EEF0FF] px-3 text-xs font-semibold text-primary transition-colors hover:bg-primary hover:text-white"
+                          >
+                            <History className="size-3.5" aria-hidden="true" />
+                            <span>Riwayat Mutasi</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -224,6 +248,14 @@ export function AdminPsychologistCoinsTab({
         psychologist={selectedPsy}
         isOpen={selectedPsy !== null}
         onClose={() => setSelectedPsy(null)}
+      />
+
+      <AdminCoinAdjustModal
+        key={adjustTargetPsy ? `adjust-psy-${adjustTargetPsy.id}` : 'adjust-psy-closed'}
+        isOpen={adjustTargetPsy !== null}
+        target={adjustTargetPsy ? { kind: 'psychologist', psychologist: adjustTargetPsy } : null}
+        onClose={() => setAdjustTargetPsy(null)}
+        onSuccess={(message) => onFeedback?.(message)}
       />
     </div>
   )

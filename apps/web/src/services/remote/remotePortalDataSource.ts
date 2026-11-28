@@ -35,8 +35,12 @@ import { EMPTY_PORTAL_DATABASE } from '@/services/portal/emptyDatabase'
 import type {
   AdminCoinTopupRequestDto,
   AdminCoinTopupResultDto,
+  AdminPsychologistCoinAdjustRequestDto,
+  AdminPsychologistCoinAdjustResultDto,
+  AdminUserCoinAdjustRequestDto,
   BackendAdminBoothFeedbackListDto,
   BackendAdminCoinTopupResponseDto,
+  BackendAdminCounselorCoinAdjustResponseDto,
   BackendAdminSessionDto,
   BackendAdminUserDto,
   BackendCertificateEvaluationSummaryDto,
@@ -45,6 +49,7 @@ import type {
   BackendCoinPackageDto,
   BackendCoinTransactionDto,
   BackendCounselorCertificateEligibilityDto,
+  BackendCounselorTransactionItemDto,
   BackendCrisisConfigDto,
   BackendFaqEntryDto,
   BackendFinanceSummaryDto,
@@ -349,23 +354,10 @@ export class RemotePortalDataSource implements IPortalDataSource {
     }
   }
 
-  async fetchAdminPsychologistTransactions(
-    psychologistId: string,
-  ): Promise<PsychologistCoinTransaction[]> {
-    const list = await this.requestJson<
-      Array<{
-        id: string
-        patient_name: string
-        session_type: string
-        date: string
-        amount: number
-        status: string
-        transaction_type?: string | null
-        reference_id?: string | null
-      }>
-    >(`/admin/counselors/${encodeURIComponent(psychologistId)}/transactions`)
-
-    return list.map((item) => ({
+  private mapCounselorTransactionDto(
+    item: BackendCounselorTransactionItemDto,
+  ): PsychologistCoinTransaction {
+    return {
       id: item.id,
       description: item.patient_name,
       transactionType: item.transaction_type ?? item.session_type,
@@ -373,7 +365,50 @@ export class RemotePortalDataSource implements IPortalDataSource {
       status: item.status,
       date: item.date,
       referenceId: item.reference_id ?? null,
-    }))
+    }
+  }
+
+  async fetchAdminPsychologistTransactions(
+    psychologistId: string,
+  ): Promise<PsychologistCoinTransaction[]> {
+    const list = await this.requestJson<BackendCounselorTransactionItemDto[]>(
+      `/admin/counselors/${encodeURIComponent(psychologistId)}/transactions`,
+    )
+
+    return list.map((item) => this.mapCounselorTransactionDto(item))
+  }
+
+  async adjustPsychologistCoins(
+    payload: AdminPsychologistCoinAdjustRequestDto,
+  ): Promise<AdminPsychologistCoinAdjustResultDto> {
+    const dto = await this.requestJson<BackendAdminCounselorCoinAdjustResponseDto>(
+      `/admin/counselors/${encodeURIComponent(payload.psychologistId)}/coins/adjust`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          mode: payload.mode,
+          amount: Math.trunc(payload.amount),
+          admin_notes: payload.adminNotes.trim(),
+        }),
+      },
+    )
+
+    let result!: AdminPsychologistCoinAdjustResultDto
+    this.updateSnapshot((db) => {
+      const existing = db.psychologists.find((p) => p.id === dto.counselor.id)
+      const psychologist = mapBackendPsychologistToDomain(dto.counselor, existing)
+      const transaction = this.mapCounselorTransactionDto(dto.transaction)
+
+      const idx = db.psychologists.findIndex((p) => p.id === psychologist.id)
+      if (idx === -1) {
+        db.psychologists.unshift(psychologist)
+      } else {
+        db.psychologists[idx] = psychologist
+      }
+      result = { psychologist, transaction }
+    })
+
+    return result
   }
 
   async togglePsychologistDocumentVerified(
@@ -618,6 +653,38 @@ export class RemotePortalDataSource implements IPortalDataSource {
       const transaction = mapBackendCoinTransactionToDomain(dto.transaction)
 
       this.upsertItem(db.generalUsers, updatedUser, 'start')
+      this.upsertItem(db.coinTransactions, transaction, 'start')
+      result = { user: updatedUser, transaction }
+    })
+
+    return result
+  }
+
+  async adjustUserCoins(payload: AdminUserCoinAdjustRequestDto): Promise<AdminCoinTopupResultDto> {
+    const dto = await this.requestJson<BackendAdminCoinTopupResponseDto>(
+      `/admin/users/${encodeURIComponent(payload.userId)}/coins/adjust`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          mode: payload.mode,
+          amount: Math.trunc(payload.amount),
+          admin_notes: payload.adminNotes.trim(),
+        }),
+      },
+    )
+
+    let result!: AdminCoinTopupResultDto
+    this.updateSnapshot((db) => {
+      const existing = db.generalUsers.find((u) => u.id === dto.user.id)
+      const updatedUser = mapBackendAdminUserToDomain(dto.user, existing)
+      const transaction = mapBackendCoinTransactionToDomain(dto.transaction)
+
+      const idx = db.generalUsers.findIndex((u) => u.id === updatedUser.id)
+      if (idx === -1) {
+        db.generalUsers.unshift(updatedUser)
+      } else {
+        db.generalUsers[idx] = updatedUser
+      }
       this.upsertItem(db.coinTransactions, transaction, 'start')
       result = { user: updatedUser, transaction }
     })

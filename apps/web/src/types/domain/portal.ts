@@ -172,6 +172,7 @@ export interface CoinTopupTransaction {
   userDisplayName: string
   packageId: string
   packageName: string
+  transactionType?: string
   coinsGranted: number
   amountIdr: number
   paymentMethod: CoinPaymentMethod
@@ -329,6 +330,7 @@ export interface PortalDatabase {
   issuedCertificates: IssuedPsychologistCertificate[]
   eligibleCounselorSummaries: CounselorCertificateEligibility[]
   psychologistLevels: PsychologistLevelConfig[]
+  psychologistCoinAdjustments?: Record<string, PsychologistCoinTransaction[]>
 }
 
 export interface BoothFeedbackPhoto {
