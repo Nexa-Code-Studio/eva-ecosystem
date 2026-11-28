@@ -37,12 +37,16 @@ export function PsychologistCoinHistoryModal({
   useEffect(() => {
     if (!isOpen || !psychologist) return
     let active = true
-    setIsLoading(true)
-    setErrorMsg(null)
 
-    void fetchAdminPsychologistTransactions(psychologist.id)
+    void Promise.resolve()
+      .then(() => {
+        if (!active) return null
+        setIsLoading(true)
+        setErrorMsg(null)
+        return fetchAdminPsychologistTransactions(psychologist.id)
+      })
       .then((rows) => {
-        if (active) setTransactions(rows)
+        if (active && rows) setTransactions(rows)
       })
       .catch((err: unknown) => {
         if (active) {
@@ -117,7 +121,11 @@ export function PsychologistCoinHistoryModal({
           ) : (
             <div className="divide-y divide-[#E2E8F0] rounded-[10px] border border-[#E2E8F0]">
               {transactions.map((tx) => {
-                const isEarning = tx.transactionType.toUpperCase() === 'EARNING'
+                const txTypeUpper = tx.transactionType.toUpperCase()
+                const isCredit =
+                  txTypeUpper === 'EARNING' ||
+                  (txTypeUpper === 'ADMIN_ADJUSTMENT' && tx.amount >= 0) ||
+                  (txTypeUpper !== 'WITHDRAWAL' && tx.amount > 0)
                 const isCompleted = tx.status.toUpperCase() === 'COMPLETED'
                 return (
                   <div
@@ -128,6 +136,14 @@ export function PsychologistCoinHistoryModal({
                       <p className="font-semibold text-ink">{tx.description}</p>
                       <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-ink-muted">
                         <span>{formatTxDate(tx.date)}</span>
+                        {txTypeUpper === 'ADMIN_ADJUSTMENT' && (
+                          <>
+                            <span>·</span>
+                            <span className="rounded bg-[#EEF0FF] px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                              Penyesuaian Admin
+                            </span>
+                          </>
+                        )}
                         {tx.referenceId && (
                           <>
                             <span>·</span>
@@ -151,10 +167,10 @@ export function PsychologistCoinHistoryModal({
                       <span
                         className={cn(
                           'font-mono text-xs font-bold whitespace-nowrap',
-                          isEarning ? 'text-[#166534]' : 'text-[#991B1B]',
+                          isCredit ? 'text-[#166534]' : 'text-[#991B1B]',
                         )}
                       >
-                        {isEarning ? '+' : '-'}
+                        {isCredit ? '+' : '-'}
                         {Math.abs(tx.amount).toLocaleString('id-ID')} Koin
                       </span>
                     </div>

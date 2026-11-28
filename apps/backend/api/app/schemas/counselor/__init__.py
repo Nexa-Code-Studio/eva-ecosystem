@@ -1,4 +1,5 @@
 from app.schemas.counselor.requests import (
+    AdminCounselorCoinAdjustRequest,
     DayBreakItem,
     DayScheduleConfig,
     RegisterPsychologistRequest,
@@ -14,6 +15,7 @@ from app.schemas.counselor.requests import (
     VerifyPsychologistRequest,
 )
 from app.schemas.counselor.responses import (
+    AdminCounselorCoinAdjustResponse,
     BlockedRangeItem,
     CounselorLevelMetricsResponse,
     CounselorReviewItemResponse,
@@ -48,6 +50,8 @@ __all__ = [
     "UpdateScheduleConfigRequest",
     "UpdatePricingRequest",
     "SubmitSessionReviewRequest",
+    "AdminCounselorCoinAdjustRequest",
+    "AdminCounselorCoinAdjustResponse",
     "PsychologistProfileResponse",
     "PsychologistPublicResponse",
     "PsychologistPublicDetailResponse",

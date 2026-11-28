@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Query, status
 from app.api.dependencies import get_coin_service, get_current_admin
 from app.models.user import User
 from app.schemas.coin import (
+    AdminCoinAdjustRequest,
     AdminCoinTopupRequest,
     AdminCoinTopupResultResponse,
     AdminUserSummaryResponse,
@@ -49,6 +50,17 @@ async def topup_user_coins(
 ) -> AdminCoinTopupResultResponse:
     """Credit EVA Coins to a user's wallet via conventional admin top-up (Admin)."""
     return await service.topup_user_coins(admin.id, user_id, payload)
+
+
+@router.post("/users/{user_id}/coins/adjust", response_model=AdminCoinTopupResultResponse)
+async def adjust_user_coins(
+    user_id: uuid.UUID,
+    payload: AdminCoinAdjustRequest,
+    admin: User = Depends(get_current_admin),
+    service: CoinService = Depends(get_coin_service),
+) -> AdminCoinTopupResultResponse:
+    """Deduct or set a user's EVA Coin balance and record an audit transaction (Admin)."""
+    return await service.adjust_user_coins(admin.id, user_id, payload)
 
 
 @router.get("/coins/packages", response_model=list[CoinPackageResponse])

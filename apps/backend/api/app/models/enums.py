@@ -192,6 +192,7 @@ class TransactionType(StrEnum):
     PLATFORM_FEE = "platform_fee"
     WITHDRAWAL = "withdrawal"
     REFUND = "refund"
+    ADMIN_ADJUSTMENT = "admin_adjustment"
 
 
 class TransactionStatus(StrEnum):
@@ -209,6 +210,7 @@ class CoinTransactionType(StrEnum):
     EXTENSION_DEBIT = "extension_debit"
     AI_CALL_DEBIT = "ai_call_debit"
     REFUND = "refund"
+    ADMIN_ADJUSTMENT = "admin_adjustment"
 
 
 class PricingConfigStatus(StrEnum):

@@ -9,6 +9,7 @@ from app.models.coin import CoinEconomyConfig, CoinPackage, CoinTransaction
 from app.models.enums import CoinTransactionType, TransactionStatus
 from app.models.user import User
 from app.schemas.coin import (
+    AdminCoinAdjustRequest,
     AdminCoinTopupRequest,
     AdminCoinTopupResultResponse,
     AdminUserSummaryResponse,
@@ -20,6 +21,7 @@ from app.schemas.coin import (
     UpsertCoinPackageRequest,
     UserCoinBalanceResponse,
 )
+from app.services.coin.adjustment import resolve_coin_adjustment_delta
 
 
 def format_user_code(user_id: uuid.UUID | str) -> str:
@@ -78,6 +80,7 @@ class CoinService:
                         CoinTransactionType.TOPUP_ADMIN.value,
                         CoinTransactionType.GRANT_ADMIN.value,
                         CoinTransactionType.REFUND.value,
+                        CoinTransactionType.ADMIN_ADJUSTMENT.value,
                     ]
                 )
             )
@@ -132,6 +135,63 @@ class CoinService:
             package_name=payload.package_name.strip(),
             status=TransactionStatus.COMPLETED.value,
             admin_notes=payload.admin_notes.strip() if payload.admin_notes else None,
+            completed_at=now,
+        )
+        self.db.add(tx)
+        await self.db.commit()
+        await self.db.refresh(user)
+        await self.db.refresh(tx)
+
+        return AdminCoinTopupResultResponse(
+            user=self._to_user_summary(user),
+            transaction=self._to_transaction_response(tx, user),
+        )
+
+    async def adjust_user_coins(
+        self,
+        admin_id: uuid.UUID,
+        target_user_id: uuid.UUID,
+        payload: AdminCoinAdjustRequest,
+    ) -> AdminCoinTopupResultResponse:
+        """Deduct or set a user's EVA Coin balance with an auditable ledger entry."""
+        res = await self.db.execute(
+            select(User).where(User.id == target_user_id).with_for_update()
+        )
+        user = res.scalar_one_or_none()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Akun pengguna tidak ditemukan.",
+            )
+        if user.is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tidak dapat menyesuaikan saldo akun admin.",
+            )
+
+        delta, mode_label = resolve_coin_adjustment_delta(
+            payload.mode,
+            payload.amount,
+            user.coin_balance,
+        )
+
+        now = datetime.now(UTC)
+        date_stamp = now.strftime("%Y%m%d")
+        invoice_code = f"EVA-ADJ-{date_stamp}-{uuid.uuid4().hex[:6].upper()}"
+
+        user.coin_balance += delta
+        tx = CoinTransaction(
+            invoice_code=invoice_code,
+            user_id=user.id,
+            performed_by_user_id=admin_id,
+            transaction_type=CoinTransactionType.ADMIN_ADJUSTMENT.value,
+            coins_delta=delta,
+            balance_after=user.coin_balance,
+            amount_idr=0,
+            payment_method="Penyesuaian Admin",
+            package_name=mode_label,
+            status=TransactionStatus.COMPLETED.value,
+            admin_notes=payload.admin_notes.strip(),
             completed_at=now,
         )
         self.db.add(tx)

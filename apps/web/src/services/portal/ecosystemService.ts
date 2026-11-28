@@ -2,6 +2,7 @@ import { getActivePortalDataSource, loadPortalDb, savePortalDb } from './storage
 import type {
   AdminCoinTopupRequestDto,
   AdminCoinTopupResultDto,
+  AdminUserCoinAdjustRequestDto,
   CreateFaqRequestDto,
   PublicFaqsResultDto,
   UpdateCoinEconomyConfigRequestDto,
@@ -248,5 +249,11 @@ export async function topUpUserCoins(
   payload: AdminCoinTopupRequestDto,
 ): Promise<AdminCoinTopupResultDto> {
   return getActivePortalDataSource().topUpUserCoins(payload)
+}
+
+export async function adjustUserCoins(
+  payload: AdminUserCoinAdjustRequestDto,
+): Promise<AdminCoinTopupResultDto> {
+  return getActivePortalDataSource().adjustUserCoins(payload)
 }
 

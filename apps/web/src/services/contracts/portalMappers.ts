@@ -224,8 +224,14 @@ export function mapBackendCoinTransactionToDomain(
     userId: dto.user_id,
     userCode: dto.user_code,
     userDisplayName: dto.user_display_name,
-    packageId: dto.transaction_type === 'grant_admin' ? 'admin-grant' : 'admin-topup',
+    packageId:
+      dto.transaction_type === 'grant_admin'
+        ? 'admin-grant'
+        : dto.transaction_type === 'admin_adjustment'
+          ? 'admin-adjustment'
+          : 'admin-topup',
     packageName: dto.package_name,
+    transactionType: dto.transaction_type,
     coinsGranted: dto.coins_delta,
     amountIdr: dto.amount_idr,
     paymentMethod: dto.payment_method as CoinPaymentMethod,

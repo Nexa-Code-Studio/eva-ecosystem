@@ -25,6 +25,7 @@ export {
   savePlatformPricingConfig,
 } from '@/services/portal/pricingService'
 export {
+  adjustPsychologistCoins,
   deletePsychologist,
   fetchAdminPsychologists,
   fetchAdminPsychologistTransactions,
@@ -42,6 +43,7 @@ export {
   addFaqEntry,
   addWaitlistEntry,
   adjustUserCoinBalance,
+  adjustUserCoins,
   deleteCoinPackage,
   deleteCopingQuest,
   deleteFaqEntry,

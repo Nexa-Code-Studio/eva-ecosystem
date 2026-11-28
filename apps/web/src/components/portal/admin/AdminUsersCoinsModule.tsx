@@ -1,7 +1,8 @@
-import { AlertTriangle, CheckCircle2, Coins, Plus, Search, ShieldAlert, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Coins, Plus, Search, ShieldAlert, SlidersHorizontal, XCircle } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { AdminActionConfirmModal, type ConfirmDialogTone } from './AdminActionConfirmModal'
+import { AdminCoinAdjustModal } from './AdminCoinAdjustModal'
 import { AdminCoinTopupModal } from './AdminCoinTopupModal'
 import { AdminCoinsTransactionsTab } from './AdminCoinsTransactionsTab'
 import { AdminPsychologistCoinsTab } from './AdminPsychologistCoinsTab'
@@ -138,6 +139,7 @@ export function AdminUsersCoinsModule({
   const [statusFilter, setStatusFilter] = useState<UserStatusFilter>('all')
   const [topupTargetUser, setTopupTargetUser] = useState<GeneralAppUser | null>(null)
   const [isTopupModalOpen, setIsTopupModalOpen] = useState(false)
+  const [adjustTargetUser, setAdjustTargetUser] = useState<GeneralAppUser | null>(null)
   const [pendingStatusChange, setPendingStatusChange] = useState<PendingStatusChange | null>(null)
   const usersTableCardRef = useRef<HTMLDivElement>(null)
 
@@ -288,7 +290,7 @@ export function AdminUsersCoinsModule({
       </div>
 
       {activeSubTab === 'psychologists' ? (
-        <AdminPsychologistCoinsTab psychologists={db.psychologists} />
+        <AdminPsychologistCoinsTab psychologists={db.psychologists} onFeedback={onFeedback} />
       ) : activeSubTab === 'users' ? (
         <div className="mt-5 space-y-3">
           <div
@@ -409,7 +411,7 @@ export function AdminUsersCoinsModule({
                         {usr.voiceSessionsCount} sesi suara · Streak {usr.questStreakDays} hari · Aktif {usr.lastActiveAt}
                       </p>
 
-                      <div className="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-2">
+                      <div className="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-3">
                         <button
                           type="button"
                           onClick={() => {
@@ -420,6 +422,14 @@ export function AdminUsersCoinsModule({
                         >
                           <Plus className="size-3.5" aria-hidden="true" />
                           <span>Tambah Koin</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAdjustTargetUser(usr)}
+                          className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-[8px] border border-[#CBD5E1] bg-white px-3 text-xs font-semibold text-ink hover:bg-[#F8FAFC]"
+                        >
+                          <SlidersHorizontal className="size-3.5" aria-hidden="true" />
+                          <span>Sesuaikan</span>
                         </button>
                         <div>
                           <label htmlFor={`mobile-status-${usr.id}`} className="sr-only">
@@ -511,6 +521,14 @@ export function AdminUsersCoinsModule({
                                 <Plus className="size-3.5" aria-hidden="true" />
                                 <span>Koin</span>
                               </button>
+                              <button
+                                type="button"
+                                onClick={() => setAdjustTargetUser(usr)}
+                                className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-[6px] border border-[#CBD5E1] bg-white px-2.5 text-xs font-semibold whitespace-nowrap text-ink transition-colors hover:bg-[#F8FAFC]"
+                              >
+                                <SlidersHorizontal className="size-3.5" aria-hidden="true" />
+                                <span>Sesuaikan</span>
+                              </button>
                               <select
                                 aria-label={`Ubah status ${usr.displayName}`}
                                 value={usr.accountStatus}
@@ -567,6 +585,14 @@ export function AdminUsersCoinsModule({
           setIsTopupModalOpen(false)
           setTopupTargetUser(null)
         }}
+        onSuccess={onFeedback}
+      />
+
+      <AdminCoinAdjustModal
+        key={adjustTargetUser ? `adjust-user-${adjustTargetUser.id}` : 'adjust-user-closed'}
+        isOpen={adjustTargetUser !== null}
+        target={adjustTargetUser ? { kind: 'user', user: adjustTargetUser } : null}
+        onClose={() => setAdjustTargetUser(null)}
         onSuccess={onFeedback}
       />
 

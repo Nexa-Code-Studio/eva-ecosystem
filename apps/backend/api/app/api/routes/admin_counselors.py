@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, Query
 from app.api.dependencies import get_counselor_service, get_current_admin
 from app.models.user import User
 from app.schemas.counselor import (
+    AdminCounselorCoinAdjustRequest,
+    AdminCounselorCoinAdjustResponse,
     PsychologistProfileResponse,
     ToggleDocumentVerificationRequest,
     UpdateCounselorStatusRequest,
@@ -62,3 +64,14 @@ async def list_admin_counselor_transactions(
 ) -> list[TransactionResponse]:
     """List coin earning and payout ledger transactions for a psychologist (Admin)."""
     return await service.list_counselor_transactions_for_admin(counselor_id)
+
+
+@router.post("/{counselor_id}/coins/adjust", response_model=AdminCounselorCoinAdjustResponse)
+async def adjust_admin_counselor_coins(
+    counselor_id: uuid.UUID,
+    payload: AdminCounselorCoinAdjustRequest,
+    admin: User = Depends(get_current_admin),
+    service: CounselorService = Depends(get_counselor_service),
+) -> AdminCounselorCoinAdjustResponse:
+    """Add, deduct, or set a psychologist's coin wallet balance with ledger audit (Admin)."""
+    return await service.adjust_counselor_coins(counselor_id, admin.id, payload)

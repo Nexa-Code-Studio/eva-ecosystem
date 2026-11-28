@@ -9,6 +9,7 @@ import {
   queryMockFinanceTransactions,
 } from '@/data/mock/financeMetrics.mock'
 import type { IPortalDataSource } from '@/services/contracts/portalDataSource'
+import { computeCoinAdjustmentPreview } from '@/services/contracts/coinAdjustmentUtils'
 import {
   buildDomainPsychologistFromRegister,
   normalizeVerificationStatus,
@@ -16,6 +17,9 @@ import {
 import type {
   AdminCoinTopupRequestDto,
   AdminCoinTopupResultDto,
+  AdminPsychologistCoinAdjustRequestDto,
+  AdminPsychologistCoinAdjustResultDto,
+  AdminUserCoinAdjustRequestDto,
   CreateFaqRequestDto,
   IssueCertificateRequestDto,
   PublicFaqsResultDto,
@@ -268,11 +272,13 @@ export class MockPortalDataSource implements IPortalDataSource {
   async fetchAdminPsychologistTransactions(
     psychologistId: string,
   ): Promise<PsychologistCoinTransaction[]> {
-    const psy = this.loadSnapshot().psychologists.find((p) => p.id === psychologistId)
+    const db = this.loadSnapshot()
+    const psy = db.psychologists.find((p) => p.id === psychologistId)
+    const adjustments = db.psychologistCoinAdjustments?.[psychologistId] ?? []
     if (!psy || psy.coinBalance <= 0) {
-      return []
+      return adjustments
     }
-    return [
+    const syntheticEarnings = [
       {
         id: `ctx-${psychologistId}-1`,
         description: 'Honorarium Sesi Telekonsultasi Selesai (SOAP Terverifikasi)',
@@ -292,6 +298,56 @@ export class MockPortalDataSource implements IPortalDataSource {
         referenceId: 'EVA-2026-SESS-02',
       },
     ].filter((tx) => tx.amount > 0)
+    return [...adjustments, ...syntheticEarnings]
+  }
+
+  async adjustPsychologistCoins(
+    payload: AdminPsychologistCoinAdjustRequestDto,
+  ): Promise<AdminPsychologistCoinAdjustResultDto> {
+    const db = this.loadSnapshot()
+    const idx = db.psychologists.findIndex((p) => p.id === payload.psychologistId)
+    if (idx === -1) {
+      throw new Error('Profil psikolog tidak ditemukan.')
+    }
+    const notes = payload.adminNotes.trim()
+    if (notes.length < 3) {
+      throw new Error('Catatan audit admin minimal 3 karakter.')
+    }
+
+    const currentPsy = db.psychologists[idx]
+    const preview = computeCoinAdjustmentPreview(
+      payload.mode,
+      payload.amount,
+      currentPsy.coinBalance ?? 0,
+    )
+    if (!preview.valid) {
+      throw new Error(preview.error || 'Penyesuaian koin psikolog tidak valid.')
+    }
+
+    const updatedPsy: Psychologist = {
+      ...currentPsy,
+      coinBalance: preview.nextBalance,
+    }
+    db.psychologists[idx] = updatedPsy
+
+    const now = Date.now()
+    const transaction: PsychologistCoinTransaction = {
+      id: `ctx-adj-${now}`,
+      description: `[${preview.modeLabel}] ${notes}`,
+      transactionType: 'admin_adjustment',
+      amount: preview.delta,
+      status: 'completed',
+      date: new Date(now).toISOString(),
+      referenceId: `EVA-PADJ-${now.toString().slice(-6)}`,
+    }
+
+    const prevMap = db.psychologistCoinAdjustments ?? {}
+    db.psychologistCoinAdjustments = {
+      ...prevMap,
+      [currentPsy.id]: [transaction, ...(prevMap[currentPsy.id] ?? [])],
+    }
+    this.saveSnapshot(db)
+    return { psychologist: updatedPsy, transaction }
   }
 
   async togglePsychologistDocumentVerified(
@@ -487,6 +543,58 @@ export class MockPortalDataSource implements IPortalDataSource {
         (isGrant
           ? 'Penambahan koin gratis oleh Admin EVA.'
           : `Top-up konvensional dikonfirmasi Admin EVA via ${payload.paymentMethod}.`),
+    }
+
+    db.coinTransactions.unshift(transaction)
+    this.saveSnapshot(db)
+    return { user: updatedUser, transaction }
+  }
+
+  async adjustUserCoins(payload: AdminUserCoinAdjustRequestDto): Promise<AdminCoinTopupResultDto> {
+    const db = this.loadSnapshot()
+    const idx = db.generalUsers.findIndex((u) => u.id === payload.userId)
+    if (idx === -1) {
+      throw new Error('Pengguna tidak ditemukan.')
+    }
+    const notes = payload.adminNotes.trim()
+    if (notes.length < 3) {
+      throw new Error('Catatan audit admin minimal 3 karakter.')
+    }
+
+    const currentUser = db.generalUsers[idx]
+    const preview = computeCoinAdjustmentPreview(
+      payload.mode,
+      payload.amount,
+      currentUser.coinBalance ?? 0,
+    )
+    if (!preview.valid) {
+      throw new Error(preview.error || 'Penyesuaian koin tidak valid.')
+    }
+
+    const updatedUser: GeneralAppUser = {
+      ...currentUser,
+      coinBalance: preview.nextBalance,
+    }
+    db.generalUsers[idx] = updatedUser
+
+    const nowMs = Date.now()
+    const nowStr = new Date(nowMs).toISOString().slice(0, 16).replace('T', ' ')
+    const transaction: CoinTopupTransaction = {
+      id: `trx-adj-${nowMs}`,
+      invoiceCode: `EVA-ADJ-${nowMs.toString().slice(-6)}`,
+      userId: updatedUser.id,
+      userCode: updatedUser.userCode,
+      userDisplayName: updatedUser.displayName,
+      packageId: 'admin-adjustment',
+      packageName: preview.modeLabel,
+      transactionType: 'admin_adjustment',
+      coinsGranted: preview.delta,
+      amountIdr: 0,
+      paymentMethod: 'Penyesuaian Admin' as CoinTopupTransaction['paymentMethod'],
+      status: 'completed',
+      createdAt: nowStr,
+      completedAt: nowStr,
+      adminNotes: notes,
     }
 
     db.coinTransactions.unshift(transaction)
